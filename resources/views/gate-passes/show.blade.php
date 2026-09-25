@@ -18,13 +18,63 @@
     $gatePassRecorded = $gatePass->status === 'VERIFIED';
     $gatePassRecording = $gatePass->status === 'READY_FOR_PRINTING' && $physicalReturnRecorded;
 
-    $gatePassSteps = [
-        ['label' => 'Gate Pass Prepared', 'done' => $gatePassFinalized && ! $gatePassVoided, 'current' => ! $gatePassFinalized && ! $gatePassVoided],
-        ['label' => 'Items Released', 'done' => $itemsReleased || $gatePassRecorded, 'current' => $gatePassFinalized && ! $itemsReleased && ! $gatePassRecorded],
-        ['label' => 'Physical Return Recorded', 'done' => $physicalReturnRecorded || $gatePassRecorded, 'current' => $itemsReleased && ! $physicalReturnRecorded && ! $gatePassRecorded],
-        ['label' => 'Accomplished Gate Pass Received', 'done' => $gatePassRecorded, 'current' => $physicalReturnRecorded && ! $gatePassRecorded],
-        ['label' => 'SPMU Recorded', 'done' => $gatePassRecorded, 'current' => false],
+    $gatePassStepDone = [
+        $gatePassFinalized && ! $gatePassVoided,
+        $itemsReleased || $gatePassRecorded,
+        $physicalReturnRecorded || $gatePassRecorded,
+        $gatePassRecorded,
+        $gatePassRecorded,
     ];
+
+    $gatePassSteps = [
+        [
+            'label' => 'Gate Pass Prepared',
+            'done' => $gatePassStepDone[0],
+            'current' => ! $gatePassFinalized && ! $gatePassVoided,
+            'time' => $gatePassStepDone[0] ? $gatePass->created_at : null,
+            'description' => $gatePassStepDone[0]
+                ? 'Gate Pass prepared for this off-campus transaction.'
+                : 'Gate Pass preparation is in progress.',
+        ],
+        [
+            'label' => 'Items Released',
+            'done' => $gatePassStepDone[1],
+            'current' => $gatePassFinalized && ! $itemsReleased && ! $gatePassRecorded,
+            'time' => $gatePassStepDone[1] ? $custody?->released_at : null,
+            'description' => $gatePassStepDone[1]
+                ? 'Requested items released to the borrower.'
+                : 'Waiting for the items to be released.',
+        ],
+        [
+            'label' => 'Physical Return Recorded',
+            'done' => $gatePassStepDone[2],
+            'current' => $itemsReleased && ! $physicalReturnRecorded && ! $gatePassRecorded,
+            'time' => $gatePassStepDone[2] ? $recordedReturn?->received_at : null,
+            'description' => $gatePassStepDone[2]
+                ? 'Physical return inspection recorded.'
+                : 'Waiting for the physical return to be recorded.',
+        ],
+        [
+            'label' => 'Accomplished Gate Pass Received',
+            'done' => $gatePassStepDone[3],
+            'current' => $physicalReturnRecorded && ! $gatePassRecorded,
+            'time' => $gatePassStepDone[3] ? $gatePass->uploaded_at : null,
+            'description' => $gatePassStepDone[3]
+                ? 'Accomplished Gate Pass received by SPMU.'
+                : 'Waiting for the accomplished Gate Pass to be returned.',
+        ],
+        [
+            'label' => 'SPMU Recorded',
+            'done' => $gatePassStepDone[4],
+            'current' => false,
+            'time' => $gatePassStepDone[4] ? $gatePass->verified_at : null,
+            'description' => $gatePassStepDone[4]
+                ? 'Gate Pass transaction recorded by SPMU.'
+                : 'Waiting for SPMU to record the accomplished Gate Pass.',
+        ],
+    ];
+
+    $formatGatePassStepTime = static fn ($value) => $value ? $value->format('d M Y, g:i A') : 'Pending';
 @endphp
 <section class="page-heading">
     <div>
@@ -44,7 +94,17 @@
         <article class="card gate-pass-progress-card" aria-label="Gate Pass progress">
             <div class="gate-pass-progress">
                 @foreach($gatePassSteps as $step)
-                    <div class="gate-pass-progress-step {{ $step['done'] ? 'is-done' : ($step['current'] ? 'is-current' : 'is-pending') }}">
+                    @php $gatePassStepTime = $formatGatePassStepTime($step['time']); @endphp
+                    <div
+                        class="gate-pass-progress-step workflow-tracker__interactive {{ $step['done'] ? 'is-done' : ($step['current'] ? 'is-current' : 'is-pending') }}"
+                        data-workflow-step
+                        data-workflow-title="{{ $step['label'] }}"
+                        data-workflow-meta="{{ $gatePassStepTime }}"
+                        data-workflow-description="{{ $step['description'] }}"
+                        tabindex="0"
+                        aria-label="{{ $step['label'] }}. {{ $gatePassStepTime }}. {{ $step['description'] }}"
+                        @if($step['current']) aria-current="step" @endif
+                    >
                         <span class="gate-pass-progress-dot" aria-hidden="true">{{ $step['done'] ? '✓' : $loop->iteration }}</span>
                         <span>{{ $step['label'] }}</span>
                     </div>
@@ -197,4 +257,6 @@
     .gate-pass-items-table th:last-child, .gate-pass-items-table td:last-child { width: 72px; text-align: right; }
     @media (max-width: 800px) { .gate-pass-progress { align-items: flex-start; } .gate-pass-progress-line { min-width: .75rem; } }
 </style>
+
+<x-workflow-tracker-interactions />
 @endsection

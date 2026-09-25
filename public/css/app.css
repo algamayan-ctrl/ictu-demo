@@ -538,10 +538,13 @@ small, .muted { color: var(--text-muted); }
 
 .report-table-card { overflow: hidden; }
 .report-table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
-.report-table { width: 100%; min-width: 980px; border-collapse: collapse; }
+.report-table { width: 100%; min-width: 980px; border-collapse: separate; border-spacing: 0; }
 /* Sticky theads stick to just below the sticky topbar (not to the viewport
    top), so a page header never renders partially underneath the topbar
-   once the user has scrolled the table into its sticky state. */
+   once the user has scrolled the table into its sticky state.
+   border-collapse must stay 'separate' (not 'collapse') on any table with a
+   sticky thead: browsers render a stray gap/seam at the top of a collapsed
+   table once one of its cells becomes position:sticky. */
 .report-table thead th { position: sticky; top: var(--topbar-height); z-index: 1; background: var(--surface-elevated); color: var(--heading); border-bottom: 1px solid var(--border); padding: 10px 12px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; text-align: left; }
 .report-table tbody td { padding: 9px 12px; border-top: 1px solid var(--border); color: var(--text); vertical-align: top; }
 .report-table td.numeric, .report-table th.numeric { text-align: right; font-variant-numeric: tabular-nums; }
@@ -727,7 +730,8 @@ small, .muted { color: var(--text-muted); }
 .button.ghost, .link-button { color: var(--interactive); background: transparent; border-color: transparent; }
 .button.small, button.small { min-height: 34px; padding: 6px 10px; font-size: 11px; }
 .button.full { width: 100%; }
-.button:disabled, button:disabled { cursor: not-allowed; opacity: .55; transform: none; }
+.button:disabled, button:disabled,
+.button[aria-disabled="true"], button[aria-disabled="true"] { cursor: not-allowed; opacity: .55; transform: none; }
 .status, .status-badge, .badge {
     display: inline-flex;
     max-width: 100%;
@@ -847,6 +851,11 @@ td.empty-state { height: 110px; }
 .admin-kpi-card { min-height: 132px; }
 .admin-kpi-card .dashboard-view-all { margin-top: auto; }
 .admin-table-wrap { border-radius: var(--radius); }
+/* border-collapse must stay 'separate' (not the inherited 'collapse' from
+   .table-wrap table) on any table with a sticky thead: browsers render a
+   stray gap/seam at the top of a collapsed table once one of its cells
+   becomes position:sticky. */
+.table-wrap .admin-user-table { border-collapse: separate; border-spacing: 0; }
 .admin-user-table thead th { position: sticky; top: var(--topbar-height); z-index: 1; }
 .admin-user-table td.actions-cell { width: 130px; }
 .action-group { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1617,7 +1626,7 @@ body.calendar-drawer-open { overflow: hidden; }
     border: 0 !important;
 }
 .operational-summary { margin-bottom: 14px; }
-.operational-table table { min-width: 900px; }
+.operational-table table { min-width: 900px; border-collapse: separate; border-spacing: 0; }
 .operational-table th { position: sticky; z-index: 1; top: var(--topbar-height); }
 .inventory-operations-table table { min-width: 980px; }
 .operational-quantity { margin-bottom: 5px; font-size: 25px; line-height: 1; }

@@ -592,51 +592,42 @@
             return (form.getAttribute('method') || 'GET').toUpperCase() !== 'GET';
         }
 
-        function lockForm(form, submitter) {
+        // A submit request that never navigates away (e.g. a dropped
+        // connection) would otherwise leave the form locked forever. This
+        // safety net re-enables it automatically; it never fires on a normal
+        // submission because the page has already navigated away by then.
+        const STUCK_SUBMIT_TIMEOUT_MS = 20000;
+
+        function lockForm(form) {
             form.dataset.submitLocked = '1';
             form.setAttribute('aria-busy', 'true');
 
+            // The clicked submit button keeps its normal visible label - only
+            // its interactivity is locked - and every other submit control in
+            // the same form is locked with it so a second, conflicting action
+            // cannot be started while the first is still in flight.
             form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach((control) => {
                 control.style.pointerEvents = 'none';
                 control.setAttribute('aria-disabled', 'true');
             });
 
-            if (!submitter) return;
-
-            // Some forms should keep their original action label while the
-            // duplicate-submission lock is still active (e.g. Sign in/Log out).
-            if (form.dataset.preserveSubmitLabel === 'true') return;
-
-            if (submitter.tagName === 'BUTTON') {
-                if (!submitter.dataset.originalSubmitHtml) {
-                    submitter.dataset.originalSubmitHtml = submitter.innerHTML;
-                }
-                submitter.innerHTML = 'Processing...';
-            } else if (submitter.tagName === 'INPUT' && submitter.type === 'submit') {
-                if (!submitter.dataset.originalSubmitValue) {
-                    submitter.dataset.originalSubmitValue = submitter.value;
-                }
-                submitter.value = 'Processing...';
-            }
+            form.dataset.submitLockTimer = String(window.setTimeout(() => {
+                unlockForm(form);
+            }, STUCK_SUBMIT_TIMEOUT_MS));
         }
 
         function unlockForm(form) {
             delete form.dataset.submitLocked;
             form.removeAttribute('aria-busy');
 
+            if (form.dataset.submitLockTimer) {
+                window.clearTimeout(Number(form.dataset.submitLockTimer));
+                delete form.dataset.submitLockTimer;
+            }
+
             form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach((control) => {
                 control.style.pointerEvents = '';
                 control.removeAttribute('aria-disabled');
-
-                if (control.tagName === 'BUTTON' && control.dataset.originalSubmitHtml) {
-                    control.innerHTML = control.dataset.originalSubmitHtml;
-                    delete control.dataset.originalSubmitHtml;
-                }
-
-                if (control.tagName === 'INPUT' && control.dataset.originalSubmitValue) {
-                    control.value = control.dataset.originalSubmitValue;
-                    delete control.dataset.originalSubmitValue;
-                }
             });
         }
 
@@ -660,7 +651,7 @@
                 return;
             }
 
-            lockForm(form, event.submitter || null);
+            lockForm(form);
         }, true);
 
         const observer = new MutationObserver((mutations) => {

@@ -141,14 +141,6 @@
     $isReleased =
         (bool) $releasedAt;
 
-    $allCustodyLines = $custody?->lines ?? collect();
-    $hasLinenItem = $allCustodyLines->contains(
-        fn ($line) => (bool) $line->requestItem?->inventoryItem?->laundry_required
-    );
-    $hasNonLinenItem = $allCustodyLines->contains(
-        fn ($line) => ! (bool) $line->requestItem?->inventoryItem?->laundry_required
-    );
-
     $outstandingLines = $custody?->lines?->filter(
         fn ($line) => (float) $line->returned_quantity < (float) $line->actual_released_quantity
     ) ?? collect();
@@ -402,9 +394,7 @@
             'time' => $submittedAt,
             'description' =>
                 $submittedAt
-                    ? ($requiresActionOfficerVerification
-                        ? 'Gate Pass request and required supporting documents submitted for Action Officer verification.'
-                        : 'Borrowing request and required supporting documents submitted directly for SPMU Head / Admin review.')
+                    ? 'Borrowing request submitted to SPMU.'
                     : 'Waiting for borrower submission.',
         ],
     ];
@@ -413,13 +403,17 @@
         $steps[$actionOfficerStepIndex] = [
             'label' => 'Action Officer Verification',
             'icon' => 'eye',
-            'time' => $verificationStep?->decided_at ?: $verificationStep?->received_at ?: $reviewStartedAt,
+            // No fallback to $reviewStartedAt here: until the Action Officer
+            // has actually received or decided on this step, it has not
+            // happened yet, so this must stay Pending rather than showing
+            // the (earlier) submission time as if it were this step's time.
+            'time' => $verificationStep?->decided_at ?: $verificationStep?->received_at,
             'description' => match (true) {
                 $verificationStep?->decision === 'RETURNED_FOR_REVISION'
                     => 'The Action Officer returned the Gate Pass request for correction and resubmission.',
 
                 $verificationStep?->decision === 'VERIFIED'
-                    => 'The Action Officer verified the Gate Pass request and forwarded it for final review and decision.',
+                    => 'Request verified by the SPMU Action Officer.',
 
                 $waitingForActionOfficer
                     => 'The Gate Pass request is awaiting verification by the Action Officer.',
@@ -433,19 +427,22 @@
     $steps[$headReviewStepIndex] = [
         'label' => 'SPMU Head / Admin Review',
         'icon' => 'success',
+        // No fallback to $reviewStartedAt here: until the Head/Admin has
+        // actually received or decided on this step, it has not happened
+        // yet, so this must stay Pending rather than showing the (earlier)
+        // submission time as if it were this step's time.
         'time' => $headDecisionStep?->decided_at
             ?: $approvedAt
-            ?: $headDecisionStep?->received_at
-            ?: ($requiresActionOfficerVerification ? null : $reviewStartedAt),
+            ?: $headDecisionStep?->received_at,
         'description' => match (true) {
             $headDecisionStep?->decision === 'RETURNED_FOR_REVISION'
-                => 'The SPMU Head / Admin returned the request for correction and resubmission.',
+                => 'Request returned for revision by the SPMU Head / Admin.',
 
             $statusValue === 'REJECTED'
-                => 'The SPMU Head / Admin completed the final review and rejected the request.',
+                => 'Request rejected by the SPMU Head / Admin.',
 
             $isApproved
-                => 'The SPMU Head / Admin approved the request for operational processing.',
+                => 'Request approved by the SPMU Head / Admin.',
 
             $waitingForHead && $requiresActionOfficerVerification
                 => 'The Gate Pass request was verified by the Action Officer and is awaiting the SPMU Head / Admin final decision.',
@@ -494,11 +491,7 @@
         'time' => $releasedAt,
         'description' =>
             $isReleased
-                ? match (true) {
-                    $hasLinenItem && $hasNonLinenItem => 'The approved non-linen and linen branches were physically issued through their applicable handover processes. Laundry Personnel issue linen under the printed Laundry Form; SPMU records the completed release.',
-                    $hasLinenItem => 'Laundry Personnel physically issued the linen under the printed Laundry Form and wet-signed Issued by; SPMU recorded the completed physical release.',
-                    default => 'SPMU physically released the approved items to the borrower.',
-                }
+                ? 'Requested items released to the borrower.'
                 : match (true) {
                     ! $hasActivePickupSchedule
                         => 'Pickup must be scheduled before item preparation and release.',
@@ -514,7 +507,7 @@
         'icon' => 'custody',
         'time' => $returnStartedAt,
         'description' => $physicalReturnComplete
-            ? 'The physical return was recorded. Any unresolved post-return accountability is handled in the next stage.'
+            ? 'Physical return inspection recorded.'
             : $returnDescription,
     ];
 
@@ -536,7 +529,7 @@
         'time' => $completedAt,
         'description' =>
             $isClosed
-                ? 'All return requirements were completed and the borrowing transaction was closed.'
+                ? 'Transaction completed.'
                 : 'Completed after final SPMU return reconciliation.',
     ];
 

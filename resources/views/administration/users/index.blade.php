@@ -254,10 +254,11 @@
 
 .ictu-users-table {
     width: 100%;
-    /* Lowered from 1020px so this fits within the usable content width on
-       common desktop viewports (~1280px+) without forcing horizontal
-       scroll; still wraps/scrolls normally on genuinely narrow screens. */
-    min-width: 920px;
+    /* No min-width: the table always fills its container at 100% width, so
+       it never exceeds the available desktop content width and the wrapper
+       never needs to scroll horizontally. table-layout: fixed keeps the
+       column proportions below stable and lets long cell text wrap to a
+       second line instead of overflowing. */
     table-layout: fixed;
 }
 
@@ -266,11 +267,27 @@
     vertical-align: middle;
 }
 
-.ictu-users-table th:nth-child(1) { width: 25%; }
-.ictu-users-table th:nth-child(2) { width: 14%; }
-.ictu-users-table th:nth-child(3) { width: 23%; }
-.ictu-users-table th:nth-child(4) { width: 15%; }
-.ictu-users-table th:nth-child(5) { width: 15%; }
+/* Column widths, widest to narrowest by real content need: User carries a
+   stacked name/designation/email; Office/College/Unit carries long
+   organizational names; Employee No. and Status are short values but keep
+   enough room for their own header label to stay on one line. */
+.ictu-users-table th:nth-child(1) { width: 23%; }
+.ictu-users-table th:nth-child(2) { width: 12%; }
+.ictu-users-table th:nth-child(3) { width: 26%; }
+.ictu-users-table th:nth-child(4) { width: 14%; }
+.ictu-users-table th:nth-child(5) { width: 10%; }
+
+.ictu-users-table th {
+    /* Safety net only: the widths above are sized so header labels fit on
+       one line at common desktop widths; this just prevents an unexpected
+       overflow from bleeding into the next column if one ever doesn't. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ictu-users-table td {
+    padding: 16px 18px;
+}
 
 .ictu-user-identity-cell,
 .ictu-user-unit-cell,
@@ -289,7 +306,7 @@
 .ictu-user-unit-cell > span,
 .ictu-user-access-cell > span {
     display: block;
-    margin-top: 3px;
+    margin-top: 4px;
     color: var(--text-muted, #60738a);
     font-size: .8rem;
     line-height: 1.35;
@@ -323,10 +340,11 @@
 }
 
 /* Action column: wide enough for the Manage button at its existing size,
-   so it is never clipped and sits centred with equal left/right spacing. */
+   so it is never clipped and sits centred with equal left/right spacing.
+   A percentage (not a fixed px) keeps it consistent with the other five
+   table-layout: fixed columns above, which always sum to 100%. */
 .ictu-users-table .ictu-users-action-heading {
-    width: 144px;
-    min-width: 144px;
+    width: 15%;
 }
 
 /* Scoped to the table so this outranks `.table-wrap th { text-align: left }`

@@ -1356,6 +1356,11 @@
         }
 
         confirmSubmit.disabled = true;
+        // A request that never navigates away (e.g. a dropped connection)
+        // would otherwise leave this button disabled forever; re-enable it
+        // automatically so the user can retry. This never fires on a normal
+        // submission because the page has already navigated away by then.
+        window.setTimeout(() => { confirmSubmit.disabled = false; }, 20000);
         form.submit();
     });
 

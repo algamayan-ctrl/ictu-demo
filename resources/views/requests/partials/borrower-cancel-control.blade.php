@@ -315,6 +315,12 @@ dialog[data-request-cancel-dialog] .spmu-confirm-dialog__actions .button {
 
                 hiddenReason.value = cleanReason;
                 confirm.disabled = true;
+                // A request that never navigates away (e.g. a dropped
+                // connection) would otherwise leave this button disabled
+                // forever; re-enable it automatically so the user can retry.
+                // This never fires on a normal submission because the page
+                // has already navigated away by then.
+                window.setTimeout(() => { confirm.disabled = false; }, 20000);
                 form.submit();
             };
 

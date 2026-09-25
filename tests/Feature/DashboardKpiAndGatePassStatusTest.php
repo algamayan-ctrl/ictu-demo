@@ -1285,6 +1285,67 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->assertStringNotContainsString('<h2>Active Custodies</h2>', $content, 'The panel title must not duplicate the KPI card\'s exact label.');
     }
 
+    public function test_head_dashboard_priority_actions_panel_has_a_view_all_link_like_its_sibling_panel(): void
+    {
+        $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
+        $borrower = $this->borrower();
+        $custody = $this->custody($borrower, released: true, returned: false);
+        $custody->forceFill(['due_at' => now()->addDays(2)])->save();
+
+        $response = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($head)->get(route('dashboard'));
+
+        $response->assertOk();
+        $content = $response->getContent();
+
+        // Both lower panels are the same paired component, so both must
+        // offer the same "View all" affordance - not just Custody Watch.
+        $this->assertSame(2, substr_count($content, 'class="dashboard-view-all"'), 'Both lower panels should offer a View all link.');
+        $this->assertStringContainsString('href="'.route('approvals.index').'"', $content);
+        $this->assertStringContainsString('href="'.route('custody.index').'"', $content);
+    }
+
+    public function test_action_officer_dashboard_priority_actions_panel_has_a_view_all_link_like_its_sibling_panel(): void
+    {
+        $officer = User::factory()->create(['access_classification' => AccessClassification::SpmuOfficer]);
+        $borrower = $this->borrower();
+        $custody = $this->custody($borrower, released: true, returned: false);
+        $custody->forceFill(['due_at' => now()->addDays(2)])->save();
+
+        $response = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($officer)->get(route('dashboard'));
+
+        $response->assertOk();
+        $content = $response->getContent();
+
+        $this->assertSame(2, substr_count($content, 'class="dashboard-view-all"'), 'Both lower panels should offer a View all link.');
+        $this->assertStringContainsString('href="'.route('verifications.index').'"', $content);
+        $this->assertStringContainsString('href="'.route('custody.index').'"', $content);
+    }
+
+    public function test_dashboard_lower_panels_stretch_to_equal_height_instead_of_their_own_content_height(): void
+    {
+        $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
+        $borrower = $this->borrower();
+        $custody = $this->custody($borrower, released: true, returned: false);
+        $custody->forceFill(['due_at' => now()->addDays(2)])->save();
+
+        $response = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($head)->get(route('dashboard'));
+
+        $response->assertOk();
+        $content = $response->getContent();
+
+        // The paired panels must render (queue + Custody Watch)...
+        $this->assertStringContainsString('dashboard-two-panel', $content);
+        $this->assertStringContainsString('<h2>Custody Watch</h2>', $content);
+        // ...and stay equal height (inherited align-items:stretch) rather
+        // than each sizing to its own content, which would let the shorter
+        // panel read as squeezed next to a taller sibling.
+        $this->assertDoesNotMatchRegularExpression(
+            '/\.dashboard-balanced-grid\.dashboard-two-panel\s*\{[^}]*align-items\s*:\s*start/',
+            $content,
+            'The two-panel row must not size each panel to its own content height.'
+        );
+    }
+
     public function test_normal_delivery_records_channel_filter_never_offers_sms(): void
     {
         $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);

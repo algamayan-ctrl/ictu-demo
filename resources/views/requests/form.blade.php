@@ -1428,10 +1428,10 @@
 
             @unless($hasCurrentESignature)
                 <div class="esignature-notice" role="status">
-                    <x-icon name="warning" size="19" />
+                    <x-icon name="information" size="18" />
                     <div>
-                        <strong>E-signature not registered</strong>
-                        <p>Register your E-signature in <a href="{{ route('profile.show') }}">Account Settings</a> before submission.</p>
+                        <strong>E-signature is required before submission.</strong>
+                        <p>Register your E-signature in <a href="{{ route('profile.show') }}">Account Settings</a>.</p>
                     </div>
                 </div>
             @endunless
@@ -2754,6 +2754,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // while the request is being submitted.
             submitButton.disabled = true;
         }
+
+        // A request that never navigates away (e.g. a dropped connection)
+        // would otherwise leave these buttons disabled forever; re-enable
+        // them automatically so the borrower can retry. This never fires on
+        // a normal submission because the page has already navigated away.
+        window.setTimeout(() => {
+            if (confirmSubmitButton) confirmSubmitButton.disabled = false;
+            if (submitButton) submitButton.disabled = false;
+        }, 20000);
     });
     submitDialog?.addEventListener('click', (event) => {
         if (event.target === submitDialog) {

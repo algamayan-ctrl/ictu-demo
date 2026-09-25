@@ -70,9 +70,12 @@
 .request-terms-link { color: #0f62d6; font-weight: 750; text-decoration: underline; text-underline-offset: 2px; }
 .request-terms-link:hover { text-decoration-thickness: 2px; }
 
-.esignature-notice { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 1px solid var(--warning-border); border-radius: 8px; background: var(--warning-bg); }
-.esignature-notice > .ui-icon { flex-shrink: 0; margin-top: 1px; color: var(--warning); }
-.esignature-notice strong { display: block; margin-bottom: 3px; color: var(--warning); font-size: 13px; font-weight: 700; }
+/* Guidance, not an alert: registering an E-signature is a normal setup step,
+   not an error, so this stays in the same neutral tone as .request-terms-note
+   below rather than a warning-colored callout. */
+.esignature-notice { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-subtle); }
+.esignature-notice > .ui-icon { flex-shrink: 0; margin-top: 1px; color: var(--text-muted); }
+.esignature-notice strong { display: block; margin-bottom: 3px; color: var(--heading); font-size: 13px; font-weight: 700; }
 .esignature-notice p { margin: 0; color: var(--text-secondary); font-size: 12.5px; line-height: 1.5; }
 .esignature-notice a { color: #0f62d6; font-weight: 700; }
 

@@ -166,9 +166,10 @@
     }
     .dashboard-balanced-grid.dashboard-two-panel {
         grid-template-columns:repeat(2,minmax(0,1fr));
-        /* Panels align at the top and size to their own content - a short
-           or empty panel no longer stretches to match a taller sibling. */
-        align-items:start;
+        /* Paired panels stay equal height (inherited align-items:stretch)
+           so neither reads as oversized or squeezed next to the other; the
+           shorter panel's own content stays packed at the top and any
+           extra space is absorbed below it, not by distorting either card. */
     }
     .dashboard-balanced-grid.dashboard-single-panel,
     .dashboard-balanced-grid.borrower-actions-only {
@@ -187,10 +188,10 @@
         box-shadow:var(--shadow-sm);
     }
 
-    /* Paired dashboard panels are one universal component: equal width,
-       natural height. Each card grows with its own content instead of
-       stretching to match a taller (or shrinking to match an empty)
-       sibling. */
+    /* Paired dashboard panels are one universal component: equal width and
+       equal height. Each card's own list flexes to fill that shared height,
+       so a shorter list stays packed at the top instead of stretching its
+       rows apart, and a lone empty-state centers within the extra space. */
     .dashboard-balanced-grid.dashboard-two-panel > .queue-card {
         display:flex;
         flex-direction:column;
@@ -555,6 +556,10 @@
 
             @if($dashboardMode === 'BORROWER' && (($statistics['Active Obligations'] ?? 0) > 0))
                 <a class="dashboard-view-all" href="{{ route('accountability.index') }}">My Obligations <x-icon name="arrow-right" size="16" /></a>
+            @elseif($dashboardMode === 'SPMU_OFFICER')
+                <a class="dashboard-view-all" href="{{ route('verifications.index') }}">View all <x-icon name="arrow-right" size="16" /></a>
+            @elseif($dashboardMode === 'SPMU_HEAD')
+                <a class="dashboard-view-all" href="{{ route('approvals.index') }}">View all <x-icon name="arrow-right" size="16" /></a>
             @endif
         </div>
 

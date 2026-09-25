@@ -476,6 +476,25 @@ class CustodyTransaction extends Model
     }
 
     /**
+     * True when this custody's open accountability status exists purely
+     * because SPMU has not yet recorded the accomplished Gate Pass, with no
+     * other genuine obligation (incident, billing, restriction, or overdue
+     * case) behind it. This is SPMU-internal processing, not something the
+     * borrower needs to act on or track as an obligation - callers use this
+     * to avoid presenting it as "Accountability Pending" to the borrower.
+     */
+    public function isGatePassOnlyPending(): bool
+    {
+        if ($this->activeAccountabilityIndicator() !== null) {
+            return false;
+        }
+
+        $summary = $this->openObligationSummary();
+
+        return $summary !== null && $summary['key'] === 'GATE_PASS_PENDING';
+    }
+
+    /**
      * Return one borrower/SPMU-facing lifecycle status for this custody.
      * This is the single source of truth used by list/detail pages so a
      * cancelled record cannot also appear as Completed just because closed_at

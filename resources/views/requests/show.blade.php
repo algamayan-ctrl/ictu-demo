@@ -42,6 +42,13 @@
     $detailStatusLabel = null;
     $obligationSummary = $custody?->openObligationSummary();
 
+    // SPMU still recording the accomplished Gate Pass is internal SPMU
+    // processing, not a borrower accountability obligation - never present
+    // it to the borrower as "Accountability Pending" or a dead-end link to
+    // My Obligations (which has no row for it). Non-borrower viewers still
+    // see the accurate operational status.
+    $gatePassOnlyPending = $isBorrower && ($custody?->isGatePassOnlyPending() ?? false);
+
     $isBorrowerDraftWorkflow = $isBorrower
         && in_array(
             $borrowingRequest->status,
@@ -105,6 +112,11 @@
         $custodyWorkflowStatus ??= $custody->workflowStatus();
         $detailStatus = $custodyWorkflowStatus['key'];
         $detailStatusLabel = $obligationSummary['label'] ?? $custodyWorkflowStatus['label'];
+
+        if ($gatePassOnlyPending) {
+            $detailStatus = 'GATE_PASS_PROCESSING';
+            $detailStatusLabel = 'Gate Pass Processing';
+        }
     }
 
     $pickupMissedForBorrower = $isBorrower
@@ -698,6 +710,13 @@
 <div class="borrower-progress-always" aria-label="Current request progress">
     <x-request-progress-tracker :request="$borrowingRequest" :show-current-status="false" />
 </div>
+@elseif($gatePassOnlyPending)
+<div class="content-area">
+    <div class="callout info">
+        <strong>Gate Pass Processing</strong>
+        <p>The physical return is complete. SPMU is recording the accomplished Gate Pass.</p>
+    </div>
+</div>
 @elseif($obligationSummary)
 <div class="content-area">
     <div class="callout warning">
@@ -855,17 +874,36 @@
     </article>
 
     @if($borrowingRequest->custody && $borrowingRequest->final_approved_at)
+        @php
+            // Once items are physically released, "proceed to SPMU for
+            // pickup" is stale instruction - the documents remain here only
+            // for reference from that point on.
+            $physicalReleaseComplete = (bool) $custody?->released_at;
+            $physicalReturnComplete = $physicalReleaseComplete && ! $custody->hasOutstandingProperty();
+        @endphp
         <article class="borrower-detail-card">
             <h2 class="borrower-card-title">
                 <span class="borrower-card-icon" aria-hidden="true"><x-icon name="printer" size="20" /></span>
-                Forms for Physical Processing
-                <span class="borrower-card-note">Preview and print the approved forms before pickup.</span>
+                {{ $physicalReleaseComplete ? 'Transaction Forms' : 'Forms for Physical Processing' }}
+                <span class="borrower-card-note">{{ $physicalReleaseComplete ? 'Reference copies of your transaction documents.' : 'Preview and print the approved forms before pickup.' }}</span>
             </h2>
 
-            <div class="callout info">
-                <strong>Bring the generated documents to SPMU.</strong>
-                <p>Proceed to SPMU on the scheduled pickup date with the Borrower Slip{{ $requestHasOffCampus ? ' and the generated Gate Pass for this off-campus request' : '' }}.</p>
-            </div>
+            @if(! $physicalReleaseComplete)
+                <div class="callout info">
+                    <strong>Bring the generated documents to SPMU.</strong>
+                    <p>Proceed to SPMU on the scheduled pickup date with the Borrower Slip{{ $requestHasOffCampus ? ' and the generated Gate Pass for this off-campus request' : '' }}.</p>
+                </div>
+            @elseif(! $physicalReturnComplete)
+                <div class="callout info">
+                    <strong>Documents on file.</strong>
+                    <p>These documents were used for your physical release and remain available here for reference.</p>
+                </div>
+            @else
+                <div class="callout info">
+                    <strong>Documents on file.</strong>
+                    <p>The transaction is complete. These documents remain available here for reference.</p>
+                </div>
+            @endif
 
             <div class="borrower-item-list">
                 <div class="borrower-item-row">

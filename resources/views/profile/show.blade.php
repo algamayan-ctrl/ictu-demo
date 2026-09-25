@@ -262,10 +262,6 @@
 
     .profile-signature-note {
         margin: 2px 0 0;
-        padding: 8px 10px;
-        border-left: 3px solid var(--info);
-        border-radius: 8px;
-        background: var(--surface-subtle);
         color: var(--text-muted);
         font-size: 10.5px;
         line-height: 1.45;
@@ -445,7 +441,7 @@
         <div>
             <p class="eyebrow">Account Administration</p>
             <h1>Account Settings</h1>
-            <p>Review your official account information and manage the communication, profile, signing, and display preferences available to your account.</p>
+            <p>Manage your account information, communication, profile, signing, and display preferences.</p>
         </div>
     </section>
 

@@ -444,10 +444,11 @@
         @endphp
 
         @if($custodyGroups->isEmpty())
-            <div class="empty-state">
-                <strong>No active accountability cases.</strong>
-                <span>This borrower currently has no open property or late-return accountability matter.</span>
-            </div>
+            <x-empty-state
+                icon="accountability"
+                title="No active accountability cases."
+                message="This borrower currently has no open property or late-return accountability matter."
+            />
         @else
             <div class="accountability-custody-groups">
                 @foreach($custodyGroups as $groupRecords)
@@ -942,10 +943,7 @@
 @elseif($activeTab === 'documents')
     <section role="tabpanel" aria-label="Documents" class="card accountability-document-panel">
         @if($documents->isEmpty())
-            <div class="empty-state">
-                <strong>No documents yet.</strong>
-                <span>No accountability document has been generated for this borrower.</span>
-            </div>
+            <x-empty-state icon="report-document" title="No documents yet." message="No accountability document has been generated for this borrower." />
         @else
             <div class="accountability-document-list">
                 @foreach($documents as $document)

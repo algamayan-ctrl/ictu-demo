@@ -22,9 +22,9 @@
 
     $pageCopy = match (true) {
         $isBorrower => 'Track your pickup, issued items, returns, and completed borrowings.',
-        $mode === 'release' => 'Review the automatic pickup schedule, confirm item preparation, print the required physical documents, and record the actual handover.',
+        $mode === 'release' => 'Confirm item preparation, print the required documents, and record the handover.',
         $mode === 'return' => 'Inspect physically returned items, record full-quantity accounting, monitor linen/laundry return, and complete reconciliation.',
-        $isHead => 'Monitor release preparation, active custody, return processing, overdue or unresolved cases, and completed transactions.',
+        $isHead => 'Monitor item release, active custody, returns, and overdue transactions.',
         default => null,
     };
 
@@ -46,7 +46,9 @@
 
     $borrowerFilterStatuses = $isBorrower
         ? $custodies
-            ->map(fn ($custody) => $custody->workflowStatus())
+            ->map(fn ($custody) => $custody->isGatePassOnlyPending()
+                ? ['key' => 'GATE_PASS_PROCESSING', 'label' => 'Gate Pass Processing']
+                : $custody->workflowStatus())
             ->filter(fn ($status) => ! empty($status['key']) && ! empty($status['label']))
             ->unique('key')
             ->values()
@@ -165,6 +167,10 @@
 
 @if($isOversightView)
     <div class="content-area custody-oversight" data-custody-oversight>
+        @if(($headKpiFilter ?? null) === 'active_custodies')
+            <x-filter-context-banner label="Active Custodies" :count="$custodies->count()" :clear-url="route('custody.index')" />
+        @endif
+
         @include('custody.partials.oversight-toolbar')
 
         @if($custodies->isEmpty())
@@ -231,10 +237,7 @@
 @elseif($isBorrower)
     <div class="content-area my-borrowings" data-my-borrowings>
         @if($borrowerKpiFilterLabel)
-            <div class="callout compact">
-                <span>Showing <strong>{{ $borrowerKpiFilterLabel }}</strong> ({{ $custodies->count() }}) from your dashboard.</span>
-                <a class="table-action" href="{{ route('custody.index') }}">Clear filter — show all</a>
-            </div>
+            <x-filter-context-banner :label="$borrowerKpiFilterLabel" :count="$custodies->count()" :clear-url="route('custody.index')" />
         @endif
 
         <div class="borrowings-toolbar">

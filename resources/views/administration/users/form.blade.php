@@ -8,7 +8,7 @@
     <div>
         <p class="eyebrow">ICTU identity administration</p>
         <h1>{{ $user->exists ? 'Edit institutional account' : 'Register a CSPC account' }}</h1>
-        <p>Only verified employees, faculty, and staff may be registered. The selected classification automatically controls borrowing eligibility and portal access.</p>
+        <p>Only verified employees, faculty, and staff may be registered. Classification controls borrowing eligibility and portal access.</p>
     </div>
 </section>
 

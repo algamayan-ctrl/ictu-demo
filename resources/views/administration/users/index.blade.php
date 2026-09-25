@@ -31,6 +31,14 @@
 </section>
 
 <section class="content-area ictu-users-area">
+    @if($statusFilter)
+        <x-filter-context-banner
+            :label="$statusFilter === 'active' ? 'Active Accounts' : 'Inactive Accounts'"
+            :count="$users->count()"
+            :clear-url="route('administration.users.index')"
+        />
+    @endif
+
     <div class="card ictu-users-toolbar" aria-label="User account filters">
         <div class="ictu-users-search">
             <label for="ictu-user-search">Search</label>
@@ -187,7 +195,7 @@
                 @empty
                     <tr>
                         <td colspan="6">
-                            <div class="empty-state">No institutional accounts have been registered.</div>
+                            <x-empty-state icon="users" title="No institutional accounts" message="Registered accounts will appear here." />
                         </td>
                     </tr>
                 @endforelse
@@ -196,8 +204,8 @@
     </div>
 
     @if($users->isNotEmpty())
-        <div class="card empty-state ictu-users-no-results" id="ictu-user-no-results" hidden>
-            No accounts match the selected filters.
+        <div class="card ictu-users-no-results" id="ictu-user-no-results" hidden>
+            <x-empty-state icon="search" title="No matching accounts" message="No accounts match the selected filters." />
         </div>
     @endif
 </section>
@@ -246,7 +254,10 @@
 
 .ictu-users-table {
     width: 100%;
-    min-width: 1020px;
+    /* Lowered from 1020px so this fits within the usable content width on
+       common desktop viewports (~1280px+) without forcing horizontal
+       scroll; still wraps/scrolls normally on genuinely narrow screens. */
+    min-width: 920px;
     table-layout: fixed;
 }
 

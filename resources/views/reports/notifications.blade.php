@@ -22,10 +22,50 @@
         ->sort()
         ->values();
 
+    // A FAILED row's delivery_status never changes (kept FAILED for audit),
+    // so filtering/display uses this derived category instead: it is the
+    // one place that combines channel + resolved_at into the three-way
+    // failure distinction the dashboard KPI also relies on
+    // (NotificationDelivery::scopeActionableFailures()).
+    // SMS was carried through three different legacy representations for
+    // "no provider was ever configured" before SMS support was removed
+    // entirely (an inline FAILED message, then a dedicated NOT_CONFIGURED
+    // status, then briefly SKIPPED). All three mean the same thing to a
+    // reader today and are shown as one presentational category - this
+    // never rewrites the stored delivery_status, only how it is grouped/
+    // displayed here.
+    $legacySmsNotConfiguredStatuses = ['FAILED', 'NOT_CONFIGURED', 'SKIPPED'];
+
+    $categoryFor = function ($delivery) use ($legacySmsNotConfiguredStatuses): string {
+        $channel = strtoupper((string) $delivery->channel);
+        $status = strtoupper((string) $delivery->delivery_status);
+
+        return match (true) {
+            $channel === 'SMS' && in_array($status, $legacySmsNotConfiguredStatuses, true) => 'SMS_NOT_CONFIGURED',
+            $status === 'FAILED' && $delivery->resolved_at !== null => 'HISTORICAL_FAILURE',
+            $status === 'FAILED' => 'CURRENT_FAILURE',
+            default => $status,
+        };
+    };
+
+    // "Failed"/"Historical Failure" are renamed here to "Delivery Failed"/
+    // "Historical Delivery Failed" for THIS table only - this is delivery-
+    // specific wording so a row next to an event like "Pickup Window
+    // Expired" reads as "the notification about it failed to deliver," not
+    // "the workflow event failed." Event names/statuses elsewhere are
+    // untouched.
+    $categoryLabel = function (string $category): string {
+        return match ($category) {
+            'CURRENT_FAILURE' => 'Current Delivery Failures',
+            'HISTORICAL_FAILURE' => 'Historical Delivery Failures',
+            'SMS_NOT_CONFIGURED' => 'SMS Not Configured',
+            'SENT' => 'Sent',
+            default => ucwords(strtolower(str_replace('_', ' ', $category))),
+        };
+    };
+
     $statusOptions = $deliveries
-        ->pluck('delivery_status')
-        ->filter()
-        ->map(fn ($status) => strtoupper((string) $status))
+        ->map($categoryFor)
         ->unique()
         ->sort()
         ->values();
@@ -53,17 +93,46 @@
             default => ucwords(strtolower(trim((string) $channel))),
         };
     };
+
+    // Only a prefill suggestion for the bulk-resolve note - never auto-
+    // applied, never auto-selected, never used to resolve anything by
+    // itself. The textarea stays fully editable.
+    $knownDnsErrorSignature = 'getaddrinfo for smtp.gmail.com failed';
+    $knownDnsErrorSuggestedNote = 'SMTP/DNS connectivity was verified operational. These delivery failures occurred during the same temporary DNS resolution issue and are retained for audit history.';
 @endphp
 
 <section class="page-heading notification-delivery-heading">
     <div>
         <p class="eyebrow">ICTU notification administration</p>
-        <h1>Notification Delivery</h1>
-        <p>Review system and email delivery attempts and provider responses.</p>
+        <h1>{{ $legacyView ? 'Notification Delivery — Legacy SMS Records' : 'Notification Delivery' }}</h1>
+        <p>
+            @if($legacyView)
+                Historical SMS delivery records, retained for audit only. SMS is not a supported channel.
+            @else
+                Review system and email delivery attempts and provider responses.
+            @endif
+        </p>
     </div>
+    @if($legacyView)
+        <a class="button secondary ui-pressable" href="{{ route('reports.notifications') }}"><x-icon name="arrow-left" size="17" /> Back to current records</a>
+    @else
+        <a class="button secondary ui-pressable" href="{{ route('reports.notifications', ['legacy' => 1]) }}">Show legacy SMS records</a>
+    @endif
 </section>
 
 <section class="content-area notification-delivery-area">
+    @if($legacyView)
+        <div class="filter-context-banner">
+            <span>SMS was removed as a supported notification channel. These {{ $deliveries->count() }} record{{ $deliveries->count() === 1 ? '' : 's' }} are preserved for audit only and are not part of current operational delivery.</span>
+        </div>
+    @elseif($statusFilter === 'failed')
+        <x-filter-context-banner
+            label="Failed Notifications"
+            :count="$deliveries->count()"
+            :clear-url="route('reports.notifications')"
+        />
+    @endif
+
     <div class="card notification-delivery-toolbar" aria-label="Notification delivery filters">
         <div class="notification-delivery-search">
             <label for="delivery-search">Search</label>
@@ -101,9 +170,7 @@
             <select id="delivery-status-filter">
                 <option value="ALL">All statuses</option>
                 @foreach($statusOptions as $statusOption)
-                    <option value="{{ $statusOption }}">
-                        {{ ucwords(strtolower(str_replace('_', ' ', $statusOption))) }}
-                    </option>
+                    <option value="{{ $statusOption }}">{{ $categoryLabel($statusOption) }}</option>
                 @endforeach
             </select>
         </div>
@@ -130,12 +197,51 @@
     </div>
 
     @if($deliveries->isEmpty())
-        <div class="card empty-state">No notification delivery attempts have been recorded.</div>
+        <div class="card">
+            <x-empty-state
+                icon="notifications"
+                :title="$legacyView ? 'No legacy SMS records' : 'No notification delivery attempts'"
+                :message="$legacyView ? 'No historical SMS delivery records are on file.' : 'Delivery attempts will appear here as notifications are sent.'"
+            />
+        </div>
     @else
+        @if($canResolveFailures ?? false)
+            {{--
+                Explicit bulk resolution only: ICTU checks the specific
+                Current Failure rows it wants (never pre-selected, never
+                automatic), types one required note, and submits. Checkboxes
+                live inside the table body but are associated with this form
+                via the `form` attribute since they aren't its descendants.
+            --}}
+            <form
+                id="bulk-resolve-form"
+                method="post"
+                action="{{ route('reports.notifications.resolveBulk') }}"
+                class="notification-delivery-bulk-bar"
+                hidden
+            >
+                @csrf
+                <span id="bulk-selected-count">0 selected</span>
+                <label for="bulk-resolution-note">Resolution note for selected failures</label>
+                <textarea
+                    id="bulk-resolution-note"
+                    name="resolution_note"
+                    required
+                    minlength="5"
+                    maxlength="1000"
+                    placeholder="One resolution note applied to every selected failure..."
+                ></textarea>
+                <button type="submit" class="button primary">Resolve Selected</button>
+            </form>
+        @endif
+
         <div class="table-wrap notification-delivery-table-wrap">
             <table class="notification-delivery-table">
                 <thead>
                     <tr>
+                        @if($canResolveFailures ?? false)
+                            <th class="notification-delivery-select-col">Select</th>
+                        @endif
                         <th>Time</th>
                         <th>Event</th>
                         <th>Recipient</th>
@@ -160,11 +266,21 @@
                             $attemptedAt = $delivery->attempted_at ?? $delivery->created_at;
                             $providerResponse = trim((string) $delivery->provider_response);
 
+                            $category = $categoryFor($delivery);
+                            $isCurrentFailure = $category === 'CURRENT_FAILURE';
+                            $isHistoricalFailure = $category === 'HISTORICAL_FAILURE';
+                            $isSmsNotConfigured = $category === 'SMS_NOT_CONFIGURED';
+                            $canResolveThisRow = ($canResolveFailures ?? false) && $isCurrentFailure;
+
+                            $isKnownDnsError = str_contains(strtolower($providerResponse), $knownDnsErrorSignature);
+
                             $shortResponse = match (true) {
+                                $isSmsNotConfigured => 'SMS had no configured provider when this was attempted; no delivery was ever contacted.',
+                                $isHistoricalFailure => 'Resolved by ICTU. Select View Details for the original provider error and resolution note.',
                                 $statusCode === 'SENT' && $channelCode === 'SYSTEM' => 'Stored in the in-system notification record.',
                                 $statusCode === 'SENT' && $channelCode === 'EMAIL' => 'Accepted by the configured mail transport.',
                                 $statusCode === 'SENT' && $channelCode === 'SMS' => 'Accepted by the configured SMS provider.',
-                                in_array($statusCode, ['FAILED', 'ERROR'], true) => 'Delivery attempt failed. Select View Details to review the provider response.',
+                                $isCurrentFailure => 'Delivery attempt failed. Select View Details to review the provider response.',
                                 $providerResponse !== '' => \Illuminate\Support\Str::limit($providerResponse, 72),
                                 default => 'No provider response recorded.',
                             };
@@ -177,6 +293,7 @@
                                 $channelDisplay,
                                 $channelCode,
                                 $statusCode,
+                                $category,
                                 $providerResponse,
                             ])));
                             $deliveryDetailsId = 'delivery-details-'.$delivery->id;
@@ -187,9 +304,24 @@
                             data-delivery-search="{{ $searchText }}"
                             data-delivery-date="{{ optional($attemptedAt)->format('Y-m-d') }}"
                             data-delivery-channel="{{ $channelCode }}"
-                            data-delivery-status="{{ $statusCode }}"
+                            data-delivery-status="{{ $category }}"
                             data-delivery-event="{{ $eventCode }}"
                         >
+                            @if($canResolveFailures ?? false)
+                                <td class="notification-delivery-select-col">
+                                    @if($canResolveThisRow)
+                                        <input
+                                            type="checkbox"
+                                            name="delivery_ids[]"
+                                            value="{{ $delivery->id }}"
+                                            form="bulk-resolve-form"
+                                            class="notification-delivery-select-checkbox"
+                                            data-dns-error="{{ $isKnownDnsError ? '1' : '0' }}"
+                                            aria-label="Select this failure for bulk resolution"
+                                        >
+                                    @endif
+                                </td>
+                            @endif
                             <td class="notification-delivery-time">
                                 @if($attemptedAt)
                                     <strong>{{ $attemptedAt->format('g:i A') }}</strong>
@@ -220,7 +352,15 @@
                             </td>
 
                             <td>
-                                <x-status-badge :status="$delivery->delivery_status" />
+                                @if($isSmsNotConfigured)
+                                    <x-status-badge status="NOT_CONFIGURED" label="SMS Not Configured" />
+                                @elseif($isHistoricalFailure)
+                                    <x-status-badge status="HISTORICAL_FAILURE" label="Historical Delivery Failed" />
+                                @elseif($isCurrentFailure)
+                                    <x-status-badge :status="$delivery->delivery_status" label="Delivery Failed" />
+                                @else
+                                    <x-status-badge :status="$delivery->delivery_status" />
+                                @endif
                             </td>
 
                             <td class="notification-delivery-details-cell">
@@ -245,7 +385,7 @@
                             data-delivery-details-row
                             hidden
                         >
-                            <td colspan="6">
+                            <td colspan="{{ ($canResolveFailures ?? false) ? 7 : 6 }}">
                                 <div class="notification-delivery-details-panel">
                                     <div class="notification-delivery-details-header">
                                         <div>
@@ -278,8 +418,21 @@
 
                                         <div>
                                             <dt>Status</dt>
-                                            <dd>{{ ucwords(strtolower(str_replace('_', ' ', $statusCode))) }}</dd>
+                                            <dd>
+                                                @if($isSmsNotConfigured) SMS Not Configured
+                                                @elseif($isHistoricalFailure) Historical Delivery Failed
+                                                @elseif($isCurrentFailure) Delivery Failed
+                                                @else {{ ucwords(strtolower(str_replace('_', ' ', $statusCode))) }}
+                                                @endif
+                                            </dd>
                                         </div>
+
+                                        @if($isSmsNotConfigured)
+                                            <div>
+                                                <dt>Raw Status</dt>
+                                                <dd>{{ ucwords(strtolower(str_replace('_', ' ', $statusCode))) }}</dd>
+                                            </div>
+                                        @endif
 
                                         <div>
                                             <dt>Date &amp; Time</dt>
@@ -320,7 +473,44 @@
                                                 <dd>{{ optional($delivery->event->occurred_at)->format('F j, Y • g:i:s A') ?: 'Not recorded' }}</dd>
                                             </div>
                                         @endif
+
+                                        @if($isHistoricalFailure)
+                                            <div>
+                                                <dt>Resolved by</dt>
+                                                <dd>{{ $delivery->resolvedBy?->full_name ?? 'Not recorded' }}</dd>
+                                            </div>
+
+                                            <div>
+                                                <dt>Resolved on</dt>
+                                                <dd>{{ $delivery->resolved_at?->format('F j, Y • g:i:s A') ?? 'Not recorded' }}</dd>
+                                            </div>
+
+                                            <div class="notification-delivery-detail-wide">
+                                                <dt>Resolution note</dt>
+                                                <dd>{{ $delivery->resolution_note }}</dd>
+                                            </div>
+                                        @endif
                                     </dl>
+
+                                    @if($canResolveThisRow)
+                                        <form
+                                            method="post"
+                                            action="{{ route('reports.notifications.resolve', $delivery) }}"
+                                            class="notification-delivery-resolve-form"
+                                        >
+                                            @csrf
+                                            <label for="resolution-note-{{ $delivery->id }}">Resolution note (required)</label>
+                                            <textarea
+                                                id="resolution-note-{{ $delivery->id }}"
+                                                name="resolution_note"
+                                                required
+                                                minlength="5"
+                                                maxlength="1000"
+                                                placeholder="Briefly describe how this delivery failure was investigated/resolved..."
+                                            ></textarea>
+                                            <button type="submit" class="button primary">Mark as Resolved</button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -378,7 +568,10 @@
 }
 
 .notification-delivery-table {
-    min-width: 1040px;
+    /* Lowered from 1040px so this fits within the usable content width on
+       common desktop viewports (~1280px+) without forcing horizontal
+       scroll; still scrolls normally on genuinely narrow screens. */
+    min-width: 960px;
 }
 
 .notification-delivery-table th {
@@ -524,6 +717,71 @@
 
 .notification-delivery-detail-wide {
     grid-column: 1 / -1;
+}
+
+.notification-delivery-resolve-form {
+    display: grid;
+    gap: 8px;
+    max-width: 480px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.notification-delivery-resolve-form label {
+    color: var(--text-muted, #5c7088);
+    font-size: .78rem;
+    font-weight: 800;
+}
+
+.notification-delivery-resolve-form textarea {
+    min-height: 64px;
+    resize: vertical;
+}
+
+.notification-delivery-resolve-form button {
+    justify-self: start;
+}
+
+.notification-delivery-bulk-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    background: var(--info-bg);
+    border: 1px solid var(--info-border);
+    border-radius: 8px;
+}
+
+.notification-delivery-bulk-bar[hidden] {
+    display: none;
+}
+
+.notification-delivery-bulk-bar #bulk-selected-count {
+    font-weight: 800;
+    font-size: .84rem;
+    white-space: nowrap;
+}
+
+.notification-delivery-bulk-bar label {
+    margin: 0;
+    color: var(--text-muted, #5c7088);
+    font-size: .78rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.notification-delivery-bulk-bar textarea {
+    flex: 1 1 320px;
+    min-height: 40px;
+    resize: vertical;
+}
+
+.notification-delivery-select-col {
+    width: 36px;
+    text-align: center;
 }
 
 @media (max-width: 1050px) {
@@ -722,6 +980,39 @@ document.addEventListener('DOMContentLoaded', () => {
         applyFilters();
         search?.focus();
     });
+
+    // Bulk resolution: purely a selection + prefill convenience. Nothing
+    // here resolves anything automatically - the form only submits when
+    // ICTU explicitly clicks "Resolve Selected" with a note filled in.
+    const bulkForm = document.getElementById('bulk-resolve-form');
+    const bulkCount = document.getElementById('bulk-selected-count');
+    const bulkNote = document.getElementById('bulk-resolution-note');
+    const selectCheckboxes = Array.from(document.querySelectorAll('.notification-delivery-select-checkbox'));
+
+    const updateBulkBar = () => {
+        if (!bulkForm) return;
+
+        const checked = selectCheckboxes.filter((checkbox) => checkbox.checked);
+
+        bulkForm.hidden = checked.length === 0;
+
+        if (bulkCount) {
+            bulkCount.textContent = `${checked.length} selected`;
+        }
+
+        const allKnownDnsError = checked.length > 0
+            && checked.every((checkbox) => checkbox.dataset.dnsError === '1');
+
+        if (allKnownDnsError && bulkNote && bulkNote.value.trim() === '') {
+            bulkNote.value = {{ \Illuminate\Support\Js::from($knownDnsErrorSuggestedNote) }};
+        }
+    };
+
+    selectCheckboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', updateBulkBar);
+    });
+
+    updateBulkBar();
 
     applyFilters();
 });

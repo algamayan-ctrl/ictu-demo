@@ -22,18 +22,36 @@ use Illuminate\View\View;
 
 class UserAdministrationController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $activeClassifications = array_map(
             fn (AccessClassification $classification) => $classification->value,
             AccessClassification::assignableCases(),
         );
 
+        $query = User::with(['roles', 'organizationalUnit', 'authorizedOrganizationalUnits'])
+            ->whereIn('access_classification', $activeClassifications);
+
+        /*
+         * Mirrors the dashboard's Active Accounts / Inactive Accounts KPI
+         * queries exactly, so the drilldown always shows the same subset the
+         * card counted - "inactive" is every non-ACTIVE status, not a single
+         * discrete value the client-side status filter could already select.
+         */
+        $statusFilter = null;
+        $requestedStatus = (string) $request->query('status', '');
+
+        if ($requestedStatus === 'active') {
+            $statusFilter = 'active';
+            $query->where('account_status', 'ACTIVE');
+        } elseif ($requestedStatus === 'inactive') {
+            $statusFilter = 'inactive';
+            $query->where('account_status', '!=', 'ACTIVE');
+        }
+
         return view('administration.users.index', [
-            'users' => User::with(['roles', 'organizationalUnit', 'authorizedOrganizationalUnits'])
-                ->whereIn('access_classification', $activeClassifications)
-                ->orderBy('full_name')
-                ->get(),
+            'users' => $query->orderBy('full_name')->get(),
+            'statusFilter' => $statusFilter,
         ]);
     }
 

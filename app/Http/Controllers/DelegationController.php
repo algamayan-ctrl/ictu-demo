@@ -14,10 +14,26 @@ use Illuminate\View\View;
 
 class DelegationController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $query = TemporaryDelegation::with(['absentHead', 'delegate', 'recorder'])->latest('effective_from');
+
+        // Mirrors the dashboard's Active Delegations KPI query exactly (and
+        // TemporaryDelegation::isEffective()) so the drilldown always shows
+        // the same subset the card counted.
+        $statusFilter = null;
+
+        if ((string) $request->query('status', '') === 'active') {
+            $statusFilter = 'active';
+            $query->where('status', 'ACTIVE')
+                ->whereNull('revoked_at')
+                ->where('effective_from', '<=', now())
+                ->where('effective_to', '>=', now());
+        }
+
         return view('administration.delegations', [
-            'delegations' => TemporaryDelegation::with(['absentHead', 'delegate', 'recorder'])->latest('effective_from')->get(),
+            'delegations' => $query->get(),
+            'statusFilter' => $statusFilter,
             'heads' => User::where('access_classification', AccessClassification::SpmuHead->value)->orderBy('full_name')->get(),
             'officers' => User::where('account_status', 'ACTIVE')->where('access_classification', AccessClassification::SpmuOfficer->value)->orderBy('full_name')->get(),
         ]);

@@ -621,9 +621,117 @@ class ReportController extends Controller
             ], true),
             403
         );
+
+        // SMS has no dispatch path today - the normal/current operational
+        // view never mixes its historical rows in with SYSTEM/EMAIL. A
+        // separate, explicitly-requested legacy view exists purely to
+        // preserve audit access to them (see the `legacy` param below).
+        $legacyView = $request->boolean('legacy');
+
+        $query = NotificationDelivery::query()->with(['event', 'resolvedBy'])->latest('created_at');
+
+        if ($legacyView) {
+            $query->where('channel', 'SMS');
+        } else {
+            $query->whereIn('channel', NotificationDelivery::OPERATIONAL_CHANNELS);
+        }
+
+        // Uses the same actionableFailures() scope as the dashboard's Failed
+        // Notifications KPI, and is applied before the 500-row cap so the
+        // drilldown lists the most recent actionable failures rather than
+        // whatever happens to fall in the most recent 500 deliveries of any
+        // status.
+        $statusFilter = null;
+
+        if (! $legacyView && (string) $request->query('status', '') === 'failed') {
+            $statusFilter = 'failed';
+            $query->actionableFailures();
+        }
+
         return view('reports.notifications', [
-            'deliveries' => NotificationDelivery::query()->with('event')->latest('created_at')->limit(500)->get(),
+            'deliveries' => $query->limit(500)->get(),
+            'statusFilter' => $statusFilter,
+            'canResolveFailures' => ! $legacyView && $request->user()?->access_classification === AccessClassification::IctuMaintainer,
+            'legacyView' => $legacyView,
         ]);
+    }
+
+    /**
+     * Explicit ICTU resolution of a genuine, currently-unresolved delivery
+     * failure. delivery_status stays FAILED for audit - only resolved_at /
+     * resolved_by_user_id / resolution_note are written, which is what
+     * moves the row out of actionableFailures() (the KPI/drilldown scope)
+     * and into the "Historical Failure" presentation. Never available for
+     * SMS-channel rows (never a genuine, currently-actionable delivery
+     * attempt) or for rows already resolved.
+     */
+    public function resolveNotificationFailure(Request $request, NotificationDelivery $delivery): RedirectResponse
+    {
+        abort_unless(
+            $delivery->delivery_status === 'FAILED'
+                && in_array($delivery->channel, NotificationDelivery::OPERATIONAL_CHANNELS, true)
+                && $delivery->resolved_at === null,
+            404
+        );
+
+        $data = $request->validate(['resolution_note' => ['required', 'string', 'min:5', 'max:1000']]);
+
+        $delivery->update([
+            'resolved_at' => now(),
+            'resolved_by_user_id' => $request->user()->id,
+            'resolution_note' => $data['resolution_note'],
+        ]);
+
+        app(AuditService::class)->record('NOTIFICATION_DELIVERY_FAILURE_RESOLVED', $delivery, reason: $data['resolution_note']);
+
+        return back()->with('status', 'Delivery failure marked as resolved.');
+    }
+
+    /**
+     * Bulk variant of resolveNotificationFailure() for a set of currently-
+     * unresolved operational failures sharing one root cause (e.g. the same
+     * transient DNS/SMTP error) - never an automatic/blanket resolution.
+     * ICTU explicitly selects the rows and supplies one required note,
+     * which is written identically (same resolved_at, resolved_by_user_id,
+     * resolution_note) to every selected row. Submitted ids that are not
+     * currently eligible (already resolved, SMS-channel, or not FAILED) are
+     * silently excluded via the same actionableFailures() scope rather than
+     * failing the whole batch - the UI never offers a checkbox for them in
+     * the first place, so this only guards against a manipulated request.
+     */
+    public function resolveBulkNotificationFailures(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'delivery_ids' => ['required', 'array', 'min:1'],
+            'delivery_ids.*' => ['integer'],
+            'resolution_note' => ['required', 'string', 'min:5', 'max:1000'],
+        ]);
+
+        $deliveries = NotificationDelivery::query()
+            ->whereIn('id', $data['delivery_ids'])
+            ->actionableFailures()
+            ->get();
+
+        if ($deliveries->isEmpty()) {
+            return back()->withErrors([
+                'delivery_ids' => 'None of the selected rows are eligible for resolution. Only unresolved Email/System delivery failures can be resolved.',
+            ]);
+        }
+
+        $resolvedAt = now();
+        $resolverId = $request->user()->id;
+
+        foreach ($deliveries as $delivery) {
+            $delivery->update([
+                'resolved_at' => $resolvedAt,
+                'resolved_by_user_id' => $resolverId,
+                'resolution_note' => $data['resolution_note'],
+            ]);
+
+            app(AuditService::class)->record('NOTIFICATION_DELIVERY_FAILURE_RESOLVED', $delivery, reason: $data['resolution_note']);
+        }
+
+        return back()->with('status', $deliveries->count().' delivery failure(s) marked as resolved.');
     }
 
     /** @return array{released:int,closed:int,percentage:float} */

@@ -38,6 +38,8 @@ class StatusLabels
         'VOID' => 'Voided',
         'AWAITING_ACCOMPLISHED_GATE_PASS' => 'Awaiting Accomplished Gate Pass',
         'AWAITING_PHYSICAL_RETURN' => 'Awaiting Physical Return',
+        'GATE_PASS_PROCESSING' => 'Gate Pass Processing',
+        'HISTORICAL_FAILURE' => 'Historical Delivery Failed',
         'PREPARING_RELEASE' => 'Preparing for Release',
         'RETURN_PROCESSING' => 'Return Processing',
         'OBLIGATION_OPEN' => 'Accountability Pending',

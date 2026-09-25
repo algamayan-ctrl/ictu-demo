@@ -51,7 +51,7 @@
         @if($isIctu)
             <p class="eyebrow">ICTU technical administration</p>
             <h1>System Configuration</h1>
-            <p>Manage technical services, security limits, and maintenance settings. SPMU business policies and controlled forms are managed by SPMU Admin/Head.</p>
+            <p>Manage technical services, security limits, and maintenance settings.</p>
         @else
             <p class="eyebrow">{{ $activeSectionMeta[0] ?? 'Effective operational configuration' }}</p>
             <h1>{{ $activeSectionMeta[1] ?? 'Operational Configuration' }}</h1>
@@ -230,10 +230,7 @@
         @endif
     </div>
 
-    <div class="callout compact ictu-config-boundary-note">
-        <strong>SPMU-controlled settings are intentionally excluded.</strong>
-        <span>Return rules, late fees, workflow deadlines, and sanctions remain under SPMU Admin/Head.</span>
-    </div>
+    <p class="meta ictu-config-boundary-note">SPMU-controlled settings are intentionally excluded — return rules, late fees, workflow deadlines, and sanctions remain under SPMU Admin/Head.</p>
 </section>
 @else
 
@@ -263,7 +260,7 @@
         @include('administration.partials.late-return-fee', ['setting' => $lateReturnFeeSetting])
     @else
         <section class="content-area">
-            <div class="callout">The <code>daily_overdue_tariff</code> setting is missing. Run the system setting seeder to restore it.</div>
+            <div class="callout warning">The <code>daily_overdue_tariff</code> setting is missing. Run the system setting seeder to restore it.</div>
         </section>
     @endif
 @endif

@@ -130,14 +130,30 @@
     $workflowStatus = $custody->workflowStatus();
     $operationalStatusKey = $workflowStatus['key'];
     $obligationSummary = $custody->openObligationSummary();
-    $accountabilityIndicator = in_array((string) $custody->status, ['OBLIGATION_OPEN', 'INCIDENT_OPEN'], true)
+
+    // SPMU still recording the accomplished Gate Pass is internal SPMU
+    // processing, not a borrower accountability obligation - it must never
+    // present as "Accountability Pending" or a dead-end "View Obligation"
+    // link to My Obligations (which has no row for it).
+    $gatePassOnlyPending = $custody->isGatePassOnlyPending();
+    $accountabilityIndicator = (in_array((string) $custody->status, ['OBLIGATION_OPEN', 'INCIDENT_OPEN'], true) && ! $gatePassOnlyPending)
         ? ($obligationSummary ?? ['label' => 'Accountability Pending'])
         : null;
     $operationalLabel = $workflowStatus['label'];
     $transactionFullyComplete = $operationalStatusKey === 'COMPLETED';
     $transactionCancelled = $operationalStatusKey === 'CANCELLED';
 
+    if ($isBorrower && $gatePassOnlyPending) {
+        $operationalStatusKey = 'GATE_PASS_PROCESSING';
+        $operationalLabel = 'Gate Pass Processing';
+    }
+
     [$borrowerStateTitle, $borrowerStateCopy, $borrowerStateTone] = match (true) {
+        $isBorrower && $gatePassOnlyPending => [
+            'Gate Pass Processing',
+            'The physical return is complete. SPMU is recording the accomplished Gate Pass.',
+            'info',
+        ],
         $transactionCancelled => [
             'Borrowing cancelled',
             'This borrowing was cancelled before completion. No pickup or release action is required.',

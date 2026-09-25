@@ -606,6 +606,14 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         ->middleware('workspace:SPMU,ICTU')
         ->name('reports.notifications');
 
+    Route::post('/reports/notifications/{delivery}/resolve', [ReportController::class, 'resolveNotificationFailure'])
+        ->middleware('workspace:ICTU')
+        ->name('reports.notifications.resolve');
+
+    Route::post('/reports/notifications/resolve-bulk', [ReportController::class, 'resolveBulkNotificationFailures'])
+        ->middleware('workspace:ICTU')
+        ->name('reports.notifications.resolveBulk');
+
 
     /*
     |--------------------------------------------------------------------------

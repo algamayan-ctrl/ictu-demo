@@ -11,9 +11,14 @@
     $returnDate = $version?->return_date ?: $version?->return_due_at ?: $custody->due_at;
 
     $workflowStatus = $custody->workflowStatus();
-    $operationalLabel = $workflowStatus['label'];
-    $operationalStatusKey = $workflowStatus['key'];
-    $workflowGroup = $workflowStatus['group'];
+    $gatePassOnlyPending = $custody->isGatePassOnlyPending();
+
+    // SPMU still recording the accomplished Gate Pass is internal SPMU
+    // processing, not a borrower obligation - never show it as
+    // "Accountability Pending" in the borrower's own borrowings list.
+    $operationalLabel = $gatePassOnlyPending ? 'Gate Pass Processing' : $workflowStatus['label'];
+    $operationalStatusKey = $gatePassOnlyPending ? 'GATE_PASS_PROCESSING' : $workflowStatus['key'];
+    $workflowGroup = $gatePassOnlyPending ? 'return' : $workflowStatus['group'];
     $isCompleted = $workflowGroup === 'completed';
     $isCancelled = $workflowGroup === 'cancelled';
 @endphp

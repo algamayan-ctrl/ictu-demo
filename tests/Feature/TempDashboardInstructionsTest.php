@@ -48,8 +48,8 @@ class TempDashboardInstructionsTest extends TestCase
         }
 
         // Operational content is untouched.
-        $this->assertStringContainsString('Approval Queue', $html);
-        $this->assertStringContainsString('Verified requests awaiting final approval.', $html);
+        $this->assertStringContainsString('Priority Actions', $html);
+        $this->assertStringContainsString('Verified requests awaiting your final approval.', $html);
         $this->assertStringContainsString('For Approval', $html);
         $this->assertStringContainsString('dashboard-kpi-card', $html);
         $this->assertStringContainsString('Open Approval Queue', $html);

@@ -31,13 +31,16 @@
         min-width:0;
         height:126px;
         min-height:126px;
-        padding:17px 18px 15px;
+        padding:17px 34px 15px 18px;
         overflow:hidden;
         border:1px solid var(--border);
         border-radius:12px;
         background:var(--surface-elevated);
         box-shadow:var(--shadow-sm);
-        cursor:default;
+        color:inherit;
+        text-decoration:none;
+        cursor:pointer;
+        transition:transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
     }
     .dashboard-kpi-card::before {
         content:"";
@@ -48,6 +51,34 @@
         height:3px;
         background:var(--dashboard-card-accent);
         pointer-events:none;
+    }
+    /* Every clickable KPI card shares the same hover/focus affordance and
+       arrow, regardless of role - the interaction never changes meaning. */
+    .dashboard-kpi-card:hover {
+        color:inherit;
+        border-color:var(--border-strong);
+        box-shadow:0 5px 14px rgba(7, 27, 53, .09);
+        transform:translateY(-1px);
+    }
+    .dashboard-kpi-card:focus-visible {
+        outline:none;
+        box-shadow:var(--focus-ring);
+    }
+    .dashboard-kpi-card-arrow {
+        position:absolute;
+        top:16px;
+        right:14px;
+        color:var(--text-muted);
+        opacity:.35;
+        transition:opacity 160ms ease;
+    }
+    .dashboard-kpi-card:hover .dashboard-kpi-card-arrow,
+    .dashboard-kpi-card:focus-visible .dashboard-kpi-card-arrow {
+        opacity:.85;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .dashboard-kpi-card { transition:none; }
+        .dashboard-kpi-card:hover { transform:none; }
     }
 
     .dashboard-stat-grid > .dashboard-kpi-card {
@@ -135,7 +166,9 @@
     }
     .dashboard-balanced-grid.dashboard-two-panel {
         grid-template-columns:repeat(2,minmax(0,1fr));
-        grid-auto-rows:1fr;
+        /* Panels align at the top and size to their own content - a short
+           or empty panel no longer stretches to match a taller sibling. */
+        align-items:start;
     }
     .dashboard-balanced-grid.dashboard-single-panel,
     .dashboard-balanced-grid.borrower-actions-only {
@@ -154,14 +187,13 @@
         box-shadow:var(--shadow-sm);
     }
 
-    /* Paired dashboard panels are one universal component: equal width and
-       equal height on desktop. The shorter panel stretches to the taller
-       panel, while its own rows keep their normal size. */
+    /* Paired dashboard panels are one universal component: equal width,
+       natural height. Each card grows with its own content instead of
+       stretching to match a taller (or shrinking to match an empty)
+       sibling. */
     .dashboard-balanced-grid.dashboard-two-panel > .queue-card {
         display:flex;
         flex-direction:column;
-        height:100%;
-        align-self:stretch;
     }
     .dashboard-balanced-grid.dashboard-two-panel > .queue-card > .queue-list,
     .dashboard-balanced-grid.dashboard-two-panel > .queue-card > .dashboard-watch-list {
@@ -371,7 +403,7 @@
         'BORROWER' => [
             'eyebrow' => 'Borrower Dashboard',
             'title' => 'Welcome, '.$firstName,
-            'subtitle' => 'Track your requests, pickup and return schedules, and anything that currently needs your attention.',
+            'subtitle' => 'Track your requests, pickup and return schedules, and any pending actions.',
             'taskEyebrow' => 'Required Actions',
             'taskTitle' => 'Actions Requiring Your Attention',
             'taskDescription' => 'Only transactions requiring a direct borrower response are listed in this section.',
@@ -379,7 +411,7 @@
         'SPMU_OFFICER' => [
             'eyebrow' => 'SPMU Action Officer Dashboard',
             'title' => 'Welcome, '.$firstName,
-            'subtitle' => 'Process requests pending verification and monitor approved transactions requiring release, return, or accountability action.',
+            'subtitle' => 'Process requests pending verification and monitor release, return, and accountability actions.',
             'taskEyebrow' => 'Action Queue',
             'taskTitle' => 'Verification Queue',
             'taskDescription' => 'Requests awaiting SPMU verification.',
@@ -387,10 +419,10 @@
         'SPMU_HEAD' => [
             'eyebrow' => 'SPMU Head / Administrator Dashboard',
             'title' => 'Welcome, '.$firstName,
-            'subtitle' => 'Review requests pending final approval and monitor active custody, accountability cases, borrowing restrictions, and inventory oversight.',
+            'subtitle' => 'Review requests pending final approval and monitor custody, accountability, and inventory activity.',
             'taskEyebrow' => 'Action Queue',
-            'taskTitle' => 'Approval Queue',
-            'taskDescription' => 'Verified requests awaiting final approval.',
+            'taskTitle' => 'Priority Actions',
+            'taskDescription' => 'Verified requests awaiting your final approval.',
         ],
         'ICTU' => [
             'eyebrow' => 'ICTU System Administrator Dashboard',
@@ -410,41 +442,39 @@
         ],
     };
 
+    /*
+     * Canonical KPI color semantics (one tone per card, reused everywhere):
+     * info/blue = normal active/scheduled workflow, no urgent action;
+     * warning/amber = attention or action needed, not yet overdue/failed;
+     * danger/red = overdue, failed, or genuinely critical only;
+     * success/green = healthy/active-good state; neutral/gray = inactive.
+     * Every entry here is a real, currently-emitted $statistics key - see
+     * DashboardController for the exact query each one counts.
+     */
     $statMeta = match($dashboardMode) {
         'BORROWER' => [
-            'Open Requests' => ['requests', 'info', route('requests.index'), 'Requests still in progress'],
             'Active Borrowings' => ['custody', 'info', route('custody.index', ['kpi' => 'active_borrowings']), 'Released property currently on custody'],
-            'Upcoming Pickup' => ['calendar', 'warning', route('custody.index', ['kpi' => 'upcoming_pickup']), 'Approved transactions scheduled for pickup'],
-            'Due for Return' => ['calendar', 'danger', route('custody.index', ['kpi' => 'returns_due']), 'Borrowings due for return'],
-            'Returns Due' => ['calendar', 'danger', route('custody.index', ['kpi' => 'returns_due']), 'Borrowings due for return'],
-            'Needs My Action' => ['warning', 'warning', route('dashboard').'#borrower-actions', 'Transactions requiring your response'],
+            'Upcoming Pickup' => ['calendar', 'info', route('custody.index', ['kpi' => 'upcoming_pickup']), 'Approved transactions scheduled for pickup'],
+            'Returns Due' => ['calendar', 'warning', route('custody.index', ['kpi' => 'returns_due']), 'Borrowings due for return'],
             'Active Obligations' => ['warning', 'warning', route('accountability.index'), 'Unresolved obligations'],
         ],
         'SPMU_OFFICER' => [
-            'For Verification' => ['approval', 'warning', route('verifications.index'), 'Awaiting verification'],
-            'For Pickup Scheduling' => ['calendar', 'info', route('custody.index'), 'Approved transactions requiring a pickup schedule'],
+            'For Verification' => ['approval', 'info', route('verifications.index'), 'Awaiting verification'],
             'For Release' => ['custody', 'info', route('custody.release.index'), 'Awaiting release processing'],
-            'Ready for Release' => ['custody', 'info', route('custody.index'), 'Approved property ready for physical release'],
             'For Return' => ['calendar', 'warning', route('custody.return.index'), 'Outstanding property to return'],
-            'For Return Check' => ['calendar', 'warning', route('custody.return.index'), 'Outstanding property to return'],
-            'Accountability Cases' => ['accountability', 'danger', route('accountability.index'), 'Open accountability matters'],
-            'Laundry Operations' => ['approval', 'info', route('laundry.index'), 'Linen transactions requiring SPMU processing'],
+            'Accountability Cases' => ['accountability', 'warning', route('accountability.index'), 'Open accountability matters'],
         ],
         'SPMU_HEAD' => [
-            'For Approval' => ['approval', 'warning', route('approvals.index'), 'Awaiting final approval'],
-            'Requests for Approval' => ['approval', 'warning', route('approvals.index'), 'Awaiting final approval'],
-            'Approved Today' => ['success', 'success', route('requests.index'), 'Requests approved during the current day'],
-            'Active Borrowings' => ['custody', 'info', route('custody.index'), 'Released property currently on custody'],
-            'Active Custodies' => ['custody', 'info', route('custody.index'), 'Ongoing custody transactions'],
-            'Open Accountability Cases' => ['accountability', 'danger', route('accountability.index'), 'Unresolved accountability matters'],
+            'For Approval' => ['approval', 'info', route('approvals.index'), 'Awaiting final approval'],
+            'Active Custodies' => ['custody', 'info', route('custody.index', ['kpi' => 'active_custodies']), 'Ongoing custody transactions'],
+            'Open Accountability Cases' => ['accountability', 'warning', route('accountability.index'), 'Unresolved accountability matters'],
             'Active Restrictions' => ['warning', 'warning', route('accountability.index', ['view' => 'restrictions']).'#accountability-cases-section', 'Restrictions currently in effect'],
-            'Overdue / Issues' => ['accountability', 'danger', route('accountability.index'), 'Transactions requiring accountability oversight'],
         ],
         'ICTU' => [
-            'Active Accounts' => ['users', 'success', route('administration.users.index'), 'User accounts currently enabled'],
-            'Failed Notifications' => ['notifications', 'danger', route('reports.notifications'), 'Delivery records requiring technical review'],
-            'Active Delegations' => ['delegation', 'warning', route('administration.delegations.index'), 'Temporary delegations currently in effect'],
-            'Inactive Accounts' => ['users', 'neutral', route('administration.users.index'), 'User accounts currently inactive'],
+            'Active Accounts' => ['users', 'success', route('administration.users.index', ['status' => 'active']), 'User accounts currently enabled'],
+            'Failed Notifications' => ['notifications', 'danger', route('reports.notifications', ['status' => 'failed']), 'Current delivery failures requiring technical review'],
+            'Active Delegations' => ['delegation', 'info', route('administration.delegations.index', ['status' => 'active']), 'Temporary delegations currently in effect'],
+            'Inactive Accounts' => ['users', 'neutral', route('administration.users.index', ['status' => 'inactive']), 'User accounts currently inactive'],
         ],
         default => [],
     };
@@ -482,22 +512,30 @@
                 route('dashboard'),
                 'Current system total',
             ];
-
-            /* Summary cards stay informational/non-clickable, but each metric
-               keeps its role color even at zero so the four-card visual
-               language remains consistent across Borrower, AO, and Admin. */
-            $effectiveTone = $tone;
         @endphp
-        <article class="card stat-card kpi-card dashboard-kpi-card kpi-accent-{{ $effectiveTone }}" aria-label="{{ $label }}: {{ number_format($value) }}">
+        {{--
+            Each KPI card is a drill-down: its destination always shows
+            exactly the record subset the card counted (see $statMeta's
+            routes/query params and the matching controller filters), not an
+            unfiltered list. Every role shares the same clickable treatment.
+        --}}
+        <a
+            class="card stat-card kpi-card dashboard-kpi-card kpi-accent-{{ $tone }} ui-pressable"
+            href="{{ $link }}"
+            aria-label="{{ $label }}: {{ number_format($value) }}. {{ $note }}."
+        >
             <span class="kpi-icon" aria-hidden="true"><x-icon :name="$icon" size="18" /></span>
             <span class="kpi-label">{{ $label }}</span>
             <strong class="kpi-value">{{ number_format($value) }}</strong>
             <span class="kpi-note">{{ $note }}</span>
-        </article>
+            <x-icon name="arrow-right" size="14" class="dashboard-kpi-card-arrow" />
+        </a>
     @endforeach
 </section>
 
 @php
+    // No empty second column: when there is nothing to watch, the grid
+    // stays single-panel rather than showing a contentless card.
     $showOperationalWatch = in_array($dashboardMode, ['SPMU_OFFICER', 'SPMU_HEAD'], true)
         && $nextCustodies->isNotEmpty();
 @endphp
@@ -662,32 +700,32 @@
             @empty
                 @if($dashboardMode === 'BORROWER')
                     @if($borrowerRestrictionActions->isEmpty())
-                        <div class="borrower-dash-empty">
-                            <x-icon name="check-circle" size="26" />
-                            @if(($statistics['Active Obligations'] ?? 0) > 0)
-                                <strong>No action is required from you right now.</strong>
-                                <span>Your active obligation is currently being processed. Open My Obligations to monitor its status.</span>
-                            @else
-                                <strong>No current action is required.</strong>
-                                <span>No borrowing transaction or obligation currently requires your response.</span>
-                            @endif
-                        </div>
-                    @endif
-                @else
-                    <div class="empty-state">
-                        @if($dashboardMode === 'SPMU_OFFICER')
-                            <strong>No requests awaiting verification.</strong>
-                            <span>You are all caught up.</span>
-                        @elseif($dashboardMode === 'SPMU_HEAD')
-                            <strong>No requests awaiting approval.</strong>
-                            <span>You are all caught up.</span>
-                        @elseif($dashboardMode === 'ICTU')
-                            <strong>No recent account activity.</strong>
+                        @if(($statistics['Active Obligations'] ?? 0) > 0)
+                            <x-empty-state
+                                icon="check-circle"
+                                title="No action is required from you right now."
+                                message="Your active obligation is currently being processed. Open My Obligations to monitor its status."
+                            />
                         @else
-                            <strong>No records currently require action.</strong>
-                            <span>Records requiring action under your assigned role will appear here automatically.</span>
+                            <x-empty-state
+                                icon="check-circle"
+                                title="No current action is required."
+                                message="No borrowing transaction or obligation currently requires your response."
+                            />
                         @endif
-                    </div>
+                    @endif
+                @elseif($dashboardMode === 'SPMU_OFFICER')
+                    <x-empty-state icon="check-circle" title="No requests awaiting verification." message="You are all caught up." />
+                @elseif($dashboardMode === 'SPMU_HEAD')
+                    <x-empty-state icon="check-circle" title="No requests awaiting approval." message="You are all caught up." />
+                @elseif($dashboardMode === 'ICTU')
+                    <x-empty-state icon="users" title="No recent account activity." />
+                @else
+                    <x-empty-state
+                        icon="box"
+                        title="No records currently require action."
+                        message="Records requiring action under your assigned role will appear here automatically."
+                    />
                 @endif
             @endforelse
 
@@ -718,11 +756,11 @@
             <div class="card-header">
                 <div>
                     <p class="eyebrow">{{ $dashboardMode === 'SPMU_OFFICER' ? 'Operations' : 'Custody Oversight' }}</p>
-                    <h2>{{ $dashboardMode === 'SPMU_OFFICER' ? 'Upcoming Operations' : 'Active Custodies' }}</h2>
+                    <h2>{{ $dashboardMode === 'SPMU_OFFICER' ? 'Upcoming Operations' : 'Custody Watch' }}</h2>
                     <p class="meta dashboard-role-section-note">
                         {{ $dashboardMode === 'SPMU_OFFICER'
                             ? 'Next pickup and return deadlines.'
-                            : 'Next operational deadlines for active custody.' }}
+                            : 'Nearest due/overdue active custody transactions.' }}
                     </p>
                 </div>
                 <a class="dashboard-view-all" href="{{ route('custody.index') }}">View all <x-icon name="arrow-right" size="16" /></a>
@@ -763,7 +801,7 @@
     @endif
 </section>
 
-@if($dashboardMode === 'BORROWER' && $activeRequestBars->isNotEmpty())
+@if($dashboardMode === 'BORROWER')
     <article class="borrower-dash-card" aria-labelledby="active-requests-title">
         <div class="card-header">
             <div>
@@ -773,6 +811,9 @@
             <a class="dashboard-view-all" href="{{ route('requests.index') }}">View all <x-icon name="arrow-right" size="16" /></a>
         </div>
 
+        @if($activeRequestBars->isEmpty())
+            <x-empty-state icon="requests" title="No current borrowing requests" message="Active requests will appear here once submitted." />
+        @else
             <div class="borrower-active-scroll">
                 <table class="borrower-active-table">
                     <thead>
@@ -792,14 +833,19 @@
                         $activeCustodyStatus = strtoupper((string) ($activeCustody?->status ?? ''));
                         $activeAccountability = $activeCustody?->activeAccountabilityIndicator();
                         $activeWorkflow = $activeCustody?->workflowStatus();
+                        $activeGatePassOnlyPending = $activeCustody?->isGatePassOnlyPending() ?? false;
 
                         /*
                          * Same key/label resolution as My Requests
                          * (requests/partials/my-requests-row.blade.php), so a
                          * request in a given state never reads differently on
-                         * the two pages.
+                         * the two pages. SPMU still recording the accomplished
+                         * Gate Pass is internal SPMU processing, not a
+                         * borrower obligation - never "Accountability Pending".
                          */
-                        if ($activeWorkflow) {
+                        if ($activeGatePassOnlyPending) {
+                            [$activeStateKey, $activeStateLabel] = ['GATE_PASS_PROCESSING', 'Gate Pass Processing'];
+                        } elseif ($activeWorkflow) {
                             [$activeStateKey, $activeStateLabel] = match ($activeWorkflow['key']) {
                                 'BORROWED' => ['BORROWED', 'Released / On Custody'],
                                 'RETURN_PROCESSING' => ['RETURN_PROCESSING', 'Return Processing'],
@@ -901,10 +947,11 @@
                     {{ $activeRequestTotal - $activeRequestBars->count() }} more ongoing {{ ($activeRequestTotal - $activeRequestBars->count()) === 1 ? 'request is' : 'requests are' }} available in My Requests.
                 </p>
             @endif
+        @endif
     </article>
 @endif
 
-@if($dashboardMode === 'BORROWER' && $recentBorrowerActivity->isNotEmpty())
+@if($dashboardMode === 'BORROWER')
     <article class="borrower-dash-card dashboard-recent-card" aria-labelledby="recent-borrowing-title">
         <div class="card-header">
             <div>
@@ -914,27 +961,32 @@
             <a class="dashboard-view-all" href="{{ route('requests.index') }}">View all <x-icon name="arrow-right" size="16" /></a>
         </div>
 
-        <div class="dashboard-recent-list">
-            @foreach($recentBorrowerActivity as $recentRequest)
-                @php
-                    $recentWorkflow = $recentRequest->custody?->workflowStatus();
-                    $recentStatusKey = $recentWorkflow['key'] ?? $recentRequest->status->value;
-                    $recentStatusLabel = $recentWorkflow['label'] ?? $recentRequest->status->label();
-                @endphp
-                <div class="dashboard-recent-row">
-                    <span class="dashboard-activity-icon" aria-hidden="true"><x-icon name="requests" size="17" /></span>
-                    <div class="dashboard-recent-copy">
-                        <strong>{{ $recentRequest->request_no }}</strong>
-                        <span>{{ $recentRequest->currentVersion?->purpose_event ?: 'Borrowing request' }}</span>
-                        <small>Updated {{ $recentRequest->updated_at->format('d M Y, g:i A') }}</small>
+        @if($recentBorrowerActivity->isEmpty())
+            <x-empty-state icon="clock" title="No recent borrowing activity" message="Completed or closed borrowing activity will appear here." />
+        @else
+            <div class="dashboard-recent-list">
+                @foreach($recentBorrowerActivity as $recentRequest)
+                    @php
+                        $recentWorkflow = $recentRequest->custody?->workflowStatus();
+                        $recentGatePassOnlyPending = $recentRequest->custody?->isGatePassOnlyPending() ?? false;
+                        $recentStatusKey = $recentGatePassOnlyPending ? 'GATE_PASS_PROCESSING' : ($recentWorkflow['key'] ?? $recentRequest->status->value);
+                        $recentStatusLabel = $recentGatePassOnlyPending ? 'Gate Pass Processing' : ($recentWorkflow['label'] ?? $recentRequest->status->label());
+                    @endphp
+                    <div class="dashboard-recent-row">
+                        <span class="dashboard-activity-icon" aria-hidden="true"><x-icon name="requests" size="17" /></span>
+                        <div class="dashboard-recent-copy">
+                            <strong>{{ $recentRequest->request_no }}</strong>
+                            <span>{{ $recentRequest->currentVersion?->purpose_event ?: 'Borrowing request' }}</span>
+                            <small>Updated {{ $recentRequest->updated_at->format('d M Y, g:i A') }}</small>
+                        </div>
+                        <div class="dashboard-recent-status">
+                            <x-status-badge :status="$recentStatusKey" :label="$recentStatusLabel" />
+                        </div>
+                        <a class="button secondary small ui-pressable borrower-active-action" href="{{ route('requests.show', $recentRequest) }}"><span>View</span><x-icon name="arrow-right" size="14" /></a>
                     </div>
-                    <div class="dashboard-recent-status">
-                        <x-status-badge :status="$recentStatusKey" :label="$recentStatusLabel" />
-                    </div>
-                    <a class="button secondary small ui-pressable borrower-active-action" href="{{ route('requests.show', $recentRequest) }}"><span>View</span><x-icon name="arrow-right" size="14" /></a>
-                </div>
-            @endforeach
-        </div>
+                @endforeach
+            </div>
+        @endif
     </article>
 @endif
 

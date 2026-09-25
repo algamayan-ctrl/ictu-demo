@@ -29,7 +29,7 @@
 
         <p>
             @if($isBorrower)
-                Browse items currently available for borrowing and review their use restrictions before creating a request.
+                Browse items available for borrowing and review use restrictions before requesting.
             @elseif($isInventoryAdmin)
                 Monitor stock, availability, reservations, custody, laundry, condition, and inventory records.
             @else

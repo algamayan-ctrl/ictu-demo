@@ -33,11 +33,20 @@ class CustodyController extends Controller
      */
     private const BORROWER_KPI_FILTERS = ['active_borrowings', 'upcoming_pickup', 'returns_due'];
 
+    /**
+     * The KPI value the Head/Admin dashboard's Active Custodies card can
+     * pre-filter this list to. Mirrors DashboardController's own
+     * $activeCustodies query exactly, so the drilldown is always the same
+     * record set the card counted.
+     */
+    private const HEAD_KPI_FILTERS = ['active_custodies'];
+
     public function index(Request $request): View
     {
         $query = CustodyTransaction::with(['borrower.organizationalUnit', 'request.currentVersion', 'lines.requestItem.inventoryItem', 'laundryJob.latestEvidence.file', 'incidents', 'overdueCase'])->latest();
         $isBorrower = strtoupper((string) $request->session()->get('active_workspace')) === 'BORROWER';
         $borrowerKpiFilter = null;
+        $headKpiFilter = null;
 
         if ($isBorrower) {
             $query->where('borrower_user_id', $request->user()->id);
@@ -70,11 +79,21 @@ class CustodyController extends Controller
                         ->whereBetween('due_at', [now()->startOfDay(), now()->addDay()->endOfDay()]),
                 };
             }
+        } else {
+            $requestedKpi = (string) $request->query('kpi', '');
+
+            if (in_array($requestedKpi, self::HEAD_KPI_FILTERS, true)) {
+                $headKpiFilter = $requestedKpi;
+
+                $query->whereNotNull('released_at')
+                    ->whereNotIn('status', ['CLOSED', 'CANCELLED']);
+            }
         }
 
         return view('custody.index', [
             'custodies' => $query->get(),
             'borrowerKpiFilter' => $borrowerKpiFilter,
+            'headKpiFilter' => $headKpiFilter,
         ]);
     }
 

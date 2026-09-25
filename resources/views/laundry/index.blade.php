@@ -48,7 +48,7 @@
         <div>
             <p class="eyebrow">SPMU Action Officer</p>
             <h1>Laundry Operations</h1>
-            <p>Monitor linen cases handled physically by Laundry Personnel. The accomplished physical Laundry Form is later delivered to SPMU for recording and historical retention.</p>
+            <p>Monitor linen cases handled physically by Laundry Personnel.</p>
         </div>
         <a class="button secondary ui-pressable laundry-completed-link" href="{{ route('laundry.completed') }}">
             <span>Completed Records</span>

@@ -100,17 +100,17 @@ class CalendarController extends Controller
             $isBorrower => [
                 'Borrowing Calendar',
                 'My schedule',
-                'Your requests, pickup/return dates, and SPMU operating days. Other borrowers’ request details are not shown.',
+                'Your requests, pickup/return dates, and SPMU operating days. Other borrowers’ details are not shown.',
             ],
             $isSpmuHead => [
                 'Borrowing & Operations Calendar',
                 'Institutional schedule',
-                'Institution-wide borrowing activity with the weekly transaction schedule and special-date overrides applied automatically.',
+                'Institution-wide borrowing activity and the operating-day schedule.',
             ],
             $isSpmuOfficer => [
                 'Operations Calendar',
                 'Operational schedule',
-                'Approved and released borrowings, pickup/return activity, and SPMU operating-day availability in one calendar.',
+                'Approved and released borrowings, pickup/return activity, and operating-day availability.',
             ],
             default => [
                 'Borrowing Calendar',

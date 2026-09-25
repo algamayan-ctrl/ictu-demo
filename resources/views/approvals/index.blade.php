@@ -12,8 +12,8 @@
 
             <p>
                 {{ $mode === 'ACTION_OFFICER_VERIFICATION'
-                    ? 'Verify submitted documents and request details before routing the request to the SPMU Head. Verification is not approval.'
-                    : 'Review requests routed for final decision. On-campus requests arrive directly; off-campus Gate Pass requests arrive after Action Officer verification.' }}
+                    ? 'Verify documents and request details before routing to the SPMU Head. Verification is not approval.'
+                    : 'Review requests awaiting final SPMU Head decision.' }}
             </p>
         </div>
 

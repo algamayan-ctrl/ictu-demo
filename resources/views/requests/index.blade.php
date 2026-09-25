@@ -145,6 +145,8 @@
 
         @if($isBorrower)
             <p>Review your borrowing requests, current status, required actions, and release progress.</p>
+        @else
+            <p>Review and track borrowing requests across all statuses.</p>
         @endif
     </div>
 

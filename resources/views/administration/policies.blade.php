@@ -239,11 +239,6 @@
             </a>
         </div>
     </div>
-
-    <div class="operational-config-footnote">
-        <x-icon name="lock" size="18" />
-        <span>User accounts and access administration are managed by ICTU.</span>
-    </div>
 </section>
 @endif
 
@@ -896,8 +891,6 @@
 .operational-config-card-chevron{flex-shrink:0;color:var(--text-secondary);transition:color .16s ease,transform .16s ease}
 .operational-config-card:hover,.operational-config-card:focus-visible{border-color:var(--config-blue);transform:translateY(-1px);box-shadow:0 8px 18px rgba(15,55,95,.09)}
 .operational-config-card:hover .operational-config-card-chevron,.operational-config-card:focus-visible .operational-config-card-chevron{color:var(--config-blue);transform:translateX(2px)}
-.operational-config-footnote{display:flex;align-items:center;gap:11px;margin-top:4px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface-elevated);color:var(--text-secondary);font-size:12.5px}
-.operational-config-footnote>.ui-icon{flex-shrink:0;color:var(--text-muted)}
 .sanction-policy-required{margin:-6px 0 14px;padding:9px 10px;border:1px solid var(--warning-border,#e7c875);border-radius:8px;background:var(--warning-bg,#fff8e4);color:var(--text-secondary);font-size:11.5px;font-weight:750;line-height:1.45}
 html[data-theme="dark"] .operational-config-hub{--config-blue:#4a8ff7}
 @media(prefers-reduced-motion:reduce){.operational-config-card,.operational-config-card-chevron{transition:none}}

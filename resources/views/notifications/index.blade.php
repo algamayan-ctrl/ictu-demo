@@ -53,7 +53,7 @@
             @if(!$notification->read_at)<form method="post" action="{{ route('notifications.read',$notification) }}">@csrf<button class="button ghost small">Mark as read</button></form>@endif
         </article>
     @empty
-        <div class="empty-state borrower-empty-state"><div><strong>No notifications yet.</strong><span>Updates addressed to your account will appear here.</span></div></div>
+        <x-empty-state icon="notifications" title="No notifications yet." message="Updates addressed to your account will appear here." />
     @endforelse
     </div>
     <div class="top-gap">{{ $notifications->links('partials.pagination') }}</div>

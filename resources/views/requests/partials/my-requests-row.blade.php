@@ -15,7 +15,15 @@
     $requestStatus = $request->status;
     $custodyWorkflow = $custody?->workflowStatus();
 
-    if ($custodyWorkflow) {
+    // SPMU still recording the accomplished Gate Pass is internal SPMU
+    // processing, not a borrower obligation - never show it as
+    // "Accountability Pending" in the borrower's own My Requests list.
+    $gatePassOnlyPending = $custody?->isGatePassOnlyPending() ?? false;
+    $effectiveWorkflowGroup = $gatePassOnlyPending ? 'return' : ($custodyWorkflow['group'] ?? null);
+
+    if ($gatePassOnlyPending) {
+        [$statusKey, $statusLabel] = ['GATE_PASS_PROCESSING', 'Gate Pass Processing'];
+    } elseif ($custodyWorkflow) {
         [$statusKey, $statusLabel] = match ($custodyWorkflow['key']) {
             'BORROWED' => ['BORROWED', 'Released / On Custody'],
             'RETURN_PROCESSING' => ['RETURN_PROCESSING', 'Return Processing'],
@@ -77,12 +85,12 @@
     ) || (($custodyWorkflow['key'] ?? null) === 'PICKUP_EXPIRED');
 
     $statusGroup = match (true) {
-        ($custodyWorkflow['group'] ?? null) === 'completed' => 'completed',
-        ($custodyWorkflow['group'] ?? null) === 'cancelled' => 'closed',
-        ($custodyWorkflow['group'] ?? null) === 'attention' => 'attention',
+        $effectiveWorkflowGroup === 'completed' => 'completed',
+        $effectiveWorkflowGroup === 'cancelled' => 'closed',
+        $effectiveWorkflowGroup === 'attention' => 'attention',
         $requiresAction => 'action',
-        in_array(($custodyWorkflow['group'] ?? null), ['custody', 'return'], true) => 'custody',
-        ($custodyWorkflow['group'] ?? null) === 'release' => 'approved',
+        in_array($effectiveWorkflowGroup, ['custody', 'return'], true) => 'custody',
+        $effectiveWorkflowGroup === 'release' => 'approved',
 
         in_array($requestStatus, [
             App\Enums\RequestStatus::UnderSpmu,
@@ -131,7 +139,7 @@
 
     $rowToneClass = match (true) {
         ($custodyWorkflow['key'] ?? $statusKey) === 'OVERDUE' => 'is-danger',
-        ($custodyWorkflow['group'] ?? null) === 'attention' => 'is-warning',
+        $effectiveWorkflowGroup === 'attention' => 'is-warning',
         $requiresAction || $statusKey === 'RETURN_PROCESSING' => 'is-warning',
         default => '',
     };

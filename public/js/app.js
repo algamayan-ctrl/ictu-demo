@@ -583,6 +583,16 @@
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    // The topbar is sticky, not removed from flow, so scrollIntoView() alone
+    // lands a target flush with the viewport top - directly underneath it.
+    // Only #main-content carries scroll-margin-top for this; any other
+    // in-page anchor target needs the same offset applied manually here.
+    const topbarOffset = () => {
+        const raw = getComputedStyle(document.documentElement).getPropertyValue('--topbar-height');
+        const parsed = parseInt(raw, 10);
+        return (Number.isFinite(parsed) ? parsed : 64) + 12;
+    };
+
     smoothScrollLinks.forEach((link) => {
         link.addEventListener('click', (event) => {
             const href = link.getAttribute('href');
@@ -597,11 +607,12 @@
 
             event.preventDefault();
 
+            const top = target.getBoundingClientRect().top + window.scrollY - topbarOffset();
+
+            window.scrollTo({ top, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+
             if (prefersReducedMotion) {
-                target.scrollIntoView();
                 target.focus({ preventScroll: true });
-            } else {
-                target.scrollIntoView({ behavior: 'smooth' });
             }
         });
     });

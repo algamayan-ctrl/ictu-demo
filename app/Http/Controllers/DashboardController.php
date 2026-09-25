@@ -424,7 +424,7 @@ class DashboardController extends Controller
 
             $statistics = [
                 'Active Accounts' => User::query()->where('account_status', 'ACTIVE')->count(),
-                'Failed Notifications' => NotificationDelivery::query()->where('delivery_status', 'FAILED')->count(),
+                'Failed Notifications' => NotificationDelivery::query()->actionableFailures()->count(),
                 'Active Delegations' => TemporaryDelegation::query()
                     ->where('status', 'ACTIVE')
                     ->whereNull('revoked_at')

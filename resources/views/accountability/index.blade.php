@@ -1010,14 +1010,13 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         @endif
 
         @unless($hasAnyCase)
-            <div class="empty-state">
-                <div>
-                    <strong>No active accountability cases.</strong>
-                    <p>{{ $isOfficer
-                        ? 'There are no overdue returns, property cases, standalone billings, or borrowing restrictions needing action right now.'
-                        : 'There are no property cases, late-return assessments, or borrowing restrictions waiting on a decision right now.' }}</p>
-                </div>
-            </div>
+            <x-empty-state
+                icon="accountability"
+                title="No active accountability cases."
+                :message="$isOfficer
+                    ? 'There are no overdue returns, property cases, standalone billings, or borrowing restrictions needing action right now.'
+                    : 'There are no property cases, late-return assessments, or borrowing restrictions waiting on a decision right now.'"
+            />
         @else
         <div class="table-wrap accountability-cases-table">
             <table>
@@ -2292,14 +2291,13 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         </div>
 
         @if($borrowerRollups->isEmpty())
-            <div class="empty-state">
-                <div>
-                    <strong>No active accountability cases.</strong>
-                    <p>{{ $isOfficer
-                        ? 'There are no overdue returns, property cases, standalone billings, or borrowing restrictions needing action right now.'
-                        : 'There are no property cases, late-return assessments, or borrowing restrictions waiting on a decision right now.' }}</p>
-                </div>
-            </div>
+            <x-empty-state
+                icon="accountability"
+                title="No active accountability cases."
+                :message="$isOfficer
+                    ? 'There are no overdue returns, property cases, standalone billings, or borrowing restrictions needing action right now.'
+                    : 'There are no property cases, late-return assessments, or borrowing restrictions waiting on a decision right now.'"
+            />
         @else
             <div class="table-wrap accountability-cases-table">
                 <table>

@@ -539,7 +539,10 @@ small, .muted { color: var(--text-muted); }
 .report-table-card { overflow: hidden; }
 .report-table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
 .report-table { width: 100%; min-width: 980px; border-collapse: collapse; }
-.report-table thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-elevated); color: var(--heading); border-bottom: 1px solid var(--border); padding: 10px 12px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; text-align: left; }
+/* Sticky theads stick to just below the sticky topbar (not to the viewport
+   top), so a page header never renders partially underneath the topbar
+   once the user has scrolled the table into its sticky state. */
+.report-table thead th { position: sticky; top: var(--topbar-height); z-index: 1; background: var(--surface-elevated); color: var(--heading); border-bottom: 1px solid var(--border); padding: 10px 12px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; text-align: left; }
 .report-table tbody td { padding: 9px 12px; border-top: 1px solid var(--border); color: var(--text); vertical-align: top; }
 .report-table td.numeric, .report-table th.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .report-table tbody tr:nth-child(even) td { background: rgba(148, 163, 184, 0.03); }
@@ -770,6 +773,53 @@ small, .muted { color: var(--text-muted); }
 .card > .empty-state { min-height: 120px; display: grid; place-items: center; }
 td.empty-state { height: 110px; }
 
+/* Universal empty-state panel: one small neutral pattern reused across
+   Borrower/AO/Head/ICTU list and dashboard sections instead of each page
+   hand-rolling its own blank-panel/sentence. */
+.empty-state-panel {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    padding: 26px 18px;
+    color: var(--text-muted);
+    text-align: center;
+}
+.empty-state-panel-icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 4px;
+    color: var(--text-muted);
+    background: var(--surface-subtle);
+    border-radius: 999px;
+}
+.empty-state-panel-title { margin: 0; color: var(--text-secondary); font-weight: 700; font-size: .92rem; }
+.empty-state-panel-message { margin: 0; max-width: 360px; font-size: .84rem; }
+.empty-state-panel-cta { margin-top: 4px; color: var(--interactive); font-weight: 700; font-size: .84rem; text-decoration: none; }
+.empty-state-panel-cta:hover { text-decoration: underline; }
+
+/* Universal compact filter-context banner: replaces the oversized colored
+   "Showing X (N) from your dashboard" alert on every filtered drilldown
+   destination (Custody, Users, Delegations, Delivery Records, Accountability). */
+.filter-context-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 8px 14px;
+    color: var(--text-secondary);
+    background: var(--surface-subtle);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: .84rem;
+}
+.filter-context-count { color: var(--text-muted); margin-left: 2px; }
+.filter-context-clear { font-weight: 700; white-space: nowrap; color: var(--interactive); text-decoration: none; }
+.filter-context-clear:hover { text-decoration: underline; }
+
 /* Tables */
 .table-wrap { width: 100%; overflow-x: auto; }
 .table-wrap table { width: 100%; min-width: 680px; margin: 0; border-collapse: collapse; }
@@ -797,7 +847,7 @@ td.empty-state { height: 110px; }
 .admin-kpi-card { min-height: 132px; }
 .admin-kpi-card .dashboard-view-all { margin-top: auto; }
 .admin-table-wrap { border-radius: var(--radius); }
-.admin-user-table thead th { position: sticky; top: 0; z-index: 1; }
+.admin-user-table thead th { position: sticky; top: var(--topbar-height); z-index: 1; }
 .admin-user-table td.actions-cell { width: 130px; }
 .action-group { display: flex; flex-wrap: wrap; gap: 6px; }
 .audit-list { display: grid; gap: 18px; }
@@ -1568,7 +1618,7 @@ body.calendar-drawer-open { overflow: hidden; }
 }
 .operational-summary { margin-bottom: 14px; }
 .operational-table table { min-width: 900px; }
-.operational-table th { position: sticky; z-index: 1; top: 0; }
+.operational-table th { position: sticky; z-index: 1; top: var(--topbar-height); }
 .inventory-operations-table table { min-width: 980px; }
 .operational-quantity { margin-bottom: 5px; font-size: 25px; line-height: 1; }
 .operational-quantity.is-available { color: var(--success); }

@@ -75,15 +75,15 @@ class RoleWorkspaceSmokeTest extends TestCase
         $expectations = [
             UserRole::Borrower->value => [
                 'see' => ['Available Items', 'My Requests', 'My Borrowings', 'My Obligations'],
-                'hide' => ['For Approval', 'User Accounts', 'Laundry Operations'],
+                'hide' => ['For Approval', 'User Accounts', 'Laundry'],
             ],
             UserRole::Spmu->value => [
-                'see' => ['For Approval', 'Inventory Overview', 'Release & Return Oversight', 'Analytics', 'Reports', 'Operational Configuration'],
-                'hide' => ['User Accounts', 'Audit Trail', 'Delivery Records', 'Laundry Operations'],
+                'see' => ['For Approval', 'Inventory', 'Release & Return', 'Analytics', 'Reports', 'Configuration'],
+                'hide' => ['User Accounts', 'Audit Trail', 'Delivery Records', 'Laundry'],
             ],
             UserRole::Ictu->value => [
-                'see' => ['User Accounts', 'System Configuration', 'Audit Trail', 'Delivery Records'],
-                'hide' => ['Borrowing Calendar', 'For Approval', 'Laundry Operations'],
+                'see' => ['User Accounts', 'Configuration', 'Audit Trail', 'Delivery Records'],
+                'hide' => ['Borrowing Calendar', 'For Approval', 'Laundry'],
             ],
         ];
 
@@ -113,7 +113,7 @@ class RoleWorkspaceSmokeTest extends TestCase
             ->actingAs($actionOfficer)
             ->get('/dashboard')
             ->assertOk()
-            ->assertSee('Laundry Operations')
+            ->assertSee('Laundry')
             ->assertDontSee('User Accounts');
     }
 

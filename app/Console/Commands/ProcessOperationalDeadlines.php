@@ -221,7 +221,11 @@ class ProcessOperationalDeadlines extends Command
                 $markedOverdue++;
             }
 
-            $daysLate = (int) $dueDate->diffInDays($today);
+            $daysLate = $operationalCalendar->countOpenTransactionDays(
+                OperationalCalendarService::RETURN,
+                $dueDate,
+                $today
+            );
             $case = OverdueCase::query()->firstOrNew([
                 'custody_transaction_id' => $custody->id,
             ]);
@@ -229,8 +233,8 @@ class ProcessOperationalDeadlines extends Command
             /*
              * A policy revision must affect new cases only. Existing cases
              * retain the rate captured when they first became overdue; their
-             * accrued total continues to grow only because another late day
-             * elapsed, not because an administrator changed today's tariff.
+             * accrued total continues to grow only because another open Return-processing
+             * day elapsed, not because an administrator changed today's tariff.
              */
             $rateSnapshot = $case->exists && is_numeric($case->rate_snapshot)
                 ? (float) $case->rate_snapshot

@@ -187,3 +187,17 @@ test('success notice can be dismissed even when no items need inspection', () =>
     ui.dismiss.dispatch('click');
     assert.equal(ui.flash.hidden, true);
 });
+
+
+test('operational closure is presented as a specific warning and keeps return recording disabled', () => {
+    const workspace = fs.readFileSync(path.resolve(__dirname, '../../resources/views/custody/partials/return-workspace.blade.php'), 'utf8');
+    const form = fs.readFileSync(path.resolve(__dirname, '../../resources/views/custody/partials/return-inspection-form.blade.php'), 'utf8');
+    const interactions = fs.readFileSync(path.resolve(__dirname, '../../resources/views/custody/partials/return-process-interactions.blade.php'), 'utf8');
+
+    assert.match(workspace, /notice warning return-operational-notice/);
+    assert.match(workspace, /Return processing is unavailable right now\./);
+    assert.match(workspace, /except\('operational_calendar'\)/);
+    assert.match(form, /data-operational-closed="1"/);
+    assert.match(interactions, /operationallyClosed/);
+    assert.match(interactions, /activeRows\.length === 0 \|\| operationallyClosed/);
+});

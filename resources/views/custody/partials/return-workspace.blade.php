@@ -78,12 +78,30 @@
                 <button class="icon-button return-flash-dismiss" type="button" aria-label="Dismiss notification" data-return-flash-dismiss><x-icon name="close" size="18" /></button>
             </div>
         @endif
-        @if($errors->any())
+        @php
+            $calendarNotice = $errors->first('operational_calendar') ?: ($returnOperationalNotice ?? null);
+            $validationErrors = collect($errors->getMessages())
+                ->except('operational_calendar')
+                ->flatten()
+                ->filter();
+        @endphp
+
+        @if($calendarNotice)
+            <div class="notice warning return-operational-notice" role="status" data-return-operational-notice>
+                <x-icon name="calendar" size="22" />
+                <div>
+                    <strong>Return processing is unavailable right now.</strong>
+                    <p>{{ $calendarNotice }}</p>
+                </div>
+            </div>
+        @endif
+
+        @if($validationErrors->isNotEmpty())
             <div class="notice error" role="alert">
                 <x-icon name="error" />
                 <div>
                     <strong>Please correct the following:</strong>
-                    <ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+                    <ul>@foreach($validationErrors as $error)<li>{{ $error }}</li>@endforeach</ul>
                 </div>
             </div>
         @endif

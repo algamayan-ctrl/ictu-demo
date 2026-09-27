@@ -9,6 +9,7 @@ use App\Models\CustodyLine;
 use App\Models\CustodyTransaction;
 use App\Models\LaundryJob;
 use App\Models\OverdueCase;
+use App\Models\OperationalDateException;
 use App\Models\Role;
 use App\Models\SystemSetting;
 use App\Models\User;
@@ -347,6 +348,83 @@ class LateReturnAccountabilityTest extends TestCase
         $this->assertNull($case->ao_confirmed_at);
     }
 
+    public function test_closed_weekend_days_do_not_increase_chargeable_late_days(): void
+    {
+        $this->expectedReturn = Carbon::create(2026, 9, 18)->endOfDay(); // Friday
+        Carbon::setTestNow(Carbon::create(2026, 9, 21, 10)); // Monday
+
+        $custody = $this->custody($this->borrower());
+        $this->overdueCase($custody);
+        $officer = $this->officer();
+
+        $this->recordReturn($custody, Carbon::create(2026, 9, 21, 10), $officer);
+        $case = $this->lateReturns->assess($custody->fresh(['lines', 'returns']), $officer);
+
+        $this->assertSame(1, (int) $case->late_days, 'Closed Saturday and Sunday do not add chargeable late days.');
+        $this->assertSame(75.0, (float) $case->accrued_amount);
+    }
+
+    public function test_special_date_can_make_a_closed_weekend_chargeable_for_returns(): void
+    {
+        $this->expectedReturn = Carbon::create(2026, 9, 18)->endOfDay(); // Friday
+        Carbon::setTestNow(Carbon::create(2026, 9, 21, 10)); // Monday
+
+        OperationalDateException::query()->create([
+            'exception_date' => '2026-09-20', // Sunday
+            'status' => 'OPEN',
+            'allows_return' => true,
+            'open_time' => '08:00:00',
+            'close_time' => '17:00:00',
+            'reason' => 'Special Sunday operations.',
+        ]);
+
+        $custody = $this->custody($this->borrower());
+        $this->overdueCase($custody);
+        $officer = $this->officer();
+
+        $this->recordReturn($custody, Carbon::create(2026, 9, 21, 10), $officer);
+        $case = $this->lateReturns->assess($custody->fresh(['lines', 'returns']), $officer);
+
+        $this->assertSame(2, (int) $case->late_days, 'An explicitly opened Sunday counts because Return processing is available.');
+        $this->assertSame(150.0, (float) $case->accrued_amount);
+    }
+
+    public function test_special_closure_excludes_an_otherwise_open_weekday_from_late_days(): void
+    {
+        $this->expectedReturn = Carbon::create(2026, 9, 21)->endOfDay(); // Monday
+        Carbon::setTestNow(Carbon::create(2026, 9, 23, 10)); // Wednesday
+
+        OperationalDateException::query()->create([
+            'exception_date' => '2026-09-22', // Tuesday
+            'status' => 'CLOSED',
+            'reason' => 'Special closure.',
+        ]);
+
+        $custody = $this->custody($this->borrower());
+        $this->overdueCase($custody);
+        $officer = $this->officer();
+
+        $this->recordReturn($custody, Carbon::create(2026, 9, 23, 10), $officer);
+        $case = $this->lateReturns->assess($custody->fresh(['lines', 'returns']), $officer);
+
+        $this->assertSame(1, (int) $case->late_days, 'A Special Date closure does not add a chargeable late day.');
+        $this->assertSame(75.0, (float) $case->accrued_amount);
+    }
+
+    public function test_overdue_status_remains_while_closed_days_add_no_estimated_fee_days(): void
+    {
+        $this->expectedReturn = Carbon::create(2026, 9, 18)->endOfDay(); // Friday
+        Carbon::setTestNow(Carbon::create(2026, 9, 20, 10)); // Sunday
+
+        $custody = $this->custody($this->borrower());
+        $case = $this->overdueCase($custody);
+        $assessment = $this->lateReturns->assessment($case);
+
+        $this->assertSame(LateReturnService::STATUS_OVERDUE, $case->status);
+        $this->assertSame(0, $assessment['late_days']);
+        $this->assertSame(0.0, $assessment['amount']);
+    }
+
     public function test_reassessing_an_already_finalized_case_does_not_change_its_frozen_figures(): void
     {
         $custody = $this->custody($this->borrower());
@@ -396,7 +474,7 @@ class LateReturnAccountabilityTest extends TestCase
 
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
-            ->post(route('overdue.bill', $case), ['basis' => 'Three late calendar days at the configured tariff.'])
+            ->post(route('overdue.bill', $case), ['basis' => 'Three chargeable late days at the configured tariff.'])
             ->assertSessionHasNoErrors();
 
         $this->assertSame(LateReturnService::STATUS_AWAITING_PAYMENT, $case->fresh()->status);
@@ -810,7 +888,7 @@ class LateReturnAccountabilityTest extends TestCase
 
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
-            ->post(route('overdue.bill', $case), ['basis' => 'Three late calendar days at the configured tariff.'])
+            ->post(route('overdue.bill', $case), ['basis' => 'Three chargeable late days at the configured tariff.'])
             ->assertSessionHasNoErrors();
 
         $this->assertSame(LateReturnService::STATUS_AWAITING_PAYMENT, $case->fresh()->status);
@@ -851,7 +929,7 @@ class LateReturnAccountabilityTest extends TestCase
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
             ->post(route('overdue.bill', $case->fresh()), [
-                'basis' => 'Three late calendar days at the configured tariff.',
+                'basis' => 'Three chargeable late days at the configured tariff.',
             ])
             ->assertSessionHasNoErrors();
 

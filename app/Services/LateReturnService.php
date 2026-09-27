@@ -16,7 +16,7 @@ use Illuminate\Validation\ValidationException;
  * OVERDUE and LATE RETURN are different states and are never merged:
  *
  *   OVERDUE       the item is past its effective return date and has NOT been
- *                 returned. The amount shown is an estimate that grows daily.
+ *                 returned. The amount shown is an estimate that grows only on open Return-processing days.
  *
  *   LATE RETURN   the item HAS been returned, after its effective return date.
  *                 The late days and the fee are frozen at the physical return
@@ -77,6 +77,7 @@ class LateReturnService
     public function __construct(
         private readonly AuditService $audit,
         private readonly NotificationService $notifications,
+        private readonly OperationalCalendarService $operationalCalendar,
     ) {}
 
     public static function label(?string $status): string
@@ -307,7 +308,11 @@ class LateReturnService
             return null;
         }
 
-        $lateDays = (int) $expected->diffInDays($actualReturn);
+        $lateDays = $this->operationalCalendar->countOpenTransactionDays(
+            OperationalCalendarService::RETURN,
+            $expected,
+            $actualReturn
+        );
         $rate = SystemSetting::value('daily_overdue_tariff');
         $amount = is_numeric($rate) ? round($lateDays * (float) $rate, 2) : 0;
 
@@ -419,7 +424,13 @@ class LateReturnService
             ];
         }
 
-        $lateDays = $expected ? max(0, (int) $expected->diffInDays(now()->startOfDay())) : 0;
+        $lateDays = $expected
+            ? $this->operationalCalendar->countOpenTransactionDays(
+                OperationalCalendarService::RETURN,
+                $expected,
+                now()->startOfDay()
+            )
+            : 0;
 
         return [
             'is_estimate' => true,

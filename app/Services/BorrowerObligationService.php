@@ -19,6 +19,10 @@ use Illuminate\Support\Collection;
  */
 class BorrowerObligationService
 {
+    public function __construct(
+        private readonly OperationalCalendarService $operationalCalendar,
+    ) {}
+
     public const ACTION_BORROWER = 'BORROWER_ACTION';
 
     public const ACTION_PROCESSING = 'SPMU_PROCESSING';
@@ -604,7 +608,11 @@ class BorrowerObligationService
                 : now()->startOfDay();
 
             $daysLate = $dueDay && $lateThrough->gt($dueDay)
-                ? (int) $dueDay->diffInDays($lateThrough)
+                ? $this->operationalCalendar->countOpenTransactionDays(
+                    OperationalCalendarService::RETURN,
+                    $dueDay,
+                    $lateThrough
+                )
                 : 0;
 
             $document = $billingDocument($linkedBilling);

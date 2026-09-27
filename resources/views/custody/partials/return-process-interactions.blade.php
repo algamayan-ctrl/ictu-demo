@@ -85,6 +85,7 @@
     const nonLinenOnly = form.dataset.nonLinenOnly === '1';
     const linenOnly = form.dataset.linenOnly === '1';
     const hasPendingLinen = rows.some((row) => row.dataset.linenPending === '1');
+    const operationallyClosed = form.dataset.operationalClosed === '1';
 
     const numberValue = (input) => {
         const value = Number.parseFloat(input?.value || '0');
@@ -173,7 +174,7 @@
             : true;
         const ready = selectedBranches === 1 && selectedBranchesComplete && browserValidityOkay;
 
-        if (!button || activeRows.length === 0) {
+        if (!button || activeRows.length === 0 || operationallyClosed) {
             if (button) button.disabled = true;
             return;
         }

@@ -1502,7 +1502,7 @@ class CustodyService
             $this->operationalCalendar->assertOpenFor(
                 OperationalCalendarService::RETURN,
                 now(),
-                'return'
+                'operational_calendar'
             );
 
             if (! in_array($custody->status, ['ACTIVE', 'RETURN_PROCESSING', 'PARTIALLY_RETURNED', 'OVERDUE', 'INCIDENT_OPEN'], true)) {

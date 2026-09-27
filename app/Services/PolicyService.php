@@ -37,7 +37,10 @@ class PolicyService
         'DESTROYED',
     ];
 
-    public function __construct(private AuditService $audit) {}
+    public function __construct(
+        private AuditService $audit,
+        private OperationalCalendarService $operationalCalendar,
+    ) {}
 
     public function activePeriodFor(CarbonInterface|string|null $date = null): ?AcademicPeriod
     {
@@ -123,6 +126,13 @@ class PolicyService
             'effective_return_date' => $dueDate,
             'actual_return_date' => $actualDate,
             'return_date_adjusted' => $originalDueDate && $originalDueDate !== $dueDate,
+            'late_days' => $isLate
+                ? $this->operationalCalendar->countOpenTransactionDays(
+                    OperationalCalendarService::RETURN,
+                    $dueDate,
+                    $actualDate
+                )
+                : 0,
         ];
 
         $lateReturnViolation = $isLate

@@ -666,7 +666,7 @@ class AnalyticsDetailService
                     $due = $this->returnMetrics->expectedReturnDate($custody);
                     $returnedAt = $this->returnMetrics->completionMoment($custody);
                     $days = $due && $returnedAt
-                        ? (int) $due->startOfDay()->diffInDays($returnedAt->copy()->startOfDay())
+                        ? $this->analytics->lateDaysBetween($due, $returnedAt)
                         : null;
 
                     return [
@@ -1227,7 +1227,7 @@ class AnalyticsDetailService
                     $due = $this->returnMetrics->expectedReturnDate($custody);
                     $late = $row['state'] === ReturnMetricsService::RETURNED_LATE;
                     $days = $late && $due
-                        ? max(0, (int) $due->startOfDay()->diffInDays($row['returned_at']->copy()->startOfDay()))
+                        ? $this->analytics->lateDaysBetween($due, $row['returned_at'])
                         : null;
 
                     return [

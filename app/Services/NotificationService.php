@@ -24,6 +24,10 @@ use Throwable;
 
 class NotificationService
 {
+    public function __construct(
+        private readonly OperationalCalendarService $operationalCalendar,
+    ) {}
+
     /** @param iterable<User> $recipients */
     public function send(
         string $eventCode,
@@ -586,7 +590,11 @@ HTML;
                 && $source->due_at
             ) {
                 $dueDay = Carbon::parse($source->due_at)->startOfDay();
-                $daysOverdue = max(0, (int) $dueDay->diffInDays(now()->startOfDay()));
+                $daysOverdue = $this->operationalCalendar->countOpenTransactionDays(
+                    OperationalCalendarService::RETURN,
+                    $dueDay,
+                    now()->startOfDay()
+                );
                 $data['details']['Current Overdue Days'] = (string) $daysOverdue;
                 $data['details']['Borrowing Status'] = 'Restricted while the outstanding return remains unresolved';
             }

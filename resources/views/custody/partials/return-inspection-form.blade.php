@@ -30,6 +30,7 @@
 
     $shownNonLinenHeading = false;
     $shownLinenHeading = false;
+    $returnOperationallyClosed = isset($returnProcessingOpen) && ! $returnProcessingOpen;
 @endphp
 
 @if($eligibleReturnLines->isNotEmpty())
@@ -43,6 +44,7 @@
         @if($mixedReturn) data-mixed-return="1" @endif
         @if($nonLinenOnly) data-non-linen-only="1" @endif
         @if($linenOnly) data-linen-only="1" @endif
+        @if($returnOperationallyClosed) data-operational-closed="1" @endif
     >
         @csrf
 
@@ -163,7 +165,7 @@
                                         name="accounting[{{ $line->id }}][{{ $conditionCode }}]"
                                         value="{{ old('accounting.'.$line->id.'.'.$conditionCode, 0) }}"
                                         aria-label="{{ str($conditionCode)->replace('_', ' ')->title() }} quantity for {{ $line->requestItem->description_snapshot }}"
-                                        @disabled($linenLinePending)
+                                        @disabled($linenLinePending || $returnOperationallyClosed)
                                     >
                                 </td>
                             @endforeach
@@ -188,6 +190,7 @@
                                             class="return-evidence-input"
                                             name="evidence_files[{{ $line->id }}]"
                                             accept="application/pdf,image/png,image/jpeg,image/webp"
+                                            @disabled($returnOperationallyClosed)
                                         >
                                         <small>
                                             @if($isLinenLine)
@@ -200,7 +203,7 @@
 
                                     <label data-police-wrap @if($oldStolen <= 0) hidden @endif>
                                         Police / blotter reference
-                                        <input class="return-police-input" name="police_blotter_references[{{ $line->id }}]" value="{{ old('police_blotter_references.'.$line->id) }}">
+                                        <input class="return-police-input" name="police_blotter_references[{{ $line->id }}]" value="{{ old('police_blotter_references.'.$line->id) }}" @disabled($returnOperationallyClosed)>
                                         <small>Required only when Stolen is greater than zero.</small>
                                     </label>
                                 </div>
@@ -217,11 +220,17 @@
                     <label>
                         Inspection Note (optional)
                         <span class="return-remarks-input">
-                            <textarea name="remarks" rows="2" maxlength="2000" placeholder="Add a note about this inspection">{{ old('remarks') }}</textarea>
+                            <textarea name="remarks" rows="2" maxlength="2000" placeholder="Add a note about this inspection" @disabled($returnOperationallyClosed)>{{ old('remarks') }}</textarea>
                         </span>
                     </label>
 
-                    <button class="button primary ui-pressable link-button" id="record-return-button" type="submit" disabled>
+                    <button
+                        class="button primary ui-pressable link-button"
+                        id="record-return-button"
+                        type="submit"
+                        disabled
+                        @if($returnOperationallyClosed) aria-disabled="true" title="Return processing is unavailable on the current operational date." @endif
+                    >
                         @if($linenOnly)
                             Record Linen Return Findings
                         @elseif($mixedReturn && $laundryFormMissing)

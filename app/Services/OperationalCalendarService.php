@@ -132,6 +132,50 @@ class OperationalCalendarService
      *
      * @return array{0: ?CarbonImmutable, 1: ?CarbonImmutable}
      */
+    /**
+     * Count chargeable physical-transaction days after one date through
+     * another date, using the effective Operational Calendar. Closed weekly
+     * days and Special Date closures are skipped; a normally closed date
+     * explicitly opened by an exception is counted when that activity is
+     * enabled and has a valid operating window.
+     */
+    public function countOpenTransactionDays(
+        string $activity,
+        CarbonInterface|string $startExclusive,
+        CarbonInterface|string $endInclusive
+    ): int {
+        $activity = strtoupper($activity);
+        if (! in_array($activity, [self::PICKUP, self::RETURN], true)) {
+            return 0;
+        }
+
+        $start = $this->asDate($startExclusive);
+        $end = $this->asDate($endInclusive);
+        if ($end->lte($start)) {
+            return 0;
+        }
+
+        $profiles = $this->profilesForRange($start->addDay(), $end);
+        $count = 0;
+
+        foreach ($profiles as $date => $profile) {
+            $allowed = $activity === self::PICKUP
+                ? (bool) $profile['allows_pickup']
+                : (bool) $profile['allows_return'];
+
+            if (! $allowed) {
+                continue;
+            }
+
+            [$open, $close] = $this->operatingWindow($activity, $date, $profile);
+            if ($open && $close && $open->lt($close)) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
     public function operatingWindow(string $activity, CarbonInterface|string $dateTime, ?array $profile = null): array
     {
         $at = $this->asDateTime($dateTime);
@@ -343,7 +387,7 @@ class OperationalCalendarService
         $label = match (strtoupper($activity)) {
             self::REQUEST => 'request submission',
             self::PICKUP => 'pickup / release',
-            self::RETURN => 'return transaction',
+            self::RETURN => 'return processing',
             default => 'transaction',
         };
 
@@ -377,7 +421,7 @@ class OperationalCalendarService
         $label = match (strtoupper($activity)) {
             self::REQUEST => 'request submission',
             self::PICKUP => 'pickup / release',
-            self::RETURN => 'return transaction',
+            self::RETURN => 'return processing',
             default => 'transaction',
         };
 
@@ -389,7 +433,7 @@ class OperationalCalendarService
         }
 
         throw ValidationException::withMessages([
-            $field => ucfirst($label).' is closed on '.$date->format('F j, Y').'.'.$reason.' Next open date: '.$next->format('F j, Y').'.',
+            $field => ucfirst($label).' is unavailable on '.$date->format('F j, Y').'.'.$reason.' Next available date: '.$next->format('F j, Y').'.',
         ]);
     }
 

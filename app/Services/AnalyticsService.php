@@ -117,7 +117,8 @@ class AnalyticsService
     public const STOCK_COVERAGE_MINIMUM_RELEASES = 3;
 
     public function __construct(
-        private readonly ReturnMetricsService $returnMetrics
+        private readonly ReturnMetricsService $returnMetrics,
+        private readonly OperationalCalendarService $operationalCalendar,
     ) {}
 
     /**
@@ -2652,17 +2653,26 @@ class AnalyticsService
      *
      * The effective due date is custody_transactions.due_at - the same date
      * LateReturnService::expectedReturn() enforces and currentlyOverdueQuery()
-     * tests. Counted in calendar days from the due date's day to today's
-     * day, never negative, and null only for a custody with no due date at
-     * all. This is the one arithmetic behind every "days overdue" figure.
+     * tests. Counted only on effective Return-processing days after the due date,
+     * respecting the weekly schedule and Special Date overrides. Closed days
+     * do not increase this figure. Null is returned only when no due date exists.
      */
+    public function lateDaysBetween(CarbonInterface|string $due, CarbonInterface|string $through): int
+    {
+        return $this->operationalCalendar->countOpenTransactionDays(
+            OperationalCalendarService::RETURN,
+            $due,
+            $through
+        );
+    }
+
     public function daysOverdue(CustodyTransaction $custody): ?int
     {
         if (! $custody->due_at) {
             return null;
         }
 
-        return max(0, (int) $custody->due_at->copy()->startOfDay()->diffInDays(now()->startOfDay()));
+        return $this->lateDaysBetween($custody->due_at, now()->startOfDay());
     }
 
     /**
@@ -2881,7 +2891,7 @@ class AnalyticsService
             'total' => $total,
             'shown' => $rows->count(),
             'cases' => $rows->map(function ($custody): array {
-                /* Whole calendar days after the due date, never negative. */
+                /* Chargeable open Return-processing days after the due date. */
                 $days = $this->daysOverdue($custody);
 
                 return [

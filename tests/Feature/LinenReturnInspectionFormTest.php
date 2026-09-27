@@ -646,15 +646,15 @@ class LinenReturnInspectionFormTest extends TestCase
         ]);
     }
 
-    public function test_action_officer_can_encode_a_much_later_actual_linen_return_date_and_accountability_uses_all_late_days(): void
+    public function test_action_officer_can_encode_a_much_later_actual_linen_return_date_and_accountability_uses_open_return_days(): void
     {
         /*
          * setUp() pins "now" to a Monday, and 15 days before a Monday is
          * also a Sunday - a closed day that synchronizeCustodyDueDate()
          * would push forward to the next open day (this same Monday),
-         * quietly shrinking the intended 12-day gap to 11. Move to a
-         * Wednesday so "15 days ago" lands on a Tuesday, a genuinely open
-         * weekday, and the full 12-day gap survives the due-date sync.
+         * quietly shifting the intended due date. Move to a Wednesday so
+         * "15 days ago" lands on a Tuesday, a genuinely open weekday, and the
+         * fixture keeps a stable operational-day window.
          */
         $this->travelTo(Carbon::now()->next(Carbon::WEDNESDAY)->setTime(10, 0));
 
@@ -662,9 +662,9 @@ class LinenReturnInspectionFormTest extends TestCase
 
         // The expected return was 15 days ago, but the Laundry Worker actually
         // received the linen only 3 days ago. The Action Officer is encoding the
-        // accomplished form today, so the exact RECEIVED BY date is 12 calendar
-        // days late. The calendar/backend must not cap the entry at the due date
-        // or replace it with today's SPMU upload date.
+        // accomplished form today. Lateness uses only dates when Return processing
+        // was operational; closed weekend days do not increase the fee. The exact
+        // RECEIVED BY date remains authoritative and is never replaced by upload time.
         $custody->update([
             'released_at' => now()->subDays(20)->setTime(9, 0),
             'due_at' => now()->subDays(15)->endOfDay(),
@@ -699,7 +699,7 @@ class LinenReturnInspectionFormTest extends TestCase
 
         $this->assertSame('FOR_HEAD_APPROVAL', $overdue->status);
         $this->assertSame(25.0, (float) $overdue->rate_snapshot);
-        $this->assertSame(300.0, (float) $overdue->accrued_amount);
+        $this->assertSame(200.0, (float) $overdue->accrued_amount, '8 open Return days x PHP 25; closed weekends are excluded.');
         $this->assertSame('OBLIGATION_OPEN', $custody->fresh()->status);
     }
 

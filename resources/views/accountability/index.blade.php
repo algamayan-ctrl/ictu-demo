@@ -716,9 +716,17 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             $offensePreview = $violationOffensePreviews[$violation->id] ?? null;
             $effectiveReturnDate = data_get($violationDetails, 'effective_return_date');
             $actualReturnDate = data_get($violationDetails, 'actual_return_date');
-            $lateDays = ($effectiveReturnDate && $actualReturnDate)
-                ? max(0, \Carbon\CarbonImmutable::parse($effectiveReturnDate)->diffInDays(\Carbon\CarbonImmutable::parse($actualReturnDate)))
-                : null;
+            $lateDays = data_get($violationDetails, 'late_days');
+            if ($lateDays === null && $violation->custody?->overdueCase) {
+                $lateDays = (int) $violation->custody->overdueCase->late_days;
+            }
+            if ($lateDays === null && $effectiveReturnDate && $actualReturnDate) {
+                $lateDays = app(\App\Services\OperationalCalendarService::class)->countOpenTransactionDays(
+                    \App\Services\OperationalCalendarService::RETURN,
+                    $effectiveReturnDate,
+                    $actualReturnDate
+                );
+            }
         @endphp
         <article class="card top-gap">
             <div class="card-header">

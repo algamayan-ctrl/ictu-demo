@@ -346,6 +346,32 @@ class CustodyController extends Controller
                 'preparation_issue_event_id'
             ));
 
+        $returnProcessingOpen = true;
+        $returnOperationalNotice = null;
+
+        if ($spmuMode === 'return') {
+            $calendar = app(OperationalCalendarService::class);
+            $returnProcessingOpen = $calendar->isOpenFor(
+                OperationalCalendarService::RETURN,
+                now(),
+                true
+            );
+
+            if (! $returnProcessingOpen) {
+                try {
+                    $calendar->assertOpenFor(
+                        OperationalCalendarService::RETURN,
+                        now(),
+                        'operational_calendar'
+                    );
+                } catch (ValidationException $exception) {
+                    $returnOperationalNotice = $exception->validator
+                        ->errors()
+                        ->first('operational_calendar');
+                }
+            }
+        }
+
         $preparationIssues = $preparationIssueEvents
             ->where('action_code', 'PREPARATION_ISSUE_REPORTED')
             ->sortByDesc(fn (AuditEvent $event) => $event->occurred_at?->timestamp ?? 0)
@@ -395,6 +421,8 @@ class CustodyController extends Controller
             'pickupRescheduleAvailable' => $pickupRescheduleAvailable,
             'nextPickupRescheduleAt' => $nextPickupRescheduleAt,
             'canCancelBorrowing' => $canCancelBorrowing,
+            'returnProcessingOpen' => $returnProcessingOpen,
+            'returnOperationalNotice' => $returnOperationalNotice,
             'preparationIssues' => $preparationIssues,
             'documents' => $custody->request->currentVersion
                 ->documents()

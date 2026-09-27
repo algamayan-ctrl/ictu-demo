@@ -211,7 +211,6 @@
                 ? 'Required historical periods are available'
                 : 'More completed borrowing activity is required' }}
         </span>
-            <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     {{--
@@ -227,7 +226,6 @@
         <span class="analytics-kpi-card-label">Scheduled Demand</span>
         <strong class="analytics-kpi-card-value">{{ $scheduledTotal }}</strong>
         <span class="analytics-kpi-card-note">Requests already recorded for the next period</span>
-            <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -244,7 +242,6 @@
             <strong class="analytics-kpi-card-value is-text">Not available</strong>
             <span class="analytics-kpi-card-note">See the readiness checklist below</span>
         @endif
-        <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -266,7 +263,6 @@
             <strong class="analytics-kpi-card-value is-text">Not measurable</strong>
             <span class="analytics-kpi-card-note">Insufficient item-level history</span>
         @endif
-        <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 </div>
 
@@ -285,7 +281,7 @@
                 <h2>Borrowing Demand Outlook</h2>
                 <p>Requests filed per period, with the projection shown separately.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.outlook']) }}" aria-label="View Borrowing Demand Outlook details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.outlook']) }}" aria-label="View Borrowing Demand Outlook details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -385,7 +381,7 @@
                 <h2>Forecast Readiness</h2>
                 <p>What the method needs before it will project.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.readiness']) }}" aria-label="View Forecast Readiness details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.readiness']) }}" aria-label="View Forecast Readiness details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -430,7 +426,7 @@
                     ? 'Projected requests for the next period.'
                     : 'Requests already recorded for '.$windowLabel.'.' }}</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.division']) }}" aria-label="View Demand by Division details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.division']) }}" aria-label="View Demand by Division details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -486,7 +482,7 @@
                     ? 'Units with enough history of their own to project.'
                     : 'Requests already recorded for '.$windowLabel.'.' }}</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.unit']) }}" aria-label="View Demand by Unit details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.unit']) }}" aria-label="View Demand by Unit details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -545,7 +541,7 @@
         @if($hasEquipment && ($equipmentForecast['at_risk_count'] ?? 0) > 0)
             <span class="analytics-count-pill">{{ $equipmentForecast['at_risk_count'] }} at risk</span>
         @endif
-        <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.equipment']) }}" aria-label="View Equipment Demand and Availability details"><x-icon name="arrow-right" size="15" /></a>
+        <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.equipment']) }}" aria-label="View Equipment Demand and Availability details"><x-icon name="chevron-right" size="15" /></a>
     </header>
 
     <div class="analytics-card-body">
@@ -618,7 +614,7 @@
                 <h2>Expected Busy Period</h2>
                 <p>How the projected volume is expected to fall across the next period.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.busy']) }}" aria-label="View Expected Busy Period details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.busy']) }}" aria-label="View Expected Busy Period details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -672,7 +668,7 @@
                 <h2>Planning Notes</h2>
                 <p>What the figures above mean for the next period.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.notes']) }}" aria-label="View Planning Notes details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.notes']) }}" aria-label="View Planning Notes details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body is-flush">
@@ -704,7 +700,7 @@
         <div>
             <h2>Forecast Methodology</h2>
         </div>
-        <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.methodology']) }}" aria-label="View Forecast Methodology details"><x-icon name="arrow-right" size="15" /></a>
+        <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.methodology']) }}" aria-label="View Forecast Methodology details"><x-icon name="chevron-right" size="15" /></a>
     </header>
 
     <div class="analytics-card-body">

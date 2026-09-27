@@ -370,8 +370,17 @@ class OffCampusGatePassWorkflowTest extends TestCase
         bool $studentActivity = false,
         bool $includePtc = false
     ): array {
-        $scheduleDate = app(OperationalCalendarService::class)
+        /*
+         * The approved request's Items Needed From date must land exactly
+         * one day after a valid SPMU Pickup/Issuance operating day (weekends
+         * are closed by default), or SPMU approval itself throws a
+         * validation error. Resolve the PICKUP day first and derive the
+         * schedule date from it - not the other way around - since
+         * validation checks (needed_from - 1 day), not needed_from itself.
+         */
+        $pickupDay = app(OperationalCalendarService::class)
             ->nextOpenDate(OperationalCalendarService::PICKUP, now()->addDays(2), true);
+        $scheduleDate = $pickupDay->copy()->addDay();
 
         $payload = [
             'purpose_event' => 'Off-campus institutional activity',

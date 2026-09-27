@@ -50,25 +50,67 @@ test('release layout is scoped to unreleased preparing records in the officer re
     assert.match(page, /@if\(\$showReturnWorkflow\)/);
 });
 
+test('release overview combines borrowing and requirements on the left with release documents on the right', () => {
+    assert.match(processLayout, /class="content-grid two release-overview-grid"/);
+    assert.match(processLayout, /<h2>Borrowing &amp; Release Details<\/h2>/);
+    assert.match(processLayout, /class="release-details-columns"/);
+    assert.match(processLayout, /<h3>Borrowing<\/h3>/);
+    assert.match(processLayout, /<h3>Requirements<\/h3>/);
+    assert.match(processLayout, /class="card release-documents-card" id="release-actions"/);
+    assert.equal((processLayout.match(/<h2>Release Documents<\/h2>/g) || []).length, 1);
+});
+
 test('summary and item table display live record data instead of screenshot samples', () => {
     for (const field of ['custody_no', 'request_no', 'full_name', 'scheduled_release_at', 'pickup_expires_at', '$operationalLabel', '$pickupWindowOpen']) {
         assert.ok(heading.includes(field), `Missing live field: ${field}`);
     }
-    for (const field of ['purpose_event', '$scheduleDate', '$returnDate', '$hasOffCampusItem', '$hasLaundryItem', 'approved_quantity', 'actual_released_quantity', 'returned_quantity']) {
+    for (const field of ['purpose_event', '$scheduleDate', '$returnDate', '$hasOffCampusItem', '$hasLaundryItem', 'approved_quantity']) {
         assert.ok(processLayout.includes(field), `Missing live field: ${field}`);
     }
     assert.doesNotMatch(heading + processLayout, /CUS-2026|Borrower Demo|Ruby Foundation/);
 });
 
-test('release preparation and physical handover reuse the existing forms and operational document links', () => {
-    for (const title of ['Pickup &amp; Issuance Schedule', 'Item Preparation', 'Release Documents']) {
-        assert.ok(processLayout.includes(`<h3>${title}</h3>`));
+/*
+ * The numbered "Release Process" container (Pickup & Issuance Schedule /
+ * Item Preparation / Release Documents / Physical Release as four <h3> steps
+ * with badges and toggles) was replaced by standalone cards. Preparation now
+ * happens inline in the Approved Items card instead of via a separate
+ * item-preparation-form include; the discrepancy-report sub-form that
+ * partial also contains is therefore no longer reachable from this page (see
+ * CustodyReleasePageRedesignTest::test_report_inventory_discrepancy_is_absent_from_release_ui).
+ */
+test('the numbered step chrome is gone; forms and operational document links still reuse the existing partials', () => {
+    for (const title of ['Pickup &amp; Issuance Schedule', 'Item Preparation']) {
+        assert.ok(!processLayout.includes(`<h3>${title}</h3>`), `Stale numbered-step heading still present: ${title}`);
     }
-    for (const name of ['pickup-schedule-form', 'item-preparation-form', 'physical-release-form', 'release-documents']) {
+    assert.match(processLayout, /<h2>Approved Items<\/h2>/);
+    assert.match(processLayout, /<h2>Release Documents<\/h2>/);
+    for (const name of ['pickup-schedule-form', 'physical-release-form', 'release-documents']) {
         assert.equal((processLayout.match(new RegExp(`@include\\('custody\\.partials\\.${name}'\\)`, 'g')) || []).length, 1);
     }
+    assert.doesNotMatch(processLayout, /@include\('custody\.partials\.item-preparation-form'\)/);
     assert.match(processLayout, /id="item-preparation"/);
     assert.match(processLayout, /id="release-actions"/);
+    assert.match(processLayout, /id="pickup-schedule"/); // via the pickup-schedule-form partial itself
+});
+
+test('preparation now happens inline in Approved Items, with a single Confirm action that disappears once complete', () => {
+    assert.match(processLayout, /<th scope="col">Preparation<\/th>/);
+    assert.match(processLayout, /route\('custody\.prepare', \$custody\)/);
+    assert.match(processLayout, /Confirm Items Prepared/);
+    assert.match(processLayout, /@unless\(\$preparationComplete\)/);
+    assert.doesNotMatch(processLayout, /<th scope="col">Issued<\/th>/);
+    assert.doesNotMatch(processLayout, /<th scope="col">Returned<\/th>/);
+});
+
+test('Report Inventory Discrepancy is absent from the release page', () => {
+    assert.doesNotMatch(processLayout, /Report Inventory Discrepancy/);
+    assert.doesNotMatch(processLayout, /Submit Discrepancy Report/);
+});
+
+test('redundant helper/instruction copy was removed rather than de-emphasized into a callout', () => {
+    assert.doesNotMatch(processLayout, /Physically check each approved item before release/);
+    assert.doesNotMatch(processLayout, /Complete pickup scheduling and item preparation before recording physical handover/);
 });
 
 test('pickup schedule panel is a read-only status display fed by the automatic system schedule', () => {
@@ -162,7 +204,7 @@ test('physical handover confirmation is deliberate and resets on page restore', 
 });
 
 test('physical release shows timing notices and disables handover inputs until eligible', () => {
-    const physicalStep = processLayout.slice(processLayout.indexOf('release-physical-heading'));
+    const physicalStep = processLayout.slice(processLayout.indexOf('id="physical-release-title"'));
     assert.match(physicalStep, /@if\(\$preparationComplete && \$hasPickupSchedule\)\s+@if\(\$pickupWindowUpcoming\)/);
     assert.match(physicalStep, /@elseif\(\$pickupWindowPassed\)/);
     assert.match(physicalStep, /@endif\s+@include\('custody\.partials\.physical-release-form'\)/);
@@ -224,22 +266,25 @@ test('edit, toggle and cancel update the schedule panel without submitting the f
     assert.doesNotMatch(interactions, /fetch\(|\.submit\(|requestSubmit\(/);
 });
 
-test('scoped styles preserve hidden panels and keep enabled colors separate from disabled behavior', () => {
+test('scoped styles keep the compact two-column overview responsive and preserve button states', () => {
     assert.match(styles, /\.release-flow-page \[hidden\] \{ display: none !important; \}/);
-    assert.match(styles, /\.release-context-grid \{[^}]*repeat\(2, minmax\(0, 1fr\)\)[^}]*align-items: stretch/);
+    assert.match(styles, /\.release-overview-grid \{[^}]*minmax\(0, 1\.08fr\)[^}]*minmax\(0, \.92fr\)[^}]*align-items: stretch/);
+    assert.match(styles, /\.release-details-columns \{[^}]*repeat\(2, minmax\(0, 1fr\)\)/);
+    assert.match(styles, /@media \(max-width: 1100px\)[\s\S]*release-overview-grid[^}]*grid-template-columns: minmax\(0, 1fr\)/);
     assert.match(styles, /@media \(max-width: 640px\)/);
     assert.match(styles, /\.button\.ui-pressable\.release-primary:not\(:disabled\):hover/);
     assert.match(styles, /\.button\.ui-pressable\.release-outline:not\(:disabled\):hover/);
     assert.doesNotMatch(styles, /\.release-primary:hover|\.release-outline:hover/);
 });
 
-test('compact release tracker is opt-in and only overrides labels and icons', () => {
+test('release tracker reuses the canonical shared milestone labels instead of role-specific overrides', () => {
     const tracker = read('resources/views/components/request-progress-tracker.blade.php');
     assert.match(tracker, /'releaseView' => false/);
     assert.match(processLayout, /:show-current-status="false" :compact="true" :release-view="true"/);
-    const override = tracker.match(/if \(\$releaseView\) \{([\s\S]*?)\}/)[1];
-    /* Step indices are named variables now (off-campus requests insert an extra step), not hardcoded literals. */
-    assert.match(override, /\$steps\[\$releaseStepIndex\]\['label'\] = 'Release'/);
-    assert.match(override, /\$steps\[\$returnStepIndex\]\['icon'\] = 'chevron-right'/);
-    assert.doesNotMatch(override, /status|completed|current|pending|date/i);
+    for (const label of ['Request Prepared', 'SPMU Head Review', 'Pickup Scheduled', 'Release Processing', 'Return Processing', 'Completed']) {
+        assert.ok(tracker.includes(`'label' => '${label}'`), `Missing canonical tracker label: ${label}`);
+    }
+    assert.doesNotMatch(tracker, /\$steps\[1\]\['label'\] = 'Prepared'/);
+    assert.doesNotMatch(tracker, /\$steps\[\$headReviewStepIndex\]\['label'\].*'Reviewed'/s);
+    assert.doesNotMatch(tracker, /if \(\$releaseView\) \{/);
 });

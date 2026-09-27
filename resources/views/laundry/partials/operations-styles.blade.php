@@ -6,8 +6,18 @@
     max-width: 100%;
     color: var(--text);
     font-size: 13px;
+    /* This is .app-main's only child on this page, so it - not a nested
+       .content-area - is what needs to fill the remaining viewport height
+       when there are no active laundry cases. */
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 .laundry-operations [hidden] { display: none !important; }
+/* Only the true "no cases" panel grows to fill the leftover space; a
+   populated toolbar/table keeps its natural height. */
+.laundry-operations > .laundry-empty-card { flex: 1 1 auto; }
 .laundry-operations .laundry-operations-heading { column-gap: 20px; margin-bottom: 20px; }
 .laundry-operations-heading .eyebrow { margin-bottom: 9px; font-size: 10px; letter-spacing: .1em; }
 .laundry-operations .laundry-operations-heading h1 { margin: 0 0 8px; font-size: clamp(25px, 2vw, 29px); }
@@ -134,9 +144,7 @@
 .laundry-operations .laundry-cases-table .status-badge { border: 0; border-radius: 999px; padding: 4px 10px; font-size: 10px; white-space: nowrap; }
 .laundry-operations [data-status="FOR_LAUNDRY"] .status-badge { color: #a74a05; background: #fff0e2; }
 .laundry-operations [data-status="TURNED_OVER_TO_LAUNDRY"] .status-badge { color: #075cd7; background: #e6efff; }
-.laundry-operations .button.laundry-view-link { min-height: 35px; padding: 7px 12px; border-radius: 6px; font-size: 11px; white-space: nowrap; }
-.laundry-operations .button.secondary:not(:disabled):hover,
-.laundry-operations .button.secondary:not(:disabled):focus-visible { color: #fff; border-color: #0866df; background: #0866df; }
+.laundry-operations .button.laundry-view-link { white-space: nowrap; }
 .laundry-pagination { padding: 13px 0 9px; }
 .laundry-operations .laundry-empty-card { display: flex; min-height: 218px; flex-direction: column; align-items: center; justify-content: center; padding: 24px 18px 30px; text-align: center; }
 .laundry-empty-illustration { display: block; flex-shrink: 0; width: 86px; height: 86px; margin: 0 0 12px; }

@@ -87,6 +87,6 @@
         <x-status-badge :status="$event['status']" />
     </span>
     @if($variant === 'list')
-        <span class="calendar-event-period">{{ $event['start_at']->format('d M Y') }} <span aria-hidden="true">&rarr;</span> {{ $event['due_at']->format('d M Y') }}</span>
+        <span class="calendar-event-period">{{ $event['start_at']->format('d M Y') }} <span aria-hidden="true">&ndash;</span> {{ $event['due_at']->format('d M Y') }}</span>
     @endif
 </button>

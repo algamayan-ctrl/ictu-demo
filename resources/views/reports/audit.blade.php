@@ -226,7 +226,7 @@
                                 @endif
 
                                 <details class="ictu-audit-details">
-                                    <summary>View Details</summary>
+                                    <summary class="button secondary small ui-pressable disclosure-trigger"><span>View Details</span><x-icon name="chevron-down" size="14" class="disclosure-trigger__chevron" /></summary>
 
                                     <div class="ictu-audit-details-panel">
                                         <dl class="ictu-audit-detail-grid">
@@ -429,30 +429,6 @@
 
 .ictu-audit-details {
     margin-top: 9px;
-}
-
-.ictu-audit-details > summary {
-    width: fit-content;
-    cursor: pointer;
-    color: var(--interactive, #1769e0);
-    font-size: .84rem;
-    font-weight: 700;
-    list-style: none;
-}
-
-.ictu-audit-details > summary::-webkit-details-marker {
-    display: none;
-}
-
-.ictu-audit-details > summary::after {
-    content: "›";
-    display: inline-block;
-    margin-left: 6px;
-    transition: transform .15s ease;
-}
-
-.ictu-audit-details[open] > summary::after {
-    transform: rotate(90deg);
 }
 
 .ictu-audit-details-panel {

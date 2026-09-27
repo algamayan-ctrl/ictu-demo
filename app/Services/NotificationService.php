@@ -267,7 +267,7 @@ class NotificationService
         if ($data['actionUrl'] && $data['actionLabel']) {
             $actionBlock = '
                 <p style="margin:28px 0 0;font-size:14px;line-height:1.75;color:#243b53;">
-                    You may review the transaction here:
+                    Open in SPMU-ACPMP:
                     <a href="'.e($data['actionUrl']).'" style="color:#1769e0;text-decoration:underline;font-weight:700;">'.e($data['actionLabel']).'</a>
                 </p>
             ';
@@ -364,43 +364,50 @@ HTML;
     {
         $title = match ($eventCode) {
             'REQUEST_SUBMITTED' => 'Borrowing Request Submitted',
-            'REQUEST_VERIFIED' => 'Request Verified for Head Review',
+            'REQUEST_VERIFIED' => 'Request Ready for Head Review',
             'REQUEST_APPROVED' => 'Borrowing Request Approved',
-            'REQUEST_RETURNED_FOR_REVISION' => 'Action Required: Request Revision',
+            'REQUEST_RETURNED_FOR_REVISION' => 'Request Needs Revision',
             'REQUEST_REJECTED' => 'Borrowing Request Not Approved',
             'REQUEST_CANCELLED' => 'Borrowing Request Cancelled',
+            'REQUEST_EXPIRED' => 'Borrowing Request Expired',
             'PICKUP_SCHEDULED' => 'Pickup Schedule Updated',
             'RETURN_DUE_TODAY' => 'Return Due Today',
             'RETURN_DUE_TOMORROW' => 'Return Due Tomorrow',
             'RETURN_SCHEDULE_ADJUSTED' => 'Return Schedule Updated',
             'EARLY_RETURN_REQUESTED' => 'Early Return Request Received',
             'PICKUP_EXPIRED' => 'Pickup Schedule Missed',
-            'PICKUP_HELD_PREPARATION_ISSUE' => 'Pickup on Hold — Inventory Review',
+            'PICKUP_HELD_PREPARATION_ISSUE' => 'Pickup on Hold',
             'PICKUP_RESCHEDULE_REQUESTED' => 'Pickup Reschedule Requested',
-            'PREPARATION_ISSUE_REPORTED' => 'Inventory Discrepancy Reported',
-            'PREPARATION_ISSUE_RESOLVED' => 'Inventory Review Completed',
+            'PREPARATION_ISSUE_REPORTED' => 'Item Preparation Issue Reported',
+            'PREPARATION_ISSUE_RESOLVED' => 'Item Preparation Review Completed',
             'PREPARATION_UNABLE_TO_FULFILL' => 'Approved Request Could Not Be Fulfilled',
             'ITEMS_RELEASED' => 'Borrowed Items Released',
-            'LINEN_FOR_LAUNDRY' => 'Laundry Processing Required',
-            'LAUNDRY_USED_LINEN_RECEIVED' => 'Used Linen Received by Laundry',
+            'LINEN_FOR_LAUNDRY' => 'Laundry Form Required',
+            'LAUNDRY_USED_LINEN_RECEIVED' => 'Linen Return Received',
             'LAUNDRY_READY_FOR_PICKUP', 'LAUNDRY_PROCESSING_COMPLETED' => 'Laundry Processing Completed',
-            'LAUNDRY_FORM_PENDING_SPMU_VERIFICATION' => 'Laundry Form Requires SPMU Review',
+            'LAUNDRY_FORM_PENDING_SPMU_VERIFICATION' => 'Laundry Form Ready for Review',
+            'LAUNDRY_INTERNAL_QUEUE' => 'Laundry Return Recorded',
+            'LAUNDRY_FINAL_FORM_ARCHIVED' => 'Laundry Form Recorded',
             'RETURN_RECORDED' => 'Return Recorded',
-            'RETURN_INSPECTED' => 'Return Inspected',
+            'RETURN_INSPECTED' => 'Return Inspection Recorded',
             'TRANSACTION_CLOSED' => 'Borrowing Transaction Completed',
             'OVERDUE', 'RETURN_OVERDUE', 'BORROWING_OVERDUE' => 'Return Overdue',
+            'LATE_RETURN_FOR_HEAD_APPROVAL' => 'Late Return Ready for Review',
             'LATE_RETURN_NOTICE_ISSUED' => 'Late Return Notice',
-            'LATE_RETURN_BILLING_STATEMENT_ISSUED' => 'Late Return Billing Statement Issued',
+            'LATE_RETURN_BILLING_STATEMENT_ISSUED' => 'Late Return Billing Statement',
             'ACCOUNTABILITY_OPENED', 'INCIDENT_RECORDED' => 'Property Accountability Case Opened',
-            'ACCOUNTABILITY_BILLING_STATEMENT_ISSUED' => 'Accountability Billing Statement Issued',
-            'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' => 'Property Accountability Confirmed',
-            'PROPERTY_ACCOUNTABILITY_OFFICIAL_DISPOSITION_RECORDED' => 'Official Disposition Recorded',
-            'PROPERTY_ACCOUNTABILITY_COMPLIANCE_NOT_ACCEPTED' => 'Verification Not Accepted',
+            'ACCOUNTABILITY_BILLING_STATEMENT_ISSUED' => 'Property Accountability Billing Recorded',
+            'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' => 'Property Accountability Decision Recorded',
+            'PROPERTY_ACCOUNTABILITY_OFFICIAL_DISPOSITION_RECORDED' => 'Property Accountability Next Step Updated',
+            'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED' => 'Required Action Verified',
+            'PROPERTY_ACCOUNTABILITY_COMPLIANCE_NOT_ACCEPTED' => 'Required Action Needs Correction',
+            'PROPERTY_ACCOUNTABILITY_PAYMENT_REQUIRED' => 'Property Accountability Payment Required',
             'PROPERTY_ACCOUNTABILITY_CASE_RESOLVED' => 'Property Accountability Resolved',
+            'PAYMENT_RECORDED', 'RECEIPT_RECORDED' => 'Payment Record Received',
             'PAYMENT_VERIFIED', 'RECEIPT_VERIFIED' => 'Payment Confirmed',
             'EVIDENCE_VERIFIED' => 'Supporting Evidence Verified',
-            'EVIDENCE_REJECTED' => 'Action Required: Replace Supporting Evidence',
-            'ADMINISTRATIVE_SANCTION_RECORDED' => 'Administrative Sanction Notice',
+            'EVIDENCE_REJECTED' => 'Supporting Evidence Needs Replacement',
+            'ADMINISTRATIVE_SANCTION_RECORDED' => 'Administrative Sanction Recorded',
             'BORROWING_SUSPENSION_LIFTED' => 'Borrowing Suspension Lifted',
             'ACCOUNT_ACCESS_DISABLED' => 'Account Access Disabled',
             default => $this->humanize($eventCode),
@@ -409,50 +416,53 @@ HTML;
         $headDecisionNext = null;
         if ($eventCode === 'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' && $source instanceof Incident) {
             $headDecisionNext = match (strtoupper((string) $source->status)) {
-                // Current flow: Confirm always means RSLDDP.
-                'RSLDDP_AWAITING_UPLOAD' => 'Complete the required external RSLDDP process. Check My Obligations for the current RSLDDP status.',
-                // Legacy statuses only - reachable exclusively through
-                // resolveIncidentLegacy(), never a new decision.
-                'COMPLIANCE_REQUIRED' => 'Complete the required repair, replacement, or other action shown in My Obligations. After completing it, present the item or required proof to the SPMU Action Officer for verification.',
-                'FOR_BILLING' => 'Follow the payment instructions shown in My Obligations. After payment, present the official Cashier receipt to the SPMU Action Officer for confirmation.',
-                default => 'Review My Obligations for the recorded finding and current case status.',
+                'RSLDDP_AWAITING_UPLOAD' => 'Complete the RSLDDP requirement shown in My Obligations.',
+                'COMPLIANCE_REQUIRED' => 'Complete the repair, replacement, or other required action shown in My Obligations.',
+                'FOR_BILLING' => 'Follow the payment instructions in My Obligations and present the official Cashier receipt to SPMU after payment.',
+                default => 'Check My Obligations for the current case status and next step.',
             };
         }
 
         $next = match ($eventCode) {
-            'REQUEST_SUBMITTED' => 'Review the request and required supporting documents. If everything is complete, forward it for the next decision.',
-            'REQUEST_VERIFIED' => "The request is ready for the SPMU Head's decision.",
-            'REQUEST_APPROVED' => 'Follow the pickup schedule shown below. The Borrower Slip and any other required form for this request are available from the request page.',
-            'REQUEST_RETURNED_FOR_REVISION' => 'Open the request, review the SPMU remarks, correct the required information or documents, and resubmit the updated request.',
-            'REQUEST_REJECTED' => 'Review the reason shown in this notification. Contact SPMU if you need clarification.',
-            'REQUEST_CANCELLED' => 'No further pickup action is required for this request. Submit a new borrowing request if you need the items for another date.',
-            'PICKUP_SCHEDULED' => 'Follow the updated pickup schedule shown below. Use the same approved request; no new borrowing request is needed.',
-            'RETURN_SCHEDULE_ADJUSTED' => 'Follow the updated Effective Return Date shown below. No reschedule request is needed; this operational-calendar adjustment is not treated as a late return.',
-            'PICKUP_EXPIRED' => 'Choose Request Reschedule if you still need the items, or Cancel Request if you no longer need them.',
-            'PICKUP_HELD_PREPARATION_ISSUE' => 'No borrower action is required. SPMU is reviewing the reported inventory discrepancy. The approved pickup schedule will not be changed automatically.',
-            'PICKUP_RESCHEDULE_REQUESTED' => 'Review the request and assign the next available pickup schedule before the Expected Return Date.',
-            'PREPARATION_ISSUE_REPORTED' => 'Review the affected item and Inventory. If a correction is needed, update Inventory first. Confirm the review only after the discrepancy has been addressed and the full approved quantity can be checked again by the Action Officer.',
-            'PREPARATION_ISSUE_RESOLVED' => 'The inventory review is complete. Physically check the affected item again and confirm Items Prepared only when every approved item is ready for release.',
-            'PREPARATION_UNABLE_TO_FULFILL' => 'No further pickup action is required for this approved request. If you still need the items, submit a new borrowing request.',
-            'ITEMS_RELEASED' => 'Return all borrowed items on or before the Expected Return Date shown below.',
-            'LINEN_FOR_LAUNDRY' => 'At release, Laundry Personnel wet-sign Issued by on the printed Laundry Form when the linen is physically issued. On return, the borrower goes to the Laundry Area first; the Laundry Worker records the actual quantity/condition and wet-signs Received by with the actual Date. The Laundry Worker later delivers the accomplished form directly to SPMU, where the Action Officer uploads it and encodes the linen findings. No Laundry portal login or second turnover confirmation is required.',
-            'LAUNDRY_USED_LINEN_RECEIVED' => 'Laundry Personnel have physically received the returned linen. The borrower no longer waits for the washing cycle. Processing continues inside the Laundry Area until clean/serviceable linen is marked Available.',
-            'LAUNDRY_READY_FOR_PICKUP', 'LAUNDRY_PROCESSING_COMPLETED' => 'Internal laundry processing is complete. The serviceable quantity already classified from the accomplished Laundry Form is restored to Available inventory.',
-            'RETURN_RECORDED' => 'Check the return details below. If no other action is required, the transaction will be completed.',
-            'RETURN_INSPECTED' => 'Check the recorded return details and any required next action in My Obligations.',
+            'REQUEST_SUBMITTED' => 'Review the request in SPMU-ACPMP.',
+            'REQUEST_VERIFIED' => 'The request is ready for the SPMU Head/Admin decision.',
+            'REQUEST_APPROVED' => 'Follow the pickup schedule below. Required forms are available from the request page.',
+            'REQUEST_RETURNED_FOR_REVISION' => 'Review the SPMU remarks, make the required changes, and resubmit the request.',
+            'REQUEST_REJECTED' => 'Review the reason below. Contact SPMU if you need clarification.',
+            'REQUEST_CANCELLED' => 'No further pickup action is required for this request.',
+            'REQUEST_EXPIRED' => 'If you still need the items, submit a new borrowing request.',
+            'PICKUP_SCHEDULED' => 'Follow the updated pickup schedule below.',
+            'RETURN_SCHEDULE_ADJUSTED' => 'Use the updated return date shown below.',
+            'PICKUP_EXPIRED' => 'No action is required from you at this time. SPMU is reviewing whether the borrowing can still proceed.',
+            'PICKUP_HELD_PREPARATION_ISSUE' => 'No borrower action is required while SPMU reviews the item preparation issue.',
+            'PICKUP_RESCHEDULE_REQUESTED' => 'Review the request and set the next allowed pickup schedule.',
+            'PREPARATION_ISSUE_REPORTED' => 'Review the affected item before release continues.',
+            'PREPARATION_ISSUE_RESOLVED' => 'Recheck the affected item before confirming that all approved items are prepared.',
+            'PREPARATION_UNABLE_TO_FULFILL' => 'If the items are still needed, submit a new borrowing request.',
+            'ITEMS_RELEASED' => 'Return all borrowed items on or before the expected return date shown below.',
+            'LINEN_FOR_LAUNDRY' => 'On return, bring the linen and the Laundry Form to the Laundry Area first.',
+            'LAUNDRY_USED_LINEN_RECEIVED' => 'No further borrower action is required for the linen return unless SPMU contacts you.',
+            'LAUNDRY_READY_FOR_PICKUP', 'LAUNDRY_PROCESSING_COMPLETED' => 'No further borrower action is required.',
+            'LAUNDRY_FORM_PENDING_SPMU_VERIFICATION' => 'Review and record the accomplished Laundry Form.',
+            'LAUNDRY_INTERNAL_QUEUE', 'LAUNDRY_FINAL_FORM_ARCHIVED' => 'Continue the normal SPMU laundry processing if another step remains.',
+            'RETURN_RECORDED' => 'Review the return details below.',
+            'RETURN_INSPECTED' => 'Check My Obligations only if the return created a required action.',
             'TRANSACTION_CLOSED' => 'No further action is required for this transaction.',
             'RETURN_DUE_TODAY', 'RETURN_DUE_TOMORROW' => 'Please return the listed items to SPMU on the date shown below.',
             'OVERDUE', 'RETURN_OVERDUE', 'BORROWING_OVERDUE' => 'Please return the outstanding items to SPMU as soon as possible.',
-            'LATE_RETURN_NOTICE_ISSUED' => 'Check My Obligations for the Late Return Notice and the official daily late-return fee rate. The total amount due, when applicable, is shown only in the Late Return Billing Statement.',
-            'ACCOUNTABILITY_OPENED', 'INCIDENT_RECORDED' => 'The SPMU Head/Admin will review the recorded finding. Check My Obligations for the case status and any required action.',
-            'LATE_RETURN_BILLING_STATEMENT_ISSUED', 'ACCOUNTABILITY_BILLING_STATEMENT_ISSUED' => 'Check My Obligations for the Billing Statement and payment instructions. After payment, present the official Cashier receipt to the SPMU Action Officer.',
+            'LATE_RETURN_FOR_HEAD_APPROVAL' => 'Review the late-return assessment and record the SPMU Head/Admin decision.',
+            'LATE_RETURN_NOTICE_ISSUED' => 'Check My Obligations for the Late Return Notice. Any amount due will appear separately in the Late Return Billing Statement.',
+            'ACCOUNTABILITY_OPENED', 'INCIDENT_RECORDED' => 'Check My Obligations for the case status and any required action.',
+            'LATE_RETURN_BILLING_STATEMENT_ISSUED', 'ACCOUNTABILITY_BILLING_STATEMENT_ISSUED', 'PROPERTY_ACCOUNTABILITY_PAYMENT_REQUIRED' => 'Check My Obligations for the amount and payment instructions. After payment, present the official Cashier receipt to SPMU.',
             'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' => $headDecisionNext,
-            'PROPERTY_ACCOUNTABILITY_OFFICIAL_DISPOSITION_RECORDED' => 'Check My Obligations for the recorded disposition and the required next step.',
-            'PROPERTY_ACCOUNTABILITY_COMPLIANCE_NOT_ACCEPTED' => "Review the SPMU Action Officer's remarks and present the corrected requirement again.",
-            'PROPERTY_ACCOUNTABILITY_CASE_RESOLVED' => 'This accountability case is resolved. Check My Obligations only if another active obligation remains on your account.',
-            'BORROWING_SUSPENSION_LIFTED' => 'Your timed borrowing suspension has ended. Check My Obligations only if another active requirement remains on your account.',
-            'PAYMENT_VERIFIED', 'RECEIPT_VERIFIED' => 'Your Cashier receipt has been confirmed. Check My Obligations for the updated balance or any remaining requirement.',
-            'EVIDENCE_REJECTED' => 'Review the reason shown and submit the correct replacement document or evidence.',
+            'PROPERTY_ACCOUNTABILITY_OFFICIAL_DISPOSITION_RECORDED' => 'Check My Obligations for the recorded result and next step.',
+            'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED' => 'No further action is required until the final SPMU review unless you are contacted.',
+            'PROPERTY_ACCOUNTABILITY_COMPLIANCE_NOT_ACCEPTED' => 'Review the remarks and present the corrected requirement again.',
+            'PROPERTY_ACCOUNTABILITY_CASE_RESOLVED' => 'This case is resolved. Check My Obligations only if another active obligation remains.',
+            'BORROWING_SUSPENSION_LIFTED' => 'Your borrowing suspension has ended. Check My Obligations only if another active requirement remains.',
+            'PAYMENT_RECORDED', 'RECEIPT_RECORDED' => 'Wait for SPMU confirmation of the submitted payment record.',
+            'PAYMENT_VERIFIED', 'RECEIPT_VERIFIED' => 'Your Cashier receipt has been confirmed. Check My Obligations for any remaining balance or requirement.',
+            'EVIDENCE_REJECTED' => 'Review the reason below and submit the correct replacement document or evidence.',
             'ACCOUNT_ACCESS_DISABLED' => 'Contact ICTU if you need help restoring account access.',
             default => null,
         };
@@ -600,21 +610,29 @@ HTML;
                 }
             }
 
-            foreach ($version?->items ?? collect() as $item) {
-                $useApproved = $eventCode === 'REQUEST_APPROVED' && $item->approved_quantity !== null;
-                $quantity = $useApproved ? $item->approved_quantity : $item->requested_quantity;
+            $includeRequestItems = in_array(
+                $eventCode,
+                ['REQUEST_SUBMITTED', 'REQUEST_VERIFIED', 'REQUEST_APPROVED'],
+                true
+            );
 
-                $data['items'][] = [
-                    'name' => (string) ($item->description_snapshot ?: $item->inventoryItem?->unique_description ?: 'Item'),
-                    'quantity' => $this->qty($quantity),
-                    'unit' => (string) ($item->unit_snapshot ?: ''),
-                    'context' => $this->humanize((string) ($item->use_location ?: '')),
-                ];
+            if ($includeRequestItems) {
+                foreach ($version?->items ?? collect() as $item) {
+                    $useApproved = $eventCode === 'REQUEST_APPROVED' && $item->approved_quantity !== null;
+                    $quantity = $useApproved ? $item->approved_quantity : $item->requested_quantity;
+
+                    $data['items'][] = [
+                        'name' => (string) ($item->description_snapshot ?: $item->inventoryItem?->unique_description ?: 'Item'),
+                        'quantity' => $this->qty($quantity),
+                        'unit' => (string) ($item->unit_snapshot ?: ''),
+                        'context' => $this->humanize((string) ($item->use_location ?: '')),
+                    ];
+                }
+
+                $data['quantityLabel'] = $eventCode === 'REQUEST_APPROVED'
+                    ? 'Approved Quantity'
+                    : 'Requested Quantity';
             }
-
-            $data['quantityLabel'] = $eventCode === 'REQUEST_APPROVED'
-                ? 'Approved Quantity'
-                : 'Requested Quantity';
 
             if ($this->recipientCanOpenRequest($recipient, $source)) {
                 $data['actionLabel'] = $eventCode === 'REQUEST_RETURNED_FOR_REVISION'
@@ -799,54 +817,60 @@ HTML;
                 }
             }
 
-            foreach ($source->lines as $line) {
-                if ($eventCode === 'RETURN_SCHEDULE_ADJUSTED') {
-                    continue;
+            $includeCustodyItems = in_array(
+                $eventCode,
+                [
+                    'PICKUP_SCHEDULED',
+                    'ITEMS_RELEASED',
+                    'LINEN_FOR_LAUNDRY',
+                    'RETURN_DUE_TODAY',
+                    'RETURN_DUE_TOMORROW',
+                    'OVERDUE',
+                    'RETURN_OVERDUE',
+                    'BORROWING_OVERDUE',
+                ],
+                true
+            );
+
+            if ($includeCustodyItems) {
+                foreach ($source->lines as $line) {
+                    $requestItem = $line->requestItem;
+                    $inventoryItem = $requestItem?->inventoryItem;
+
+                    if ($eventCode === 'LINEN_FOR_LAUNDRY' && ! $inventoryItem?->laundry_required) {
+                        continue;
+                    }
+
+                    $outstanding = max(
+                        0,
+                        (float) ($line->actual_released_quantity ?? 0) - (float) ($line->returned_quantity ?? 0)
+                    );
+
+                    $quantity = match ($eventCode) {
+                        'PICKUP_SCHEDULED' => $line->approved_quantity,
+                        'ITEMS_RELEASED', 'LINEN_FOR_LAUNDRY' => $line->actual_released_quantity,
+                        'OVERDUE', 'RETURN_OVERDUE', 'BORROWING_OVERDUE' => $outstanding,
+                        default => $line->actual_released_quantity ?: $line->approved_quantity,
+                    };
+
+                    if (
+                        (float) $quantity <= 0
+                        && in_array(
+                            $eventCode,
+                            ['ITEMS_RELEASED', 'LINEN_FOR_LAUNDRY', 'BORROWING_OVERDUE', 'OVERDUE', 'RETURN_OVERDUE'],
+                            true
+                        )
+                    ) {
+                        continue;
+                    }
+
+                    $data['items'][] = [
+                        'name' => (string) ($requestItem?->description_snapshot ?: $inventoryItem?->unique_description ?: 'Item'),
+                        'quantity' => $this->qty($quantity),
+                        'unit' => (string) ($requestItem?->unit_snapshot ?: ''),
+                        'context' => $this->humanize((string) ($requestItem?->use_location ?: '')),
+                    ];
                 }
-
-                $requestItem = $line->requestItem;
-                $inventoryItem = $requestItem?->inventoryItem;
-
-                if ($eventCode === 'LINEN_FOR_LAUNDRY' && ! $inventoryItem?->laundry_required) {
-                    continue;
-                }
-
-                $outstanding = max(
-                    0,
-                    (float) ($line->actual_released_quantity ?? 0) - (float) ($line->returned_quantity ?? 0)
-                );
-
-                // Return events were populated from the just-created
-                // ReturnTransaction above; do not append the remaining branch.
-                if (in_array($eventCode, ['RETURN_RECORDED', 'RETURN_INSPECTED'], true)) {
-                    continue;
-                }
-
-                $quantity = match ($eventCode) {
-                    'PICKUP_SCHEDULED' => $line->approved_quantity,
-                    'ITEMS_RELEASED', 'LINEN_FOR_LAUNDRY' => $line->actual_released_quantity,
-                    'TRANSACTION_CLOSED' => $line->actual_released_quantity,
-                    'OVERDUE', 'RETURN_OVERDUE', 'BORROWING_OVERDUE' => $outstanding,
-                    default => $line->actual_released_quantity ?: $line->approved_quantity,
-                };
-
-                if (
-                    (float) $quantity <= 0
-                    && in_array(
-                        $eventCode,
-                        ['ITEMS_RELEASED', 'LINEN_FOR_LAUNDRY', 'BORROWING_OVERDUE', 'OVERDUE', 'RETURN_OVERDUE', 'TRANSACTION_CLOSED'],
-                        true
-                    )
-                ) {
-                    continue;
-                }
-
-                $data['items'][] = [
-                    'name' => (string) ($requestItem?->description_snapshot ?: $inventoryItem?->unique_description ?: 'Item'),
-                    'quantity' => $this->qty($quantity),
-                    'unit' => (string) ($requestItem?->unit_snapshot ?: ''),
-                    'context' => $this->humanize((string) ($requestItem?->use_location ?: '')),
-                ];
             }
 
             if (
@@ -883,8 +907,6 @@ HTML;
             $data['itemsHeading'] = 'Affected Property';
             $data['quantityLabel'] = 'Affected Quantity';
             $data['contextLabel'] = 'Finding';
-            $data['details']['Case Reference'] = (string) $source->incident_no;
-
             if ($custody?->custody_no) {
                 $data['details']['Custody Number'] = (string) $custody->custody_no;
             }
@@ -897,11 +919,18 @@ HTML;
                 $data['details']['Case Type'] = $this->humanize((string) $source->incident_type);
             }
 
-            if ($source->status) {
-                $data['details']['Case Status'] = in_array($eventCode, ['ACCOUNTABILITY_OPENED', 'INCIDENT_RECORDED'], true)
-                    && strtoupper((string) $source->status) === 'OPEN'
-                        ? 'Awaiting Head Decision'
-                        : $this->humanize((string) $source->status);
+            $caseStatus = match ($eventCode) {
+                'ACCOUNTABILITY_OPENED', 'INCIDENT_RECORDED' => 'Awaiting SPMU Review',
+                'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' => 'RSLDDP Processing',
+                'PROPERTY_ACCOUNTABILITY_OFFICIAL_DISPOSITION_RECORDED' => 'Next Step Updated',
+                'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED' => 'For Final SPMU Review',
+                'PROPERTY_ACCOUNTABILITY_COMPLIANCE_NOT_ACCEPTED' => 'Correction Required',
+                'PROPERTY_ACCOUNTABILITY_CASE_RESOLVED' => 'Resolved',
+                default => null,
+            };
+
+            if ($caseStatus) {
+                $data['details']['Case Status'] = $caseStatus;
             }
 
             if (in_array($eventCode, ['ACCOUNTABILITY_OPENED', 'INCIDENT_RECORDED'], true)) {
@@ -910,10 +939,9 @@ HTML;
                     ->where('status', 'ACTIVE')
                     ->exists();
 
-                $data['details']['Decision Status'] = 'No final decision yet';
-                $data['details']['Borrowing Restriction'] = $hasActiveRestriction
-                    ? 'Active while this case remains unresolved'
-                    : 'No active restriction recorded for this case';
+                if ($hasActiveRestriction) {
+                    $data['details']['Borrowing Status'] = 'Restricted while this case is unresolved';
+                }
             }
 
             foreach ($source->lines as $line) {
@@ -948,10 +976,6 @@ HTML;
             $data['detailsHeading'] = 'Late Return Details';
             $data['itemsHeading'] = 'Returned Property';
             $data['contextLabel'] = 'Assessment';
-
-            if ($custody?->custody_no) {
-                $data['details']['Custody Number'] = (string) $custody->custody_no;
-            }
 
             if ($custody?->request?->request_no) {
                 $data['details']['Request Number'] = (string) $custody->request->request_no;
@@ -1027,8 +1051,6 @@ HTML;
             $custody = $lateCase?->custody ?: $incident?->custody;
 
             $data['reference'] = (string) $source->billing_no;
-            $data['details']['Billing Statement'] = (string) $source->billing_no;
-
             if ($incident) {
                 $data['detailsHeading'] = 'Accountability & Billing Details';
                 $data['itemsHeading'] = 'Affected Property';
@@ -1133,10 +1155,6 @@ HTML;
             $custody = $source->custody;
 
             $data['reference'] = $custody?->custody_no;
-
-            if ($custody?->custody_no) {
-                $data['details']['Custody Number'] = (string) $custody->custody_no;
-            }
 
             if ($custody?->request?->request_no) {
                 $data['details']['Request Number'] = (string) $custody->request->request_no;
@@ -1311,7 +1329,7 @@ HTML;
                     : 'The borrowing request has been approved. Prepare the approved items for the pickup schedule shown below.',
 
             'REQUEST_RETURNED_FOR_REVISION' =>
-                'SPMU has returned your borrowing request for revision. Please review the required corrections, update the request or supporting documents as necessary, and resubmit the revised request for verification.'
+                'Your borrowing request needs changes before it can continue. Review the SPMU remarks, update the request or required documents, and resubmit it.'
                 .$this->reasonParagraph($reason),
 
             'REQUEST_REJECTED' =>
@@ -1336,33 +1354,33 @@ HTML;
 
             'PICKUP_EXPIRED' =>
                 $isBorrower
-                    ? 'Your scheduled pickup has passed and the items were not claimed. Choose Request Reschedule if you still need the items, or Cancel Request if you no longer need them. If no action is taken within the allowed period, the request will be cancelled.'
-                    : 'The scheduled pickup was missed. The borrower may request another pickup schedule or cancel the request.',
+                    ? 'Your scheduled pickup was not completed. SPMU is reviewing whether the items can still be released or whether the borrowing must be cancelled. No action is required from you at this time.'
+                    : 'The scheduled pickup was not completed. Review whether the approved release can still continue within the Items Needed From boundary or cancel the borrowing through the authorized SPMU action.',
 
             'PICKUP_HELD_PREPARATION_ISSUE' =>
                 $isBorrower
-                    ? 'Your scheduled pickup could not proceed because SPMU is resolving an inventory discrepancy found during item preparation. This is not recorded as a missed pickup. No action is required from you while SPMU completes the review.'
-                    : 'The approved release is on hold because an inventory discrepancy was reported during item preparation. Review Inventory and resolve the Step 2 discrepancy before release.',
+                    ? 'Your scheduled pickup could not proceed because SPMU is reviewing an item preparation issue. No action is required from you while the review is ongoing.'
+                    : 'The approved release is on hold because an item preparation issue was reported. Review the affected item before release continues.',
 
             'PICKUP_RESCHEDULE_REQUESTED' =>
                 $isBorrower
-                    ? 'We received your request to reschedule pickup. You do not need to submit another borrowing request. SPMU will notify you when the new pickup schedule is ready.'
-                    : 'The borrower requested a new pickup schedule. Assign the next available pickup schedule before the Expected Return Date.',
+                    ? 'A pickup reschedule request was recorded for this transaction. SPMU will notify you if a new pickup schedule is assigned.'
+                    : 'A pickup reschedule request was recorded. Review the transaction and set the next allowed pickup schedule if applicable.',
 
             'PREPARATION_ISSUE_REPORTED' =>
                 $isBorrower
-                    ? 'SPMU found a physical inventory discrepancy while preparing your approved items. Your request remains approved and no action is required from you while SPMU reviews the issue.'
-                    : 'An Action Officer reported an inventory discrepancy during item preparation. Review the affected Inventory record and determine whether the complete approved quantity can still be provided within the approved pickup schedule.',
+                    ? 'SPMU found an item preparation issue while preparing your approved request. No action is required from you while SPMU reviews it.'
+                    : 'An Action Officer reported an item preparation issue. Review the affected item and determine whether the approved request can still be fulfilled.',
 
             'PREPARATION_ISSUE_RESOLVED' =>
                 $isBorrower
-                    ? 'SPMU completed the inventory review for the reported preparation discrepancy. The Action Officer must physically recheck the item before release can proceed.'
-                    : 'The inventory review is complete. The Action Officer must physically recheck the affected item before confirming Items Prepared.',
+                    ? 'SPMU completed the item preparation review. The Action Officer will recheck the item before release continues.'
+                    : 'The item preparation review is complete. Recheck the affected item before confirming that all approved items are prepared.',
 
             'PREPARATION_UNABLE_TO_FULFILL' =>
                 $isBorrower
-                    ? 'SPMU could not provide the complete approved quantity because of an inventory discrepancy found during physical preparation. The approved request was cancelled before release. No items were released, this is not recorded as a missed pickup, and the reserved quantity was returned to inventory.'
-                    : 'The approved request was cancelled before release because SPMU could not provide the complete approved quantity. The reservation was restored and the generated pickup documents were invalidated.',
+                    ? 'SPMU could not prepare all approved items, so the borrowing request was cancelled before release. No items were issued. If you still need the items, submit a new request.'
+                    : 'The approved request was cancelled before release because SPMU could not prepare the full approved quantity.',
 
             'ITEMS_RELEASED' =>
                 $isBorrower
@@ -1377,8 +1395,8 @@ HTML;
 
             'RETURN_SCHEDULE_ADJUSTED' =>
                 $isBorrower
-                    ? 'SPMU updated the operational calendar and your return deadline was moved to the next available Return schedule. Use the Effective Return Date shown below. You do not need to request a reschedule, and this calendar adjustment will not be treated as a late return.'
-                    : 'The operational calendar changed and the effective return deadline for this borrowing transaction was moved to the next available Return schedule.',
+                    ? 'Your return date was adjusted because SPMU is unavailable on the original return date. Use the updated return date shown below. This change will not be treated as a late return.'
+                    : 'The return date for this transaction was adjusted because SPMU is unavailable on the original return date.',
 
             /*
              * -----------------------------------------------------
@@ -1429,18 +1447,18 @@ HTML;
 
             'ACCOUNTABILITY_BILLING_STATEMENT_ISSUED' =>
                 $isBorrower
-                    ? 'The SPMU Head/Admin has generated and issued a Billing Statement for a confirmed property accountability case. The affected property, recorded finding, quantity, and billing details are shown below. Pay through the CSPC Cashier, then present the official receipt to the SPMU Action Officer for recording and confirmation.'
-                    : 'A Billing Statement has been issued for this property accountability case. The affected property and recorded finding are shown below.',
+                    ? 'A billing statement has been recorded for this property accountability case. Check My Obligations for the amount and payment instructions. After payment, present the official Cashier receipt to SPMU.'
+                    : 'A billing statement has been recorded for this property accountability case.',
 
             'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' =>
                 $isBorrower
-                    ? 'The SPMU Head/Admin confirmed this property accountability case. RSLDDP Status: For External Processing. Borrowing Status: Restricted. Next Action: Complete the required RSLDDP process.'
-                    : 'The SPMU Head/Admin confirmed this property accountability case. The affected property and finding are shown below.',
+                    ? 'The SPMU Head/Admin confirmed this property accountability case. Complete the RSLDDP requirement shown in My Obligations. Borrowing remains restricted until the case is resolved.'
+                    : 'The SPMU Head/Admin confirmed this property accountability case. Review the case for the required next step.',
 
             'PROPERTY_ACCOUNTABILITY_OFFICIAL_DISPOSITION_RECORDED' =>
                 $isBorrower
-                    ? 'The SPMU Head/Admin has recorded the official disposition for this property accountability case, based on the accomplished RSLDDP. Review the required next step below.'
-                    : 'The official disposition has been recorded for this property accountability case.',
+                    ? 'SPMU recorded the result of the completed RSLDDP process for this property accountability case. Check My Obligations for the next step.'
+                    : 'SPMU recorded the RSLDDP result for this property accountability case.',
 
             'PROPERTY_ACCOUNTABILITY_COMPLIANCE_NOT_ACCEPTED' =>
                 $isBorrower
@@ -1459,16 +1477,18 @@ HTML;
              */
 
             'LINEN_FOR_LAUNDRY' =>
-                'A borrowing transaction containing laundry-required linen has been released. Laundry Personnel wet-sign Issued by when the linen is physically issued. On return, the borrower brings the used linen and same Laundry Form to the Laundry Area. The offline Laundry Worker records quantity/condition, wet-signs Received by with the actual Date, and later delivers the accomplished form directly to SPMU for Action Officer encoding.',
+                $isBorrower
+                    ? 'Your linen items have been released. On return, bring the linen and the same Laundry Form to the Laundry Area first.'
+                    : 'Linen items have been released. On return, Laundry Personnel will complete the Laundry Form before SPMU records the linen findings.',
 
             'LAUNDRY_USED_LINEN_RECEIVED' =>
                 $isBorrower
-                    ? 'Laundry Personnel have physically received the returned linen. Your linen-return obligation is complete; washing now continues internally in the Laundry Area until clean/serviceable linen is Available.'
-                    : 'Laundry Personnel have physically received the returned linen. The borrower no longer waits for the washing cycle; internal processing continues in the Laundry Area until clean/serviceable linen is Available.',
+                    ? 'Laundry Personnel received the returned linen. Your linen return is complete unless SPMU contacts you about another requirement.'
+                    : 'Laundry Personnel received the returned linen. Internal laundry processing can continue.',
 
             'LAUNDRY_PROCESSING_COMPLETED',
             'LAUNDRY_READY_FOR_PICKUP' =>
-                'Internal Laundry processing has been completed for the serviceable linen quantity already classified during SPMU return encoding. That linen is now Available for future borrowing in the Laundry Area; no additional borrower return step is required.',
+                'Laundry processing is complete for the serviceable linen. No further borrower return step is required.',
 
             'LAUNDRY_FORM_PENDING_SPMU_VERIFICATION' =>
                 'The completed Laundry Form is ready for SPMU review.',
@@ -1506,7 +1526,7 @@ HTML;
                 'The recorded property accountability concern for this transaction has been reviewed and resolved in accordance with the applicable SPMU process.',
 
             'ADMINISTRATIVE_SANCTION_RECORDED' =>
-                'An administrative sanction has been recorded for your borrowing transaction. Review the reason and sanction details below. The complete notice is available under My Obligations.',
+                'An administrative sanction has been recorded. Review the reason and sanction details below. If a notice applies, it is available in My Obligations.',
 
             /*
              * -----------------------------------------------------
@@ -1516,13 +1536,43 @@ HTML;
 
             'PAYMENT_RECORDED',
             'RECEIPT_RECORDED' =>
-                'SPMU has received the submitted payment or settlement document. It is awaiting verification.',
+                'SPMU received your payment record. You will be notified after it is confirmed.',
 
             'PAYMENT_VERIFIED',
             'RECEIPT_VERIFIED' =>
                 $isBorrower
                     ? 'Your Cashier receipt has been confirmed. The confirmed amount and any remaining balance are shown below.'
-                    : 'The submitted payment or settlement document has been verified. The updated details are shown below.',
+                    : 'The payment record has been confirmed. The updated details are shown below.',
+
+            'REQUEST_EXPIRED' =>
+                $isBorrower
+                    ? 'This borrowing request has expired. If you still need the items, submit a new request with the required dates.'
+                    : 'This borrowing request has expired and no further action is required.',
+
+            'LATE_RETURN_FOR_HEAD_APPROVAL' =>
+                'A late-return assessment is ready for SPMU Head/Admin review.',
+
+            'LAUNDRY_INTERNAL_QUEUE' =>
+                'The accomplished Laundry Form was recorded. Continue the normal internal laundry process if another step remains.',
+
+            'LAUNDRY_FINAL_FORM_ARCHIVED' =>
+                'The final Laundry Form was recorded for this transaction.',
+
+            'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED' =>
+                $isBorrower
+                    ? 'SPMU verified the required action for this property accountability case. The case is now waiting for final SPMU review.'
+                    : 'The required action was verified. The case is ready for final SPMU review.',
+
+            'PROPERTY_ACCOUNTABILITY_PAYMENT_REQUIRED' =>
+                $isBorrower
+                    ? 'The official billing information for this property accountability case is now available. Check My Obligations for the amount and payment instructions.'
+                    : 'Payment is now required for this property accountability case.',
+
+            'BORROWING_SUSPENSION_LIFTED' =>
+                'Your borrowing suspension has ended. Check My Obligations only if another active requirement remains.',
+
+            'ACCOUNT_ACCESS_DISABLED' =>
+                'Your account access has been disabled. Contact ICTU if you need assistance.',
 
             /*
              * -----------------------------------------------------

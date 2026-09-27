@@ -648,7 +648,6 @@
 
                     <a class="landing-learn-more ui-pressable" href="#about">
                         <span>Learn more</span>
-                        <span class="landing-learn-more__arrow" aria-hidden="true">&rarr;</span>
                     </a>
                 </div>
             </div>

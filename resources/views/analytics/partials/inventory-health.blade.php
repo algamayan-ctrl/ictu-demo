@@ -86,7 +86,6 @@
         <span class="analytics-kpi-card-label">Available Units</span>
         <strong class="analytics-kpi-card-value">{{ $num((float) $totals['available']) }}</strong>
         <span class="analytics-kpi-card-note">Usable units not already reserved</span>
-            <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -97,7 +96,6 @@
         <span class="analytics-kpi-card-label">Reserved / Allocated</span>
         <strong class="analytics-kpi-card-value">{{ $num((float) $totals['allocated']) }}</strong>
         <span class="analytics-kpi-card-note">Committed to approved requests and not available to allocate</span>
-            <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -108,7 +106,6 @@
         <span class="analytics-kpi-card-label">On Custody</span>
         <strong class="analytics-kpi-card-value">{{ $num((float) $totals['on_custody']) }}</strong>
         <span class="analytics-kpi-card-note">Units currently released to borrowers</span>
-            <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -119,7 +116,6 @@
         <span class="analytics-kpi-card-label">Attention Needed</span>
         <strong class="analytics-kpi-card-value">{{ $num($attention) }}</strong>
         <span class="analytics-kpi-card-note">Maintenance or incident follow-up, not laundry</span>
-            <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 </div>
 
@@ -143,7 +139,7 @@
                 <h2>Inventory Availability</h2>
                 <p>Usable share of each item's serviceable stock, tightest first.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.availability']) }}" aria-label="View Inventory Availability details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.availability']) }}" aria-label="View Inventory Availability details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -214,7 +210,7 @@
             <div>
                 <h2>Current Inventory Distribution</h2>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.distribution']) }}" aria-label="View Current Inventory Distribution details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.distribution']) }}" aria-label="View Current Inventory Distribution details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         @if($serviceable <= 0)
@@ -288,7 +284,7 @@
             @if($lowAvailability['count'] > 0)
                 <span class="analytics-count-pill">{{ $lowAvailability['count'] }}</span>
             @endif
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.low-availability']) }}" aria-label="View Low Availability Watch details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.low-availability']) }}" aria-label="View Low Availability Watch details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -330,7 +326,7 @@
                 <h2>Utilization</h2>
                 <p>Quantity of equipment physically released during this period.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.utilization']) }}" aria-label="View Utilization details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.utilization']) }}" aria-label="View Utilization details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -386,7 +382,7 @@
             <div>
                 <h2>Operational Inventory Status</h2>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.operational']) }}" aria-label="View Operational Inventory Status details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.operational']) }}" aria-label="View Operational Inventory Status details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -417,7 +413,7 @@
                 <h2>Stock Coverage &amp; Risk</h2>
                 <p>Estimated coverage from current stock and release history in this period.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.coverage']) }}" aria-label="View Stock Coverage and Risk details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.coverage']) }}" aria-label="View Stock Coverage and Risk details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">

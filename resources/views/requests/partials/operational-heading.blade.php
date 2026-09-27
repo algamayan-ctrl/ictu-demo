@@ -28,18 +28,18 @@
     <div class="request-operational-next-action">
         @if($requestIsCompleted)
             <p><span>Related transaction:</span> {{ $nextActionLabel }}</p>
-            <a class="button primary ui-pressable request-custody-link" href="{{ route('custody.show', $borrowingRequest->custody) }}">
-                View Custody Record <span aria-hidden="true">→</span>
+            <a class="button secondary ui-pressable request-custody-link" href="{{ route('custody.show', $borrowingRequest->custody) }}">
+                View Custody Record
             </a>
         @else
             <p><span>Next action:</span> {{ $nextActionLabel }}</p>
             @if($hasOperationalObligation)
                 <a class="button primary ui-pressable request-custody-link" href="{{ route('accountability.index') }}">
-                    Open Accountability <span aria-hidden="true">→</span>
+                    Open Accountability
                 </a>
             @else
                 <a class="button primary ui-pressable request-custody-link" href="{{ route('custody.show', $borrowingRequest->custody) }}">
-                    Open Custody Record <span aria-hidden="true">→</span>
+                    Open Custody Record
                 </a>
             @endif
         @endif

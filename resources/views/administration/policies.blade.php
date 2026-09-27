@@ -175,7 +175,6 @@
 
     @if($configurationSection)
         <a class="button secondary ui-pressable config-back-button" href="{{ route('policies.index') }}">
-            <x-icon name="arrow-left" size="17" />
             Back
         </a>
     @endif
@@ -193,7 +192,6 @@
                     <strong>Transaction Schedule</strong>
                     <span>Weekly request, pickup, release &amp; return hours</span>
                 </span>
-                <x-icon name="arrow-right" size="20" class="operational-config-card-chevron" />
             </a>
 
             <a class="operational-config-card ui-pressable" href="{{ route('policies.index', ['section' => 'special-dates']) }}">
@@ -202,7 +200,6 @@
                     <strong>Special Dates &amp; Closures</strong>
                     <span>Closures and special working days</span>
                 </span>
-                <x-icon name="arrow-right" size="20" class="operational-config-card-chevron" />
             </a>
         </div>
     </div>
@@ -217,7 +214,6 @@
                     <strong>Academic Period</strong>
                     <span>Semester and academic year</span>
                 </span>
-                <x-icon name="arrow-right" size="20" class="operational-config-card-chevron" />
             </a>
 
             <a class="operational-config-card ui-pressable" href="{{ route('administration.settings.index', ['section' => 'late-return-fee']) }}">
@@ -226,7 +222,6 @@
                     <strong>Late Return Policy</strong>
                     <span>Late-return fee and assessment</span>
                 </span>
-                <x-icon name="arrow-right" size="20" class="operational-config-card-chevron" />
             </a>
 
             <a class="operational-config-card ui-pressable" href="{{ route('policies.index', ['section' => 'sanction-rules']) }}">
@@ -235,7 +230,6 @@
                     <strong>Sanction Rules</strong>
                     <span>Confirmed offense rules</span>
                 </span>
-                <x-icon name="arrow-right" size="20" class="operational-config-card-chevron" />
             </a>
         </div>
     </div>

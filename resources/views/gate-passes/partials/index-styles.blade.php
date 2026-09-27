@@ -6,8 +6,18 @@
     max-width: 100%;
     color: var(--text);
     font-size: 13px;
+    /* This is .app-main's only child on this page, so it - not a nested
+       .content-area - is what needs to fill the remaining viewport height
+       when there are no Gate Pass records yet. */
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 .gate-pass-browser [hidden] { display: none !important; }
+/* Only the true "no records" panel grows to fill the leftover space; a
+   populated toolbar/table keeps its natural height. */
+.gate-pass-browser > .gate-pass-empty-card { flex: 1 1 auto; }
 .gate-pass-browser .gate-pass-heading { margin: 0 0 20px; }
 .gate-pass-browser .gate-pass-heading .eyebrow { margin-bottom: 9px; font-size: 10px; letter-spacing: .1em; }
 .gate-pass-browser .gate-pass-heading h1 { margin: 0 0 8px; font-size: clamp(25px, 2vw, 29px); }
@@ -77,10 +87,7 @@
 .gate-pass-release-date { white-space: nowrap; }
 .gate-pass-table .status-badge { padding: 4px 10px; border: 0; border-radius: 999px; font-size: 10px; white-space: nowrap; }
 .gate-pass-row-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 136px; }
-.gate-pass-browser .button.secondary { color: var(--gate-pass-blue); border-color: var(--gate-pass-blue); background: var(--surface-elevated); }
-.gate-pass-browser .button.secondary:not(:disabled):hover,
-.gate-pass-browser .button.secondary:not(:disabled):focus-visible { color: #fff; border-color: #0866df; background: #0866df; }
-.gate-pass-browser .gate-pass-view { flex-shrink: 0; min-height: 35px; padding: 7px 12px; border-radius: 6px; font-size: 11px; white-space: nowrap; }
+.gate-pass-browser .gate-pass-view { flex-shrink: 0; white-space: nowrap; }
 
 .gate-pass-more { position: relative; flex: 0 0 auto; }
 .gate-pass-more summary { display: grid; place-items: center; width: 28px; height: 35px; margin-left: auto; color: var(--text-secondary); border-radius: 6px; list-style: none; cursor: pointer; }

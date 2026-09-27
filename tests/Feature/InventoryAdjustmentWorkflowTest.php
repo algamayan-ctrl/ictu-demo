@@ -274,9 +274,9 @@ class InventoryAdjustmentWorkflowTest extends TestCase
         $this->assertSame(9.0, $balance['borrower_available']);
     }
 
-    public function test_additional_stock_and_physical_count_corrections_are_stock_card_movements(): void
+    public function test_additional_stock_is_recorded_as_a_stock_card_movement(): void
     {
-        $item = $this->item('Stock Count Item', 5);
+        $item = $this->item('Stock Addition Item', 5);
         $head = $this->spmuHead();
 
         $this->inventory->recordAdjustment($item, $head, [
@@ -291,18 +291,43 @@ class InventoryAdjustmentWorkflowTest extends TestCase
             'source_type' => InventoryItem::class,
             'source_id' => $item->id,
         ]);
+    }
 
-        $this->inventory->recordAdjustment($item->fresh(), $head, [
-            'action' => 'PHYSICAL_COUNT_CORRECTION',
-            'new_total_quantity' => 6,
-            'reason' => 'Verified physical count during inventory reconciliation.',
-        ]);
+    public function test_physical_count_correction_is_not_a_current_inventory_adjustment_action(): void
+    {
+        $item = $this->item('No Count Correction Item', 5);
+        $head = $this->spmuHead();
 
-        $this->assertSame(6.0, (float) $item->fresh()->total_quantity);
-        $this->assertDatabaseHas('inventory_transactions', [
+        $this->actingAs($head)
+            ->get(route('inventory.show', $item))
+            ->assertOk()
+            ->assertDontSee('Physical Count Correction')
+            ->assertDontSee('name="new_total_quantity"', false);
+
+        $this->actingAs($head)
+            ->post(route('inventory.adjust', $item), [
+                'action' => 'PHYSICAL_COUNT_CORRECTION',
+                'new_total_quantity' => 4,
+                'reason' => 'Direct count correction should no longer be accepted.',
+            ])
+            ->assertSessionHasErrors('action');
+
+        $this->assertSame(5.0, (float) $item->fresh()->total_quantity);
+        $this->assertDatabaseMissing('inventory_transactions', [
             'transaction_type' => 'INVENTORY_PHYSICAL_COUNT_CORRECTION',
             'source_id' => $item->id,
         ]);
+
+        try {
+            $this->inventory->recordAdjustment($item->fresh(), $head, [
+                'action' => 'PHYSICAL_COUNT_CORRECTION',
+                'new_total_quantity' => 4,
+                'reason' => 'Direct service call should also be rejected.',
+            ]);
+            $this->fail('Physical count correction should not be accepted by InventoryService.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('action', $exception->errors());
+        }
     }
 
 
@@ -449,7 +474,7 @@ class InventoryAdjustmentWorkflowTest extends TestCase
             ->get(route('inventory.show', $item))
             ->assertOk()
             ->assertSee('Additional Stock Received')
-            ->assertSee('Physical Count Correction')
+            ->assertDontSee('Physical Count Correction')
             ->assertSee('Place Stock Under Maintenance')
             ->assertDontSee('Return Maintenance Stock to Service')
             ->assertDontSee('Retire / Condemn Maintenance Stock');

@@ -10,7 +10,7 @@
         <p class="calendar-role-description">{{ $isBorrower ? 'View your pickup, release, return dates, and SPMU operating days.' : $calendarDescription }}</p>
     </div>
     @if($isSpmuHead)
-        <a class="button secondary ui-pressable" href="{{ route('policies.index', ['section' => 'transaction-schedule']) }}"><span>Manage Operational Schedule</span><x-icon name="arrow-right" size="15" /></a>
+        <a class="button secondary ui-pressable" href="{{ route('policies.index', ['section' => 'transaction-schedule']) }}"><span>Manage Operational Schedule</span></a>
     @endif
 </section>
 
@@ -174,7 +174,7 @@
                     <p>{{ $event['next_action'] }}</p>
                 </div>
                 @if($event['request_url'])
-                    <a class="button primary ui-pressable full" href="{{ $event['request_url'] }}"><span>View Request</span><x-icon name="arrow-right" size="15" /></a>
+                    <a class="button secondary ui-pressable full" href="{{ $event['request_url'] }}"><span>View Request</span></a>
                 @endif
             </article>
         </template>

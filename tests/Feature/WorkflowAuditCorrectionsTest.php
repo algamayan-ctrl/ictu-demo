@@ -764,8 +764,20 @@ class WorkflowAuditCorrectionsTest extends TestCase
 
         $item = InventoryItem::where('unique_description', $itemDescription)->firstOrFail();
 
-        $scheduleDate = now()->addDays(2)->startOfDay();
-        $returnDate = now()->addDays(3)->startOfDay();
+        /*
+         * The approved request's Items Needed From date must land exactly
+         * one day after a valid SPMU Pickup/Issuance operating day (weekends
+         * are closed by default), or SPMU approval itself throws a
+         * validation error. Resolve that date via the calendar service
+         * instead of a fixed now()->addDays() offset, so this fixture is
+         * deterministic regardless of which real-world weekday the suite
+         * runs on.
+         */
+        $pickupDay = app(\App\Services\OperationalCalendarService::class)
+            ->nextOpenDate(\App\Services\OperationalCalendarService::PICKUP, now()->addDays(2), true);
+
+        $scheduleDate = $pickupDay->copy()->addDay()->startOfDay();
+        $returnDate = $scheduleDate->copy()->addDay()->startOfDay();
 
         $request = BorrowingRequest::create([
             'request_no' => 'BR-WFAUDIT-'.uniqid(),

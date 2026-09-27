@@ -1321,7 +1321,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->assertStringContainsString('href="'.route('custody.index').'"', $content);
     }
 
-    public function test_dashboard_lower_panels_stretch_to_equal_height_instead_of_their_own_content_height(): void
+    public function test_dashboard_lower_operational_panels_stack_full_width_instead_of_splitting_the_row(): void
     {
         $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $borrower = $this->borrower();
@@ -1333,16 +1333,20 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $response->assertOk();
         $content = $response->getContent();
 
-        // The paired panels must render (queue + Custody Watch)...
-        $this->assertStringContainsString('dashboard-two-panel', $content);
+        // Priority Actions and Custody Watch remain separate operational
+        // panels, but each now uses the full dashboard content width.
+        $this->assertStringContainsString('dashboard-stacked-panels', $content);
+        $this->assertStringContainsString('<h2>Priority Actions</h2>', $content);
         $this->assertStringContainsString('<h2>Custody Watch</h2>', $content);
-        // ...and stay equal height (inherited align-items:stretch) rather
-        // than each sizing to its own content, which would let the shorter
-        // panel read as squeezed next to a taller sibling.
+        $this->assertStringContainsString(
+            '.dashboard-balanced-grid.dashboard-stacked-panels,',
+            $content
+        );
+        $this->assertStringNotContainsString('dashboard-two-panel', $content);
         $this->assertDoesNotMatchRegularExpression(
-            '/\.dashboard-balanced-grid\.dashboard-two-panel\s*\{[^}]*align-items\s*:\s*start/',
+            '/\.dashboard-balanced-grid(?:\.dashboard-stacked-panels)?\s*\{[^}]*grid-template-columns\s*:\s*repeat\(2/',
             $content,
-            'The two-panel row must not size each panel to its own content height.'
+            'Major lower dashboard panels must not use a 50/50 two-column layout.'
         );
     }
 

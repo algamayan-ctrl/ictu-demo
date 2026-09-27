@@ -52,8 +52,7 @@
 .doc-table td.numeric, .doc-table th.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .doc-table-empty { text-align: center; color: #555; padding: 18px 8px; }
 .doc-table-action-column { width: 1%; white-space: nowrap; text-align: right; }
-.doc-table-record-link { color: #1a5fb4; font-weight: 700; text-decoration: none; }
-.doc-table-record-link:hover, .doc-table-record-link:focus-visible { text-decoration: underline; }
+.doc-table-record-link { text-decoration: none; }
 
 .doc-summary { margin: 16px 0 0; }
 .doc-summary-heading { margin: 0 0 6px; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #111; }

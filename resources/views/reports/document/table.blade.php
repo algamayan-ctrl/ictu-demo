@@ -47,7 +47,7 @@
                 @if($showLinkColumn)
                     <td class="doc-table-action-column">
                         @if(filled($row['_link'] ?? null))
-                            <a class="doc-table-record-link" href="{{ $row['_link'] }}">View Record</a>
+                            <a class="table-action ui-pressable doc-table-record-link" href="{{ $row['_link'] }}">View Record</a>
                         @endif
                     </td>
                 @endif

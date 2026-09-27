@@ -8,15 +8,25 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const preparation = read('resources/views/custody/partials/item-preparation-form.blade.php');
 const process = read('resources/views/custody/partials/release-process.blade.php');
 const interactions = read('resources/views/custody/partials/release-process-interactions.blade.php');
-const styles = read('resources/views/custody/partials/release-process-styles.blade.php');
 const show = read('resources/views/custody/show.blade.php');
 const controller = read('app/Http/Controllers/CustodyController.php');
 const workflow = read('app/Services/RequestWorkflowService.php');
 
 
-test('Step 2 uses one concise universal instruction and keeps the normal path simple', () => {
-    assert.match(process, /<h3>Item Preparation<\/h3>/);
-    assert.match(process, /Report a discrepancy only when the physical stock does not match Inventory\./);
+/*
+ * The numbered "Release Process" container (with its own "Item Preparation"
+ * step, badge, and toggle) was replaced by a redesign that merges
+ * preparation into the Approved Items card - see release-process.blade.php
+ * and CustodyReleasePageRedesignTest.php. item-preparation-form.blade.php
+ * itself (read here as `preparation`) is left unchanged on disk and is no
+ * longer @include-d from the release page; its own contract is still worth
+ * asserting in case it is ever re-linked.
+ */
+test('Step 2 keeps the normal path simple and the release page no longer repeats a discrepancy instruction', () => {
+    assert.doesNotMatch(process, /<h3>Item Preparation<\/h3>/);
+    assert.doesNotMatch(process, /Physically check each approved item before release/);
+    assert.match(process, /<h2>Approved Items<\/h2>/);
+    assert.match(process, /Preparation/);
     assert.match(preparation, /Pending Preparation/);
     assert.match(preparation, /Confirm Items Prepared/);
     assert.match(preparation, /Report Inventory Discrepancy/);
@@ -70,6 +80,14 @@ test('unable-to-fulfill remains an SPMU-side cancellation with no partial releas
 });
 
 
+/*
+ * item-preparation-form.blade.php's own action-row/panel markup is
+ * unchanged (kept intact in case it is ever re-linked), so its own contract
+ * still holds. Its styling is no longer asserted here: the release page
+ * that used to render it (and needed release-process-styles.blade.php to
+ * back it) no longer includes this partial - see release-process.blade.php
+ * and CustodyReleasePageRedesignTest.php.
+ */
 test('Step 2 actions keep the universal action row and chevron panel pattern', () => {
     const rowStart = preparation.indexOf('release-preparation-action-row');
     const panelStart = preparation.indexOf('<div\n                class="release-preparation-report-panel"', rowStart);
@@ -80,5 +98,4 @@ test('Step 2 actions keep the universal action row and chevron panel pattern', (
     assert.match(actionRow, /data-release-panel-toggle/);
     assert.match(actionRow, /aria-controls="release-preparation-report-panel"/);
     assert.match(actionRow, /<x-icon name="chevron-down" size="16" \/>/);
-    assert.match(styles, /release-preparation-report-toggle\[aria-expanded="true"\] \.ui-icon/);
 });

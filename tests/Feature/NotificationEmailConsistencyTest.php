@@ -117,4 +117,36 @@ class NotificationEmailConsistencyTest extends TestCase
         $this->assertStringNotContainsString('Assessed Amount', $notice);
         $this->assertStringContainsString('total amount due is intentionally not stated in this notice', $notice);
     }
+
+    #[Test]
+    public function transaction_emails_use_plain_language_for_current_workflows(): void
+    {
+        $notifications = (string) file_get_contents(app_path('Services/NotificationService.php'));
+
+        $this->assertStringContainsString("'REQUEST_EXPIRED' => 'Borrowing Request Expired'", $notifications);
+        $this->assertStringContainsString("'LATE_RETURN_FOR_HEAD_APPROVAL' => 'Late Return Ready for Review'", $notifications);
+        $this->assertStringContainsString("'PROPERTY_ACCOUNTABILITY_PAYMENT_REQUIRED' => 'Property Accountability Payment Required'", $notifications);
+        $this->assertStringContainsString("'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED' => 'Required Action Verified'", $notifications);
+        $this->assertStringContainsString('Open in SPMU-ACPMP:', $notifications);
+
+        $this->assertStringNotContainsString('Step 2 discrepancy', $notifications);
+        $this->assertStringNotContainsString('wet-sign', $notifications);
+        $this->assertStringNotContainsString('RSLDDP Status: For External Processing', $notifications);
+        $this->assertStringNotContainsString('generated pickup documents were invalidated', $notifications);
+        $this->assertStringNotContainsString('reservation was restored', $notifications);
+        $this->assertStringNotContainsString('Choose Request Reschedule if you still need the items', $notifications);
+    }
+
+    #[Test]
+    public function email_copy_keeps_each_transaction_update_to_summary_details_and_one_next_step(): void
+    {
+        $notifications = (string) file_get_contents(app_path('Services/NotificationService.php'));
+
+        $this->assertStringContainsString('Your scheduled pickup was not completed. SPMU is reviewing whether the items can still be released or whether the borrowing must be cancelled.', $notifications);
+        $this->assertStringContainsString('Your return date was adjusted because SPMU is unavailable on the original return date.', $notifications);
+        $this->assertStringContainsString('A billing statement has been recorded for this property accountability case.', $notifications);
+        $this->assertStringContainsString('Your linen items have been released. On return, bring the linen and the same Laundry Form to the Laundry Area first.', $notifications);
+        $this->assertStringContainsString('An administrative sanction has been recorded. Review the reason and sanction details below.', $notifications);
+    }
+
 }

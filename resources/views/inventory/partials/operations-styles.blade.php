@@ -46,10 +46,8 @@
 .spmu-inventory-use { color: var(--text-secondary); font-size: 11px; line-height: 1.45; }
 .spmu-inventory-use small { display: block; margin-top: 3px; color: var(--text-muted); }
 .spmu-inventory-actions { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; white-space: nowrap; }
-.spmu-inventory .spmu-inventory-actions .table-action { gap: 6px; min-height: 30px; padding: 5px 7px; color: var(--inventory-blue); font-size: 11px; }
-.spmu-inventory.is-inventory-head .spmu-inventory-actions { flex-direction: column; align-items: flex-start; gap: 0; }
-.spmu-inventory.is-inventory-head .spmu-inventory-actions .table-action { min-height: 26px; padding: 3px 7px; }
-.spmu-inventory .spmu-inventory-actions .table-action:hover, .spmu-inventory .spmu-inventory-actions .table-action:focus-visible { background: var(--info-bg); }
+.spmu-inventory .spmu-inventory-actions .table-action { gap: 6px; }
+.spmu-inventory.is-inventory-head .spmu-inventory-actions { flex-direction: column; align-items: flex-start; gap: 6px; }
 .spmu-inventory-static-empty { padding: 34px 16px !important; color: var(--text-muted); text-align: center; }
 
 /* Footer / pagination */

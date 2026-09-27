@@ -96,7 +96,6 @@
     </div>
 
     <a class="button secondary ui-pressable" href="{{ route('inventory.index') }}">
-        <x-icon name="arrow-left" size="16" />
         <span>Back</span>
     </a>
 </section>
@@ -252,14 +251,14 @@
                 <article class="card inventory-adjustment-card" id="inventory-adjustment">
                     <div class="inventory-adjustment-header">
                         <div>
-                            <p class="eyebrow">Inventory reconciliation</p>
-                            <h2>Physical stock adjustment</h2>
+                            <p class="eyebrow">Inventory control</p>
+                            <h2>Stock &amp; condition adjustment</h2>
                         </div>
                         <button
                             type="button"
                             class="button secondary ui-pressable inventory-adjustment-toggle"
                             data-inventory-adjustment-toggle
-                            aria-expanded="{{ $errors->hasAny(['action', 'incident_source', 'quantity', 'new_total_quantity', 'reason']) ? 'true' : 'false' }}"
+                            aria-expanded="{{ $errors->hasAny(['action', 'incident_source', 'quantity', 'reason']) ? 'true' : 'false' }}"
                             aria-controls="inventory-adjustment-panel"
                         >
                             <span>Record Inventory Adjustment</span>
@@ -271,7 +270,7 @@
                         class="inventory-adjustment-panel"
                         id="inventory-adjustment-panel"
                         data-inventory-adjustment-panel
-                        @unless($errors->hasAny(['action', 'incident_source', 'quantity', 'new_total_quantity', 'reason'])) hidden @endunless
+                        @unless($errors->hasAny(['action', 'incident_source', 'quantity', 'reason'])) hidden @endunless
                     >
                         <form method="post" action="{{ route('inventory.adjust', $item) }}" class="inventory-adjustment-form" data-inventory-adjustment-form>
                             @csrf
@@ -282,7 +281,6 @@
                                     <option value="">Select action</option>
                                     <optgroup label="Stock Adjustment">
                                         <option value="STOCK_ADDITION" @selected(old('action') === 'STOCK_ADDITION')>Additional Stock Received</option>
-                                        <option value="PHYSICAL_COUNT_CORRECTION" @selected(old('action') === 'PHYSICAL_COUNT_CORRECTION')>Physical Count Correction</option>
                                     </optgroup>
                                     @if($canPlaceUnderMaintenance || $canReturnMaintenanceToService || $canRetireMaintenanceStock)
                                         <optgroup label="Physical Condition">
@@ -330,12 +328,6 @@
                                 <span data-inventory-quantity-label>Quantity</span>
                                 <input type="number" name="quantity" min="1" step="1" inputmode="numeric" value="{{ old('quantity') }}">
                                 @error('quantity')<small class="field-error">{{ $message }}</small>@enderror
-                            </label>
-
-                            <label data-inventory-new-total-field hidden>
-                                Verified physical stock total
-                                <input type="number" name="new_total_quantity" min="0" step="1" inputmode="numeric" value="{{ old('new_total_quantity') }}">
-                                @error('new_total_quantity')<small class="field-error">{{ $message }}</small>@enderror
                             </label>
 
                             <label class="inventory-adjustment-reason" data-inventory-reason-field hidden>
@@ -445,7 +437,6 @@
                             href="{{ route('reports.index', ['report' => 'inventory', 'equipment' => $item->id, 'generated' => 1]) }}"
                         >
                             <span>View source report</span>
-                            <x-icon name="arrow-right" size="14" />
                         </a>
                     </div>
                 </div>
@@ -488,7 +479,7 @@
                                             </div>
 
                                             @if(filled($record['url']))
-                                                <a class="button secondary small ui-pressable inventory-source-open" href="{{ $record['url'] }}"><span>{{ $record['action_label'] ?? 'View Record' }}</span><x-icon name="arrow-right" size="14" /></a>
+                                                <a class="button secondary small ui-pressable inventory-source-open" href="{{ $record['url'] }}"><span>{{ $record['action_label'] ?? 'View Record' }}</span></a>
                                             @endif
                                         </div>
                                     @endforeach
@@ -767,7 +758,6 @@
                                         href="{{ route('custody.show', $row['custody']) }}"
                                     >
                                         <span>View Custody</span>
-                                        <x-icon name="arrow-right" size="14" />
                                     </a>
                                 </td>
                             </tr>
@@ -1696,8 +1686,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const quantityField = form.querySelector('[data-inventory-quantity-field]');
     const quantityLabel = form.querySelector('[data-inventory-quantity-label]');
     const quantityInput = quantityField?.querySelector('input');
-    const newTotalField = form.querySelector('[data-inventory-new-total-field]');
-    const newTotalInput = newTotalField?.querySelector('input');
     const reasonField = form.querySelector('[data-inventory-reason-field]');
     const reasonLabel = form.querySelector('[data-inventory-reason-label]');
     const reasonInput = form.querySelector('[data-inventory-reason-input]');
@@ -1732,11 +1720,6 @@ document.addEventListener('DOMContentLoaded', () => {
             placeholder: 'Example: Delivery Receipt, Purchase Order, property transfer, or other receiving reference.',
             required: true,
         },
-        PHYSICAL_COUNT_CORRECTION: {
-            label: 'Reason for Correction',
-            placeholder: 'State why the recorded Total Stock differs from the verified physical count.',
-            required: true,
-        },
         PLACE_UNDER_MAINTENANCE: {
             label: 'Condition / Reason',
             placeholder: 'Describe the verified condition that requires the stock to be placed under maintenance.',
@@ -1763,7 +1746,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const selected = action?.value || '';
         const needsIncident = incidentActions.has(selected);
         const needsQuantity = quantityOnlyActions.has(selected) || needsIncident;
-        const needsNewTotal = selected === 'PHYSICAL_COUNT_CORRECTION';
         const reason = reasonConfig[selected] || null;
 
         if (quantityLabel) {
@@ -1772,11 +1754,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (incidentField) incidentField.hidden = !needsIncident;
         if (quantityField) quantityField.hidden = !needsQuantity;
-        if (newTotalField) newTotalField.hidden = !needsNewTotal;
         if (reasonField) reasonField.hidden = !reason;
         if (incidentSelect) incidentSelect.required = needsIncident;
         if (quantityInput) quantityInput.required = needsQuantity;
-        if (newTotalInput) newTotalInput.required = needsNewTotal;
 
         if (reasonLabel) reasonLabel.textContent = reason?.label || 'Reason / reference';
         if (reasonInput) {

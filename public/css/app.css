@@ -213,8 +213,23 @@ button { color: inherit; }
     margin: 0 auto;
     padding: 26px var(--content-gutter) 46px;
     scroll-margin-top: calc(var(--topbar-height) + 12px);
+    /* Short pages (an empty queue/table with just a heading) fill the
+       remaining viewport below the topbar instead of floating at the top
+       with unused page beneath them. Pages with enough real content simply
+       exceed this floor and the page scrolls normally - nothing here caps
+       height or hides overflow. */
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - var(--topbar-height));
 }
 .app-main:focus { outline: none; }
+.app-main > .page-heading { flex: 0 0 auto; }
+/* The page's main content region is the one thing that should absorb any
+   leftover vertical space; the heading above it never grows. */
+.app-main > .content-area {
+    flex: 1 1 auto;
+    min-height: 0;
+}
 .sidebar-brand-row { display: flex; align-items: center; }
 .brand { display: inline-flex; align-items: center; gap: 11px; color: inherit; }
 .brand:hover { color: inherit; }
@@ -715,15 +730,20 @@ small, .muted { color: var(--text-muted); }
     transform: scale(0.98);
     transition-duration: var(--motion-fast);
 }
-.button.secondary {
+.button.secondary,
+.table-action {
     color: var(--interactive);
     background: transparent;
     border-color: var(--interactive);
 }
-.button.secondary:hover {
-    color: var(--interactive-hover);
-    background: var(--surface-hover);
-    border-color: var(--interactive-hover);
+.button.secondary:hover,
+.button.secondary:focus-visible,
+.table-action:hover,
+.table-action:focus-visible {
+    color: #fff;
+    background: var(--interactive);
+    border-color: var(--interactive);
+    box-shadow: var(--shadow-sm);
 }
 .button.danger { color: #fff; background: var(--danger-action); border-color: var(--danger-action); }
 .button.danger:hover { color: #fff; background: var(--danger-action-hover); border-color: var(--danger-action-hover); }
@@ -844,8 +864,42 @@ td.empty-state { height: 110px; }
 .table-wrap tbody tr:hover:not(:has(.empty-state)) { background: var(--row-hover); }
 .table-wrap td strong, .table-wrap td small { display: block; }
 .table-wrap td small { margin-top: 2px; font-size: 11px; }
-.table-action { display: inline-flex; align-items: center; gap: 4px; min-height: 34px; padding: 5px 8px; border: 0; border-radius: 6px; background: none; color: var(--interactive); font-size: 11px; font-weight: 750; white-space: nowrap; cursor: pointer; }
-.table-action:hover { background: var(--surface-hover); }
+.table-action { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 6px 10px; border: 1px solid var(--interactive); border-radius: 8px; background: transparent; color: var(--interactive); font-size: 11px; font-weight: 750; white-space: nowrap; cursor: pointer; }
+
+/* Universal inline disclosure contract. Keep every View Details / Case Details
+   trigger visually identical even inside tables or page-local workspaces. */
+.disclosure-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 118px;
+    list-style: none;
+}
+.button.secondary.disclosure-trigger,
+.table-action.disclosure-trigger {
+    color: var(--interactive);
+    background: var(--surface-elevated);
+    border-color: var(--interactive);
+}
+.button.secondary.disclosure-trigger:hover,
+.button.secondary.disclosure-trigger:focus-visible,
+.table-action.disclosure-trigger:hover,
+.table-action.disclosure-trigger:focus-visible {
+    color: #fff;
+    background: var(--interactive);
+    border-color: var(--interactive);
+}
+summary.disclosure-trigger::-webkit-details-marker { display: none; }
+.disclosure-trigger__chevron {
+    flex: 0 0 auto;
+    color: currentColor;
+    transition: transform var(--motion) ease;
+}
+.disclosure-trigger[aria-expanded="true"] .disclosure-trigger__chevron,
+details[open] > .disclosure-trigger .disclosure-trigger__chevron {
+    transform: rotate(180deg);
+}
 
 .admin-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .admin-kpi-card { min-height: 132px; }
@@ -1000,21 +1054,6 @@ select[multiple], select[size]:not([size="1"]) { padding-right: 11px; background
     font-weight: 750;
 }
 
-/* Detail pages that drill down out of a configuration hub share one back control. */
-.button.config-back-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    min-height: 46px;
-    padding: 11px 20px;
-    border-color: #bcd8f5;
-    color: #1a6fd4;
-    font-weight: 700;
-    white-space: nowrap;
-}
-.button.config-back-button:hover, .button.config-back-button:focus-visible { color: #1a6fd4; background: #eff6fe; border-color: #1a6fd4; }
-html[data-theme="dark"] .button.config-back-button { border-color: var(--border-strong); color: var(--interactive); }
-html[data-theme="dark"] .button.config-back-button:hover, html[data-theme="dark"] .button.config-back-button:focus-visible { color: var(--interactive); background: var(--surface-hover); border-color: var(--interactive); }
 .helper, label small { color: var(--text-muted); font-size: 11px; font-weight: 400; }
 .checkbox { display: flex; align-items: center; gap: 8px; }
 .field-error { margin: -7px 0 0; color: var(--danger); font-size: 11px; }
@@ -1636,7 +1675,7 @@ body.calendar-drawer-open { overflow: hidden; }
 .quantity-pair { display: grid; gap: 4px; }
 .quantity-pair > span { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--text-muted); font-size: 11px; }
 .quantity-pair strong { color: var(--heading); font-size: 13px; }
-.operational-record-list { display: grid; gap: 9px; }
+.operational-record-list { display: flex; flex-direction: column; gap: 9px; }
 .operational-record {
     display: grid;
     grid-template-columns: minmax(230px, 1fr) minmax(380px, 1.25fr) minmax(155px, auto);
@@ -1664,7 +1703,8 @@ body.calendar-drawer-open { overflow: hidden; }
 .operational-record-facts small { color: var(--text-muted); font-size: 10px; font-weight: 750; text-transform: uppercase; }
 .operational-record-facts strong { color: var(--text-secondary); font-size: 11px; font-weight: 700; }
 .operational-record-action { display: grid; justify-items: start; gap: 7px; }
-.operational-record-action > strong { display: inline-flex; align-items: center; gap: 3px; color: var(--interactive); font-size: 11px; }
+.operational-record-action > strong { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; gap: 3px; padding: 6px 10px; border: 1px solid var(--interactive); border-radius: 8px; background: transparent; color: var(--interactive); font-size: 11px; font-weight: 750; transition: color var(--motion) ease, background-color var(--motion) ease, border-color var(--motion) ease; }
+.operational-record:hover .operational-record-action > strong, .operational-record:focus-visible .operational-record-action > strong { color: #fff; background: var(--interactive); border-color: var(--interactive); }
 .custody-process { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 0; padding: 0; overflow: hidden; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); list-style: none; }
 .custody-process li { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 8px; padding: 11px 12px; border-right: 1px solid var(--border); }
 .custody-process li:last-child { border-right: 0; }
@@ -2962,7 +3002,7 @@ body > main + footer {
 @media print {
     .app-sidebar, .app-topbar, .sidebar-backdrop, .site-header, body > footer { display: none !important; }
     .app-stage { margin: 0; }
-    .app-main { width: 100%; max-width: none; padding: 0; }
+    .app-main { width: 100%; max-width: none; padding: 0; display: block; min-height: 0; }
     body { background: #fff; }
     .card, .table-wrap { box-shadow: none; break-inside: avoid; }
 }

@@ -100,7 +100,6 @@
             aria-label="Review {{ $request->request_no }}"
         >
             <span>Review</span>
-            <x-icon name="arrow-right" size="14" />
         </a>
     </td>
 </tr>

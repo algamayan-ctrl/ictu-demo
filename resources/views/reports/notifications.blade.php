@@ -114,7 +114,7 @@
         </p>
     </div>
     @if($legacyView)
-        <a class="button secondary ui-pressable" href="{{ route('reports.notifications') }}"><x-icon name="arrow-left" size="17" /> Back to current records</a>
+        <a class="button secondary ui-pressable" href="{{ route('reports.notifications') }}">Back to current records</a>
     @else
         <a class="button secondary ui-pressable" href="{{ route('reports.notifications', ['legacy' => 1]) }}">Show legacy SMS records</a>
     @endif
@@ -368,13 +368,13 @@
 
                                 <button
                                     type="button"
-                                    class="notification-delivery-view-button"
+                                    class="notification-delivery-view-button button secondary small ui-pressable disclosure-trigger"
                                     data-delivery-details-toggle
                                     aria-expanded="false"
                                     aria-controls="{{ $deliveryDetailsId }}"
                                 >
-                                    View Details
-                                    <span aria-hidden="true">⌄</span>
+                                    <span>View Details</span>
+                                    <x-icon name="chevron-down" size="14" class="disclosure-trigger__chevron" />
                                 </button>
                             </td>
                         </tr>
@@ -622,37 +622,7 @@
 }
 
 .notification-delivery-view-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
     margin-top: 7px;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--interactive, #1769e0);
-    font: inherit;
-    font-size: .84rem;
-    font-weight: 700;
-    line-height: 1.2;
-    cursor: pointer;
-}
-
-.notification-delivery-view-button:hover {
-    text-decoration: underline;
-}
-
-/* A small static chevron glyph, not a rotating indicator. */
-.notification-delivery-view-button span {
-    position: relative;
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    margin: -3px 0 0 1px;
-    font-size: 0;
-    line-height: 0;
-    border-right: 1.7px solid currentColor;
-    border-bottom: 1.7px solid currentColor;
-    transform: rotate(45deg);
 }
 
 .notification-delivery-detail-row > td {

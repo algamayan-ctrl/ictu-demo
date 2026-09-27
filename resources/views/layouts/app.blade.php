@@ -554,6 +554,83 @@
     </main>
     <footer><span>Camarines Sur Polytechnic Colleges</span><span>Official operational time: Asia/Manila</span></footer>
 @endauth
+
+{{-- Universal transaction/detail typography: keep operational details readable and compact. --}}
+<style id="universal-detail-typography">
+    :root {
+        --detail-section-title-size: 17px;
+        --detail-label-size: 12px;
+        --detail-value-size: 13px;
+        --detail-meta-size: 12px;
+    }
+
+    /* Section/card headings: consistent with the compact Return workspace. */
+    .release-flow-page .release-card-title h2,
+    .request-operational-page .request-section-title,
+    .request-operational-page .request-section-title h2,
+    .borrower-custody-stack .card-header h2,
+    .laundry-detail h2,
+    .gate-pass-detail-grid .card-header h2,
+    .dashboard-balanced-grid > .queue-card > .card-header h2,
+    .dashboard-recent-card > .card-header h2 {
+        font-size: var(--detail-section-title-size);
+        line-height: 1.4;
+    }
+
+    /* Detail labels and values use one readable scale; layout remains page-specific. */
+    .release-flow-page .release-context-list dt,
+    .request-operational-page .request-information-list dt,
+    .borrower-custody-stack .borrower-summary-fact small,
+    .laundry-detail .laundry-linen-facts dt,
+    .gate-pass-detail-grid .detail-list dt {
+        font-size: var(--detail-label-size);
+        line-height: 1.5;
+    }
+
+    .release-flow-page .release-context-list dd,
+    .request-operational-page .request-information-list dd,
+    .borrower-custody-stack .borrower-summary-fact strong,
+    .laundry-detail .laundry-linen-facts dd,
+    .gate-pass-detail-grid .detail-list dd {
+        font-size: var(--detail-value-size);
+        line-height: 1.5;
+    }
+
+    /* Supporting copy should never compete visually with the actual transaction values. */
+    .release-flow-page .release-page-heading > div > p:last-child,
+    .request-operational-page .request-operational-identity > p,
+    .laundry-detail .laundry-detail-heading p:not(.eyebrow),
+    .dashboard-balanced-grid > .queue-card > .card-header .meta,
+    .dashboard-recent-card > .card-header .meta,
+    .dashboard-role-section-note {
+        font-size: var(--detail-meta-size);
+        line-height: 1.5;
+    }
+
+    /* Dashboard figures/statuses stay intentionally distinct; only record text is normalized. */
+    .dashboard-watch-copy strong,
+    .dashboard-recent-copy strong,
+    .dashboard-primary-queue-row > div strong {
+        font-size: 12px;
+    }
+
+    .dashboard-watch-copy span,
+    .dashboard-recent-copy span,
+    .dashboard-primary-queue-row > div span {
+        font-size: var(--detail-value-size);
+    }
+
+    .dashboard-watch-copy small,
+    .dashboard-recent-copy small,
+    .dashboard-primary-queue-row > div small {
+        font-size: 11.5px;
+    }
+
+    @media (max-width: 760px) {
+        :root { --detail-section-title-size: 16px; }
+    }
+</style>
+
 <script src="{{ asset('vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ asset('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}" defer></script>
     {{-- SPMU-ACPMP ANTI-DUPLICATE-SUBMISSION START --}}

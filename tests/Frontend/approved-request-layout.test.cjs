@@ -92,12 +92,10 @@ test('tracker opts in to compact presentation without removing workflow interact
         assert.ok(tracker.includes(hook), `Missing existing tracker hook: ${hook}`);
     }
     assert.match(tracker, /<x-workflow-tracker-interactions/);
-    /*
-     * The head-review step index is now a named variable rather than a
-     * hardcoded literal, since off-campus/Gate Pass requests insert an extra
-     * Action Officer Verification step ahead of it, shifting every later step.
-     */
-    assert.match(tracker, /\$steps\[\$headReviewStepIndex\]\['label'\] = \$isApproved\s+\? 'Reviewed'/);
+    /* Compact presentation may hide the tracker heading, but it must not
+     * rename milestones. The same canonical labels are shown to every role. */
+    assert.match(tracker, /'label' => 'SPMU Head Review'/);
+    assert.doesNotMatch(tracker, /\$steps\[\$headReviewStepIndex\]\['label'\].*'Reviewed'/s);
 });
 
 test('cards stretch equally, tables scroll, and smaller screens reflow', () => {

@@ -91,11 +91,10 @@ class SpmuRoleSeparationTest extends TestCase
             )
             ->assertOk()
             ->assertSee(
-                'Pickup & Issuance Schedule'
+                'Pickup &amp; Issuance',
+                false
             )
-            ->assertSeeText(
-                'Scheduled automatically from the SPMU Operational Calendar.'
-            )
+            ->assertSeeText('Approved Items')
             ->assertSeeText('Confirm Items Prepared')
             ->assertDontSee(
                 'Release & Return Oversight'

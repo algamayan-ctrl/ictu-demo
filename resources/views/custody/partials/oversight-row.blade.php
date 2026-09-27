@@ -95,5 +95,5 @@
         </span>
     </div>
 
-    <span class="custody-oversight-view" aria-hidden="true"><span>View Record</span><x-icon name="arrow-right" size="14" /></span>
+    <span class="custody-oversight-view" aria-hidden="true"><span>View Record</span></span>
 </a>

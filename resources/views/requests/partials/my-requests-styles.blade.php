@@ -12,9 +12,15 @@
 .my-requests {
     width: 100%;
     min-width: 0;
+    /* Lets .mr-empty below grow to fill leftover height when it is the only
+       content on the page (an empty request list). */
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .my-requests [hidden] { display: none !important; }
+.my-requests > .mr-empty { flex: 1 1 auto; }
 
 /* The shared toolbar already owns sizing, radius, spacing, and field height. */
 .my-requests .mr-toolbar { margin-bottom: 16px; }
@@ -77,6 +83,7 @@
 .mr-empty {
     display: grid;
     justify-items: center;
+    align-content: center;
     gap: 16px;
     min-height: 300px;
     padding: 40px 20px 44px;

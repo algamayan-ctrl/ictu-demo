@@ -1,16 +1,30 @@
 <style>
-.approval-queue { --approval-blue: #0865df; width: 100%; min-width: 0; font-size: 13px; }
+.approval-queue {
+    --approval-blue: #0865df;
+    width: 100%;
+    min-width: 0;
+    font-size: 13px;
+    /* This is .app-main's only child on this page, so it - not a nested
+       .content-area - is what needs to fill the remaining viewport height
+       when the queue is empty. */
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
 .approval-queue [hidden] { display: none !important; }
+/* Only the true "queue is empty" panel grows to fill the leftover space;
+   the search/sort filters and a populated queue card keep their natural
+   height so real content is never stretched or repositioned. */
+.approval-queue > .approval-queue-empty { flex: 1 1 auto; }
 
 /* Heading */
 .approval-queue .approval-queue-heading { column-gap: 20px; margin-bottom: 14px; }
 .approval-queue-heading .eyebrow { margin-bottom: 10px; }
 .approval-queue .approval-queue-heading h1 { margin: 0 0 9px; }
 .approval-queue .approval-queue-heading > div > p:last-child { margin: 0; font-size: 13px; line-height: 1.55; }
-.approval-queue .button.approval-queue-records { flex-shrink: 0; gap: 9px; min-height: 40px; padding: 10px 15px; border: 1px solid var(--approval-blue); border-radius: 7px; background: var(--surface-elevated); color: var(--approval-blue); font-size: 12px; white-space: nowrap; }
+.approval-queue .button.approval-queue-records { flex-shrink: 0; white-space: nowrap; }
 .approval-queue-heading > .approval-queue-records { justify-self: end; }
-.approval-queue-records .ui-icon { flex-shrink: 0; }
-.approval-queue .button.approval-queue-records:hover, .approval-queue .button.approval-queue-records:focus-visible { color: #fff; background: var(--approval-blue); border-color: var(--approval-blue); }
 
 /* Search and sort */
 .approval-queue-filters { display: grid; grid-template-columns: minmax(0, 2.6fr) minmax(170px, 1fr); align-items: end; gap: 14px 18px; margin-bottom: 16px; padding: 17px 18px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); }
@@ -38,8 +52,7 @@
 .approval-queue-borrower small { display: block; color: var(--text-muted); font-size: 11px; }
 .approval-queue-submitted time, .approval-queue-submitted time > span { display: block; }
 .approval-queue-submitted time { white-space: nowrap; }
-.approval-queue .button.approval-queue-review { min-height: 33px; padding: 7px 14px; border-color: var(--approval-blue); border-radius: 6px; background: var(--surface-elevated); color: var(--approval-blue); font-size: 11px; white-space: nowrap; }
-.approval-queue .button.approval-queue-review:hover, .approval-queue .button.approval-queue-review:focus-visible { color: #fff; background: var(--approval-blue); border-color: var(--approval-blue); }
+.approval-queue .button.approval-queue-review { white-space: nowrap; }
 
 /* Footer / pagination */
 .approval-queue-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 18px; padding: 16px 18px; border-top: 1px solid var(--border); }
@@ -53,7 +66,7 @@
 .approval-queue-page-ellipsis { padding: 0 3px; color: var(--text-muted); font-size: 11px; }
 
 /* Empty states */
-.approval-queue-empty { display: flex; min-height: clamp(340px, 46vh, 470px); align-items: center; justify-content: center; padding: 44px 22px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); text-align: center; }
+.approval-queue-empty { display: flex; min-height: 320px; align-items: center; justify-content: center; padding: 44px 22px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); text-align: center; }
 .approval-queue-empty-content { display: flex; flex-direction: column; align-items: center; max-width: 440px; }
 .approval-queue-empty-icon { display: grid; place-items: center; width: 92px; height: 92px; margin-bottom: 26px; border-radius: 50%; background: var(--info-bg); color: var(--approval-blue); }
 .approval-queue .approval-queue-empty h2 { margin: 0 0 11px; font-size: 18px; font-weight: 750; line-height: 1.45; }
@@ -64,8 +77,6 @@
 
 html[data-theme="dark"] .approval-queue { --approval-blue: #72b7f4; }
 html[data-theme="dark"] .approval-queue-page.is-active,
-html[data-theme="dark"] .approval-queue .button.approval-queue-review:hover,
-html[data-theme="dark"] .approval-queue .button.approval-queue-records:hover { color: var(--navy-950); }
 
 @media (max-width: 760px) {
     .approval-queue .approval-queue-heading { gap: 12px; margin-bottom: 14px; }

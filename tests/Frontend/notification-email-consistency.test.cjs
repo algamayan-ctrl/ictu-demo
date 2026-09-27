@@ -103,3 +103,27 @@ test('billing-required late return produces one borrower email instead of two ba
   assert.match(billingBlock, /\['SYSTEM', 'EMAIL'\]/);
   assert.match(billingBlock, /Preview it in My Obligations/);
 });
+
+
+test('transaction email copy uses friendly titles and avoids internal workflow language', () => {
+  assert.match(notificationService, /'REQUEST_EXPIRED' => 'Borrowing Request Expired'/);
+  assert.match(notificationService, /'LATE_RETURN_FOR_HEAD_APPROVAL' => 'Late Return Ready for Review'/);
+  assert.match(notificationService, /'PROPERTY_ACCOUNTABILITY_PAYMENT_REQUIRED' => 'Property Accountability Payment Required'/);
+  assert.match(notificationService, /'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED' => 'Required Action Verified'/);
+  assert.match(notificationService, /Open in SPMU-ACPMP:/);
+
+  assert.doesNotMatch(notificationService, /Step 2 discrepancy/);
+  assert.doesNotMatch(notificationService, /wet-sign/);
+  assert.doesNotMatch(notificationService, /RSLDDP Status: For External Processing/);
+  assert.doesNotMatch(notificationService, /generated pickup documents were invalidated/);
+  assert.doesNotMatch(notificationService, /reservation was restored/);
+  assert.doesNotMatch(notificationService, /Choose Request Reschedule if you still need the items/);
+});
+
+test('current borrower transaction emails state only the useful summary and next action', () => {
+  assert.match(notificationService, /Your scheduled pickup was not completed\. SPMU is reviewing whether the items can still be released or whether the borrowing must be cancelled\./);
+  assert.match(notificationService, /Your return date was adjusted because SPMU is unavailable on the original return date\./);
+  assert.match(notificationService, /A billing statement has been recorded for this property accountability case\./);
+  assert.match(notificationService, /Your linen items have been released\. On return, bring the linen and the same Laundry Form to the Laundry Area first\./);
+  assert.match(notificationService, /An administrative sanction has been recorded\. Review the reason and sanction details below\./);
+});

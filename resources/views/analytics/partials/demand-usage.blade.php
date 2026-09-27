@@ -174,7 +174,6 @@
         <strong class="analytics-kpi-card-value">{{ $totals['requests'] }}</strong>
         <span class="analytics-kpi-card-note">Valid borrowing requests</span>
         @include('analytics.partials.period-delta', ['comparison' => $totalsComparison['requests'], 'deltaClass' => 'analytics-kpi-card-meta'])
-        <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -186,7 +185,6 @@
         <strong class="analytics-kpi-card-value">{{ $qty($totals['requested_quantity']) }}</strong>
         <span class="analytics-kpi-card-note">Total quantity requested</span>
         @include('analytics.partials.period-delta', ['comparison' => $totalsComparison['requested_quantity'], 'deltaClass' => 'analytics-kpi-card-meta'])
-            <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -198,7 +196,6 @@
         <strong class="analytics-kpi-card-value">{{ $qty($totals['released_quantity']) }}</strong>
         <span class="analytics-kpi-card-note">Quantity physically released</span>
         @include('analytics.partials.period-delta', ['comparison' => $totalsComparison['released_quantity'], 'deltaClass' => 'analytics-kpi-card-meta'])
-            <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -209,7 +206,6 @@
         <span class="analytics-kpi-card-label">Active Borrowing Units</span>
         <strong class="analytics-kpi-card-value">{{ $totals['active_units'] }}</strong>
         <span class="analytics-kpi-card-note">Units with borrowing activity</span>
-            <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 </div>
 
@@ -228,7 +224,7 @@
                 <h2>Borrowing Demand Trend</h2>
                 <p>Number of borrowing requests filed per {{ $trend['granularity'] }}.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.trend']) }}" aria-label="View Borrowing Demand Trend details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.trend']) }}" aria-label="View Borrowing Demand Trend details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         @if($trendMode === 'empty')
@@ -278,7 +274,7 @@
                 <h2>Demand by Division</h2>
                 <p>Share of borrowing requests filed by each division.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.division']) }}" aria-label="View Demand by Division details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.division']) }}" aria-label="View Demand by Division details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         @if($donutTotal === 0)
@@ -380,7 +376,7 @@
             <h2>Request Outcomes</h2>
             <p>Current workflow outcome of requests filed in the selected period.</p>
         </div>
-        <a class="analytics-card-open" href="{{ $outcomeLink() }}" aria-label="View Request Outcomes details"><x-icon name="arrow-right" size="15" /></a>
+        <a class="analytics-card-open" href="{{ $outcomeLink() }}" aria-label="View Request Outcomes details"><x-icon name="chevron-right" size="15" /></a>
     </header>
 
     @if(! $outcomes['available'])
@@ -476,7 +472,7 @@
                 <h2>Most Requested Items</h2>
                 <p>Top items by number of requests.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.requested-items']) }}" aria-label="View Most Requested Items details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.requested-items']) }}" aria-label="View Most Requested Items details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -549,7 +545,7 @@
                 <h2>Top Borrowing Units</h2>
                 <p>Ranked by filed requests.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.units']) }}" aria-label="View Top Borrowing Units details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.units']) }}" aria-label="View Top Borrowing Units details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -610,7 +606,7 @@
                 <h2>Top Released Items</h2>
                 <p>Items with the highest quantity physically released.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.released-items']) }}" aria-label="View Top Released Items details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.released-items']) }}" aria-label="View Top Released Items details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -666,7 +662,7 @@
                 items and offers the Equipment Utilization report as its source
                 records; the footer count states the whole-catalogue reading.
             --}}
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.low-usage']) }}" aria-label="View Low / No Usage Items details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.low-usage']) }}" aria-label="View Low / No Usage Items details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -709,7 +705,7 @@
             <h2>Peak Borrowing Periods</h2>
             <p>Most active weekdays or hours for filed borrowing requests.</p>
         </div>
-        <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.peak']) }}" aria-label="View Peak Borrowing Periods details"><x-icon name="arrow-right" size="15" /></a>
+        <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.peak']) }}" aria-label="View Peak Borrowing Periods details"><x-icon name="chevron-right" size="15" /></a>
     </header>
 
     @if(! $peak['available'])

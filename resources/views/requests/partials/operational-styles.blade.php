@@ -240,20 +240,7 @@
 .request-operational-page .button.request-document-link {
     flex: 0 0 auto;
     min-width: 64px;
-    min-height: 35px;
-    padding: 7px 14px;
-    border: 1px solid var(--request-blue);
-    border-radius: 6px;
-    color: var(--request-blue);
-    background: var(--surface-elevated);
-    font-size: 12px;
-    font-weight: 700;
-    transition: background 160ms ease, color 160ms ease;
-}
-.request-operational-page .button.request-document-link:hover,
-.request-operational-page .button.request-document-link:focus-visible {
-    color: #fff;
-    background: var(--request-blue);
+    white-space: nowrap;
 }
 .request-operational-page .request-items-card { padding: 12px 17px 7px; }
 .request-operational-page .request-items-card .card-header {

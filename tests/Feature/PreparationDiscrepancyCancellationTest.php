@@ -260,6 +260,20 @@ class PreparationDiscrepancyCancellationTest extends TestCase
 
         $item = InventoryItem::where('unique_description', 'Round Table')->firstOrFail();
 
+        /*
+         * The approved request's Items Needed From date must land exactly
+         * one day after a valid SPMU Pickup/Issuance operating day (weekends
+         * are closed by default), or SPMU approval itself throws a
+         * validation error. Resolve that date via the calendar service
+         * instead of a fixed now()->addDays() offset, so this fixture is
+         * deterministic regardless of which real-world weekday the suite
+         * runs on.
+         */
+        $pickupDay = app(OperationalCalendarService::class)
+            ->nextOpenDate(OperationalCalendarService::PICKUP, now()->addDays(2), true);
+        $scheduleDate = $pickupDay->copy()->addDay()->startOfDay();
+        $returnDate = $scheduleDate->copy()->addDays(3)->startOfDay();
+
         $request = BorrowingRequest::create([
             'request_no' => $requestNo,
             'borrower_user_id' => $borrower->id,
@@ -272,10 +286,10 @@ class PreparationDiscrepancyCancellationTest extends TestCase
             'version_no' => 1,
             'purpose_event' => 'Preparation discrepancy fixture',
             'location' => 'CSPC Campus',
-            'schedule_date' => now()->addDays(2)->startOfDay()->toDateString(),
-            'return_date' => now()->addDays(5)->startOfDay()->toDateString(),
-            'needed_from' => now()->addDays(2)->startOfDay(),
-            'return_due_at' => now()->addDays(5)->startOfDay()->endOfDay(),
+            'schedule_date' => $scheduleDate->toDateString(),
+            'return_date' => $returnDate->toDateString(),
+            'needed_from' => $scheduleDate->copy(),
+            'return_due_at' => $returnDate->copy()->endOfDay(),
             'represents_student_activity' => false,
             'event_details' => 'Preparation discrepancy test.',
             'off_campus' => false,

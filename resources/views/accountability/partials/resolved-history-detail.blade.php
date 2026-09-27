@@ -8,7 +8,7 @@
     and $row to already be set by the caller.
 --}}
 @if($incident)
-    <dl class="accountability-case-facts top-gap">
+    <dl class="resolved-history-facts">
         <div>
             <dt>Incident</dt>
             <dd>{{ $incident->incident_no ?: '—' }}</dd>
@@ -29,19 +29,23 @@
 @endif
 
 @if($case)
-    <dl class="accountability-case-facts top-gap">
+    <dl class="resolved-history-facts">
         <div>
             <dt>Expected Return</dt>
             <dd>{{ optional($case->grace_expires_at)->format('d M Y') ?: '—' }}</dd>
         </div>
-        <div>
-            <dt>{{ $fromLaundry ? 'Laundry Received' : 'Actual Return' }}</dt>
-            <dd>{{ optional($case->actual_return_date)->format('d M Y') ?: '—' }}</dd>
-        </div>
-        <div>
-            <dt>Late Days</dt>
-            <dd>{{ $case->late_days === null ? '—' : $case->late_days }}</dd>
-        </div>
+        @if($case->actual_return_date)
+            <div>
+                <dt>{{ $fromLaundry ? 'Laundry Received' : 'Actual Return' }}</dt>
+                <dd>{{ optional($case->actual_return_date)->format('d M Y') }}</dd>
+            </div>
+        @endif
+        @if($case->late_days !== null)
+            <div>
+                <dt>Late Days</dt>
+                <dd>{{ $case->late_days }}</dd>
+            </div>
+        @endif
         <div>
             <dt>Final Late Return Fee</dt>
             <dd>{{ $amountLabel }}</dd>

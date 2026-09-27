@@ -52,7 +52,6 @@
         </div>
         <a class="button secondary ui-pressable laundry-completed-link" href="{{ route('laundry.completed') }}">
             <span>Completed Records</span>
-            <x-icon name="arrow-right" size="15" />
         </a>
     </section>
 
@@ -123,7 +122,7 @@
                                 <td>{{ $caseCustody?->custody_no ?: '—' }}</td>
                                 <td><x-status-badge :status="$job->status" :label="$statusText" :title="$statusDescription" /></td>
                                 <td class="laundry-returned-date">{{ $job->updated_at?->format('M d, Y') ?: '—' }}</td>
-                                <td><a class="button secondary small ui-pressable laundry-view-link" href="{{ route('laundry.show', $job) }}"><span>View Record</span><x-icon name="arrow-right" size="14" /></a></td>
+                                <td><a class="button secondary small ui-pressable laundry-view-link" href="{{ route('laundry.show', $job) }}"><span>View Record</span></a></td>
                             </tr>
                         @endforeach
                     </tbody>

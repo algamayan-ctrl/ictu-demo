@@ -71,12 +71,12 @@
 
     <div class="release-schedule-exception release-pickup-exception-actions">
         <div>
-            <strong>{{ $pickupRescheduleRequested ? 'Reschedule requested' : 'Borrower options' }}</strong>
+            <strong>Pickup Missed &mdash; For SPMU Review</strong>
+
+            <p>The scheduled pickup was not completed. Decide whether to continue this approved release or cancel the borrowing.</p>
 
             @if($pickupRescheduleRequested)
-                <p>The borrower requested a new pickup schedule.</p>
-            @else
-                <p>Waiting for borrower action: <strong>Request Reschedule</strong> or <strong>Cancel Request</strong>.</p>
+                <p class="meta">The borrower previously asked about this missed pickup.</p>
             @endif
 
             @if($missedNotificationFailed)
@@ -85,21 +85,41 @@
                 <p class="meta">Borrower notified.</p>
             @endif
 
-            @if($pickupRescheduleRequested)
-                @if($pickupRescheduleAvailable)
+            @if($pickupRescheduleAvailable)
+                <div class="release-form-actions">
+                    <form method="post" action="{{ route('custody.reschedule-pickup', $custody) }}">
+                        @csrf
+                        <button class="button primary ui-pressable release-primary" type="submit">
+                            Continue Release
+                        </button>
+                    </form>
+
+                    @if($canCancelBorrowing)
+                        @include('requests.partials.borrower-cancel-control', [
+                            'borrowingRequest' => $custody->request,
+                            'cancelTriggerClass' => 'button release-outline ui-pressable',
+                            'cancelTriggerLabel' => 'Cancel Borrowing',
+                            'cancelDialogTitle' => 'Cancel this borrowing?',
+                            'cancelDialogCopy' => 'This borrowing will be cancelled. The reserved items will return to Available inventory and any pending pickup documents will be invalidated.',
+                            'cancelReasonPlaceholder' => 'Briefly explain why this borrowing is being cancelled...',
+                        ])
+                    @endif
+                </div>
+            @else
+                <p class="meta">No valid pickup window remains on or before the Items Needed From date. This approved release can no longer be continued.</p>
+
+                @if($canCancelBorrowing)
                     <div class="release-form-actions">
-                        <form method="post" action="{{ route('custody.reschedule-pickup', $custody) }}">
-                            @csrf
-                            <button class="button primary ui-pressable release-primary" type="submit">
-                                Set Next Valid Pickup Schedule
-                            </button>
-                        </form>
+                        @include('requests.partials.borrower-cancel-control', [
+                            'borrowingRequest' => $custody->request,
+                            'cancelTriggerClass' => 'button primary ui-pressable release-primary',
+                            'cancelTriggerLabel' => 'Cancel Borrowing',
+                            'cancelDialogTitle' => 'Cancel this borrowing?',
+                            'cancelDialogCopy' => 'This borrowing will be cancelled. The reserved items will return to Available inventory and any pending pickup documents will be invalidated.',
+                            'cancelReasonPlaceholder' => 'Briefly explain why this borrowing is being cancelled...',
+                        ])
                     </div>
-                @else
-                    <p class="meta">No valid pickup window remains before the Expected Return Date.</p>
                 @endif
-            @elseif(!$pickupRescheduleAvailable)
-                <p class="meta">No valid pickup window remains before the Expected Return Date.</p>
             @endif
         </div>
     </div>
@@ -121,7 +141,7 @@
         @else
             <div class="release-schedule-exception-note">
                 <strong>No valid pickup window remains inside the approved period.</strong>
-                <p>A new pickup cannot be scheduled on or after the Expected Return Date. Cancel the unreleased request or revise the borrowing dates for approval.</p>
+                <p>A new pickup cannot be scheduled on or after the Items Needed From date. Cancel the unreleased request or revise the borrowing dates for approval.</p>
             </div>
         @endif
     </div>

@@ -1,6 +1,17 @@
 <style>
-.my-borrowings { --borrowings-blue: #0f62d6; width: 100%; min-width: 0; font-size: 13px; }
+.my-borrowings {
+    --borrowings-blue: #0f62d6;
+    width: 100%;
+    min-width: 0;
+    font-size: 13px;
+    /* Lets the empty-state card below grow to fill leftover height when the
+       toolbar above it is the only other content on the page; existing
+       child margins already provide the spacing, so no gap is added here. */
+    display: flex;
+    flex-direction: column;
+}
 .my-borrowings [hidden] { display: none !important; }
+.my-borrowings > .my-borrowings-card { flex: 1 1 auto; }
 
 /* Use the same Search + Status + Sort pattern as the other transaction lists. */
 .borrowings-toolbar {
@@ -24,11 +35,23 @@
 .borrowings-results-head strong { color: var(--heading); font-size: 13px; }
 .borrowings-list { display: grid; gap: 10px; }
 
-.my-borrowings-card { min-width: 0; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-elevated); box-shadow: var(--shadow-sm); overflow: hidden; }
+.my-borrowings-card {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-elevated);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    /* Lets .borrowings-empty below fill and center within this card's own
+       (now possibly stretched) height. */
+    display: flex;
+    flex-direction: column;
+}
 .borrowings-filter-empty { margin-top: 10px; }
 
 /* Empty state */
-.borrowings-empty { display: flex; min-height: clamp(300px, 40vh, 400px); align-items: center; justify-content: center; padding: 40px 20px 44px; text-align: center; }
+.my-borrowings-card > .borrowings-empty { flex: 1 1 auto; }
+.borrowings-empty { display: flex; min-height: 300px; align-items: center; justify-content: center; padding: 40px 20px 44px; text-align: center; }
 .borrowings-empty-content { display: flex; flex-direction: column; align-items: center; max-width: 500px; }
 .borrowings-empty-illustration { display: block; width: 100%; max-width: 205px; height: auto; margin-bottom: 18px; }
 .borrowings-empty-backdrop { fill: #e8f0fa; }
@@ -39,10 +62,6 @@
 .borrowings-empty-sparkles { fill: #bed7f2; }
 .my-borrowings .borrowings-empty h2 { margin: 0 0 10px; color: var(--heading); font-size: 19px; font-weight: 800; line-height: 1.35; }
 .borrowings-empty p { margin: 0 0 22px; max-width: 42ch; color: var(--text-secondary); font-size: 13px; line-height: 1.55; }
-.my-borrowings .button.borrowings-empty-action { gap: 10px; min-height: 44px; padding: 11px 20px; border: 1px solid var(--borrowings-blue); border-radius: 8px; background: var(--surface-elevated); color: var(--borrowings-blue); font-size: 13px; font-weight: 750; }
-.my-borrowings .button.borrowings-empty-action:hover,
-.my-borrowings .button.borrowings-empty-action:focus-visible { color: #fff; background: var(--borrowings-blue); border-color: var(--borrowings-blue); }
-.borrowings-empty-action .ui-icon { flex-shrink: 0; }
 
 html[data-theme="dark"] .my-borrowings { --borrowings-blue: #72b7f4; }
 html[data-theme="dark"] .borrowings-empty-backdrop { fill: #16263a; }
@@ -51,9 +70,6 @@ html[data-theme="dark"] .borrowings-empty-clipboard { stroke: #4d87c9; fill: #17
 html[data-theme="dark"] .borrowings-empty-clip { fill: #22405e; }
 html[data-theme="dark"] .borrowings-empty-checks { stroke: #4d87c9; fill: #1b3049; }
 html[data-theme="dark"] .borrowings-empty-sparkles { fill: #2f4a68; }
-html[data-theme="dark"] .my-borrowings .button.borrowings-empty-action:hover,
-html[data-theme="dark"] .my-borrowings .button.borrowings-empty-action:focus-visible { color: var(--navy-950); }
-
 @media (max-width: 760px) {
     .borrowings-toolbar { grid-template-columns: 1fr; }
 }

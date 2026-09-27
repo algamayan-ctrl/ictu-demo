@@ -212,7 +212,6 @@
             three cards beside it are current-state and deliberately do not.
         --}}
         @include('analytics.partials.period-delta', ['comparison' => $demandComparison['requests'], 'deltaClass' => 'analytics-kpi-card-meta'])
-        <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -223,7 +222,6 @@
         <span class="analytics-kpi-card-label">Currently Out</span>
         <strong class="analytics-kpi-card-value">{{ $overview['on_custody'] }}</strong>
         <span class="analytics-kpi-card-note">Released, not yet returned</span>
-        <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -234,7 +232,6 @@
         <span class="analytics-kpi-card-label">Currently Overdue</span>
         <strong class="analytics-kpi-card-value">{{ $overview['needs_follow_up'] }}</strong>
         <span class="analytics-kpi-card-note">Borrowings past their return date</span>
-        <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -245,7 +242,6 @@
         <span class="analytics-kpi-card-label">Low Availability</span>
         <strong class="analytics-kpi-card-value">{{ $lowAvailability['count'] }}</strong>
         <span class="analytics-kpi-card-note">At or below {{ $lowAvailabilityPercent }}% usable stock</span>
-        <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 </div>
 
@@ -264,7 +260,7 @@
                 <h2>Borrowing Demand Trend</h2>
                 <p>Borrowing requests filed per {{ $trend['granularity'] }}.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'overview', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'overview.trend']) }}" aria-label="View Borrowing Demand Trend details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'overview', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'overview.trend']) }}" aria-label="View Borrowing Demand Trend details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         @if($trendMode === 'empty')
@@ -300,7 +296,7 @@
                 <h2>Priority Insights</h2>
                 <p>Key operational signals for the selected period and current state.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'overview', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'overview.insights']) }}" aria-label="View Priority Insights details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'overview', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'overview.insights']) }}" aria-label="View Priority Insights details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body is-flush">
@@ -314,7 +310,6 @@
                                     <span class="analytics-priority-title">{{ $row['title'] }}</span>
                                     <span class="analytics-priority-text">{{ $row['text'] }}</span>
                                 </span>
-                                <x-icon name="arrow-right" size="14" class="analytics-priority-arrow" />
                             </a>
                         @else
                             <div>
@@ -346,7 +341,6 @@
         <a class="analytics-summary-card" href="{{ route('analytics.index', $carry + ['section' => 'demand']) }}">
             <span class="analytics-summary-icon" aria-hidden="true"><x-icon name="analytics" size="16" /></span>
             <span class="analytics-summary-title">Demand &amp; Utilization</span>
-            <x-icon name="arrow-right" size="14" class="analytics-summary-arrow" />
 
             <dl class="analytics-summary-metrics">
                 <div>
@@ -375,7 +369,6 @@
         <a class="analytics-summary-card" href="{{ route('analytics.index', $carry + ['section' => 'inventory']) }}">
             <span class="analytics-summary-icon" aria-hidden="true"><x-icon name="inventory" size="16" /></span>
             <span class="analytics-summary-title">Inventory Health</span>
-            <x-icon name="arrow-right" size="14" class="analytics-summary-arrow" />
 
             <dl class="analytics-summary-metrics">
                 <div>
@@ -396,7 +389,6 @@
         <a class="analytics-summary-card" href="{{ route('analytics.index', $carry + ['section' => 'returns']) }}">
             <span class="analytics-summary-icon" aria-hidden="true"><x-icon name="custody" size="16" /></span>
             <span class="analytics-summary-title">Borrowing &amp; Return Performance</span>
-            <x-icon name="arrow-right" size="14" class="analytics-summary-arrow" />
 
             <dl class="analytics-summary-metrics">
                 <div>
@@ -429,7 +421,6 @@
         <a class="analytics-summary-card" href="{{ route('analytics.index', $carry + ['section' => 'predictive']) }}">
             <span class="analytics-summary-icon" aria-hidden="true"><x-icon name="calendar" size="16" /></span>
             <span class="analytics-summary-title">Forecast &amp; Planning</span>
-            <x-icon name="arrow-right" size="14" class="analytics-summary-arrow" />
 
             <dl class="analytics-summary-metrics">
                 <div>

@@ -47,3 +47,40 @@ test('embedded borrower history suppresses the duplicate resolved-accountability
   assert.match(resolvedHistory, /@unless\(\$embeddedInBorrowerWorkspace\)/);
   assert.match(resolvedHistory, /accountability-history-embedded/);
 });
+
+
+test('staff borrower History loads the shared resolved-row interaction script', () => {
+  assert.match(workspace, /@include\('accountability\.partials\.cases-interactions'\)/);
+});
+
+
+test('staff borrower accountability summary cards are clickable and Active Cases includes standalone open matters', () => {
+  assert.equal((workspace.match(/class="card stat-card kpi-card dashboard-kpi-card stat-card-link ui-pressable/g) || []).length, 3);
+  assert.match(workspace, /id="accountability-active-cases"/);
+  assert.match(workspace, /\$standaloneRows = collect\(\$rows\)[\s\S]*?whereIn\('category', \['billing', 'restriction'\]\)/);
+  assert.match(workspace, /\$custodyGroups->isEmpty\(\) && \$standaloneRows->isEmpty\(\)/);
+  assert.match(workspace, /accountability-standalone-groups/);
+  assert.match(workspace, /Borrower action pending/);
+  assert.match(workspace, /SPMU \/ policy processing/);
+});
+
+
+test('standalone accountability disclosures stay anchored and use a compact separate detail panel', () => {
+  assert.match(workspace, /data-accountability-standalone-toggle/);
+  assert.match(workspace, /aria-controls="\{\{ \$standaloneDetailId \}\}"/);
+  assert.match(workspace, /class="accountability-standalone-detail-body" hidden/);
+  assert.match(workspace, /accountability-standalone-toggle \{ justify-self: end; min-width: 118px; \}/);
+  assert.match(workspace, /accountability-standalone-detail-body\[hidden\] \{ display: none; \}/);
+  assert.doesNotMatch(workspace, /<details class="accountability-standalone-details">/);
+  assert.match(workspace, /class="accountability-custody-groups accountability-standalone-groups"[\s\S]*?class="ob-case-card accountability-custody-case accountability-standalone-case"/);
+});
+
+test('resolved accountability expansion stays compact and omits unavailable late-return facts', () => {
+  const detail = fs.readFileSync(path.join(root, 'resources/views/accountability/partials/resolved-history-detail.blade.php'), 'utf8');
+  assert.match(detail, /class="resolved-history-facts"/);
+  assert.match(detail, /@if\(\$case->actual_return_date\)/);
+  assert.match(detail, /@if\(\$case->late_days !== null\)/);
+  assert.doesNotMatch(detail, /class="accountability-case-facts top-gap"/);
+  assert.match(resolvedHistory, /\.resolved-history-facts\s*\{[\s\S]*?grid-template-columns:\s*repeat\(auto-fit, minmax\(170px, 1fr\)\)/);
+  assert.match(resolvedHistory, /\.accountability-history-embedded \.accountability-case-detail-row > td\s*\{[\s\S]*?padding:\s*10px 16px 12px/);
+});

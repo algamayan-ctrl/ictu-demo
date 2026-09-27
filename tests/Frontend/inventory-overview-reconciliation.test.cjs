@@ -19,6 +19,8 @@ test('inventory overview uses one formal adjustment action without a plus icon',
   assert.match(show, /chevron-down/);
   assert.doesNotMatch(show, /inventory-adjustment[^\n]*plus(?:-circle)?/i);
   assert.match(show, /Place Stock Under Maintenance/);
+  assert.doesNotMatch(show, /Physical Count Correction/);
+  assert.doesNotMatch(show, /new_total_quantity/);
   assert.match(show, /Return Maintenance Stock to Service/);
   assert.match(show, /Retire \/ Condemn Maintenance Stock/);
 });
@@ -72,7 +74,8 @@ test('inventory adjustment uses action-specific basis fields instead of one alwa
   assert.match(show, /data-inventory-reason-field hidden/);
   assert.match(show, /const reasonConfig = \{/);
   assert.match(show, /STOCK_ADDITION:[\s\S]*label: 'Source \/ Reference'[\s\S]*required: true/);
-  assert.match(show, /PHYSICAL_COUNT_CORRECTION:[\s\S]*label: 'Reason for Correction'[\s\S]*required: true/);
+  assert.doesNotMatch(show, /PHYSICAL_COUNT_CORRECTION/);
+  assert.doesNotMatch(show, /Verified physical stock total/);
   assert.doesNotMatch(show, /RETURN_MAINTENANCE_TO_SERVICE:[\s\S]*label: 'Verification Note'/);
   assert.doesNotMatch(show, /REPLACEMENT_RECEIVED:/);
   assert.doesNotMatch(show, /ITEM_RECOVERED:/);

@@ -9,8 +9,6 @@ use App\Models\AuditEvent;
 use App\Models\BorrowingRequest;
 use App\Models\CustodyLine;
 use App\Models\CustodyTransaction;
-use App\Models\GatePass;
-use App\Models\GeneratedDocument;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use App\Models\NotificationDelivery;
@@ -22,26 +20,32 @@ use App\Models\RequestVersion;
 use App\Models\UnitOfMeasure;
 use App\Models\User;
 use App\Services\CustodyService;
-use App\Services\RequestWorkflowService;
 use Carbon\Carbon;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Coverage for RequestWorkflowService::autoCancelUnclaimedMissedPickups() -
- * previously entirely untested despite being real, Terms-and-Conditions-
- * documented automatic behavior invoked from the spmu:process-deadlines
- * scheduler command - and for the PICKUP_EXPIRED notification created by
- * CustodyService::expirePickupWindows(), which previously only had structural
- * (source-string) coverage rather than a real notification/delivery record
- * assertion.
+ * Coverage for the "Pickup Missed - For SPMU Review" workflow: a missed
+ * pickup is NEVER automatically cancelled. It stays PREPARING_RELEASE /
+ * PICKUP_EXPIRED indefinitely until an authorized SPMU actor explicitly
+ * chooses Continue Release (CustodyService::rescheduleMissedPickup(), bounded
+ * by the approved Items Needed From date) or Cancel Borrowing. Both missed-
+ * pickup decisions are operational Action Officer actions; cancellation reuses
+ * RequestWorkflowService::cancel() without a second Head/Admin approval. It
+ * also covers the
+ * two server-side guards that close a direct-POST bypass of the removed
+ * borrower UI (a borrower can no longer request a reschedule or cancel a
+ * request once pickup is missed - that decision belongs to SPMU alone).
  *
- * All fixtures anchor to Monday 2026-09-21 09:00 with a forced Mon-Fri
- * 08:00-17:00 Pickup / Release window so the three trigger paths can be
- * computed deterministically against OperationalCalendarService's real
- * weekday/hours logic instead of guessed offsets.
+ * Two anchor date schemes are used:
+ * - Monday 2026-09-21 09:00, with a forced Mon-Fri 08:00-17:00 Pickup /
+ *   Release window, for the general detection/no-auto-cancel/server-side
+ *   guard coverage.
+ * - Friday 2026-10-09 (the last open weekday before Monday 2026-10-12) for
+ *   the Items Needed From boundary coverage, matching the approved
+ *   implementation plan's worked example exactly (2026-10-10/11 are the
+ *   intervening closed Sat/Sun days).
  */
 class PickupAutoCancellationTest extends TestCase
 {
@@ -67,7 +71,7 @@ class PickupAutoCancellationTest extends TestCase
 
         $this->unit = OrganizationalUnit::query()->create([
             'unit_code' => 'PICKUPFX',
-            'unit_name' => 'Pickup Auto-Cancel Test Unit',
+            'unit_name' => 'Pickup SPMU Review Test Unit',
             'unit_type' => 'OFFICE',
             'active' => true,
         ]);
@@ -79,168 +83,68 @@ class PickupAutoCancellationTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_no_valid_replacement_pickup_before_expected_return_date_cancels_immediately(): void
+    // ------------------------------------------------------------------
+    // No automatic cancellation, ever
+    // ------------------------------------------------------------------
+
+    public function test_a_missed_pickup_is_never_automatically_cancelled_no_matter_how_much_time_passes(): void
     {
         [$custody, , $request, $version] = $this->preparingReleaseCustody(
-            'NOREPL',
+            'NOAUTO',
             Carbon::create(2026, 9, 21, 8),
             Carbon::create(2026, 9, 21, 17),
-            Carbon::create(2026, 9, 22, 23, 59, 59)
+            Carbon::create(2026, 9, 25, 23, 59, 59)
         );
-        $this->attachGeneratedDocuments($custody, $version);
 
         $this->travelTo(Carbon::create(2026, 9, 21, 18));
+        app(CustodyService::class)->expirePickupWindows();
 
-        $cancelled = app(RequestWorkflowService::class)->autoCancelUnclaimedMissedPickups();
+        $this->assertNotNull($custody->fresh()->pickup_expired_at);
+        $this->assertSame('PICKUP_EXPIRED', $custody->fresh()->workflowStatus()['key']);
 
-        $this->assertSame(1, $cancelled);
-        $this->assertSame(RequestStatus::Cancelled, $request->fresh()->status);
-        $this->assertSame('CANCELLED', $custody->fresh()->status);
-        $this->assertNotNull($custody->fresh()->closed_at);
+        // Travel far past every deadline the old auto-cancel logic used to
+        // act on (original response deadline, the approved Expected Return
+        // Date, and well beyond) and re-run the scheduler's detection step
+        // repeatedly - nothing ever cancels.
+        foreach ([
+            Carbon::create(2026, 9, 23, 9),
+            Carbon::create(2026, 9, 26, 9),
+            Carbon::create(2026, 12, 1, 9),
+        ] as $laterMoment) {
+            $this->travelTo($laterMoment);
+            app(CustodyService::class)->expirePickupWindows();
 
-        $this->assertAllocationFullyRestored($version);
-        $this->assertGeneratedDocumentsInvalidated($version);
-        $this->assertGatePassVoided($custody);
+            $this->assertSame(RequestStatus::ApprovedReadyForRelease, $request->fresh()->status);
+            $this->assertSame('PREPARING_RELEASE', $custody->fresh()->status);
+            $this->assertNull($custody->fresh()->closed_at);
 
-        $this->assertDatabaseHas('audit_events', [
-            'record_type' => CustodyTransaction::class,
-            'record_id' => $custody->id,
-            'action_code' => 'PICKUP_AUTO_CANCELLED_UNCLAIMED',
-        ]);
-        $event = AuditEvent::query()
-            ->where('record_type', CustodyTransaction::class)
-            ->where('record_id', $custody->id)
-            ->where('action_code', 'PICKUP_AUTO_CANCELLED_UNCLAIMED')
-            ->firstOrFail();
-        $this->assertStringContainsString('no valid replacement pickup remains', (string) $event->reason);
+            $this->assertDatabaseMissing('audit_events', [
+                'record_type' => CustodyTransaction::class,
+                'record_id' => $custody->id,
+                'action_code' => 'PICKUP_AUTO_CANCELLED_UNCLAIMED',
+            ]);
+        }
 
-        $this->assertBorrowerCancellationNotified($request);
+        // Reserved stock stays held throughout - never restored.
+        $this->assertAllocationStillActiveAndUnrestored($version);
     }
 
-    public function test_no_response_within_allowed_period_cancels_after_deadline(): void
+    public function test_successful_physical_release_before_the_window_closes_is_never_marked_pickup_expired(): void
     {
-        [$custody, , $request, $version] = $this->preparingReleaseCustody(
-            'NORESP',
+        [$custody] = $this->preparingReleaseCustody(
+            'RELEASEDINTIME',
             Carbon::create(2026, 9, 21, 8),
             Carbon::create(2026, 9, 21, 17),
             Carbon::create(2026, 9, 25, 23, 59, 59)
         );
 
-        // Still within the response period (through Tuesday's close): must
-        // NOT cancel yet.
-        $this->travelTo(Carbon::create(2026, 9, 22, 16, 0));
-        $cancelledEarly = app(RequestWorkflowService::class)->autoCancelUnclaimedMissedPickups();
-        $this->assertSame(0, $cancelledEarly);
-        $this->assertSame(RequestStatus::ApprovedReadyForRelease, $request->fresh()->status);
+        $custody->update(['released_at' => Carbon::create(2026, 9, 21, 10)]);
 
-        // Past the response deadline (Tuesday 17:00), no reschedule request
-        // was ever recorded.
-        $this->travelTo(Carbon::create(2026, 9, 23, 9, 0));
-        $cancelled = app(RequestWorkflowService::class)->autoCancelUnclaimedMissedPickups();
+        $this->travelTo(Carbon::create(2026, 9, 22, 9));
+        $expired = app(CustodyService::class)->expirePickupWindows();
 
-        $this->assertSame(1, $cancelled);
-        $this->assertSame(RequestStatus::Cancelled, $request->fresh()->status);
-        $this->assertSame('CANCELLED', $custody->fresh()->status);
-        $this->assertAllocationFullyRestored($version);
-
-        $event = AuditEvent::query()
-            ->where('record_type', CustodyTransaction::class)
-            ->where('record_id', $custody->id)
-            ->where('action_code', 'PICKUP_AUTO_CANCELLED_UNCLAIMED')
-            ->firstOrFail();
-        $this->assertStringContainsString('no reschedule or cancellation response was received', (string) $event->reason);
-    }
-
-    public function test_a_pending_reschedule_request_protects_the_reservation_until_ao_acts(): void
-    {
-        [$custody, , $request] = $this->preparingReleaseCustody(
-            'PENDINGREQ',
-            Carbon::create(2026, 9, 21, 8),
-            Carbon::create(2026, 9, 21, 17),
-            Carbon::create(2026, 9, 25, 23, 59, 59)
-        );
-
-        NotificationEvent::query()->create([
-            'event_code' => 'PICKUP_RESCHEDULE_REQUESTED',
-            'source_type' => $custody->getMorphClass(),
-            'source_id' => $custody->id,
-            'payload_snapshot_json' => ['message' => 'Borrower requested a pickup reschedule.'],
-            'occurred_at' => Carbon::create(2026, 9, 21, 18),
-        ]);
-
-        // Even well past the normal response deadline, the pending request
-        // must keep the reservation intact until SPMU actually reschedules.
-        $this->travelTo(Carbon::create(2026, 9, 24, 9, 0));
-        $cancelled = app(RequestWorkflowService::class)->autoCancelUnclaimedMissedPickups();
-
-        $this->assertSame(0, $cancelled);
-        $this->assertSame(RequestStatus::ApprovedReadyForRelease, $request->fresh()->status);
-        $this->assertSame('PREPARING_RELEASE', $custody->fresh()->status);
-    }
-
-    public function test_a_missed_rescheduled_pickup_cancels_immediately_with_no_second_reschedule_cycle(): void
-    {
-        [$custody, , $request, $version] = $this->preparingReleaseCustody(
-            'MISSEDRESCHED',
-            Carbon::create(2026, 9, 21, 8),
-            Carbon::create(2026, 9, 21, 17),
-            Carbon::create(2026, 9, 25, 23, 59, 59)
-        );
-
-        NotificationEvent::query()->create([
-            'event_code' => 'PICKUP_RESCHEDULE_REQUESTED',
-            'source_type' => $custody->getMorphClass(),
-            'source_id' => $custody->id,
-            'payload_snapshot_json' => ['message' => 'Borrower requested a pickup reschedule.'],
-            'occurred_at' => Carbon::create(2026, 9, 21, 18),
-        ]);
-
-        // SPMU actually reschedules to the next valid window (Tuesday).
-        $custody->update([
-            'scheduled_release_at' => Carbon::create(2026, 9, 22, 8),
-            'pickup_expires_at' => Carbon::create(2026, 9, 22, 17),
-            'pickup_expired_at' => null,
-            'pickup_scheduled_at' => Carbon::create(2026, 9, 21, 19),
-        ]);
-
-        AuditEvent::query()->create([
-            'record_type' => CustodyTransaction::class,
-            'record_id' => $custody->id,
-            'actor_user_id' => null,
-            'action_code' => 'PICKUP_RESCHEDULED',
-            'reason' => null,
-            'before_json' => [],
-            'after_json' => ['source' => 'MISSED_PICKUP_NEXT_VALID_OPERATIONAL_WINDOW'],
-            'occurred_at' => Carbon::create(2026, 9, 21, 19),
-            'correlation_id' => (string) Str::uuid(),
-        ]);
-
-        // Borrower also misses the rescheduled window. Travel well past it.
-        $this->travelTo(Carbon::create(2026, 9, 23, 9, 0));
-        $cancelled = app(RequestWorkflowService::class)->autoCancelUnclaimedMissedPickups();
-
-        $this->assertSame(1, $cancelled);
-        $this->assertSame(RequestStatus::Cancelled, $request->fresh()->status);
-        $this->assertSame('CANCELLED', $custody->fresh()->status);
-        $this->assertAllocationFullyRestored($version);
-
-        $event = AuditEvent::query()
-            ->where('record_type', CustodyTransaction::class)
-            ->where('record_id', $custody->id)
-            ->where('action_code', 'PICKUP_AUTO_CANCELLED_UNCLAIMED')
-            ->firstOrFail();
-        $this->assertStringContainsString('rescheduled pickup window', (string) $event->reason);
-
-        // Exactly one PICKUP_RESCHEDULED audit event exists - no second
-        // reschedule cycle was opened for the missed rescheduled pickup.
-        $this->assertSame(
-            1,
-            AuditEvent::query()
-                ->where('record_type', CustodyTransaction::class)
-                ->where('record_id', $custody->id)
-                ->where('action_code', 'PICKUP_RESCHEDULED')
-                ->count()
-        );
+        $this->assertSame(0, $expired);
+        $this->assertNull($custody->fresh()->pickup_expired_at);
     }
 
     public function test_preparation_exception_pending_release_protects_the_reservation(): void
@@ -261,21 +165,28 @@ class PickupAutoCancellationTest extends TestCase
             'before_json' => [],
             'after_json' => ['custody_line_id' => $line->id],
             'occurred_at' => Carbon::create(2026, 9, 21, 10),
-            'correlation_id' => (string) Str::uuid(),
+            'correlation_id' => (string) \Illuminate\Support\Str::uuid(),
         ]);
 
         $this->travelTo(Carbon::create(2026, 9, 24, 9, 0));
-        $cancelled = app(RequestWorkflowService::class)->autoCancelUnclaimedMissedPickups();
+        $expired = app(CustodyService::class)->expirePickupWindows();
 
-        $this->assertSame(0, $cancelled);
+        $this->assertSame(0, $expired);
+        $this->assertNull($custody->fresh()->pickup_expired_at);
         $this->assertSame(RequestStatus::ApprovedReadyForRelease, $request->fresh()->status);
         $this->assertSame('PREPARING_RELEASE', $custody->fresh()->status);
+
+        $this->assertDatabaseHas('audit_events', [
+            'record_type' => CustodyTransaction::class,
+            'record_id' => $custody->id,
+            'action_code' => 'PICKUP_HELD_FOR_PREPARATION_ISSUE',
+        ]);
     }
 
-    public function test_pickup_expired_notification_offers_reschedule_when_a_valid_window_remains(): void
+    public function test_pickup_expired_notification_uses_neutral_spmu_review_wording(): void
     {
         [$custody, , , , $borrower] = $this->preparingReleaseCustody(
-            'EXPNOTIFY1',
+            'EXPNOTIFY',
             Carbon::create(2026, 9, 21, 8),
             Carbon::create(2026, 9, 21, 17),
             Carbon::create(2026, 9, 25, 23, 59, 59)
@@ -300,8 +211,12 @@ class PickupAutoCancellationTest extends TestCase
             ->where('source_id', $custody->id)
             ->firstOrFail();
 
-        $this->assertStringContainsString('Request Reschedule', (string) $event->payload_snapshot_json['message']);
-        $this->assertStringContainsString('Cancel Request', (string) $event->payload_snapshot_json['message']);
+        $message = (string) $event->payload_snapshot_json['message'];
+        $this->assertStringContainsString('SPMU is reviewing', $message);
+        $this->assertStringContainsString('No action is required from you', $message);
+        $this->assertStringNotContainsString('Request Reschedule', $message);
+        $this->assertStringNotContainsString('Cancel Request', $message);
+        $this->assertStringNotContainsString('cancelled automatically', $message);
 
         $deliveries = NotificationDelivery::query()
             ->where('notification_event_id', $event->id)
@@ -310,30 +225,351 @@ class PickupAutoCancellationTest extends TestCase
 
         $channels = $deliveries->pluck('channel')->unique()->sort()->values()->all();
         $this->assertSame(['EMAIL', 'SYSTEM'], $channels);
-        $this->assertFalse($deliveries->pluck('channel')->contains('SMS'));
     }
 
-    public function test_pickup_expired_notification_states_no_replacement_remains_when_due_date_is_imminent(): void
+    public function test_repaired_pickup_expired_notification_uses_the_same_neutral_spmu_review_wording(): void
     {
-        [$custody] = $this->preparingReleaseCustody(
-            'EXPNOTIFY2',
+        [$custody, , , , $borrower] = $this->preparingReleaseCustody(
+            'REPAIREXPNOTIFY',
             Carbon::create(2026, 9, 21, 8),
             Carbon::create(2026, 9, 21, 17),
-            Carbon::create(2026, 9, 22, 23, 59, 59)
+            Carbon::create(2026, 9, 25, 23, 59, 59)
         );
 
-        $this->travelTo(Carbon::create(2026, 9, 21, 18));
+        // Simulate an older already-expired transaction whose original
+        // PICKUP_EXPIRED notification event is missing. The repair path runs
+        // before new expirations and must recreate the same neutral copy.
+        $custody->update([
+            'pickup_expired_at' => Carbon::create(2026, 9, 21, 18),
+        ]);
 
-        app(CustodyService::class)->expirePickupWindows();
+        $this->assertDatabaseMissing('notification_events', [
+            'event_code' => 'PICKUP_EXPIRED',
+            'source_type' => $custody->getMorphClass(),
+            'source_id' => $custody->id,
+        ]);
+
+        $this->travelTo(Carbon::create(2026, 9, 22, 9));
+        $expired = app(CustodyService::class)->expirePickupWindows();
+
+        // It was already marked expired, so this invocation only repairs the
+        // missing notification and does not count another expiration.
+        $this->assertSame(0, $expired);
 
         $event = NotificationEvent::query()
             ->where('event_code', 'PICKUP_EXPIRED')
             ->where('source_type', $custody->getMorphClass())
             ->where('source_id', $custody->id)
+            ->latest('id')
             ->firstOrFail();
 
-        $this->assertStringContainsString('no valid replacement pickup remains', (string) $event->payload_snapshot_json['message']);
+        $message = (string) $event->payload_snapshot_json['message'];
+        $this->assertStringContainsString('SPMU is reviewing', $message);
+        $this->assertStringContainsString('No action is required from you', $message);
+        $this->assertStringNotContainsString('Request Reschedule', $message);
+        $this->assertStringNotContainsString('Cancel Request', $message);
+        $this->assertStringNotContainsString('cancelled automatically', $message);
+
+        $channels = NotificationDelivery::query()
+            ->where('notification_event_id', $event->id)
+            ->where('recipient_user_id', $borrower->id)
+            ->pluck('channel')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $this->assertSame(['EMAIL', 'SYSTEM'], $channels);
     }
+
+    // ------------------------------------------------------------------
+    // Server-side bypass guards (§2.2b / §2.3a)
+    // ------------------------------------------------------------------
+
+    public function test_borrower_direct_post_to_request_pickup_reschedule_is_rejected_once_pickup_is_missed(): void
+    {
+        [$custody, , , , $borrower] = $this->preparingReleaseCustody(
+            'BYPASSRESCHED',
+            Carbon::create(2026, 9, 21, 8),
+            Carbon::create(2026, 9, 21, 17),
+            Carbon::create(2026, 9, 25, 23, 59, 59)
+        );
+
+        $this->travelTo(Carbon::create(2026, 9, 21, 18));
+        app(CustodyService::class)->expirePickupWindows();
+
+        $before = $custody->fresh();
+
+        $this->withSession(['active_workspace' => 'BORROWER'])
+            ->actingAs($borrower)
+            ->post(route('custody.request-pickup-reschedule', $custody))
+            ->assertSessionHasErrors(['pickup']);
+
+        $this->assertDatabaseMissing('notification_events', [
+            'event_code' => 'PICKUP_RESCHEDULE_REQUESTED',
+            'source_type' => $custody->getMorphClass(),
+            'source_id' => $custody->id,
+        ]);
+
+        $after = $custody->fresh();
+        $this->assertEquals($before->pickup_expired_at, $after->pickup_expired_at);
+        $this->assertEquals($before->scheduled_release_at, $after->scheduled_release_at);
+        $this->assertEquals($before->pickup_expires_at, $after->pickup_expires_at);
+    }
+
+    public function test_borrower_direct_post_to_cancel_is_rejected_while_pickup_is_missed(): void
+    {
+        [$custody, , $request] = $this->preparingReleaseCustody(
+            'BYPASSCANCEL',
+            Carbon::create(2026, 9, 21, 8),
+            Carbon::create(2026, 9, 21, 17),
+            Carbon::create(2026, 9, 25, 23, 59, 59)
+        );
+
+        $this->travelTo(Carbon::create(2026, 9, 21, 18));
+        app(CustodyService::class)->expirePickupWindows();
+
+        $this->withSession(['active_workspace' => 'BORROWER'])
+            ->actingAs($request->borrower)
+            ->post(route('requests.cancel', $request), ['reason' => 'I no longer need these items.'])
+            ->assertSessionHasErrors(['cancel']);
+
+        $this->assertSame(RequestStatus::ApprovedReadyForRelease, $request->fresh()->status);
+        $this->assertSame('PREPARING_RELEASE', $custody->fresh()->status);
+        $this->assertDatabaseMissing('request_cancellations', [
+            'request_id' => $request->id,
+        ]);
+        $this->assertAllocationStillActiveAndUnrestored($request->currentVersion);
+    }
+
+    public function test_spmu_head_can_still_cancel_via_the_same_route_while_pickup_is_missed(): void
+    {
+        [$custody, , $request] = $this->preparingReleaseCustody(
+            'HEADCANCELDURING',
+            Carbon::create(2026, 9, 21, 8),
+            Carbon::create(2026, 9, 21, 17),
+            Carbon::create(2026, 9, 25, 23, 59, 59)
+        );
+
+        $this->travelTo(Carbon::create(2026, 9, 21, 18));
+        app(CustodyService::class)->expirePickupWindows();
+
+        $spmuHead = User::query()->where('access_classification', AccessClassification::SpmuHead->value)->firstOrFail();
+
+        $this->withSession(['active_workspace' => 'SPMU'])
+            ->actingAs($spmuHead)
+            ->post(route('requests.cancel', $request), ['reason' => 'SPMU decided the borrowing can no longer be fulfilled.'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(RequestStatus::Cancelled, $request->fresh()->status);
+        $this->assertSame('CANCELLED', $custody->fresh()->status);
+        $this->assertDatabaseHas('request_cancellations', [
+            'request_id' => $request->id,
+            'status' => 'CONFIRMED',
+            'reviewed_by_user_id' => $spmuHead->id,
+        ]);
+    }
+
+    public function test_regular_spmu_action_officer_can_cancel_a_missed_pickup_without_delegation(): void
+    {
+        [$custody, , $request] = $this->preparingReleaseCustody(
+            'AOCANCELMISSED',
+            Carbon::create(2026, 9, 21, 8),
+            Carbon::create(2026, 9, 21, 17),
+            Carbon::create(2026, 9, 25, 23, 59, 59)
+        );
+
+        $this->travelTo(Carbon::create(2026, 9, 21, 18));
+        app(CustodyService::class)->expirePickupWindows();
+
+        $spmuOfficer = User::query()
+            ->where('access_classification', AccessClassification::SpmuOfficer->value)
+            ->firstOrFail();
+
+        $this->assertNull($spmuOfficer->activeDelegationFor('SPMU'));
+
+        $this->withSession(['active_workspace' => 'SPMU'])
+            ->actingAs($spmuOfficer)
+            ->post(route('requests.cancel', $request), [
+                'reason' => 'Borrower missed pickup and SPMU can no longer proceed with physical issuance.',
+                'return_to' => 'release',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(RequestStatus::Cancelled, $request->fresh()->status);
+        $this->assertSame('CANCELLED', $custody->fresh()->status);
+        $this->assertDatabaseHas('request_cancellations', [
+            'request_id' => $request->id,
+            'status' => 'CONFIRMED',
+            'cancelled_by_user_id' => $spmuOfficer->id,
+            'reviewed_by_user_id' => $spmuOfficer->id,
+        ]);
+        $this->assertAllocationFullyRestored($request->currentVersion);
+    }
+
+    // ------------------------------------------------------------------
+    // Items Needed From boundary (§2.1a / §2.1b) - Fri Oct 9, 2026 missed,
+    // needed_from Mon Oct 12, 2026 (Oct 10-11 are the intervening Sat/Sun).
+    // ------------------------------------------------------------------
+
+    public function test_spmu_can_continue_release_during_the_needed_from_days_valid_operating_window(): void
+    {
+        [$custody, , $request, $version] = $this->neededFromBoundaryCustody('CONTINUEOK');
+
+        $this->travelTo(Carbon::create(2026, 10, 9, 18));
+        app(CustodyService::class)->expirePickupWindows();
+        $this->assertNotNull($custody->fresh()->pickup_expired_at);
+
+        $spmuOfficer = User::query()->where('access_classification', AccessClassification::SpmuOfficer->value)->firstOrFail();
+
+        $this->travelTo(Carbon::create(2026, 10, 12, 10));
+        $this->withSession(['active_workspace' => 'SPMU'])
+            ->actingAs($spmuOfficer)
+            ->post(route('custody.reschedule-pickup', $custody))
+            ->assertSessionHasNoErrors();
+
+        $fresh = $custody->fresh();
+        $this->assertNull($fresh->pickup_expired_at);
+        $this->assertTrue($fresh->scheduled_release_at->isSameDay(Carbon::create(2026, 10, 12)));
+        $this->assertDatabaseHas('audit_events', [
+            'record_type' => CustodyTransaction::class,
+            'record_id' => $custody->id,
+            'action_code' => 'PICKUP_RESCHEDULED',
+        ]);
+
+        // Approved items/quantities/dates are untouched - only the pickup
+        // schedule timestamps changed.
+        $requestItem = RequestItem::query()->where('request_version_id', $version->id)->firstOrFail();
+        $this->assertEquals(1, (float) $requestItem->approved_quantity);
+        $this->assertTrue($version->fresh()->needed_from->isSameDay(Carbon::create(2026, 10, 12)));
+        $this->assertSame(RequestStatus::ApprovedReadyForRelease, $request->fresh()->status);
+    }
+
+    public function test_continue_release_is_rejected_after_the_needed_from_days_operating_window_closes(): void
+    {
+        [$custody] = $this->neededFromBoundaryCustody('CONTINUELATE');
+
+        $this->travelTo(Carbon::create(2026, 10, 9, 18));
+        app(CustodyService::class)->expirePickupWindows();
+
+        $spmuOfficer = User::query()->where('access_classification', AccessClassification::SpmuOfficer->value)->firstOrFail();
+
+        // After Oct 12's 17:00 close - the next valid window can only be
+        // Oct 13 or later, which is after needed_from.
+        $this->travelTo(Carbon::create(2026, 10, 12, 18));
+        $this->withSession(['active_workspace' => 'SPMU'])
+            ->actingAs($spmuOfficer)
+            ->post(route('custody.reschedule-pickup', $custody))
+            ->assertSessionHasErrors(['pickup']);
+
+        $fresh = $custody->fresh();
+        $this->assertNotNull($fresh->pickup_expired_at);
+        $this->assertSame('PREPARING_RELEASE', $fresh->status);
+        $this->assertNull($fresh->closed_at);
+        $this->assertDatabaseMissing('audit_events', [
+            'record_type' => CustodyTransaction::class,
+            'record_id' => $custody->id,
+            'action_code' => 'PICKUP_RESCHEDULED',
+        ]);
+    }
+
+    public function test_continue_release_is_rejected_on_or_after_the_day_following_needed_from(): void
+    {
+        [$custody] = $this->neededFromBoundaryCustody('CONTINUENEXTDAY');
+
+        $this->travelTo(Carbon::create(2026, 10, 9, 18));
+        app(CustodyService::class)->expirePickupWindows();
+
+        $spmuOfficer = User::query()->where('access_classification', AccessClassification::SpmuOfficer->value)->firstOrFail();
+
+        $this->travelTo(Carbon::create(2026, 10, 13, 9));
+        $this->withSession(['active_workspace' => 'SPMU'])
+            ->actingAs($spmuOfficer)
+            ->post(route('custody.reschedule-pickup', $custody))
+            ->assertSessionHasErrors(['pickup']);
+
+        $this->assertNotNull($custody->fresh()->pickup_expired_at);
+    }
+
+    public function test_continue_release_is_rejected_when_needed_from_itself_has_no_valid_operating_window(): void
+    {
+        // needed_from falls on a closed Saturday - no open PICKUP day can
+        // ever be "on or before" it.
+        [$custody] = $this->neededFromBoundaryCustody(
+            'CONTINUENOWINDOW',
+            neededFrom: Carbon::create(2026, 10, 10)
+        );
+
+        $this->travelTo(Carbon::create(2026, 10, 9, 18));
+        app(CustodyService::class)->expirePickupWindows();
+
+        $spmuOfficer = User::query()->where('access_classification', AccessClassification::SpmuOfficer->value)->firstOrFail();
+
+        $this->travelTo(Carbon::create(2026, 10, 9, 19));
+        $this->withSession(['active_workspace' => 'SPMU'])
+            ->actingAs($spmuOfficer)
+            ->post(route('custody.reschedule-pickup', $custody))
+            ->assertSessionHasErrors(['pickup']);
+
+        $this->assertNotNull($custody->fresh()->pickup_expired_at);
+    }
+
+    public function test_after_a_boundary_rejected_continue_release_spmu_can_still_explicitly_cancel(): void
+    {
+        [$custody, , $request] = $this->neededFromBoundaryCustody('CONTINUETHENCANCEL');
+
+        $this->travelTo(Carbon::create(2026, 10, 9, 18));
+        app(CustodyService::class)->expirePickupWindows();
+
+        $spmuOfficer = User::query()->where('access_classification', AccessClassification::SpmuOfficer->value)->firstOrFail();
+
+        $this->travelTo(Carbon::create(2026, 10, 13, 9));
+        $this->withSession(['active_workspace' => 'SPMU'])
+            ->actingAs($spmuOfficer)
+            ->post(route('custody.reschedule-pickup', $custody))
+            ->assertSessionHasErrors(['pickup']);
+
+        // Rejection alone never cancels or restores inventory.
+        $this->assertSame(RequestStatus::ApprovedReadyForRelease, $request->fresh()->status);
+        $this->assertAllocationStillActiveAndUnrestored($request->currentVersion);
+
+        $this->withSession(['active_workspace' => 'SPMU'])
+            ->actingAs($spmuOfficer)
+            ->post(route('requests.cancel', $request), [
+                'reason' => 'No valid pickup window remains; the borrowing can no longer be fulfilled.',
+                'return_to' => 'release',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(RequestStatus::Cancelled, $request->fresh()->status);
+        $this->assertSame('CANCELLED', $custody->fresh()->status);
+        $this->assertDatabaseHas('request_cancellations', ['request_id' => $request->id]);
+        $this->assertAllocationFullyRestored($request->currentVersion);
+    }
+
+    public function test_continue_release_control_is_absent_once_the_needed_from_boundary_has_passed(): void
+    {
+        [$custody] = $this->neededFromBoundaryCustody('CONTINUEUINOTOFFERED');
+
+        $this->travelTo(Carbon::create(2026, 10, 9, 18));
+        app(CustodyService::class)->expirePickupWindows();
+
+        $spmuOfficer = User::query()->where('access_classification', AccessClassification::SpmuOfficer->value)->firstOrFail();
+
+        $this->travelTo(Carbon::create(2026, 10, 13, 9));
+        $response = $this->withSession(['active_workspace' => 'SPMU'])
+            ->actingAs($spmuOfficer)
+            ->get(route('custody.release.show', $custody));
+
+        $response->assertOk();
+        $response->assertDontSee('Continue Release');
+        $response->assertSee('Cancel Borrowing');
+        $response->assertSee('This approved release can no longer be continued', false);
+    }
+
+    // ------------------------------------------------------------------
+    // Fixtures / assertion helpers
+    // ------------------------------------------------------------------
 
     /**
      * @return array{0:CustodyTransaction,1:CustodyLine,2:BorrowingRequest,3:RequestVersion,4:User}
@@ -342,11 +578,12 @@ class PickupAutoCancellationTest extends TestCase
         string $suffix,
         Carbon $pickupStart,
         Carbon $pickupEnd,
-        Carbon $dueAt
+        Carbon $dueAt,
+        ?Carbon $neededFrom = null
     ): array {
         $category = InventoryCategory::query()->firstOrCreate(
             ['category_code' => 'PICKUPFX'],
-            ['category_name' => 'Pickup Auto-Cancel Fixture', 'active' => true]
+            ['category_name' => 'Pickup SPMU Review Fixture', 'active' => true]
         );
         $measure = UnitOfMeasure::query()->firstOrCreate(
             ['unit_code' => 'PC'],
@@ -383,13 +620,13 @@ class PickupAutoCancellationTest extends TestCase
         $version = RequestVersion::query()->create([
             'request_id' => $request->id,
             'version_no' => 1,
-            'purpose_event' => 'Pickup auto-cancel fixture',
+            'purpose_event' => 'Pickup SPMU review fixture',
             'location' => 'Campus',
             'division_code' => 'ACADEMIC',
             'office_unit' => 'Test Office',
             'schedule_date' => $pickupStart->toDateString(),
             'return_date' => $dueAt->toDateString(),
-            'needed_from' => $pickupStart->copy(),
+            'needed_from' => ($neededFrom ?: $pickupStart)->copy(),
             'return_due_at' => $dueAt->copy(),
         ]);
 
@@ -440,26 +677,23 @@ class PickupAutoCancellationTest extends TestCase
         return [$custody->fresh(), $line, $request, $version, $borrower];
     }
 
-    private function attachGeneratedDocuments(CustodyTransaction $custody, RequestVersion $version): void
+    /**
+     * Original pickup Friday 2026-10-09, needed_from Monday 2026-10-12 by
+     * default (the exact worked example in the approved implementation
+     * plan) - a return date far enough out that it never itself becomes the
+     * binding boundary.
+     *
+     * @return array{0:CustodyTransaction,1:CustodyLine,2:BorrowingRequest,3:RequestVersion,4:User}
+     */
+    private function neededFromBoundaryCustody(string $suffix, ?Carbon $neededFrom = null): array
     {
-        GeneratedDocument::query()->create([
-            'request_version_id' => $version->id,
-            'subject_type' => CustodyTransaction::class,
-            'subject_id' => $custody->id,
-            'document_no' => 'DOC-'.$custody->custody_no,
-            'document_type' => 'BORROWER_SLIP',
-            'status' => 'FINAL',
-            'generated_at' => now(),
-        ]);
-
-        GatePass::query()->create([
-            'custody_transaction_id' => $custody->id,
-            'custody_line_id' => $custody->lines()->firstOrFail()->id,
-            'bearer_name' => $custody->borrower->full_name ?? 'Test Borrower',
-            'destination' => 'Off-campus venue',
-            'purpose' => 'Fixture gate pass',
-            'status' => 'PENDING',
-        ]);
+        return $this->preparingReleaseCustody(
+            $suffix,
+            Carbon::create(2026, 10, 9, 8),
+            Carbon::create(2026, 10, 9, 17),
+            Carbon::create(2026, 10, 30, 23, 59, 59),
+            $neededFrom ?: Carbon::create(2026, 10, 12)
+        );
     }
 
     private function assertAllocationFullyRestored(RequestVersion $version): void
@@ -471,31 +705,12 @@ class PickupAutoCancellationTest extends TestCase
         $this->assertEquals((float) $allocation->allocated_quantity, (float) $allocation->restored_quantity);
     }
 
-    private function assertGeneratedDocumentsInvalidated(RequestVersion $version): void
+    private function assertAllocationStillActiveAndUnrestored(RequestVersion $version): void
     {
-        $this->assertDatabaseHas('generated_documents', [
-            'request_version_id' => $version->id,
-            'document_type' => 'BORROWER_SLIP',
-            'status' => 'INVALIDATED',
-        ]);
-    }
+        $requestItem = RequestItem::query()->where('request_version_id', $version->id)->firstOrFail();
+        $allocation = Allocation::query()->where('request_item_id', $requestItem->id)->firstOrFail();
 
-    private function assertGatePassVoided(CustodyTransaction $custody): void
-    {
-        $this->assertDatabaseHas('gate_passes', [
-            'custody_transaction_id' => $custody->id,
-            'status' => 'VOID',
-        ]);
-    }
-
-    private function assertBorrowerCancellationNotified(BorrowingRequest $request): void
-    {
-        $event = NotificationEvent::query()
-            ->where('event_code', 'REQUEST_CANCELLED')
-            ->where('source_type', $request->getMorphClass())
-            ->where('source_id', $request->id)
-            ->exists();
-
-        $this->assertTrue($event, 'The borrower must receive a REQUEST_CANCELLED notification.');
+        $this->assertSame('ACTIVE', $allocation->status);
+        $this->assertEquals(0.0, (float) $allocation->restored_quantity);
     }
 }

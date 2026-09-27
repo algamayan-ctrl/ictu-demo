@@ -1287,9 +1287,9 @@ class InventoryService
     }
 
     /**
-     * Formal SPMU Head inventory reconciliation. This is intentionally separate
-     * from the metadata Edit screen so stock/condition changes always leave a
-     * Stock Card movement and cannot silently change an approved commitment.
+     * Formal SPMU Head stock and condition adjustment. This is intentionally
+     * separate from the metadata Edit screen so physical stock movements always
+     * leave a Stock Card record and cannot silently change an approved commitment.
      *
      * @param array<string, mixed> $data
      * @return array<string, mixed>
@@ -1310,7 +1310,6 @@ class InventoryService
 
             if (in_array($action, [
                 'STOCK_ADDITION',
-                'PHYSICAL_COUNT_CORRECTION',
                 'PLACE_UNDER_MAINTENANCE',
                 'RETIRE_MAINTENANCE_STOCK',
                 'WRITE_OFF_RETIRED',
@@ -1345,38 +1344,6 @@ class InventoryService
                 $toState = 'AVAILABLE';
                 $afterTotal = $beforeTotal + $quantity;
                 $actionLabel = 'Additional Stock Received';
-            } elseif ($action === 'PHYSICAL_COUNT_CORRECTION') {
-                $target = (float) ($data['new_total_quantity'] ?? -1);
-                if ($target < 0) {
-                    throw ValidationException::withMessages([
-                        'new_total_quantity' => 'Enter the verified physical stock total.',
-                    ]);
-                }
-
-                $committed = (float) $beforeBalance['reserved']
-                    + (float) $beforeBalance['borrowed']
-                    + (float) $beforeBalance['laundry']
-                    + (float) $beforeBalance['incident']
-                    + (float) ($beforeBalance['condition_hold'] ?? 0);
-
-                if ($target < $committed) {
-                    throw ValidationException::withMessages([
-                        'new_total_quantity' => "Physical stock total cannot be lower than the active committed/unavailable quantity of {$committed}.",
-                    ]);
-                }
-
-                if (abs($target - $beforeTotal) < 0.0001) {
-                    throw ValidationException::withMessages([
-                        'new_total_quantity' => 'The verified physical stock total is unchanged.',
-                    ]);
-                }
-
-                $quantity = abs($target - $beforeTotal);
-                $transactionType = 'INVENTORY_PHYSICAL_COUNT_CORRECTION';
-                $fromState = $target > $beforeTotal ? 'COUNT_CORRECTION' : 'AVAILABLE';
-                $toState = $target > $beforeTotal ? 'AVAILABLE' : 'COUNT_CORRECTION';
-                $afterTotal = $target;
-                $actionLabel = 'Physical Count Correction';
             } elseif (in_array($action, [
                 'PLACE_UNDER_MAINTENANCE',
                 'RETURN_MAINTENANCE_TO_SERVICE',

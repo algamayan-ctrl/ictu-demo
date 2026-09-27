@@ -83,9 +83,9 @@
         <p>Request {{ $custody?->request?->request_no ?: '—' }} · Custody {{ $custody?->custody_no ?: '—' }} · {{ $custody?->borrower?->full_name ?: '—' }}</p>
     </div>
     @if($custody?->released_at)
-        <a class="button secondary ui-pressable" href="{{ route('custody.return.show', $custody) }}#return-summary">← Back</a>
+        <a class="button secondary ui-pressable" href="{{ route('custody.return.show', $custody) }}#return-summary">Back</a>
     @else
-        <a class="button secondary ui-pressable" href="{{ route('gate-passes.index') }}">← Back</a>
+        <a class="button secondary ui-pressable" href="{{ route('gate-passes.index') }}">Back</a>
     @endif
 </section>
 

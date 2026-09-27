@@ -206,6 +206,9 @@ Route::middleware(['auth', 'active'])->group(function (): void {
 
     Route::middleware('workspace:BORROWER')->group(function (): void {
 
+        Route::get('/requests/operational-date-availability', [BorrowingRequestController::class, 'operationalDateAvailability'])
+            ->name('requests.operational-date-availability');
+
         Route::get('/requests/create', [BorrowingRequestController::class, 'create'])
             ->name('requests.create');
 

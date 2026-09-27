@@ -36,13 +36,39 @@
     $activeRestrictionCount = $activeRestrictions->count();
     $borrowingStatus = $activeRestrictionCount > 0 ? 'Restricted' : 'Clear';
 
-    /* Current-account cards only. Resolved records stay in the collapsed
-       history section below instead of competing with current obligations. */
+    /*
+     * Every overview card is a real drill-down even when its value is zero.
+     * This keeps the interaction consistent with the role dashboards and lets
+     * a borrower click a zero/clear card to see the matching compact empty
+     * state instead of presenting a card that only looks interactive.
+     */
+    $focus = request('focus', 'active');
+    $focus = in_array($focus, ['active', 'action', 'payment', 'status'], true) ? $focus : 'active';
+
+    $openBillingNumbers = $openBillings->pluck('billing_no')->filter()->values();
+    $focusedRows = $obligationCollection->filter(function (array $row) use ($focus, $openBillingNumbers): bool {
+        return match ($focus) {
+            'action' => ($row['action_state'] ?? null) === \App\Services\BorrowerObligationService::ACTION_BORROWER,
+            'payment' => $openBillingNumbers->contains(
+                fn ($billingNo) => str_contains((string) ($row['search'] ?? ''), strtolower((string) $billingNo))
+            ),
+            'status' => (bool) ($row['restricted'] ?? false),
+            default => true,
+        };
+    })->values();
+
+    $focusMeta = match ($focus) {
+        'action' => ['Needs My Action', 'No action required from you', 'No current obligation requires your response.'],
+        'payment' => ['Payment Obligations', 'No payment currently due', 'There is no outstanding payment requirement on your account.'],
+        'status' => ['Borrowing Restrictions', 'No active borrowing restriction', 'Your borrowing status is currently clear.'],
+        default => ['Current Obligations', 'No unresolved obligations', 'No property, payment, late-return, or borrowing restriction currently requires your action.'],
+    };
+
     $summaryCards = [
-        ['info', 'accountability', (string) $obligationCount, 'Active Obligations', $obligationCount ? 'Unresolved matters on your account' : 'No unresolved obligations'],
-        ['warning', 'warning', (string) $needsActionCount, 'Needs My Action', $needsActionCount ? 'Requires your response' : 'No action required from you'],
-        ['orange', 'coins', 'PHP '.number_format($outstandingBalance, 2), 'Amount Due', $outstandingBalance > 0 ? 'Outstanding verified balance' : 'No payment currently due'],
-        [$activeRestrictionCount > 0 ? 'warning' : 'success', $activeRestrictionCount > 0 ? 'lock' : 'check-circle', $borrowingStatus, 'Borrowing Status', $activeRestrictionCount > 0 ? 'A borrowing restriction is active' : 'No active borrowing restriction'],
+        ['info', 'accountability', (string) $obligationCount, 'Active Obligations', $obligationCount ? 'Unresolved matters on your account' : 'No unresolved obligations', route('accountability.index', ['focus' => 'active']).'#current-obligations', 'active'],
+        ['warning', 'warning', (string) $needsActionCount, 'Needs My Action', $needsActionCount ? 'Requires your response' : 'No action required from you', route('accountability.index', ['focus' => 'action']).'#current-obligations', 'action'],
+        ['orange', 'coins', 'PHP '.number_format($outstandingBalance, 2), 'Amount Due', $outstandingBalance > 0 ? 'Outstanding verified balance' : 'No payment currently due', route('accountability.index', ['focus' => 'payment']).'#current-obligations', 'payment'],
+        [$activeRestrictionCount > 0 ? 'warning' : 'success', $activeRestrictionCount > 0 ? 'lock' : 'check-circle', $borrowingStatus, 'Borrowing Status', $activeRestrictionCount > 0 ? 'A borrowing restriction is active' : 'No active borrowing restriction', route('accountability.index', ['focus' => 'status']).'#current-obligations', 'status'],
     ];
 @endphp
 
@@ -50,26 +76,31 @@
 
 <section class="content-area ob-workspace" data-borrower-accountability-clean>
     <div class="ob-summary" aria-label="My obligations overview">
-        @foreach($summaryCards as [$tone, $icon, $value, $label, $note])
-            <article class="ob-summary-card is-{{ $tone }}">
+        @foreach($summaryCards as [$tone, $icon, $value, $label, $note, $href, $cardFocus])
+            <a
+                class="ob-summary-card is-{{ $tone }} is-clickable {{ $focus === $cardFocus ? 'is-selected' : '' }}"
+                href="{{ $href }}"
+                @if($focus === $cardFocus) aria-current="true" @endif
+            >
                 <span class="ob-summary-icon" aria-hidden="true">
                     <x-icon :name="$icon" size="20" />
                 </span>
                 <span class="ob-summary-label">{{ $label }}</span>
                 <strong class="ob-summary-value">{{ $value }}</strong>
                 <span class="ob-summary-note">{{ $note }}</span>
-            </article>
+            </a>
         @endforeach
     </div>
 
-    @if($obligationCount > 0)
+    <div id="current-obligations" class="ob-focused-results">
+    @if($focusedRows->isNotEmpty())
         <div class="ob-current-header">
             <h2>
-                Current Obligations
-                <span class="accountability-count-chip">{{ $obligationCount }}</span>
+                {{ $focusMeta[0] }}
+                <span class="accountability-count-chip">{{ $focusedRows->count() }}</span>
             </h2>
 
-            @if($obligationCount > 5)
+            @if($focusedRows->count() > 5)
                 <label class="ob-search">
                     <span>Search</span>
                     <span class="search-input-shell">
@@ -86,7 +117,7 @@
         </div>
 
         <div class="ob-case-list" data-obligation-clean-list>
-            @foreach($obligationRows as $index => $row)
+            @foreach($focusedRows as $index => $row)
                 <article
                     class="ob-case-card"
                     data-obligation-clean-row
@@ -156,7 +187,7 @@
 
                     <div class="ob-case-actions">
                         <details class="ob-details">
-                            <summary><span>View Details</span><x-icon name="chevron-down" size="14" class="ob-disclosure-chevron" /></summary>
+                            <summary class="button secondary small ui-pressable disclosure-trigger"><span>View Details</span><x-icon name="chevron-down" size="14" class="disclosure-trigger__chevron" /></summary>
                             <div class="ob-detail-body">
                                 @if($documentActions->isNotEmpty())
                                     <div class="ob-detail-section">
@@ -177,7 +208,7 @@
                                                         href="{{ $url }}"
                                                         @if($newTab) target="_blank" rel="noopener" @endif
                                                     >
-                                                        {{ $label }} <span aria-hidden="true">→</span>
+                                                        {{ $label }}
                                                     </a>
                                                 </div>
                                             @endforeach
@@ -246,14 +277,15 @@
             No outstanding obligations match the search criteria.
         </div>
     @else
-        <article class="ob-clear-card">
+        <article class="ob-clear-card" id="obligations-empty">
             <span aria-hidden="true"><x-icon name="check-circle" size="34" /></span>
             <div>
-                <strong>No unresolved obligations</strong>
-                <p>No property, payment, late-return, or borrowing restriction currently requires your action.</p>
+                <strong>{{ $focusMeta[1] }}</strong>
+                <p>{{ $focusMeta[2] }}</p>
             </div>
         </article>
     @endif
+    </div>
 
     @if($resolvedCount > 0)
         <details class="ob-resolved-history-disclosure">

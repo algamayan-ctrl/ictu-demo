@@ -251,7 +251,6 @@
                     <td>
                         <a class="table-action" href="{{ route('requests.show', $request) }}">
                             <span>View Request</span>
-                            <x-icon name="arrow-right" size="14" style="margin-left:4px" />
                         </a>
                     </td>
                 </tr>

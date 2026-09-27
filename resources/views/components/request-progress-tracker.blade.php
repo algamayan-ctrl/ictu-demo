@@ -183,7 +183,8 @@
 
     $pickupExpired =
         (bool) $custody?->pickup_expired_at
-        && ! $releasedAt;
+        && ! $releasedAt
+        && $statusValue !== 'CANCELLED';
 
     $terminal = in_array(
         $statusValue,
@@ -425,7 +426,7 @@
     }
 
     $steps[$headReviewStepIndex] = [
-        'label' => 'SPMU Head / Admin Review',
+        'label' => 'SPMU Head Review',
         'icon' => 'success',
         // No fallback to $reviewStartedAt here: until the Head/Admin has
         // actually received or decided on this step, it has not happened
@@ -475,7 +476,7 @@
                 => 'SPMU set the pickup schedule.',
 
             $pickupExpired
-                => 'The pickup was missed. Waiting for the next valid pickup schedule.',
+                => 'The pickup was missed. SPMU is reviewing whether to continue the release or cancel the borrowing.',
 
             $isApproved
                 => 'Waiting for SPMU operational processing and pickup scheduling.',
@@ -486,7 +487,7 @@
     ];
 
     $steps[$releaseStepIndex] = [
-        'label' => 'Items Released',
+        'label' => 'Release Processing',
         'icon' => 'custody',
         'time' => $releasedAt,
         'description' =>
@@ -503,7 +504,7 @@
     ];
 
     $steps[$returnStepIndex] = [
-        'label' => $physicalReturnComplete ? 'Return Recorded' : 'Return Processing',
+        'label' => 'Return Processing',
         'icon' => 'custody',
         'time' => $returnStartedAt,
         'description' => $physicalReturnComplete
@@ -535,18 +536,11 @@
 
     ksort($steps);
 
-    if ($compact) {
-        $steps[1]['label'] = 'Prepared';
-        $steps[$headReviewStepIndex]['label'] = $isApproved
-            ? 'Reviewed'
-            : $steps[$headReviewStepIndex]['label'];
-    }
-
-    if ($releaseView) {
-        $steps[$releaseStepIndex]['label'] = 'Release';
-        $steps[$releaseStepIndex]['icon'] = 'plus';
-        $steps[$returnStepIndex]['icon'] = 'chevron-right';
-    }
+    /*
+     * Compact/release views may hide the tracker heading, but they never
+     * rename milestones or swap milestone icons. The same request must show
+     * the same tracker to Borrower, Action Officer, and Head/Admin.
+     */
 
     /*
     |--------------------------------------------------------------------------
@@ -752,8 +746,8 @@
             <div class="request-tracker__attention-note" role="status">
                 <x-icon name="information" size="18" />
                 <span>
-                    The pickup was missed.
-                    The reservation remains in place while waiting for SPMU to schedule a new pickup window.
+                    The pickup was missed &mdash; For SPMU Review.
+                    SPMU is reviewing whether the items can still be released or whether the borrowing must be cancelled. No action is required from you at this time.
                 </span>
             </div>
         @endif
@@ -769,7 +763,7 @@
             aria-label="Request progress steps"
         >
 
-            <ol class="request-tracker__rail">
+            <ol class="request-tracker__rail" style="--request-tracker-step-count: {{ count($steps) }}">
 
                 @foreach($steps as $index => $step)
 

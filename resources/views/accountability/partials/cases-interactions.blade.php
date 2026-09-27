@@ -26,6 +26,7 @@ document.addEventListener('click', (event) => {
     const typeSelect = document.getElementById('accountability-case-type');
     const statusSelect = document.getElementById('accountability-case-status');
     const count = document.getElementById('accountability-case-count');
+    const focus = new URLSearchParams(location.search).get('focus');
 
     const rowMatchesType = (row, type) => {
         if (!type || type === 'all') return true;
@@ -69,7 +70,8 @@ document.addEventListener('click', (event) => {
             const matchesSearch = !query || (row.dataset.search || '').toLocaleLowerCase().includes(query);
             const matchesType = rowMatchesType(row, type);
             const matchesStatus = status === 'all' || row.dataset.status === status;
-            const matches = matchesSearch && matchesType && matchesStatus;
+            const matchesFocus = focus !== 'balance' || row.dataset.hasBalance === '1';
+            const matches = matchesSearch && matchesType && matchesStatus && matchesFocus;
 
             row.hidden = !matches;
 
@@ -87,8 +89,6 @@ document.addEventListener('click', (event) => {
 
     /* Summary-card focus links can still open the correct subset, but only
        when that control is actually useful enough to be rendered. */
-    const focus = new URLSearchParams(location.search).get('focus');
-
     if (focus === 'overdue') {
         if (typeSelect && [...typeSelect.options].some(option => option.value === 'LATE_RETURN')) {
             typeSelect.value = 'LATE_RETURN';

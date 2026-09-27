@@ -105,7 +105,7 @@
                 </div>
 
                 <details class="accountability-case-details">
-                    <summary class="resolved-history-detail-toggle"><span>View Details</span><x-icon name="chevron-down" size="14" class="resolved-history-chevron" /></summary>
+                    <summary class="resolved-history-detail-toggle button secondary small ui-pressable disclosure-trigger"><span>View Details</span><x-icon name="chevron-down" size="14" class="disclosure-trigger__chevron" /></summary>
                     @include('accountability.partials.resolved-history-detail')
                 </details>
             </article>
@@ -194,9 +194,9 @@
                                 <td class="is-numeric">{{ $amountLabel }}</td>
                                 <td>{{ $row['resolved_at'] ? \Carbon\Carbon::parse($row['resolved_at'])->format('d M Y') : '—' }}</td>
                                 <td>
-                                    <button type="button" class="table-action" data-case-toggle aria-expanded="false">
+                                    <button type="button" class="button secondary small ui-pressable disclosure-trigger" data-case-toggle aria-expanded="false">
                                         <span>View Details</span>
-                                        <x-icon name="chevron-down" size="13" class="accountability-toggle-chevron" />
+                                        <x-icon name="chevron-down" size="13" class="disclosure-trigger__chevron" />
                                     </button>
                                 </td>
                             </tr>
@@ -238,6 +238,27 @@
 .accountability-history-embedded table { margin: 0; }
 .resolved-history-card .accountability-case-facts { margin-top: 12px; }
 
+/* Compact facts inside expanded history rows. This partial is also used in
+   the per-borrower staff workspace, where oversight-styles is not loaded. */
+.resolved-history-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1px;
+    margin: 0 0 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--border);
+}
+.resolved-history-facts > div { min-width: 0; padding: 8px 10px; background: var(--surface); }
+.resolved-history-facts dt { margin: 0 0 2px; color: var(--text-muted); font-size: 9.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.resolved-history-facts dd { margin: 0; color: var(--heading); font-size: 12px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+
+.accountability-history-embedded .accountability-case-detail-row > td {
+    padding: 10px 16px 12px;
+    background: var(--surface-subtle);
+}
+
 /* Always-visible compact summary; everything else lives behind "View Details". */
 .resolved-history-summary {
     display: flex;
@@ -250,17 +271,13 @@
 }
 
 .resolved-history-card > .accountability-case-details { margin-top: 12px; }
-.resolved-history-detail-toggle { display:inline-flex; align-items:center; gap:6px; list-style:none; }
-.resolved-history-detail-toggle::-webkit-details-marker { display:none; }
-.resolved-history-chevron { transition:transform .16s ease; }
-.accountability-case-details[open] > .resolved-history-detail-toggle .resolved-history-chevron { transform:rotate(180deg); }
 
 .resolved-history-detail {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-    gap: 16px;
-    margin-top: 12px;
-    padding-top: 12px;
+    gap: 10px 16px;
+    margin-top: 8px;
+    padding-top: 8px;
     border-top: 1px solid var(--row-border);
 }
 
@@ -277,7 +294,7 @@
     margin: 0;
     color: var(--heading);
     font-size: 12.5px;
-    line-height: 1.6;
+    line-height: 1.45;
     overflow-wrap: anywhere;
 }
 
@@ -299,9 +316,9 @@
 .resolved-history-links {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
-    margin-top: 14px;
-    padding-top: 14px;
+    gap: 10px;
+    margin-top: 10px;
+    padding-top: 10px;
     border-top: 1px solid var(--row-border);
 }
 

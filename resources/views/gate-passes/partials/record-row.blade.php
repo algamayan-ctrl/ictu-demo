@@ -35,7 +35,7 @@
     <td><x-status-badge :status="$statusKey" :label="$statusLabel" title="{{ $statusLabel }}" /></td>
     <td>
         <div class="gate-pass-row-actions">
-            <a class="button secondary small gate-pass-view" href="{{ route('gate-passes.show', $gatePass) }}"><span>View Record</span><x-icon name="arrow-right" size="14" /></a>
+            <a class="button secondary small ui-pressable gate-pass-view" href="{{ route('gate-passes.show', $gatePass) }}"><span>View Record</span></a>
             @if($hasMoreActions)
                 <details class="gate-pass-more" name="gate-pass-record-actions">
                     <summary aria-label="More actions for {{ $requestRecord?->request_no ?: 'Gate Pass #'.$gatePass->id }}">

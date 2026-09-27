@@ -150,11 +150,10 @@
 
         @if($isBorrower && $borrowingRequest->custody)
             <a
-                class="button primary ui-pressable"
+                class="button secondary ui-pressable"
                 href="{{ route('custody.show', $borrowingRequest->custody) }}"
             >
                 <span>View Borrowing</span>
-                <x-icon name="arrow-right" size="15" />
             </a>
         @endif
     </div>
@@ -202,7 +201,6 @@
                     href="{{ route('requests.edit', $borrowingRequest) }}"
                 >
                     <span>{{ $requiresNewRevisionVersion ? 'Create Corrected Version' : ($submissionReady ? 'Review / Edit Draft' : 'Edit Draft & Upload Documents') }}</span>
-                    <x-icon name="arrow-right" size="15" />
                 </a>
 
                 @if($submissionReady && !$requiresNewRevisionVersion)
@@ -722,7 +720,7 @@
     <div class="callout warning">
         <strong>{{ $obligationSummary['title'] }}</strong>
         <p>{{ $obligationSummary['copy'] }}</p>
-        <a class="button primary small ui-pressable" href="{{ route('accountability.index') }}"><span>View My Obligations</span><x-icon name="arrow-right" size="14" /></a>
+        <a class="button secondary small ui-pressable" href="{{ route('accountability.index') }}"><span>View My Obligations</span></a>
     </div>
 </div>
 @endif
@@ -859,7 +857,7 @@
 
                                 <td>
                                     <a
-                                        class="borrower-document-view"
+                                        class="button secondary small ui-pressable borrower-document-view"
                                         href="{{ route('files.preview', $doc->file) }}"
                                     >
                                         Preview
@@ -1086,11 +1084,10 @@
         </div>
 
         <a
-            class="button primary ui-pressable"
+            class="button secondary ui-pressable"
             href="{{ route('custody.show', $borrowingRequest->custody) }}"
         >
             <span>View Custody Record</span>
-            <x-icon name="arrow-right" size="15" />
         </a>
     </div>
 </section>

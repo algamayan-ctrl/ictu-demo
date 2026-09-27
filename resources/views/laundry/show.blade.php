@@ -59,7 +59,7 @@
         <h1>{{ $job->custody->custody_no }}</h1>
         <p>{{ $job->custody->borrower->full_name }} · Request {{ $job->custody->request->request_no }}</p>
     </div>
-    <a class="button secondary ui-pressable" href="{{ route('custody.return.show', $job->custody) }}#return-summary"><x-icon name="arrow-left" size="16" /><span>Back</span></a>
+    <a class="button secondary ui-pressable" href="{{ route('custody.return.show', $job->custody) }}#return-summary"><span>Back</span></a>
 </section>
 
 <section class="content-area laundry-detail-tracker">
@@ -137,7 +137,7 @@
                 <p>The completed form is already on file. Record the full received quantity as Fine / Good when no issue was reported; otherwise encode the applicable adverse quantity exactly as written on the Laundry Form. The accomplished Laundry Form is the authoritative evidence for linen; extra photos/files are optional. Serviceable linen becomes Available automatically after encoding. No second linen inspection is required.</p>
             @endif
         </div>
-        <a class="button primary ui-pressable" href="{{ route('custody.return.show', $job->custody) }}#return-primary"><span>Open SPMU Return</span><x-icon name="arrow-right" size="15" /></a>
+        <a class="button primary ui-pressable" href="{{ route('custody.return.show', $job->custody) }}#return-primary"><span>Open SPMU Return</span></a>
     </article>
 </section>
 @endif

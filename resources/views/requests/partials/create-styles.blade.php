@@ -34,7 +34,6 @@
 #request-form .create-request-ui .student-activity-panel small { display: block; color: var(--text-muted); font-size: 13px; font-weight: 400; line-height: 1.5; }
 #request-form .create-request-ui .request-details-actions { padding: 21px 24px; gap: 14px; margin: 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; }
 #request-form .create-request-ui .stage-actions .button { min-height: 46px; padding: 11px 22px; gap: 12px; border-radius: 7px; font-size: 13px; font-weight: 700; }
-#request-form .create-request-ui .request-details-actions .button.secondary { color: var(--interactive); border-color: var(--interactive); background: var(--surface-elevated); }
 #request-form .create-request-ui .request-continue-icon { flex-shrink: 0; }
 #request-form .create-request-ui .request-back-icon { transform: rotate(180deg); }
 
@@ -82,11 +81,6 @@
 #request-form .create-request-ui .request-remove-button { min-height: 40px; padding: 9px 14px; border-color: var(--border); border-radius: 7px; background: var(--surface-elevated); color: var(--text-secondary); font-size: 11px; font-weight: 700; }
 #request-form .create-request-ui .request-picker-actions { justify-content: space-between; gap: 14px; margin-top: -16px; padding: 15px 19px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-elevated); }
 #request-form .create-request-ui .request-picker-actions .button.primary { min-width: 265px; justify-content: space-between; }
-#request-form .create-request-ui .request-picker-actions .button.secondary { color: var(--text-secondary); border-color: var(--border); background: var(--surface-elevated); }
-
-/* Enabled action buttons turn solid blue; tracker buttons are deliberately excluded. */
-#request-form .create-request-ui .button:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) { color: #fff; background: #065df0; border-color: #065df0; box-shadow: none; transform: none; }
-#request-form .create-request-ui .button:not(:disabled):not([aria-disabled="true"]):focus-visible { outline: 2px solid #065df0; outline-offset: 3px; }
 #request-form .create-request-ui .button:disabled { cursor: not-allowed; }
 @media (max-width: 700px) {
     #request-form .create-request-ui .request-details-card .request-card-header,
@@ -164,4 +158,3 @@
     }
 }
 </style>
-

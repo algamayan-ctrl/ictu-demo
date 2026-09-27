@@ -283,30 +283,6 @@ html[data-theme="dark"] .kpi-accent-restriction {
     line-height: 1.3;
 }
 
-.accountability-cases-card [data-case-toggle] {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    min-height: 28px;
-    padding: 3px 8px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
-    color: var(--interactive);
-    font-size: 10.5px;
-    font-weight: 800;
-}
-
-.accountability-cases-card [data-case-toggle]:hover,
-.accountability-cases-card [data-case-toggle]:focus-visible {
-    background: var(--surface-hover);
-    border-color: var(--border-strong);
-}
-
-.accountability-cases-card [data-case-toggle][aria-expanded="true"] .accountability-toggle-chevron {
-    transform: rotate(180deg);
-}
-
 .accountability-next-link {
     text-decoration: none;
 }
@@ -334,14 +310,6 @@ html[data-theme="dark"] .kpi-accent-restriction {
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-}
-
-.accountability-view-detail {
-    min-height: 26px !important;
-    padding: 2px 6px !important;
-    border: 0 !important;
-    background: transparent !important;
-    font-size: 10.5px !important;
 }
 
 .accountability-row-none { color: var(--text-soft); }
@@ -697,4 +665,20 @@ html[data-theme="dark"] .accountability-overview-card.tone-resolved { --tone: #5
     .accountability-overview-icon { width: 46px; height: 46px; margin-bottom: 12px; }
     .accountability-overview-value { font-size: 27px; }
 }
+
+
+/* Accountability tables always consume the available content width, even
+   when there are only one or two rows. Text follows the shared table scale. */
+.accountability-case-workspace,
+.accountability-cases-card,
+.accountability-cases-table,
+.accountability-cases-table table {
+    width: 100%;
+    max-width: none;
+}
+.accountability-cases-table th { font-size: 10.5px; }
+.accountability-cases-table td { font-size: 12.5px; }
+.accountability-case-ref { font-size: 12.5px; }
+.accountability-case-borrower { font-size: 11.5px; }
+
 </style>

@@ -158,7 +158,6 @@
                             </div>
                             <a class="button secondary small ui-pressable return-navigation-action" href="{{ route('accountability.index') }}">
                                 <span>View Accountability</span>
-                                <span aria-hidden="true">→</span>
                             </a>
                         </div>
                     @endif
@@ -191,7 +190,6 @@
                                 <div class="return-document-actions">
                                     <a class="button secondary small ui-pressable return-navigation-action" href="{{ route('files.preview', $laundryJob->latestEvidence->file) }}">
                                         <span>Preview</span>
-                                        <span aria-hidden="true">→</span>
                                     </a>
                                 </div>
                             </div>
@@ -287,7 +285,6 @@
                                 @if($custody->gatePass)
                                     <a class="button secondary small ui-pressable return-navigation-action" href="{{ route('gate-passes.show', $custody->gatePass) }}">
                                         <span>{{ $gatePassRecorded ? 'View Record' : 'Record Gate Pass' }}</span>
-                                        <span aria-hidden="true">→</span>
                                     </a>
                                 @else
                                     <span class="status-badge status-warning">Gate Pass unavailable</span>

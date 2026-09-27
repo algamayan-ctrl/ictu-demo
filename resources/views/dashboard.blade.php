@@ -9,6 +9,17 @@
     .dashboard-heading { margin-bottom:16px; }
     .dashboard-heading > div > p:last-child { max-width:860px; }
 
+    /* Let the dashboard itself absorb the app-main's remaining viewport
+       height. Desktop operational panels can then keep the approved 2-column
+       layout while extending toward the bottom of the screen instead of
+       ending halfway down the workspace. */
+    .dashboard-page-shell {
+        display:flex;
+        flex:1 1 auto;
+        min-height:0;
+        flex-direction:column;
+    }
+
     /* One universal KPI language for Borrower, AO, Admin/Head, and ICTU.
        Summary cards are informational only: color communicates the metric,
        while navigation stays in explicit buttons, queues, and the sidebar. */
@@ -164,8 +175,28 @@
         gap:16px;
         align-items:stretch;
     }
+    .dashboard-balanced-grid > .dashboard-order-primary { order:1; }
+    .dashboard-balanced-grid > .dashboard-order-secondary { order:2; }
+
+    /* Borrower lower sections use the same populated-before-empty rule.
+       The wrapper only controls vertical order; each existing card keeps
+       its own spacing, width, and responsive behavior. */
+    .borrower-dashboard-priority-stack {
+        display:flex;
+        flex-direction:column;
+        min-width:0;
+    }
+    .borrower-dashboard-priority-stack > #borrower-actions { order:1; }
+    .borrower-dashboard-priority-stack > .borrower-current-requests { order:2; }
+    .borrower-dashboard-priority-stack.borrower-current-first > #borrower-actions { order:2; }
+    .borrower-dashboard-priority-stack.borrower-current-first > .borrower-current-requests { order:1; }
     .dashboard-balanced-grid.dashboard-two-panel {
         grid-template-columns:repeat(2,minmax(0,1fr));
+        /* Keep the desktop pair side-by-side, but let the row consume the
+           remaining dashboard height so both cards visually reach toward the
+           bottom of the screen instead of stopping midway through it. */
+        flex:1 1 auto;
+        min-height:320px;
         /* Paired panels stay equal height (inherited align-items:stretch)
            so neither reads as oversized or squeezed next to the other; the
            shorter panel's own content stays packed at the top and any
@@ -200,11 +231,13 @@
     .dashboard-balanced-grid.dashboard-two-panel > .queue-card > .dashboard-watch-list {
         flex:1 1 auto;
     }
-    .dashboard-balanced-grid.dashboard-two-panel > .queue-card > .queue-list {
-        /* Without this, the grid's lone auto row stretches to fill the
-           flexed height, which then centers a single row's content in
-           the middle of the card via its own align-items:center. */
+    .dashboard-balanced-grid.dashboard-two-panel > .queue-card > .queue-list,
+    .dashboard-balanced-grid.dashboard-two-panel > .queue-card > .dashboard-watch-list {
+        /* Populated staff dashboard lists stay packed directly below the
+           panel header. The panel itself may fill the remaining viewport,
+           but a single transaction must never float in the vertical center. */
         align-content:start;
+        grid-auto-rows:max-content;
     }
     .dashboard-balanced-grid.dashboard-two-panel > .queue-card > .queue-list:has(> .empty-state:only-child) {
         display:flex;
@@ -360,6 +393,8 @@
         .dashboard-balanced-grid.dashboard-two-panel {
             grid-template-columns:minmax(0,1fr);
             grid-auto-rows:auto;
+            flex:0 0 auto;
+            min-height:0;
         }
         .dashboard-balanced-grid.dashboard-two-panel > .queue-card {
             height:auto;
@@ -481,7 +516,7 @@
     };
 @endphp
 
-<div class="{{ $dashboardMode === 'BORROWER' ? 'is-borrower-dashboard' : '' }}">
+<div class="dashboard-page-shell {{ $dashboardMode === 'BORROWER' ? 'is-borrower-dashboard' : '' }}">
 
 <section class="page-heading dashboard-heading">
     <div>
@@ -496,11 +531,11 @@
             Create Borrowing Request
         </a>
     @elseif($dashboardMode === 'SPMU_OFFICER')
-        <a class="button primary ui-pressable" href="{{ route('verifications.index') }}"><span>Open Verification Queue</span><x-icon name="arrow-right" size="15" /></a>
+        <a class="button primary ui-pressable" href="{{ route('verifications.index') }}"><span>Open Verification Queue</span></a>
     @elseif($dashboardMode === 'SPMU_HEAD')
-        <a class="button primary ui-pressable" href="{{ route('approvals.index') }}"><span>Open Approval Queue</span><x-icon name="arrow-right" size="15" /></a>
+        <a class="button primary ui-pressable" href="{{ route('approvals.index') }}"><span>Open Approval Queue</span></a>
     @elseif($dashboardMode === 'ICTU')
-        <a class="button primary ui-pressable" href="{{ route('administration.users.index') }}"><span>Manage User Accounts</span><x-icon name="arrow-right" size="15" /></a>
+        <a class="button primary ui-pressable" href="{{ route('administration.users.index') }}"><span>Manage User Accounts</span></a>
     @endif
 </section>
 
@@ -529,19 +564,44 @@
             <span class="kpi-label">{{ $label }}</span>
             <strong class="kpi-value">{{ number_format($value) }}</strong>
             <span class="kpi-note">{{ $note }}</span>
-            <x-icon name="arrow-right" size="14" class="dashboard-kpi-card-arrow" />
         </a>
     @endforeach
 </section>
 
 @php
+    /*
+     * Dashboard section priority is content-aware, but deterministic:
+     * actionable content wins when it exists; otherwise a populated
+     * monitoring/current-transaction section moves ahead of an empty
+     * action panel. Empty sections remain visible after the useful content
+     * so the dashboard still confirms that nothing is pending there.
+     */
+    $primaryActionHasRecords = $queue->isNotEmpty()
+        || ($dashboardMode === 'BORROWER' && $borrowerRestrictionActions->isNotEmpty());
+
     // No empty second column: when there is nothing to watch, the grid
     // stays single-panel rather than showing a contentless card.
     $showOperationalWatch = in_array($dashboardMode, ['SPMU_OFFICER', 'SPMU_HEAD'], true)
         && $nextCustodies->isNotEmpty();
+
+    $operationalWatchFirst = $showOperationalWatch && ! $primaryActionHasRecords;
+
+    $borrowerCurrentHasRecords = $dashboardMode === 'BORROWER'
+        && $activeRequestBars->isNotEmpty();
+    $borrowerCurrentFirst = $dashboardMode === 'BORROWER'
+        && ! $primaryActionHasRecords
+        && $borrowerCurrentHasRecords;
 @endphp
+
+@if($dashboardMode === 'BORROWER')
+    <div class="borrower-dashboard-priority-stack {{ $borrowerCurrentFirst ? 'borrower-current-first' : '' }}">
+@endif
+
 <section id="{{ $dashboardMode === 'BORROWER' ? 'borrower-actions' : 'dashboard-actions' }}" class="dashboard-grid dashboard-balanced-grid {{ $showOperationalWatch ? 'dashboard-two-panel' : 'dashboard-single-panel' }} {{ $dashboardMode === 'BORROWER' ? 'borrower-actions-only' : '' }}">
-    <article class="card queue-card dashboard-panel-equal {{ $dashboardMode === 'BORROWER' ? 'borrower-dash-card' : '' }}">
+    <article
+        class="card queue-card dashboard-panel-equal {{ $dashboardMode === 'BORROWER' ? 'borrower-dash-card' : '' }} {{ $operationalWatchFirst ? 'dashboard-order-secondary' : 'dashboard-order-primary' }}"
+        data-dashboard-section="primary-action"
+    >
         <div class="card-header">
             <div>
                 @if($dashboardMode === 'BORROWER')
@@ -555,11 +615,11 @@
             </div>
 
             @if($dashboardMode === 'BORROWER' && (($statistics['Active Obligations'] ?? 0) > 0))
-                <a class="dashboard-view-all" href="{{ route('accountability.index') }}">My Obligations <x-icon name="arrow-right" size="16" /></a>
+                <a class="dashboard-view-all" href="{{ route('accountability.index') }}">My Obligations </a>
             @elseif($dashboardMode === 'SPMU_OFFICER')
-                <a class="dashboard-view-all" href="{{ route('verifications.index') }}">View all <x-icon name="arrow-right" size="16" /></a>
+                <a class="dashboard-view-all" href="{{ route('verifications.index') }}">View all </a>
             @elseif($dashboardMode === 'SPMU_HEAD')
-                <a class="dashboard-view-all" href="{{ route('approvals.index') }}">View all <x-icon name="arrow-right" size="16" /></a>
+                <a class="dashboard-view-all" href="{{ route('approvals.index') }}">View all </a>
             @endif
         </div>
 
@@ -569,11 +629,6 @@
                     @php
                         $custody = $record->custody;
                         $laundry = $custody?->laundryJob;
-                        $pickupMissed = $custody?->released_at === null
-                            && (
-                                $custody?->pickup_expired_at !== null
-                                || ($custody?->pickup_expires_at !== null && now()->gt($custody->pickup_expires_at))
-                            );
                         $hasOutstandingProperty = $custody?->hasOutstandingProperty() ?? false;
                         $outstandingLines = $custody?->lines?->filter(
                             fn ($line) => (float) $line->returned_quantity < (float) $line->actual_released_quantity
@@ -592,7 +647,6 @@
                             $record->status === App\Enums\RequestStatus::UnderSpmu => 'No borrower action is required while the request remains under SPMU review.',
                             $custody?->status === 'CLOSED' && $laundry?->status === 'TURNED_OVER_TO_LAUNDRY' => 'No further borrower action is required. Linen turnover has been recorded and subsequent laundry processing is handled internally.',
                             $custody?->status === 'CLOSED' => 'Completed. No further borrower action is required.',
-                            $pickupMissed => 'The pickup window was missed. Open the request to ask for a valid reschedule, when available, or cancel the unreleased request.',
                             $custody?->status === 'OVERDUE' && $hasOutstandingLinen && $hasOutstandingNonLinen => 'Return all outstanding non-linen property to SPMU and the overdue linen to the Laundry Area immediately. Any late-return assessment will continue in My Obligations after the physical returns are recorded.',
                             $custody?->status === 'OVERDUE' && $hasOutstandingLinen => 'Return the overdue linen and the same printed Laundry Form to the Laundry Area immediately. Laundry RECEIVED BY is the physical return date used for timeliness.',
                             $custody?->status === 'OVERDUE' && $hasOutstandingProperty => 'Return all outstanding property to SPMU immediately. Any late-return assessment will continue in My Obligations after the physical return is recorded.',
@@ -626,7 +680,6 @@
                             $record->status === App\Enums\RequestStatus::ReturnedForRevision => ['warning', 'danger'],
                             $record->status === App\Enums\RequestStatus::UnderSpmu => ['clock', 'info'],
                             $custody?->status === 'CLOSED' => ['check-circle', 'success'],
-                            $pickupMissed => ['clock', 'warning'],
                             $laundry !== null => ['cycle', 'info'],
                             $custody?->scheduled_release_at && ! $custody?->released_at => ['calendar', 'info'],
                             $custody?->released_at => ['custody', 'warning'],
@@ -669,7 +722,7 @@
                             button sizes to its own label instead of a
                             fixed width that a longer label can overflow.
                         --}}
-                        <a class="button secondary small ui-pressable {{ $hasAccountabilityMatter ? '' : 'borrower-active-action' }}" href="{{ $actionHref }}"><span>{{ $actionLabel }}</span><x-icon name="arrow-right" size="14" /></a>
+                        <a class="button secondary small ui-pressable {{ $hasAccountabilityMatter ? '' : 'borrower-active-action' }}" href="{{ $actionHref }}"><span>{{ $actionLabel }}</span></a>
                     </article>
                 @elseif($dashboardMode === 'SPMU_OFFICER')
                     <article class="dashboard-primary-queue-row">
@@ -679,7 +732,7 @@
                             <span>{{ $record->borrower?->full_name }}</span>
                             <small>Verify the request and required documents, or return it for revision.</small>
                         </div>
-                        <a class="button primary small ui-pressable" href="{{ route('requests.show', $record) }}"><span>Verify</span><x-icon name="arrow-right" size="14" /></a>
+                        <a class="button primary small ui-pressable" href="{{ route('requests.show', $record) }}"><span>Verify</span></a>
                     </article>
                 @elseif($dashboardMode === 'SPMU_HEAD')
                     <article class="dashboard-primary-queue-row">
@@ -689,7 +742,7 @@
                             <span>{{ $record->borrower?->full_name }}</span>
                             <small>Review the verified request, approved quantities, borrowing period, and availability before the final decision.</small>
                         </div>
-                        <a class="button primary small ui-pressable" href="{{ route('requests.show', $record) }}"><span>Review</span><x-icon name="arrow-right" size="14" /></a>
+                        <a class="button primary small ui-pressable" href="{{ route('requests.show', $record) }}"><span>Review</span></a>
                     </article>
                 @elseif($dashboardMode === 'ICTU')
                     <article class="dashboard-primary-queue-row">
@@ -699,7 +752,7 @@
                             <span>{{ $record->access_classification?->label() ?: 'User account' }}</span>
                             <small>{{ $record->email }}{{ $record->organizationalUnit ? ' · '.$record->organizationalUnit->unit_name : '' }}</small>
                         </div>
-                        <a class="button secondary small ui-pressable" href="{{ route('administration.users.edit', $record) }}"><span>Manage</span><x-icon name="arrow-right" size="14" /></a>
+                        <a class="button secondary small ui-pressable" href="{{ route('administration.users.edit', $record) }}"><span>Manage</span></a>
                     </article>
                 @endif
             @empty
@@ -749,7 +802,7 @@
 
                         <span class="borrower-next-when">{{ $obligationRow['badge'] }}</span>
 
-                        <a class="button secondary small ui-pressable" href="{{ route('accountability.index') }}"><span>View Obligation</span><x-icon name="arrow-right" size="14" /></a>
+                        <a class="button secondary small ui-pressable" href="{{ route('accountability.index') }}"><span>View Obligation</span></a>
                     </article>
                 @endforeach
             @endif
@@ -757,7 +810,10 @@
     </article>
 
     @if($showOperationalWatch)
-        <article class="card queue-card dashboard-panel-equal dashboard-watch-card">
+        <article
+            class="card queue-card dashboard-panel-equal dashboard-watch-card {{ $operationalWatchFirst ? 'dashboard-order-primary' : 'dashboard-order-secondary' }}"
+            data-dashboard-section="operational-watch"
+        >
             <div class="card-header">
                 <div>
                     <p class="eyebrow">{{ $dashboardMode === 'SPMU_OFFICER' ? 'Operations' : 'Custody Oversight' }}</p>
@@ -768,7 +824,7 @@
                             : 'Nearest due/overdue active custody transactions.' }}
                     </p>
                 </div>
-                <a class="dashboard-view-all" href="{{ route('custody.index') }}">View all <x-icon name="arrow-right" size="16" /></a>
+                <a class="dashboard-view-all" href="{{ route('custody.index') }}">View all </a>
             </div>
 
             <div class="dashboard-watch-list">
@@ -798,7 +854,7 @@
                                 <x-status-badge :status="$watchWorkflow['key']" :label="$watchWorkflow['label']" />
                             @endif
                         </div>
-                        <a class="button secondary small ui-pressable" href="{{ route('custody.show', $watchCustody) }}"><span>View</span><x-icon name="arrow-right" size="14" /></a>
+                        <a class="button secondary small ui-pressable" href="{{ route('custody.show', $watchCustody) }}"><span>View</span></a>
                     </div>
                 @endforeach
             </div>
@@ -807,13 +863,13 @@
 </section>
 
 @if($dashboardMode === 'BORROWER')
-    <article class="borrower-dash-card" aria-labelledby="active-requests-title">
+    <article class="borrower-dash-card borrower-current-requests" aria-labelledby="active-requests-title" data-dashboard-section="borrower-current">
         <div class="card-header">
             <div>
                 <h2 id="active-requests-title">Current Borrowing Requests</h2>
                 <p class="meta">Active requests that do not need your response right now are shown here. Open My Requests for the full status and history.</p>
             </div>
-            <a class="dashboard-view-all" href="{{ route('requests.index') }}">View all <x-icon name="arrow-right" size="16" /></a>
+            <a class="dashboard-view-all" href="{{ route('requests.index') }}">View all </a>
         </div>
 
         @if($activeRequestBars->isEmpty())
@@ -938,7 +994,7 @@
                                 class="button secondary small ui-pressable borrower-active-action"
                                 href="{{ route('requests.show', $activeRequest) }}"
                             >
-                                <span>{{ $activeActionLabel }}</span><x-icon name="arrow-right" size="14" />
+                                <span>{{ $activeActionLabel }}</span>
                             </a>
                         </td>
                     </tr>
@@ -957,13 +1013,17 @@
 @endif
 
 @if($dashboardMode === 'BORROWER')
+    </div>
+@endif
+
+@if($dashboardMode === 'BORROWER')
     <article class="borrower-dash-card dashboard-recent-card" aria-labelledby="recent-borrowing-title">
         <div class="card-header">
             <div>
                 <h2 id="recent-borrowing-title">Recent Borrowing Activity</h2>
                 <p class="meta">Your latest completed or closed borrowing activity. Open My Requests for the full history.</p>
             </div>
-            <a class="dashboard-view-all" href="{{ route('requests.index') }}">View all <x-icon name="arrow-right" size="16" /></a>
+            <a class="dashboard-view-all" href="{{ route('requests.index') }}">View all </a>
         </div>
 
         @if($recentBorrowerActivity->isEmpty())
@@ -987,7 +1047,7 @@
                         <div class="dashboard-recent-status">
                             <x-status-badge :status="$recentStatusKey" :label="$recentStatusLabel" />
                         </div>
-                        <a class="button secondary small ui-pressable borrower-active-action" href="{{ route('requests.show', $recentRequest) }}"><span>View</span><x-icon name="arrow-right" size="14" /></a>
+                        <a class="button secondary small ui-pressable borrower-active-action" href="{{ route('requests.show', $recentRequest) }}"><span>View</span></a>
                     </div>
                 @endforeach
             </div>

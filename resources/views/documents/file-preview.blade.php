@@ -11,7 +11,6 @@
     </div>
 
     <a class="button secondary ui-pressable" href="{{ url()->previous() }}">
-        <x-icon name="arrow-left" size="17" />
         Back
     </a>
 </section>

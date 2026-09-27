@@ -14,7 +14,6 @@ use App\Services\CustodyService;
 use App\Services\DocumentService;
 use App\Services\NotificationService;
 use App\Services\OperationalCalendarService;
-use App\Services\RequestWorkflowService;
 use Illuminate\Console\Command;
 
 class ProcessOperationalDeadlines extends Command
@@ -28,15 +27,13 @@ class ProcessOperationalDeadlines extends Command
         NotificationService $notifications,
         AuditService $audit,
         OperationalCalendarService $operationalCalendar,
-        RequestWorkflowService $requestWorkflow,
         DocumentService $documents
     ): int {
         /*
-         * Finalize only missed-pickup cases that have reached their cancellation
-         * cutoff BEFORE creating a new pickup-expired notice. This prevents a
-         * missed rescheduled pickup from receiving another reschedule cycle.
+         * A missed pickup is never auto-cancelled. It stays
+         * "Pickup Missed - For SPMU Review" indefinitely; only an explicit SPMU
+         * decision (Continue Release or Cancel Borrowing) resolves it.
          */
-        $pickupAutoCancelled = $requestWorkflow->autoCancelUnclaimedMissedPickups();
         $pickupExpired = $custodyService->expirePickupWindows();
         $legacyLaundryReconciled = $custodyService->reconcileLegacyLaundryAvailability();
         $issuanceLocked = 0;
@@ -342,7 +339,6 @@ class ProcessOperationalDeadlines extends Command
 
         $this->info(
             "Processed {$pickupExpired} pickup expiration(s), "
-            ."{$pickupAutoCancelled} unclaimed pickup auto-cancellation(s), "
             ."{$legacyLaundryReconciled} legacy Laundry availability reconciliation(s), "
             ."{$issuanceLocked} issuance auto-lock(s), "
             ."{$dueSoon} due reminder(s), "

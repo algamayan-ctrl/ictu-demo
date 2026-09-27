@@ -122,7 +122,6 @@
             present status, and neither has an equivalent past reading.
         --}}
         @include('analytics.partials.period-delta', ['comparison' => $returnComparison['on_time'], 'deltaClass' => 'analytics-kpi-card-meta'])
-        <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -134,7 +133,6 @@
         <strong class="analytics-kpi-card-value">{{ $returns['late'] }}</strong>
         <span class="analytics-kpi-card-note">Returned after the due date</span>
         @include('analytics.partials.period-delta', ['comparison' => $returnComparison['late'], 'deltaClass' => 'analytics-kpi-card-meta'])
-        <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -145,7 +143,6 @@
         <span class="analytics-kpi-card-label">Currently Overdue</span>
         <strong class="analytics-kpi-card-value">{{ $returns['overdue'] }}</strong>
         <span class="analytics-kpi-card-note">Still out past the return date</span>
-        <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 
     <a
@@ -156,7 +153,6 @@
         <span class="analytics-kpi-card-label">Open Accountability</span>
         <strong class="analytics-kpi-card-value">{{ $returns['open_cases'] }}</strong>
         <span class="analytics-kpi-card-note">Cases opened in the selected period that remain unresolved.</span>
-        <x-icon name="arrow-right" size="16" class="analytics-kpi-card-arrow" />
     </a>
 </div>
 
@@ -175,7 +171,7 @@
                 <h2>Return Performance Trend</h2>
                 <p>Completed returns per {{ $returnTrend['granularity'] }}, split into on time and late.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.trend']) }}" aria-label="View Return Performance Trend details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.trend']) }}" aria-label="View Return Performance Trend details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         @if($returnTrendMode === 'empty')
@@ -223,7 +219,7 @@
                 <h2>Return Outcome</h2>
                 <p>Completed returns only.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.outcome']) }}" aria-label="View Return Outcome details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.outcome']) }}" aria-label="View Return Outcome details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         @if($completed === 0)
@@ -338,7 +334,7 @@
             <h2>Late Return Patterns</h2>
             <p>Late-return share among completed returns in the selected period.</p>
         </div>
-        <a class="analytics-card-open" href="{{ $lateRateLink('division') }}" aria-label="View Late Return Patterns details"><x-icon name="arrow-right" size="15" /></a>
+        <a class="analytics-card-open" href="{{ $lateRateLink('division') }}" aria-label="View Late Return Patterns details"><x-icon name="chevron-right" size="15" /></a>
     </header>
 
     @if(! $lateRatesByDivision['available'])
@@ -403,7 +399,6 @@
                         @if($hidden > 0)
                             <a class="analytics-laterate-more" href="{{ $lateRateLink($panel['level']) }}">
                                 View all {{ count($panel['data']['groups']) }} {{ $panel['level'] === 'unit' ? 'units' : 'classifications' }}
-                                <x-icon name="arrow-right" size="13" />
                             </a>
                         @endif
                     @endif
@@ -436,7 +431,7 @@
         <div>
             <h2>Borrowing Lifecycle</h2>
         </div>
-        <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.lifecycle']) }}" aria-label="View Borrowing Lifecycle details"><x-icon name="arrow-right" size="15" /></a>
+        <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.lifecycle']) }}" aria-label="View Borrowing Lifecycle details"><x-icon name="chevron-right" size="15" /></a>
     </header>
 
     <div class="analytics-lifecycle-strip">
@@ -453,7 +448,7 @@
             </div>
 
             @unless($loop->last)
-                <span class="analytics-lifecycle-link" aria-hidden="true"><x-icon name="arrow-right" size="15" /></span>
+                <span class="analytics-lifecycle-link" aria-hidden="true"><x-icon name="chevron-right" size="15" /></span>
             @endunless
         @endforeach
     </div>
@@ -472,10 +467,9 @@
             @if($currentOverdue['total'] > $currentOverdue['shown'])
                 <a class="analytics-card-action" href="{{ AnalyticsDetailLink::to('follow-up', 'returns', $periodSelection, $division, $unit) }}">
                     View all {{ $currentOverdue['total'] }}
-                    <x-icon name="arrow-right" size="13" />
                 </a>
             @endif
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.followup']) }}" aria-label="View Current Overdue Follow-up details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.followup']) }}" aria-label="View Current Overdue Follow-up details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -524,7 +518,7 @@
                 <h2>Return Condition</h2>
                 <p>Recorded at return inspection, by quantity received.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.condition']) }}" aria-label="View Return Condition details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.condition']) }}" aria-label="View Return Condition details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -600,7 +594,7 @@
         @if($overdueAging['available'])
             <span class="analytics-count-pill">{{ $overdueAging['total'] }} overdue</span>
         @endif
-        <a class="analytics-card-open" href="{{ $agingLink() }}" aria-label="View Overdue Aging details"><x-icon name="arrow-right" size="15" /></a>
+        <a class="analytics-card-open" href="{{ $agingLink() }}" aria-label="View Overdue Aging details"><x-icon name="chevron-right" size="15" /></a>
     </header>
 
     @if(! $overdueAging['available'])
@@ -675,7 +669,7 @@
             <div>
                 <h2>Return Performance Summary</h2>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.summary']) }}" aria-label="View Return Performance Summary details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.summary']) }}" aria-label="View Return Performance Summary details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">
@@ -702,7 +696,7 @@
                 <h2>Accountability &amp; Return Issues</h2>
                 <p>Recorded against this period's borrowings.</p>
             </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.issues']) }}" aria-label="View Accountability and Return Issues details"><x-icon name="arrow-right" size="15" /></a>
+            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.issues']) }}" aria-label="View Accountability and Return Issues details"><x-icon name="chevron-right" size="15" /></a>
         </header>
 
         <div class="analytics-card-body">

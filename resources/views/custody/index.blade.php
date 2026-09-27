@@ -124,16 +124,23 @@
         ['key' => 'COMPLIANCE_REQUIRED', 'label' => 'Compliance Required'],
         ['key' => 'COMPLIANCE_RSLDDP_PENDING', 'label' => 'Compliance - RSLDDP Pending'],
         ['key' => 'RSLDDP_AWAITING_UPLOAD', 'label' => 'RSLDDP Processing'],
-        ['key' => 'RSLDDP_FOR_ACCOUNTING_PROCESSING', 'label' => 'For Accounting Processing'],
-        ['key' => 'RSLDDP_PAYMENT_REQUIRED', 'label' => 'Payment Required'],
+        ['key' => 'RSLDDP_DISPOSITION_PENDING', 'label' => 'Official Disposition Pending'],
+        ['key' => 'RSLDDP_COMPLIANCE_VERIFICATION', 'label' => 'Compliance Verification'],
         ['key' => 'RSLDDP_FOR_RESOLUTION', 'label' => 'For Final Review'],
         ['key' => 'BILLING_ISSUED', 'label' => 'Billing Unpaid'],
+        ['key' => 'BILLING_OPEN', 'label' => 'Billing Pending'],
         ['key' => 'PAYMENT_VERIFICATION', 'label' => 'Payment Verification'],
         ['key' => 'LATE_RETURN', 'label' => 'Late Return Processing'],
         ['key' => 'BORROWING_RESTRICTED', 'label' => 'Borrowing Restricted'],
+        ['key' => 'GATE_PASS_PENDING', 'label' => 'Gate Pass Pending'],
+        ['key' => 'LINEN_PENDING', 'label' => 'Linen Pending'],
+        ['key' => 'INCIDENT_OPEN', 'label' => 'Accountability Pending'],
         ['key' => 'OBLIGATION_OPEN', 'label' => 'Accountability Pending'],
         // Legacy / historical only - not reachable by any new case, kept so
-        // in-flight legacy custodies remain filterable.
+        // in-flight legacy custodies remain filterable without presenting
+        // them as current workflow stages.
+        ['key' => 'RSLDDP_FOR_ACCOUNTING_PROCESSING', 'label' => 'For Accounting Processing (Legacy)'],
+        ['key' => 'RSLDDP_PAYMENT_REQUIRED', 'label' => 'Payment Required (Legacy)'],
         ['key' => 'FOR_BILLING', 'label' => 'Billing Statement Pending (Legacy)'],
         ['key' => 'BILLING_PENDING', 'label' => 'Billing Pending (Legacy)'],
     ]);
@@ -306,7 +313,7 @@
 
     @include('custody.partials.borrowings-interactions')
 @else
-    <section class="content-area">
+    <section class="content-area operational-content-area">
         @if(in_array($mode, ['release','return'], true))
         <div class="operational-browser-toolbar">
             <label>Search
@@ -414,12 +421,20 @@
                             :status="$operationalStatusKey"
                             :label="$operationalLabel"
                         />
-                        <strong>View Record<x-icon name="arrow-right" size="16" /></strong>
+                        <strong>View Record</strong>
                     </span>
                 </a>
             @empty
-                @if($mode === 'return')
-                    {{-- Card empty state, matching the Verification Queue treatment. --}}
+                @if($mode === 'release')
+                    {{-- Universal operational empty state: same treatment as Verification, with a release-specific package icon. --}}
+                    <section class="operational-empty-card">
+                        <div class="operational-empty-card-content">
+                            <span class="operational-empty-card-icon" aria-hidden="true"><x-icon name="box" size="30" /></span>
+                            <h2>No transactions waiting for release.</h2>
+                            <p>Approved transactions appear here until physical release is confirmed.</p>
+                        </div>
+                    </section>
+                @elseif($mode === 'return')
                     <section class="operational-empty-card">
                         <div class="operational-empty-card-content">
                             <span class="operational-empty-card-icon" aria-hidden="true"><x-icon name="custody" size="30" /></span>
@@ -428,15 +443,10 @@
                         </div>
                     </section>
                 @else
-                <div class="empty-state">
-                    @if($mode === 'release')
-                        <strong>No transactions waiting for release.</strong>
-                        <span>Approved transactions appear here until physical release is confirmed.</span>
-                    @else
+                    <div class="empty-state">
                         <strong>No custody/pickup records.</strong>
                         <span>A record appears after the SPMU Head verifies and approves a request and the approved quantities are allocated/held for pickup.</span>
-                    @endif
-                </div>
+                    </div>
                 @endif
             @endforelse
         </div>
@@ -450,14 +460,20 @@
     .operational-browser-toolbar label{display:grid;gap:6px;font-size:12px;font-weight:800;color:var(--text-muted)}
     .operational-browser-toolbar input,.operational-browser-toolbar select{min-height:42px;width:100%}
     .operational-record-action{align-content:center}
-    /* Empty-state card: same treatment as the Verification Queue empty state in approvals/partials/queue-styles.blade.php. */
-    .operational-empty-card{--operational-empty-accent:#0865df;display:flex;min-height:clamp(250px,32vh,320px);align-items:center;justify-content:center;padding:36px 20px;background:var(--surface-elevated);border:1px solid var(--border);border-radius:9px;text-align:center}
+    /* Release/Return is a page-level operational workspace. When it has no
+       transactions, let the result panel fill the remaining screen just like
+       the other queue/list pages. The message itself stays constrained so the
+       text never stretches awkwardly across the wide card. */
+    .operational-content-area{display:flex;flex-direction:column;width:100%;min-width:0}
+    .operational-content-area > .operational-record-list{flex:1 1 auto;display:flex;flex-direction:column;width:100%;min-width:0;min-height:0}
+    .operational-record-list > .operational-empty-card{flex:1 1 auto;width:100%}
+    .operational-empty-card{--operational-empty-accent:#0865df;display:flex;min-height:300px;align-items:center;justify-content:center;padding:40px 22px;background:var(--surface-elevated);border:1px solid var(--border);border-radius:9px;text-align:center}
     .operational-empty-card-content{display:flex;flex-direction:column;align-items:center;max-width:400px}
     .operational-empty-card-icon{display:grid;place-items:center;width:72px;height:72px;margin-bottom:18px;border-radius:50%;background:var(--info-bg);color:var(--operational-empty-accent)}
     .operational-empty-card h2{margin:0 0 8px;font-size:16px;font-weight:750;line-height:1.4}
     .operational-empty-card p{margin:0;color:var(--text-secondary);font-size:13px;line-height:1.65}
     html[data-theme="dark"] .operational-empty-card{--operational-empty-accent:#72b7f4}
-    @media(max-width:760px){.operational-browser-toolbar{grid-template-columns:1fr}.operational-empty-card{min-height:240px;padding:28px 16px}}
+    @media(max-width:760px){.operational-browser-toolbar{grid-template-columns:1fr}.operational-empty-card{min-height:260px;padding:30px 16px}}
     </style>
     <script>
     (()=>{const list=document.getElementById('operational-filter-list');const rows=[...document.querySelectorAll('[data-operational-record]')];const search=document.getElementById('operational-search');const status=document.getElementById('operational-status');const sort=document.getElementById('operational-sort');const empty=document.getElementById('operational-filter-empty');if(!list||!rows.length||!search||!status||!sort)return;const render=()=>{const q=search.value.trim().toLowerCase();const st=status.value;const ordered=[...rows].sort((a,b)=>{const priority=Number(b.dataset.priority||0)-Number(a.dataset.priority||0);if(priority!==0)return priority;return(Number(b.dataset.created)-Number(a.dataset.created))*(sort.value==='newest'?1:-1)});ordered.forEach(r=>list.appendChild(r));let n=0;rows.forEach(r=>{const show=(!q||r.dataset.search.includes(q))&&(st==='all'||r.dataset.status===st);r.hidden=!show;if(show)n++});if(empty)empty.hidden=n>0};search.addEventListener('input',render);status.addEventListener('change',render);sort.addEventListener('change',render);render()})();

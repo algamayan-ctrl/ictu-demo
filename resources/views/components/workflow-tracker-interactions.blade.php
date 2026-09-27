@@ -89,6 +89,7 @@
         overflow-x: visible !important;
         overflow-y: visible !important;
         scrollbar-width: none !important;
+        padding: 8px 0 4px !important;
     }
 
     .request-tracker__scroll::-webkit-scrollbar {
@@ -98,36 +99,58 @@
     .request-tracker__rail {
         width: 100% !important;
         min-width: 0 !important;
-        grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(var(--request-tracker-step-count, 8), minmax(0, 1fr)) !important;
         column-gap: 8px !important;
     }
 
     .request-tracker__step {
         min-width: 0 !important;
+        padding-inline: 5px !important;
+    }
+
+    .request-tracker__step::after {
+        top: 19px !important;
+        left: calc(50% + 21px) !important;
+        width: calc(100% - 42px) !important;
+        height: 2px !important;
+    }
+
+    .request-tracker__marker {
+        width: 38px !important;
+        height: 38px !important;
+        margin: 0 auto 8px !important;
     }
 
     .request-tracker__copy {
         min-width: 0 !important;
         width: 100%;
         text-align: center;
+        gap: 0 !important;
     }
 
     .request-tracker__copy strong {
         display: block;
+        min-height: 2.5em !important;
         max-width: 100%;
         white-space: normal !important;
         overflow-wrap: anywhere;
-        font-size: 12px;
+        font-size: 11.5px !important;
         line-height: 1.25;
     }
 
+    /* The full timestamp remains in the hover/focus tooltip and aria-label. */
     .request-tracker__copy time,
     .request-tracker__pending-label {
-        display: block;
-        margin-top: 4px;
-        white-space: normal !important;
-        font-size: 10px;
-        line-height: 1.25;
+        display: none !important;
+    }
+
+    /* Current, completed, warning and pending milestones use the same visual
+       language everywhere this shared request tracker is rendered. */
+    .request-tracker__step.is-current .request-tracker__marker {
+        color: #ffffff !important;
+        border-color: var(--interactive, #0863db) !important;
+        background: var(--interactive, #0863db) !important;
+        box-shadow: 0 0 0 4px var(--surface-elevated, #fff), 0 0 0 6px color-mix(in srgb, var(--interactive, #0863db) 16%, transparent) !important;
     }
 
     /*

@@ -11,7 +11,6 @@
         </div>
 
         <a class="inventory-form-back" href="{{ $item->exists ? route('inventory.show', $item) : route('inventory.index') }}">
-            <x-icon name="arrow-left" size="16" />
             Back
         </a>
     </section>
@@ -70,7 +69,6 @@
                         </div>
                         <a class="button secondary small ui-pressable" href="{{ route('inventory.show', ['inventory' => $item->id, 'tab' => 'overview']) }}">
                             View Inventory Overview
-                            <x-icon name="arrow-right" size="14" />
                         </a>
                     </div>
 

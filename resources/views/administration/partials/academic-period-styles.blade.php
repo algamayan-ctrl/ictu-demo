@@ -6,12 +6,6 @@
 .operational-config-heading .eyebrow,
 .academic-period-config .eyebrow { color: var(--period-blue); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
 
-/* Back to Operational Configuration */
-.operational-config-heading .button.operational-config-back { gap: 9px; min-height: 42px; padding: 11px 18px; border: 1px solid var(--period-blue); border-radius: 8px; background: var(--surface-elevated); color: var(--period-blue); font-size: 13px; font-weight: 700; white-space: nowrap; }
-.operational-config-heading .button.operational-config-back:hover,
-.operational-config-heading .button.operational-config-back:focus-visible { color: #fff; background: var(--period-blue); border-color: var(--period-blue); }
-.operational-config-back .ui-icon { flex-shrink: 0; transform: rotate(180deg); }
-
 /* Current academic period */
 .academic-period-config .current-period-card { display: flex; align-items: center; gap: 22px; padding: 24px 26px; border: 1px solid var(--info-border); border-radius: 10px; background: var(--info-bg); box-shadow: none; }
 .current-period-icon { display: grid; place-items: center; width: 76px; height: 76px; flex-shrink: 0; border-radius: 50%; background: var(--surface-elevated); color: var(--period-blue); }
@@ -67,8 +61,7 @@
 
 html[data-theme="dark"] .academic-period-config { --period-blue: #72b7f4; }
 html[data-theme="dark"] .academic-period-config .button.academic-period-save,
-html[data-theme="dark"] .academic-period-config .button.academic-period-save:hover,
-html[data-theme="dark"] .operational-config-heading .button.operational-config-back:hover { color: var(--navy-950); }
+html[data-theme="dark"] .academic-period-config .button.academic-period-save:hover { color: var(--navy-950); }
 
 @media (max-width: 820px) {
     .academic-period-config .current-period-card { align-items: flex-start; gap: 16px; padding: 18px; }

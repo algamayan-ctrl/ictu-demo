@@ -184,6 +184,6 @@
             :status="$statusKey"
             :label="$statusLabel"
         />
-        <strong>{{ $isDraft ? 'Resume Draft' : 'View Request' }}<x-icon name="arrow-right" size="16" /></strong>
+        <strong>{{ $isDraft ? 'Resume Draft' : 'View Request' }}</strong>
     </span>
 </a>

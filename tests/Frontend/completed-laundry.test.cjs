@@ -196,9 +196,14 @@ test('responsive styles stay scoped and use valid theme variables', () => {
     assert.match(styles, /\.completed-laundry-table-wrap \{[^}]*overflow-x: auto/);
     assert.match(styles, /@media \(max-width: 700px\)/);
     assert.match(styles, /@media \(max-width: 430px\)/);
-    assert.match(styles, /\.completed-laundry \.button\.ui-pressable\.secondary:not\(:disabled\):hover/);
-    assert.match(styles, /prefers-reduced-motion/);
     const theme = read('public/css/app.css');
+    // Secondary/view buttons on this page rely on the shared global
+    // .button.secondary, .table-action hover contract (public/css/app.css) -
+    // this page must not redefine its own local override, and motion
+    // reduction is handled once, globally, for every .button/.interactive
+    // element rather than per page.
+    assert.doesNotMatch(styles, /\.completed-laundry \.button(?:\.ui-pressable)?\.secondary[^\{]*(?::hover|:focus-visible)[^\{]*\{/);
+    assert.match(theme, /prefers-reduced-motion:\s*reduce\)\s*\{[\s\S]*?\*,\s*\*::before,\s*\*::after[\s\S]*?transition-duration/);
     const variables = new Set([...`${theme}\n${styles}`.matchAll(/(--[\w-]+)\s*:/g)].map((match) => match[1]));
     for (const [, variable] of styles.matchAll(/var\((--[\w-]+)/g)) {
         assert.ok(variables.has(variable), `Undefined CSS variable: ${variable}`);

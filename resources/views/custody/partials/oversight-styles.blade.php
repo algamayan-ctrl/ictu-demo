@@ -1,5 +1,17 @@
 <style>
-.custody-oversight { --oversight-blue: #0865df; width: 100%; min-width: 0; display: grid; gap: 16px; }
+.custody-oversight {
+    --oversight-blue: #0865df;
+    width: 100%;
+    min-width: 0;
+    /* display:flex behaves the same as the previous display:grid for this
+       simple single-column stack (identical gap behavior), but also lets
+       the empty-state panel below grow to fill leftover height when the
+       toolbar above it is the only other content on the page. */
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.custody-oversight > .custody-oversight-empty { flex: 1 1 auto; }
 .custody-oversight [hidden] { display: none !important; }
 
 /* Filter bar */
@@ -69,7 +81,7 @@
 .custody-oversight-page-ellipsis { padding: 0 3px; color: var(--text-muted); font-size: 11px; }
 
 /* Empty and no-results states */
-.custody-oversight-empty { display: flex; min-height: clamp(300px, 40vh, 420px); align-items: center; justify-content: center; padding: 40px 22px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); text-align: center; }
+.custody-oversight-empty { display: flex; min-height: 300px; align-items: center; justify-content: center; padding: 40px 22px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); text-align: center; }
 .custody-oversight-empty-content { display: flex; flex-direction: column; align-items: center; max-width: 460px; }
 .custody-oversight-empty-icon { display: grid; place-items: center; width: 86px; height: 86px; margin-bottom: 22px; border: 1px solid var(--border); border-radius: 50%; background: var(--surface-subtle); color: var(--oversight-blue); }
 .custody-oversight-empty h2 { margin: 0 0 10px; font-size: 17px; font-weight: 750; line-height: 1.5; }

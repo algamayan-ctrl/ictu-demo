@@ -16,12 +16,23 @@
     $isReturned = $borrowingRequest->exists
         && $borrowingRequest->status === App\Enums\RequestStatus::ReturnedForRevision;
 
-    $returnRemarks = $isReturned
+    $latestReturnForRevision = $isReturned
         ? $version->approvalSteps
-            ->where('decision', 'RETURNED')
-            ->pluck('remarks')
-            ->filter()
-        : collect();
+            ->where('decision', 'RETURNED_FOR_REVISION')
+            ->sortByDesc(
+                fn ($step) => ($step->decided_at ?? $step->created_at)?->getTimestamp() ?? 0
+            )
+            ->first()
+        : null;
+
+    $returnRemarks = trim((string) ($latestReturnForRevision?->remarks ?? ''));
+    $returnedByRole = $latestReturnForRevision
+        ? ((int) $latestReturnForRevision->sequence_no === 1
+            ? 'SPMU Action Officer'
+            : 'SPMU Head/Admin')
+        : null;
+    $returnedAt = $latestReturnForRevision?->decided_at
+        ?? $latestReturnForRevision?->created_at;
 
     $supporting = $version->exists
         ? $version->supportingDocuments->where('is_current', true)
@@ -113,6 +124,29 @@
 @endphp
 
 <style>
+    .returned-for-revision-panel {
+        display: block;
+    }
+
+    .returned-for-revision-panel .revision-remarks {
+        margin-top: 10px;
+    }
+
+    .returned-for-revision-panel .revision-remarks-copy {
+        margin: 0;
+        color: var(--text);
+        line-height: 1.55;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .returned-for-revision-panel .revision-return-meta {
+        margin: 7px 0 0;
+        color: var(--text-muted);
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
     .create-request-ui {
         --cr-navy: #102a43;
         --cr-blue: #1769e0;
@@ -855,19 +889,22 @@
 
 @if($isReturned)
 <section class="content-area">
-    <div class="action-panel action-warning" role="status">
+    <div class="action-panel action-warning returned-for-revision-panel" role="status" aria-labelledby="returned-for-revision-heading">
         <div>
             <p class="eyebrow">Action required</p>
-            <h2>Returned for Revision</h2>
-            <p>Update the request using the review remarks below.</p>
+            <h2 id="returned-for-revision-heading">Returned for Revision</h2>
+            <p>Please update the request based on the review remarks below.</p>
         </div>
 
-        @if($returnRemarks->isNotEmpty())
-            <ul>
-                @foreach($returnRemarks as $remark)
-                    <li>{{ $remark }}</li>
-                @endforeach
-            </ul>
+        <section class="revision-remarks" aria-labelledby="review-remarks-heading">
+            <p class="eyebrow" id="review-remarks-heading">Review remarks</p>
+            <p class="revision-remarks-copy">{{ $returnRemarks !== ''
+                ? $returnRemarks
+                : 'No review remarks were recorded. Please contact SPMU for clarification.' }}</p>
+        </section>
+
+        @if($returnedByRole && $returnedAt)
+            <p class="revision-return-meta">Returned by: {{ $returnedByRole }} · <time datetime="{{ $returnedAt->toAtomString() }}">{{ $returnedAt->timezone(config('app.timezone'))->format('d M Y, g:i A') }}</time></p>
         @endif
     </div>
 </section>
@@ -1224,7 +1261,7 @@
         </section>
 
         <div class="stage-actions request-picker-actions" data-stage-panel="2">
-            <button type="button" class="button secondary ui-pressable" data-stage-back="1"><x-icon name="arrow-left" size="16" />Back</button>
+            <button type="button" class="button secondary ui-pressable" data-stage-back="1">Back</button>
             <button type="button" class="button primary ui-pressable" data-stage-next="3" disabled>
                 Confirm Items &amp; Continue
                 <svg class="ui-icon request-continue-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg>
@@ -1439,7 +1476,6 @@
 
         <div class="sticky-actions request-review-actions" data-stage-panel="3">
             <button type="button" class="button secondary ui-pressable" data-stage-back="2">
-                <x-icon name="arrow-left" size="16" />
                 Back
             </button>
 
@@ -1619,6 +1655,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let availability = {};
     let availabilityLoaded = false;
     let availabilityTimer = null;
+    let operationalDateValidationId = 0;
 
     function setSummaryText(element, value, fallback = '—') {
         if (!element) {
@@ -2058,6 +2095,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 : 'Select dates';
     }
 
+    async function validateOperationalDates() {
+        const from = scheduleDate?.value || '';
+        const to = returnDate?.value || '';
+        const validationId = ++operationalDateValidationId;
+
+        [scheduleDate, returnDate].forEach((field) => field?.setCustomValidity(''));
+
+        if (!from || !to) {
+            return true;
+        }
+
+        try {
+            const response = await fetch(
+                `{{ route('requests.operational-date-availability') }}?schedule_date=${encodeURIComponent(from)}&return_date=${encodeURIComponent(to)}`,
+                { headers: { Accept: 'application/json' } }
+            );
+
+            if (!response.ok) {
+                throw new Error('Operational date validation failed.');
+            }
+
+            const dates = await response.json();
+
+            if (validationId !== operationalDateValidationId) {
+                return false;
+            }
+
+            const invalidMessages = [];
+
+            [
+                [scheduleDate, dates.schedule_date],
+                [returnDate, dates.return_date],
+            ].forEach(([field, result]) => {
+                const message = result?.open ? '' : (result?.message || 'Choose an open SPMU operational date.');
+                field?.setCustomValidity(message);
+
+                if (message) {
+                    invalidMessages.push(message);
+                }
+            });
+
+            if (invalidMessages.length && availabilityMessage) {
+                availabilityMessage.textContent = invalidMessages.join(' ');
+            }
+
+            return invalidMessages.length === 0;
+        } catch (error) {
+            if (validationId === operationalDateValidationId && availabilityMessage) {
+                availabilityMessage.textContent = 'Operational date validation could not be loaded. The request will be validated when submitted.';
+            }
+
+            return true;
+        }
+    }
+
     function syncStudentFields() {
         const active = Boolean(studentToggle?.checked);
 
@@ -2402,6 +2494,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 availabilityMessage.textContent =
                     'Select Items Needed From and Expected Return Date to load availability.';
             }
+            updateCatalogAvailability();
+            syncSelectedItems();
+            return;
+        }
+
+        if (!await validateOperationalDates()) {
+            availability = {};
+            availabilityLoaded = false;
             updateCatalogAvailability();
             syncSelectedItems();
             return;

@@ -159,12 +159,20 @@ class DashboardController extends Controller
                     $custody = $record->custody;
                     $laundry = $custody?->laundryJob;
 
+                    // A missed pickup ("Pickup Missed - For SPMU Review") is
+                    // SPMU's decision, not the borrower's action - it must
+                    // never appear here, only a still-valid upcoming pickup.
                     return in_array($record->status, [RequestStatus::Draft, RequestStatus::ReturnedForRevision], true)
                         || $custodyNeedsBorrowerAction($custody)
                         || ($laundry?->status === 'FOR_LAUNDRY' && ! $laundry->hasVerifiedAccomplishedForm())
                         || (
                             $custody?->scheduled_release_at !== null
                             && $custody?->released_at === null
+                            && $custody?->pickup_expired_at === null
+                            && (
+                                $custody?->pickup_expires_at === null
+                                || now()->lte($custody->pickup_expires_at)
+                            )
                         );
                 })
                 ->sort(function (BorrowingRequest $left, BorrowingRequest $right) use ($custodyNeedsBorrowerAction): int {
@@ -175,14 +183,10 @@ class DashboardController extends Controller
                         return match (true) {
                             $record->status === RequestStatus::ReturnedForRevision => 1,
                             $custodyNeedsBorrowerAction($custody) => 2,
-                            $custody?->released_at === null && (
-                                $custody?->pickup_expired_at !== null
-                                || ($custody?->pickup_expires_at !== null && now()->gt($custody->pickup_expires_at))
-                            ) => 3,
-                            $record->status === RequestStatus::Draft => 4,
-                            $laundry?->status === 'FOR_LAUNDRY' => 5,
-                            $custody?->scheduled_release_at !== null && $custody?->released_at === null => 6,
-                            default => 7,
+                            $record->status === RequestStatus::Draft => 3,
+                            $laundry?->status === 'FOR_LAUNDRY' => 4,
+                            $custody?->scheduled_release_at !== null && $custody?->released_at === null => 5,
+                            default => 6,
                         };
                     };
 

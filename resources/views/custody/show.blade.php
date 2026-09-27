@@ -231,19 +231,9 @@
             'Return all outstanding non-linen items to SPMU on or before the expected return date.',
             'info',
         ],
-        $pickupMissed && $pickupRescheduleRequested => [
-            'Pickup reschedule requested',
-            'SPMU will set the next valid pickup schedule for this same approved request.',
-            'warning',
-        ],
-        $pickupMissed && ! $pickupRescheduleAvailable => [
-            'Pickup missed',
-            'Your pickup schedule has passed and no valid pickup window remains before the expected return date. Cancel the request or coordinate an approved date revision with SPMU.',
-            'warning',
-        ],
         $pickupMissed => [
-            'Pickup missed',
-            'Your pickup schedule has passed and the items were not claimed. Choose what you want to do with this approved request.',
+            'Pickup Missed — For SPMU Review',
+            'Your scheduled pickup was not completed. SPMU is reviewing whether the items can still be released or whether the borrowing must be cancelled. No action is required from you at this time.',
             'warning',
         ],
         $preparationComplete && $pickupWindowOpen => [
@@ -283,7 +273,6 @@
     <div>
         @if($isBorrower)
             <a class="borrower-custody-back" href="{{ route('custody.index') }}">
-                <x-icon name="arrow-right" size="16" />
                 My Borrowings
             </a>
         @else
@@ -304,7 +293,7 @@
     <x-status-badge
         :status="$operationalStatusKey"
         :label="$isBorrower && $pickupMissed
-            ? ($pickupRescheduleRequested ? 'Reschedule Requested' : 'Pickup Missed')
+            ? 'Pickup Missed'
             : $operationalLabel"
     />
 </section>
@@ -336,19 +325,6 @@
             $borrowerGatePassStatus !== null => $borrowerGatePassStatus['label'],
             default => 'Applicable',
         };
-
-        $borrowerCanCancelRequest = $custody->request
-            && ! in_array(
-                $custody->request->status,
-                [
-                    \App\Enums\RequestStatus::Draft,
-                    \App\Enums\RequestStatus::Cancelled,
-                    \App\Enums\RequestStatus::Rejected,
-                    \App\Enums\RequestStatus::Expired,
-                ],
-                true
-            )
-            && ! $custody->released_at;
 
         /*
          * The one date that matters right now, appended to the status line so
@@ -458,31 +434,12 @@
                 @endif
 
                 <div class="borrower-custody-status-actions">
-                    @if($pickupMissed && ! $pickupRescheduleRequested && $pickupRescheduleAvailable)
-                        <form method="post" action="{{ route('custody.request-pickup-reschedule', $custody) }}">
-                            @csrf
-                            <button class="button primary small ui-pressable borrower-custody-status-action" type="submit">
-                                Request Reschedule
-                            </button>
-                        </form>
-                    @endif
-
-                    @if($pickupMissed && $borrowerCanCancelRequest)
-                        @include('requests.partials.borrower-cancel-control', [
-                            'borrowingRequest' => $custody->request,
-                            'cancelTriggerClass' => 'button secondary small ui-pressable borrower-custody-status-action borrower-cancel-trigger is-danger',
-                            'cancelTriggerLabel' => 'Cancel Request',
-                            'cancelDialogTitle' => 'Cancel this approved request?',
-                            'cancelDialogCopy' => 'The reserved items will return to Available inventory and this approved request will close. You can no longer continue this pickup after cancellation.',
-                            'cancelReasonPlaceholder' => 'Briefly explain why you no longer need this approved request...',
-                        ])
-                    @elseif($accountabilityIndicator)
+                    @if($accountabilityIndicator)
                         <a
                             class="button secondary small ui-pressable borrower-custody-status-action"
                             href="{{ route('accountability.index') }}"
                         >
                             View Obligation
-                            <x-icon name="arrow-right" size="15" />
                         </a>
                     @elseif(! $pickupMissed)
                         <a
@@ -490,7 +447,6 @@
                             href="{{ route('requests.show', $custody->request) }}"
                         >
                             View Request
-                            <x-icon name="arrow-right" size="15" />
                         </a>
                     @endif
                 </div>

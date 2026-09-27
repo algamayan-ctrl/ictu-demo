@@ -17,6 +17,8 @@
      * borrower's cases it is scoped to.
      */
     $borrowerFilterId = ! $isBorrower ? (int) request('borrower') ?: null : null;
+    $caseListRequested = ! $isBorrower && request('view') === 'cases';
+    $resolvedHistoryRequested = ! $isBorrower && request('view') === 'resolved';
 
     $activeRestrictions = $restrictions->filter(
         fn ($restriction) => $restriction->status === 'ACTIVE'
@@ -268,8 +270,7 @@
 .accountability-action-disclosure > summary::-webkit-details-marker { display:none; }
 .accountability-action-disclosure[open] > summary { background:#eef6fd; }
 .accountability-disclosure-chevron { flex:0 0 auto; transition:transform .16s ease; }
-.accountability-action-disclosure[open] > summary .accountability-disclosure-chevron,
-.accountability-case-details[open] > summary .accountability-disclosure-chevron { transform:rotate(180deg); }
+.accountability-action-disclosure[open] > summary .accountability-disclosure-chevron { transform:rotate(180deg); }
 .accountability-action-body { margin-top:10px; padding-top:12px; border-top:1px solid var(--border); }
 .accountability-action-body .form-grid { gap:11px; }
 .accountability-compact-offense { display:grid; gap:7px; padding:10px 11px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
@@ -277,8 +278,6 @@
 .accountability-compact-offense small { color:var(--text-muted); font-size:10px; line-height:1.45; }
 .accountability-compact-offense strong { color:var(--text-secondary); }
 .accountability-case-details { border-top:1px solid var(--border); padding-top:11px; }
-.accountability-case-details > summary { display:inline-flex; align-items:center; gap:6px; color:#155d9d; cursor:pointer; font-size:10px; font-weight:800; list-style:none; }
-.accountability-case-details > summary::-webkit-details-marker { display:none; }
 .accountability-case-details .head-case-summary { margin-top:10px; }
 .accountability-billing-brief { display:flex; flex-wrap:wrap; gap:6px 16px; color:var(--text-secondary); font-size:10px; }
 .accountability-billing-brief strong { color:var(--text-primary); }
@@ -387,14 +386,17 @@
     --accountability-card-accent:var(--success);
     --accountability-card-hover:rgba(21, 148, 71, .070);
 }
-/* Summary cards are static on every role/page. */
-.accountability-overview-card:hover,
-.accountability-overview-card:focus-visible,
-.accountability-overview-card.is-static:hover,
-.accountability-overview-card.is-static:focus-visible {
-    transform:none;
-    border-color:var(--border);
-    box-shadow:inset 0 3px 0 var(--accountability-card-accent), var(--shadow-sm);
+/* Summary cards use the same whole-card navigation affordance as dashboard KPIs. */
+.accountability-overview-card { cursor:pointer; transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease; }
+.accountability-overview-card:hover {
+    transform:translateY(-1px);
+    border-color:color-mix(in srgb, var(--accountability-card-accent) 32%, var(--border));
+    background:color-mix(in srgb, var(--surface-elevated) 96%, var(--accountability-card-hover));
+    box-shadow:inset 0 3px 0 var(--accountability-card-accent), 0 8px 20px rgba(15, 38, 66, .08);
+}
+.accountability-overview-card:focus-visible {
+    outline:3px solid color-mix(in srgb, var(--accountability-card-accent) 28%, transparent);
+    outline-offset:3px;
 }
 .accountability-overview-icon {
     grid-column:1;
@@ -431,7 +433,21 @@
     font-size:10px;
     line-height:1.35;
 }
-.accountability-overview-arrow { display:none; }
+.accountability-overview-arrow {
+    position:absolute;
+    top:14px;
+    right:15px;
+    display:inline-flex;
+    color:var(--text-muted);
+    font-size:16px;
+    line-height:1;
+    transition:transform .16s ease, color .16s ease;
+}
+.accountability-overview-card:hover .accountability-overview-arrow,
+.accountability-overview-card:focus-visible .accountability-overview-arrow {
+    color:var(--accountability-card-accent);
+    transform:translateX(2px);
+}
 .accountability-overview-card.tone-open .accountability-overview-icon {
     border-color:#cfe0f3;
     background:#edf5fd;
@@ -518,10 +534,6 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 
 .accountability-case-type-label { color:var(--text-secondary); font-size:11.5px; font-weight:700; }
 
-/* Every row's one action toggles its own detail row - a chevron shows which way it currently points. */
-.accountability-toggle-chevron { flex:0 0 auto; margin-left:2px; transition:transform var(--motion) ease; }
-[aria-expanded="true"] .accountability-toggle-chevron { transform:rotate(180deg); }
-
 @media (max-width:1180px) {
     .accountability-overview { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
@@ -557,9 +569,8 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     </div>
 
     @if($isOfficer)
-        <a class="button secondary small accountability-heading-action" href="#accountability-cases-section">
+        <a class="button secondary small accountability-heading-action" href="{{ route('accountability.index', ['view' => 'cases']) }}#accountability-cases-section">
             <span>View Accountability Cases</span>
-            <x-icon name="arrow-right" size="14" />
         </a>
     @endif
 </section>
@@ -627,7 +638,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             'value' => $openAccountabilities,
             'note' => 'Unresolved cases',
             'meta' => 'Counted once per matter',
-            'href' => '#accountability-cases-section',
+            'href' => route('accountability.index', ['view' => 'cases']).'#accountability-cases-section',
         ],
         [
             'tone' => 'overdue',
@@ -642,7 +653,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
              * the rows already on the page to the Late Return type and the
              * OVERDUE status - it never queries the server again.
              */
-            'href' => route('accountability.index', ['focus' => 'overdue']).'#accountability-cases-section',
+            'href' => route('accountability.index', ['view' => 'cases', 'focus' => 'overdue']).'#accountability-cases-section',
         ],
         [
             'tone' => 'balance',
@@ -652,8 +663,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             'note' => 'Unpaid obligations',
             'meta' => 'Not covered by a verified payment',
             'emphasis' => $outstandingBalance > 0,
-            /* Same destination as "Open Accountability Cases" above - stays static rather than duplicating that link. */
-            'href' => null,
+            'href' => route('accountability.index', ['view' => 'cases', 'focus' => 'balance']).'#accountability-cases-section',
         ],
         [
             'tone' => 'resolved',
@@ -662,22 +672,23 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             'value' => $resolvedThisPeriod,
             'note' => 'Cleared cases',
             'meta' => 'Closed during '.$resolvedPeriodLabel,
-            'href' => '#resolved-history',
+            'href' => route('accountability.index', ['view' => 'resolved']).'#resolved-history',
         ],
     ];
 @endphp
 
 <section class="accountability-overview" aria-label="Accountability summary">
     @foreach($summaryCards as $card)
-        <div
-            class="accountability-overview-card tone-{{ $card['tone'] }} has-emphasis is-static"
-            aria-label="{{ $card['label'] }}: {{ $card['value'] }}. {{ $card['note'] }}"
+        <a
+            class="accountability-overview-card tone-{{ $card['tone'] }} has-emphasis"
+            href="{{ $card['href'] }}"
+            aria-label="{{ $card['label'] }}: {{ $card['value'] }}. {{ $card['note'] }}. View details."
         >
             <span class="accountability-overview-icon" aria-hidden="true"><x-icon :name="$card['icon']" size="18" /></span>
             <span class="accountability-overview-label">{{ $card['label'] }}</span>
             <strong class="accountability-overview-value">{{ $card['value'] }}</strong>
             <span class="accountability-overview-note">{{ $card['note'] }}</span>
-        </div>
+        </a>
     @endforeach
 </section>
 
@@ -948,7 +959,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 @endphp
 @unless($isBorrower)
 <section class="content-area accountability-case-workspace" id="accountability-cases-section">
-@if($borrowerFilterId)
+@if($borrowerFilterId || $caseListRequested)
     <article class="card accountability-cases-card">
         <div class="accountability-cases-head">
             <h2>
@@ -1099,6 +1110,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                             data-case
                             data-case-type="LATE_RETURN"
                             data-status="{{ $overdue->status }}"
+                            data-has-balance="{{ $overdueBillingPayable ? '1' : '0' }}"
                             data-has-restriction="{{ $overdueRestriction ? '1' : '0' }}"
                             data-search="{{ Str::lower($overdue->custody->custody_no.' '.$overdue->borrower->full_name) }}"
                             @if($restrictionsFocusRequested && ! $overdueRestriction) hidden @endif
@@ -1139,43 +1151,42 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                 @if($isStillOverdue && $isOfficer)
                                     <a class="table-action accountability-next-link" href="{{ route('custody.return.show', $overdue->custody) }}">
                                         <span>Record Return</span>
-                                        <span aria-hidden="true">→</span>
                                     </a>
                                 @elseif($headCanDecide)
-                                    <button type="button" class="table-action" data-case-toggle aria-expanded="false">
+                                    <button type="button" class="button secondary small ui-pressable disclosure-trigger" data-case-toggle aria-expanded="false">
                                         <span>Review Assessment</span>
-                                        <x-icon name="chevron-down" size="13" class="accountability-toggle-chevron" />
+                                        <x-icon name="chevron-down" size="13" class="disclosure-trigger__chevron" />
                                     </button>
                                 @elseif($isOfficer && $hasBilling && $overdueBillingPayable)
-                                    <button type="button" class="table-action" data-case-toggle aria-expanded="false">
+                                    <button type="button" class="button secondary small ui-pressable disclosure-trigger" data-case-toggle aria-expanded="false">
                                         <span>Record Payment</span>
-                                        <x-icon name="chevron-down" size="13" class="accountability-toggle-chevron" />
+                                        <x-icon name="chevron-down" size="13" class="disclosure-trigger__chevron" />
                                     </button>
                                 @elseif($isStillOverdue && $isHead)
                                     <div class="accountability-next-state-group">
                                         <span class="accountability-next-state">Waiting for AO</span>
-                                        <button type="button" class="table-action accountability-view-detail" data-case-toggle aria-expanded="false">
+                                        <button type="button" class="button secondary small ui-pressable disclosure-trigger" data-case-toggle aria-expanded="false">
                                             <span>View</span>
-                                            <x-icon name="chevron-down" size="13" class="accountability-toggle-chevron" />
+                                            <x-icon name="chevron-down" size="13" class="disclosure-trigger__chevron" />
                                         </button>
                                     </div>
                                 @elseif($isHead && $hasBilling && $overdueBilling)
                                     <div class="accountability-next-state-group">
                                         <span class="accountability-next-state">Waiting for payment</span>
-                                        <button type="button" class="table-action accountability-view-detail" data-case-toggle aria-expanded="false">
+                                        <button type="button" class="button secondary small ui-pressable disclosure-trigger" data-case-toggle aria-expanded="false">
                                             <span>View</span>
-                                            <x-icon name="chevron-down" size="13" class="accountability-toggle-chevron" />
+                                            <x-icon name="chevron-down" size="13" class="disclosure-trigger__chevron" />
                                         </button>
                                     </div>
                                 @elseif($hasBilling && $overdueBilling)
-                                    <button type="button" class="table-action" data-case-toggle aria-expanded="false">
+                                    <button type="button" class="button secondary small ui-pressable disclosure-trigger" data-case-toggle aria-expanded="false">
                                         <span>View Billing</span>
-                                        <x-icon name="chevron-down" size="13" class="accountability-toggle-chevron" />
+                                        <x-icon name="chevron-down" size="13" class="disclosure-trigger__chevron" />
                                     </button>
                                 @else
-                                    <button type="button" class="table-action" data-case-toggle aria-expanded="false">
+                                    <button type="button" class="button secondary small ui-pressable disclosure-trigger" data-case-toggle aria-expanded="false">
                                         <span>View Case</span>
-                                        <x-icon name="chevron-down" size="13" class="accountability-toggle-chevron" />
+                                        <x-icon name="chevron-down" size="13" class="disclosure-trigger__chevron" />
                                     </button>
                                 @endif
                             </td>
@@ -1228,13 +1239,13 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                                 @if($lateReturnNotice)
                                                     <div class="accountability-document-item">
                                                         <span>Late Return Notice</span>
-                                                        <a class="table-action" href="{{ route('documents.preview', $lateReturnNotice) }}">Preview <span aria-hidden="true">→</span></a>
+                                                        <a class="table-action" href="{{ route('documents.preview', $lateReturnNotice) }}">Preview</a>
                                                     </div>
                                                 @endif
                                                 @if($lateReturnBillingDocument)
                                                     <div class="accountability-document-item">
                                                         <span>Late Return Billing Statement</span>
-                                                        <a class="table-action" href="{{ route('documents.preview', $lateReturnBillingDocument) }}">Preview <span aria-hidden="true">→</span></a>
+                                                        <a class="table-action" href="{{ route('documents.preview', $lateReturnBillingDocument) }}">Preview</a>
                                                     </div>
                                                 @endif
                                             </div>
@@ -1454,6 +1465,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             data-case
             data-case-type="PROPERTY"
             data-status="{{ $statusKey }}"
+            data-has-balance="{{ $incidentBilling && ! in_array($incidentBilling->status, ['SETTLED', 'WAIVED', 'VOID'], true) ? '1' : '0' }}"
             data-has-restriction="{{ $incidentRestriction ? '1' : '0' }}"
             data-search="{{ Str::lower($custodyNo.' '.$requestNo.' '.($incident->borrower?->full_name ?? '')) }}"
             @if($restrictionsFocusRequested && ! $incidentRestriction) hidden @endif
@@ -1505,9 +1517,9 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                 @if($incidentNext[0] === 'waiting')
                     <span class="accountability-next-state">{{ $incidentNext[1] }}</span>
                 @else
-                    <button type="button" class="table-action" data-case-toggle aria-expanded="false">
+                    <button type="button" class="button secondary small ui-pressable disclosure-trigger" data-case-toggle aria-expanded="false">
                         <span>{{ $incidentNext[1] }}</span>
-                        <x-icon name="chevron-down" size="13" class="accountability-toggle-chevron" />
+                        <x-icon name="chevron-down" size="13" class="disclosure-trigger__chevron" />
                     </button>
                 @endif
             </td>
@@ -2072,7 +2084,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             @endif
 
             <details class="accountability-case-details">
-                <summary><span>Case details</span><x-icon name="chevron-down" size="14" class="accountability-disclosure-chevron" /></summary>
+                <summary class="button secondary small ui-pressable disclosure-trigger"><span>Case details</span><x-icon name="chevron-down" size="14" class="accountability-disclosure-chevron disclosure-trigger__chevron" /></summary>
                 <p class="meta top-gap">Reported {{ optional($incident->reported_at)->format('d M Y, g:i A') ?: '—' }}</p>
                 <dl class="head-case-summary">
                     <div><dt>Borrower</dt><dd>{{ $incident->borrower?->full_name ?: '—' }}</dd></div>
@@ -2162,6 +2174,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             data-case
             data-case-type="BILLING"
             data-status="{{ $billing->status }}"
+            data-has-balance="1"
             data-has-restriction="0"
             data-search="{{ Str::lower($billing->billing_no.' '.$billing->borrower->full_name) }}"
             @if($restrictionsFocusRequested) hidden @endif
@@ -2176,16 +2189,16 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             <td class="is-numeric">PHP {{ number_format((float) $billing->total_amount, 2) }}</td>
             <td>
                 @if($isOfficer && ! in_array($billing->status, ['SETTLED', 'WAIVED', 'VOID'], true))
-                    <button type="button" class="table-action" data-case-toggle aria-expanded="false">
+                    <button type="button" class="button secondary small ui-pressable disclosure-trigger" data-case-toggle aria-expanded="false">
                         <span>Record Payment</span>
-                        <x-icon name="chevron-down" size="13" class="accountability-toggle-chevron" />
+                        <x-icon name="chevron-down" size="13" class="disclosure-trigger__chevron" />
                     </button>
                 @elseif($isHead && ! in_array($billing->status, ['SETTLED', 'WAIVED', 'VOID'], true))
                     <span class="accountability-next-state">Waiting for payment</span>
                 @else
-                    <button type="button" class="table-action" data-case-toggle aria-expanded="false">
+                    <button type="button" class="button secondary small ui-pressable disclosure-trigger" data-case-toggle aria-expanded="false">
                         <span>View Billing</span>
-                        <x-icon name="chevron-down" size="13" class="accountability-toggle-chevron" />
+                        <x-icon name="chevron-down" size="13" class="disclosure-trigger__chevron" />
                     </button>
                 @endif
             </td>
@@ -2194,7 +2207,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             <td colspan="6">
 <article class="card">
 <div class="billing-lines">@foreach($billing->lines as $line)<p><strong>{{ str($line->line_type)->replace('_',' ')->title() }}</strong><span>{{ $line->description }}</span><small>PHP {{ number_format((float)$line->amount,2) }}</small></p>@endforeach</div>
-<div class="accountability-document-list">@foreach($billing->documents->whereNotIn('status',['SUPERSEDED','INVALIDATED','EXPIRED']) as $document)<div class="accountability-document-item"><span>{{ $billing->isLateReturnBilling() ? 'Late Return Billing Statement' : 'Billing Statement' }}</span><a class="table-action" href="{{ route('documents.preview',$document) }}">Preview <span aria-hidden="true">→</span></a></div>@endforeach</div>
+<div class="accountability-document-list">@foreach($billing->documents->whereNotIn('status',['SUPERSEDED','INVALIDATED','EXPIRED']) as $document)<div class="accountability-document-item"><span>{{ $billing->isLateReturnBilling() ? 'Late Return Billing Statement' : 'Billing Statement' }}</span><a class="table-action" href="{{ route('documents.preview',$document) }}">Preview</a></div>@endforeach</div>
 <p class="meta">The borrower pays at the CSPC Cashier and presents the official receipt to the Action Officer. Confirm the payment only after checking the receipt.</p>
 @if($isOfficer && !in_array($billing->status,['SETTLED','WAIVED','VOID'],true))
 <form method="post" action="{{ route('payments.store',$billing) }}" enctype="multipart/form-data" class="form-grid top-gap">@csrf<div class="card-header"><div><h4>Record Cashier Payment</h4><small>Check the official receipt, encode it once, then confirm.</small></div></div><div class="form-columns"><label>Cashier Receipt No.<input name="official_receipt_no" required></label><label>Receipt Date<input type="date" name="receipt_date" required></label><label>Amount Paid<input type="number" step="0.01" min="0.01" name="amount" required></label><label>Scanned Paid Receipt<input type="file" name="evidence" accept="application/pdf,image/png,image/jpeg,image/webp" required></label></div><label>Remarks <small>(Optional)</small><textarea name="remarks"></textarea></label><button class="button primary">Record & Confirm Payment</button></form>
@@ -2225,6 +2238,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             data-case
             data-case-type="RESTRICTION"
             data-status="{{ $restriction->status }}"
+            data-has-balance="0"
             data-has-restriction="1"
             data-search="{{ Str::lower(($restriction->custody?->custody_no ?? '').' '.($restriction->borrower?->full_name ?? '')) }}"
         >
@@ -2237,9 +2251,9 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             <td><span>{{ $restriction->reason ?: $restrictionTypeLabel }}</span></td>
             <td class="is-numeric">&mdash;</td>
             <td>
-                <button type="button" class="table-action" data-case-toggle aria-expanded="false">
+                <button type="button" class="button secondary small ui-pressable disclosure-trigger" data-case-toggle aria-expanded="false">
                     <span>View Case</span>
-                    <x-icon name="chevron-down" size="13" class="accountability-toggle-chevron" />
+                    <x-icon name="chevron-down" size="13" class="disclosure-trigger__chevron" />
                 </button>
             </td>
         </tr>
@@ -2272,8 +2286,6 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         </p>
         @endunless
     </article>
-
-    @include('accountability.partials.cases-interactions')
 
 @else
     {{--
@@ -2327,7 +2339,6 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                     @if($row['borrower'])
                                         <a class="table-action accountability-next-link" href="{{ route('accountability.borrower', $row['borrower']) }}">
                                             <span>View Accountability</span>
-                                            <span aria-hidden="true">→</span>
                                         </a>
                                     @endif
                                 </td>
@@ -2344,7 +2355,15 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 @endunless
 
 @unless($isBorrower)
-    @include('accountability.partials.resolved-history')
+    @if($resolvedHistoryRequested)
+        @include('accountability.partials.resolved-history', [
+            'resolvedHistory' => $resolvedHistory
+                ->filter(fn (array $row): bool => $row['resolved_at'] !== null
+                    && \Illuminate\Support\Carbon::parse($row['resolved_at'])->greaterThanOrEqualTo($resolvedPeriodStart))
+                ->values(),
+        ])
+    @endif
+    @include('accountability.partials.cases-interactions')
 @endunless
 
 @if(($isHead || $workspace === 'BORROWER') && $sanctions->isNotEmpty())
@@ -2419,7 +2438,6 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                 @if($sanctionNotice)
                                     <a class="table-action accountability-sanction-notice" href="{{ route('documents.preview', $sanctionNotice) }}">
                                         <span>View Notice</span>
-                                        <span aria-hidden="true">→</span>
                                     </a>
                                 @else
                                     <span class="accountability-row-none">—</span>

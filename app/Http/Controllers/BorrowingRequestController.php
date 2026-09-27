@@ -15,10 +15,12 @@ use App\Models\RequestSupportingDocument;
 use App\Models\RequestVersion;
 use App\Models\User;
 use App\Services\InventoryService;
+use App\Services\OperationalCalendarService;
 use App\Services\ProtectedFileService;
 use App\Services\RequestWorkflowService;
 use App\Services\TransactionAccountabilityHistoryService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -307,6 +309,31 @@ class BorrowingRequestController extends Controller
                     ->get(),
             ]
         );
+    }
+
+    public function operationalDateAvailability(
+        Request $request,
+        OperationalCalendarService $calendar
+    ): JsonResponse {
+        $data = $request->validate([
+            'schedule_date' => ['required', 'date'],
+            'return_date' => ['required', 'date'],
+        ]);
+
+        $timezone = config('app.timezone') ?: 'Asia/Manila';
+
+        return response()->json([
+            'schedule_date' => $this->operationalDateResult(
+                $calendar,
+                Carbon::parse($data['schedule_date'], $timezone)->startOfDay(),
+                'Items Needed From'
+            ),
+            'return_date' => $this->operationalDateResult(
+                $calendar,
+                Carbon::parse($data['return_date'], $timezone)->startOfDay(),
+                'Expected Return Date'
+            ),
+        ]);
     }
 
     public function store(
@@ -855,16 +882,31 @@ class BorrowingRequestController extends Controller
     ): RedirectResponse {
         if (strtoupper((string) $request->session()->get('active_workspace')) === 'SPMU') {
             $user = $request->user();
+            $borrowingRequest->loadMissing('custody');
+
+            $pickupMissedPendingReview = (bool) $borrowingRequest->custody?->pickup_expired_at
+                && ! $borrowingRequest->custody?->released_at
+                && $borrowingRequest->custody?->status === 'PREPARING_RELEASE';
+
+            /*
+             * Missed pickup is an operational release decision. The Action
+             * Officer may either Continue Release or Cancel Borrowing without
+             * a second Head/Admin approval. Outside this exact state, keep the
+             * existing Head/delegated-AO cancellation authority unchanged.
+             */
             $hasFinalAuthority = $user?->access_classification === AccessClassification::SpmuHead
                 || (
                     $user?->access_classification === AccessClassification::SpmuOfficer
-                    && $user->activeDelegationFor('SPMU') !== null
+                    && (
+                        $pickupMissedPendingReview
+                        || $user->activeDelegationFor('SPMU') !== null
+                    )
                 );
 
             abort_unless(
                 $hasFinalAuthority,
                 403,
-                'Only the SPMU Head/Admin or a formally delegated Action Officer may cancel an unreleased approved request.'
+                'Only the SPMU Head/Admin, a formally delegated Action Officer, or the Action Officer handling a missed pickup may cancel this unreleased approved request.'
             );
         }
 
@@ -1174,6 +1216,24 @@ class BorrowingRequestController extends Controller
             ]);
         }
 
+        $calendar = app(OperationalCalendarService::class);
+
+        foreach ([
+            'schedule_date' => [$scheduleDate, 'Items Needed From'],
+            'return_date' => [$returnDate, 'Expected Return Date'],
+        ] as $field => [$date, $label]) {
+            $availability = $this->operationalDateResult(
+                $calendar,
+                $date,
+                $label
+            );
+
+            if (! $availability['open']) {
+                throw ValidationException::withMessages([
+                    $field => $availability['message'],
+                ]);
+            }
+        }
 
         if (
             ($data['intent'] ?? 'draft') === 'submit'
@@ -1186,6 +1246,25 @@ class BorrowingRequestController extends Controller
         }
 
         return $data;
+    }
+
+    /** @return array{open: bool, message: ?string} */
+    private function operationalDateResult(
+        OperationalCalendarService $calendar,
+        Carbon $date,
+        string $label
+    ): array {
+        if ($calendar->isOpenDate($date)) {
+            return ['open' => true, 'message' => null];
+        }
+
+        $profile = $calendar->profile($date);
+        $reason = $profile['reason'] ? ' '.$profile['reason'] : '';
+
+        return [
+            'open' => false,
+            'message' => $label.' must fall on an open SPMU operational date.'.$reason,
+        ];
     }
 
     private function versionData(

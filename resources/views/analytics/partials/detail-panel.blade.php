@@ -180,7 +180,6 @@
             @if($detail['reports_url'])
                 <a class="button secondary ui-pressable" href="{{ $detail['reports_url'] }}">
                     <span>View source records</span>
-                    <x-icon name="arrow-right" size="15" />
                 </a>
             @endif
         </footer>

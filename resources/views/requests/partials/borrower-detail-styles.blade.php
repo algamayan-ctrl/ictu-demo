@@ -33,8 +33,7 @@
 .borrower-documents-table tbody tr:last-child td { border-bottom: 0; }
 .borrower-document-name { display: flex; align-items: center; gap: 11px; color: var(--heading); font-weight: 700; }
 .borrower-document-name > .ui-icon { flex-shrink: 0; color: var(--borrower-blue); }
-.borrower-document-view { color: var(--borrower-blue); font-weight: 700; }
-.borrower-document-view:hover, .borrower-document-view:focus-visible { text-decoration: underline; }
+.borrower-document-view { white-space: nowrap; }
 .borrower-documents-empty { padding: 30px 20px; color: var(--text-muted); text-align: center; }
 
 /* Request actions */

@@ -276,38 +276,45 @@ class CustodyController extends Controller
             ->flatMap(fn ($event) => $event->deliveries);
 
         /*
-         * A missed/unusable pickup can stay on the same approved request only
-         * while another valid SPMU Pickup / Release operating window still
-         * exists strictly BEFORE the approved Expected Return Date. The AO
-         * must never extend the approved borrowing period through rescheduling.
+         * A missed/unusable pickup ("Pickup Missed - For SPMU Review") may
+         * only be continued on or before the approved Items Needed From
+         * date - never after it (this is the same boundary the original
+         * automatic pickup window is anchored to). SPMU may continue as many
+         * times as a subsequent pickup is again missed, for as long as this
+         * boundary has not yet passed - there is no one-attempt cap, since
+         * the transaction otherwise simply stays "Pickup Missed" awaiting an
+         * explicit SPMU decision rather than being auto-cancelled.
          */
         $nextPickupRescheduleAt = null;
         $pickupRescheduleAvailable = false;
-        $approvedReturnDate = $custody->original_due_at ?: $custody->due_at;
+        $neededFrom = $custody->request?->currentVersion?->needed_from;
 
-        /*
-         * Only one reschedule cycle is ever granted per custody transaction
-         * (see CustodyService::requestPickupReschedule()'s own
-         * "already rescheduled" guard) - a second missed pickup is handled
-         * by the automatic cancellation safety net, not another reschedule.
-         * Mirror that same check here so the Request Reschedule action never
-         * renders as available only to fail when clicked.
-         */
-        $alreadyRescheduledOnce = AuditEvent::query()
-            ->where('record_type', CustodyTransaction::class)
-            ->where('record_id', $custody->id)
-            ->where('action_code', 'PICKUP_RESCHEDULED')
-            ->exists();
-
-        if (! $custody->released_at && $custody->status === 'PREPARING_RELEASE' && $approvedReturnDate && ! $alreadyRescheduledOnce) {
+        if (! $custody->released_at && $custody->status === 'PREPARING_RELEASE' && $neededFrom) {
             $timezone = config('app.timezone') ?: 'Asia/Manila';
             $now = now($timezone);
             $nextPickupRescheduleAt = app(OperationalCalendarService::class)->nextPickupWindow($now);
-            $returnDay = \Carbon\CarbonImmutable::parse($approvedReturnDate, $timezone)->startOfDay();
+            $neededFromDay = \Carbon\CarbonImmutable::parse($neededFrom, $timezone)->startOfDay();
 
             $pickupRescheduleAvailable = $nextPickupRescheduleAt !== null
-                && $nextPickupRescheduleAt->copy()->startOfDay()->lt($returnDay);
+                && $nextPickupRescheduleAt->copy()->startOfDay()->lte($neededFromDay);
         }
+
+        // Missed-pickup cancellation is an operational release action owned
+        // by the Action Officer. No second Head/Admin approval is required.
+        // Outside this exact state, the existing Head/delegated-AO authority
+        // remains unchanged.
+        $cancelActor = $request->user();
+        $pickupMissedPendingReview = (bool) $custody->pickup_expired_at
+            && ! $custody->released_at
+            && $custody->status === 'PREPARING_RELEASE';
+        $canCancelBorrowing = $cancelActor?->access_classification === AccessClassification::SpmuHead
+            || (
+                $cancelActor?->access_classification === AccessClassification::SpmuOfficer
+                && (
+                    $pickupMissedPendingReview
+                    || $cancelActor->activeDelegationFor('SPMU') !== null
+                )
+            );
 
         $pickupRescheduleRequestEvent = $pickupNotificationEvents->get('PICKUP_RESCHEDULE_REQUESTED');
         $pickupRescheduleRequested = (bool) $pickupRescheduleRequestEvent
@@ -387,6 +394,7 @@ class CustodyController extends Controller
             'pickupRescheduleRequested' => $pickupRescheduleRequested,
             'pickupRescheduleAvailable' => $pickupRescheduleAvailable,
             'nextPickupRescheduleAt' => $nextPickupRescheduleAt,
+            'canCancelBorrowing' => $canCancelBorrowing,
             'preparationIssues' => $preparationIssues,
             'documents' => $custody->request->currentVersion
                 ->documents()

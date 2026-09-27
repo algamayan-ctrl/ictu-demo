@@ -349,7 +349,7 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
  * universal primary button used everywhere else in the system (View
  * Request, View Record, and so on) - not a secondary/outline treatment.
  */
-.ob-details > summary {
+.ob-details > summary:not(.disclosure-trigger) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -366,13 +366,13 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
     list-style: none;
 }
 
-.ob-details > summary:hover,
-.ob-details > summary:focus-visible {
+.ob-details > summary:not(.disclosure-trigger):hover,
+.ob-details > summary:not(.disclosure-trigger):focus-visible {
     background: var(--primary-action-hover);
     border-color: var(--primary-action-hover);
 }
 
-.ob-details > summary::-webkit-details-marker { display: none; }
+.ob-details > summary:not(.disclosure-trigger)::-webkit-details-marker { display: none; }
 
 .ob-details[open] {
     width: 100%;
@@ -387,7 +387,7 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
     transition: transform .16s ease;
 }
 
-.ob-details[open] > summary .ob-disclosure-chevron,
+.ob-details[open] > summary .ob-disclosure-chevron:not(.disclosure-trigger__chevron),
 .ob-resolved-history-disclosure[open] > summary .ob-disclosure-chevron {
     transform: rotate(180deg);
 }
@@ -746,21 +746,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 .ob-next-action { margin-top: 12px; }
 .ob-case-actions { margin-top: 12px; }
 
-/* Expanders use the universal outlined treatment; primary color is reserved
-   for real workflow actions, not simply showing more information. */
-.ob-details > summary {
-    min-height: 34px;
-    color: var(--interactive);
-    background: var(--surface-elevated);
-    border-color: var(--interactive);
-}
-.ob-details > summary:hover,
-.ob-details > summary:focus-visible {
-    color: var(--interactive-strong, var(--interactive));
-    background: var(--surface-hover);
-    border-color: var(--interactive);
-}
-
 .ob-clear-card {
     min-height: 104px;
     padding: 20px 22px;
@@ -775,5 +760,56 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 @media (max-width: 720px) {
     .ob-current-header { align-items: stretch; flex-direction: column; }
     .ob-search { width: 100%; }
+}
+
+
+/* Compact borrower surface: do not let an empty My Obligations workspace
+   stretch its lone state card to the remaining viewport height. */
+.app-main > .ob-workspace {
+    flex: 0 0 auto;
+    width: 100%;
+    align-content: start;
+}
+
+.ob-summary-card.is-clickable {
+    cursor: pointer;
+    color: inherit;
+    text-decoration: none;
+    transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.ob-summary-card.is-clickable:hover,
+.ob-summary-card.is-clickable:focus-visible {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--ob-accent) 30%, var(--border));
+    border-top-color: var(--ob-accent);
+    background: linear-gradient(color-mix(in srgb, var(--ob-accent) 6%, transparent), color-mix(in srgb, var(--ob-accent) 6%, transparent)), var(--surface-elevated);
+    box-shadow: 0 8px 20px rgba(7, 27, 53, .07);
+}
+.ob-summary-card.is-clickable:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--ob-accent) 24%, transparent);
+    outline-offset: 3px;
+}
+.ob-summary-card.is-selected {
+    border-color: color-mix(in srgb, var(--ob-accent) 25%, var(--border));
+    border-top-color: var(--ob-accent);
+}
+.ob-summary-arrow {
+    position: absolute;
+    top: 13px;
+    right: 14px;
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1;
+    transition: transform .16s ease, color .16s ease;
+}
+.ob-summary-card.is-clickable:hover .ob-summary-arrow,
+.ob-summary-card.is-clickable:focus-visible .ob-summary-arrow {
+    color: var(--ob-accent);
+    transform: translateX(2px);
+}
+
+.ob-clear-card {
+    min-height: 0;
+    padding: 15px 18px;
 }
 </style>

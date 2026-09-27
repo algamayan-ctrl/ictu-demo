@@ -57,8 +57,6 @@
 .laundry-detail .button { width: auto; min-height: 40px; padding: 9px 16px; border-radius: 8px; font-size: 12px; }
 .laundry-detail .button.primary { color: #fff; border-color: #0866df; background: #0866df; }
 .laundry-detail .button.primary:hover { color: #fff; border-color: #0452bc; background: #0452bc; }
-.laundry-detail .button.secondary { color: var(--laundry-detail-blue); border-color: var(--laundry-detail-blue); background: transparent; }
-.laundry-detail .button.secondary:hover { background: var(--laundry-detail-soft); }
 .laundry-detail .laundry-next-action { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 20px; padding-top: 24px; padding-bottom: 24px; }
 .laundry-detail .laundry-next-action > .ui-icon { width: 36px; height: 36px; color: var(--laundry-detail-blue); }
 .laundry-detail .laundry-next-action p { max-width: 820px; margin: 6px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }

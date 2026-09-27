@@ -188,7 +188,6 @@
                                 href="{{ route('administration.users.edit', $user) }}"
                             >
                                 <span>Manage</span>
-                                <x-icon name="arrow-right" size="14" />
                             </a>
                         </td>
                     </tr>

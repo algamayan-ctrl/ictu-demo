@@ -38,6 +38,10 @@
         padding: 13px 15px 14px;
         gap: 3px;
     }
+    .accountability-workspace-summary > a.dashboard-kpi-card {
+        color: inherit;
+        text-decoration: none;
+    }
     .accountability-workspace-summary .kpi-icon {
         width: 30px;
         height: 30px;
@@ -257,6 +261,28 @@
         text-align: center;
         line-height: 1.25;
     }
+    /* Standalone billing/restriction matters are already self-contained case
+       cards. Avoid wrapping them in a second card/header, and keep the
+       disclosure trigger anchored in the same right-hand grid cell when open. */
+    .accountability-standalone-groups { margin-top: 0; gap: 10px; }
+    .accountability-standalone-case { border: 1px solid var(--border); }
+    .accountability-standalone-toggle { justify-self: end; min-width: 118px; }
+    .accountability-standalone-detail-body {
+        display: grid;
+        gap: 8px;
+        min-width: 0;
+        margin: 8px 0 0 44px;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface-elevated);
+    }
+    .accountability-standalone-detail-body[hidden] { display: none; }
+    .accountability-standalone-reference {
+        color: var(--text-muted);
+        font-size: 9px;
+        font-weight: 700;
+    }
 
     .accountability-action-dialog {
         width: min(92vw, 560px);
@@ -363,9 +389,11 @@
         .accountability-custody-group { padding: 12px; }
         .accountability-custody-case { padding: 12px; }
         .accountability-case-summary,
-        .accountability-case-responsibility { margin-left: 0; }
+        .accountability-case-responsibility,
+        .accountability-standalone-detail-body { margin-left: 0; }
         .accountability-case-responsibility { grid-template-columns: 1fr; }
         .accountability-case-responsibility .accountability-action-button { grid-column: auto; width: 100%; }
+        .accountability-standalone-toggle { justify-self: start; width: 100%; }
         .accountability-action-dialog__body .form-grid.two { grid-template-columns: 1fr; }
     }
 </style>
@@ -396,7 +424,7 @@
 <section class="page-heading">
     <div>
         <a class="accountability-back-link" href="{{ route('accountability.index') }}">
-            <span aria-hidden="true">←</span><span>Accountability Processing</span>
+            <span>Accountability Processing</span>
         </a>
         <p class="eyebrow">Borrower Accountability</p>
         <h1>{{ $borrower->full_name }}</h1>
@@ -405,24 +433,36 @@
 </section>
 
 <section class="stat-grid accountability-workspace-summary" aria-label="Borrower accountability summary">
-    <article class="card stat-card kpi-card dashboard-kpi-card kpi-accent-{{ $activeRestrictionCount > 0 ? 'danger' : 'success' }}">
+    <a
+        class="card stat-card kpi-card dashboard-kpi-card stat-card-link ui-pressable kpi-accent-{{ $activeRestrictionCount > 0 ? 'danger' : 'success' }}"
+        href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases']) }}#accountability-active-cases"
+        aria-label="Borrowing Status: {{ $borrowingStatus }}. {{ $activeRestrictionCount > 0 ? $activeRestrictionCount.' active restriction(s)' : 'No active restriction' }}."
+    >
         <span class="kpi-icon" aria-hidden="true"><x-icon :name="$activeRestrictionCount > 0 ? 'lock' : 'check-circle'" size="16" /></span>
         <span class="kpi-label">Borrowing Status</span>
         <strong class="kpi-value">{{ $borrowingStatus }}</strong>
         <span class="kpi-note">{{ $activeRestrictionCount > 0 ? $activeRestrictionCount.' active restriction(s)' : 'No active restriction' }}</span>
-    </article>
-    <article class="card stat-card kpi-card dashboard-kpi-card kpi-accent-info">
+    </a>
+    <a
+        class="card stat-card kpi-card dashboard-kpi-card stat-card-link ui-pressable kpi-accent-info"
+        href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases']) }}#accountability-active-cases"
+        aria-label="Active Cases: {{ $overview['count'] ?? 0 }}. Unresolved accountability matters."
+    >
         <span class="kpi-icon" aria-hidden="true"><x-icon name="accountability" size="16" /></span>
         <span class="kpi-label">Active Cases</span>
         <strong class="kpi-value">{{ $overview['count'] ?? 0 }}</strong>
         <span class="kpi-note">Unresolved accountability matters</span>
-    </article>
-    <article class="card stat-card kpi-card dashboard-kpi-card kpi-accent-warning">
+    </a>
+    <a
+        class="card stat-card kpi-card dashboard-kpi-card stat-card-link ui-pressable kpi-accent-warning"
+        href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases']) }}#accountability-active-cases"
+        aria-label="Borrower Action Pending: {{ $overview['needs_action'] ?? 0 }}. Cases currently waiting on the borrower."
+    >
         <span class="kpi-icon" aria-hidden="true"><x-icon name="warning" size="16" /></span>
         <span class="kpi-label">Borrower Action Pending</span>
         <strong class="kpi-value">{{ $overview['needs_action'] ?? 0 }}</strong>
         <span class="kpi-note">Cases currently waiting on the borrower</span>
-    </article>
+    </a>
 </section>
 
 <nav class="accountability-workspace-tabs" aria-label="Borrower accountability sections" role="tablist">
@@ -432,7 +472,7 @@
 </nav>
 
 @if($activeTab === 'cases')
-    <section role="tabpanel" aria-label="Active Cases">
+    <section id="accountability-active-cases" role="tabpanel" aria-label="Active Cases">
         @php
             $custodyGroups = collect()
                 ->concat($openIncidents)
@@ -441,15 +481,24 @@
                 ->sortByDesc(fn ($group) => $group->max(
                     fn ($record) => optional($record->reported_at ?? $record->overdue_started_at ?? $record->created_at)->timestamp
                 ));
+
+            // buildRows() already suppresses billings/restrictions that belong to
+            // an Incident/OverdueCase. What remains here are genuine standalone
+            // open matters, so the Active Cases count can never say 1 while the
+            // tab renders an empty state.
+            $standaloneRows = collect($rows)
+                ->whereIn('category', ['billing', 'restriction'])
+                ->values();
         @endphp
 
-        @if($custodyGroups->isEmpty())
+        @if($custodyGroups->isEmpty() && $standaloneRows->isEmpty())
             <x-empty-state
                 icon="accountability"
                 title="No active accountability cases."
-                message="This borrower currently has no open property or late-return accountability matter."
+                message="This borrower currently has no open property, late-return, billing, or borrowing-restriction accountability matter."
             />
         @else
+            @if($custodyGroups->isNotEmpty())
             <div class="accountability-custody-groups">
                 @foreach($custodyGroups as $groupRecords)
                     @php $groupCustody = $groupRecords->first()->custody; @endphp
@@ -938,6 +987,95 @@
                     </article>
                 @endforeach
             </div>
+            @endif
+
+            @if($standaloneRows->isNotEmpty())
+                <div class="accountability-custody-groups accountability-standalone-groups">
+                    @foreach($standaloneRows as $row)
+                        @php
+                            $rowRestriction = $row['restriction'] ?? null;
+                            $rowActions = collect($row['actions'] ?? []);
+                            $standaloneDetailId = 'accountability-standalone-detail-'.$loop->index;
+                        @endphp
+                        <article class="ob-case-card accountability-custody-case accountability-standalone-case">
+                            <div class="ob-case-top">
+                                <div class="ob-case-identity">
+                                    <span class="ob-case-icon is-{{ $row['tone'] ?? 'warning' }}" aria-hidden="true">
+                                        <x-icon :name="$row['icon'] ?? 'accountability'" size="17" />
+                                    </span>
+                                    <div>
+                                        <span class="ob-case-type">{{ $row['type'] ?? 'Accountability' }}</span>
+                                        <div class="accountability-case-title-row">
+                                            <h3>{{ $row['title'] ?? 'Open accountability matter' }}</h3>
+                                            <span class="accountability-case-status is-{{ ($row['badge_tone'] ?? 'warning') === 'danger' ? 'danger' : (($row['badge_tone'] ?? 'warning') === 'info' ? 'info' : 'warning') }}">{{ $row['badge'] ?? 'Open' }}</span>
+                                        </div>
+                                        @if(! empty($row['reference']) && $row['reference'] !== ($row['title'] ?? null))
+                                            <span class="accountability-standalone-reference">{{ $row['reference'] }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="accountability-case-summary">
+                                <span>{{ $row['summary'] ?? 'This accountability matter remains open.' }}</span>
+                                @if(! empty($row['status_meta']))
+                                    <span><strong>Status:</strong> {{ $row['status_meta'] }}</span>
+                                @endif
+                            </div>
+
+                            <div class="accountability-case-responsibility">
+                                <div class="accountability-role-copy">
+                                    <small>Current Stage</small>
+                                    <strong>{{ ($row['action_state'] ?? null) === \App\Services\BorrowerObligationService::ACTION_BORROWER ? 'Borrower action pending' : 'SPMU / policy processing' }}</strong>
+                                </div>
+                                <div class="accountability-role-copy">
+                                    <small>Next Step</small>
+                                    <span>{{ $row['next_action'] ?? 'Continue the applicable accountability process.' }}</span>
+                                </div>
+                                @if($rowActions->isNotEmpty() || ! empty($row['facts']) || $rowRestriction)
+                                    <button
+                                        type="button"
+                                        class="button secondary small ui-pressable disclosure-trigger accountability-standalone-toggle"
+                                        data-accountability-standalone-toggle
+                                        aria-expanded="false"
+                                        aria-controls="{{ $standaloneDetailId }}"
+                                    >
+                                        <span>View Details</span>
+                                        <x-icon name="chevron-down" size="14" class="disclosure-trigger__chevron" />
+                                    </button>
+                                @endif
+                            </div>
+
+                            @if($rowActions->isNotEmpty() || ! empty($row['facts']) || $rowRestriction)
+                                <div id="{{ $standaloneDetailId }}" class="accountability-standalone-detail-body" hidden>
+                                    @if(! empty($row['facts']))
+                                        <div class="ob-detail-grid">
+                                            @foreach($row['facts'] as [$factLabel, $factValue])
+                                                <div><small>{{ $factLabel }}</small><strong>{{ $factValue }}</strong></div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                    @if($rowRestriction)
+                                        <div class="ob-detail-grid">
+                                            <div><small>Restriction</small><strong>{{ $rowRestriction->reason ?: str($rowRestriction->restriction_type)->replace('_', ' ')->title() }}</strong></div>
+                                            <div><small>Effective</small><strong>{{ optional($rowRestriction->effective_from)->format('d M Y') ?: '—' }}</strong></div>
+                                            <div><small>Until</small><strong>{{ optional($rowRestriction->effective_to)->format('d M Y') ?: 'Resolved' }}</strong></div>
+                                        </div>
+                                    @endif
+                                    @if($rowActions->isNotEmpty())
+                                        <div class="ob-detail-actions">
+                                            @foreach($rowActions as $action)
+                                                @php [$label, $url, $newTab, $buttonTone] = $action; @endphp
+                                                <a class="button secondary small ui-pressable" href="{{ $url }}" @if($newTab) target="_blank" rel="noopener" @endif>{{ $label }}</a>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+                        </article>
+                    @endforeach
+                </div>
+            @endif
         @endif
     </section>
 @elseif($activeTab === 'documents')
@@ -971,8 +1109,22 @@
 @endif
 </div>
 
+@include('accountability.partials.cases-interactions')
+
 <script>
 document.addEventListener('click', (event) => {
+    const disclosure = event.target.closest('[data-accountability-standalone-toggle]');
+    if (disclosure) {
+        const panelId = disclosure.getAttribute('aria-controls');
+        const panel = panelId ? document.getElementById(panelId) : null;
+        if (panel) {
+            const willOpen = disclosure.getAttribute('aria-expanded') !== 'true';
+            disclosure.setAttribute('aria-expanded', String(willOpen));
+            panel.hidden = !willOpen;
+        }
+        return;
+    }
+
     const opener = event.target.closest('[data-accountability-dialog]');
     if (opener) {
         const dialog = document.getElementById(opener.dataset.accountabilityDialog);

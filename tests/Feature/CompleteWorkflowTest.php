@@ -684,21 +684,39 @@ class CompleteWorkflowTest extends TestCase
 
         $this->assertNull($custody->fresh()->released_at);
 
+        $missedCustody = $custody->fresh();
+        $this->assertSame('PREPARING_RELEASE', $missedCustody->status);
+        $this->assertTrue(
+            $missedCustody->pickup_expires_at->lt(now()),
+            'The custody must remain in the missed-pickup state before SPMU continues it.'
+        );
+
         /*
          * A missed CONFIRMED pickup is not rescheduled by posting to
          * custody.schedule-pickup again (a pickup is only ever confirmed
          * once -- CustodyService::confirmPickupSchedule() no-ops on a
-         * transaction that already has one). Production instead requires
-         * the borrower to explicitly ask to continue
-         * (custody.request-pickup-reschedule ->
-         * CustodyService::requestPickupReschedule()) before SPMU may
-         * assign a new window (custody.reschedule-pickup ->
-         * CustodyService::rescheduleMissedPickup()).
+         * transaction that already has one). A missed pickup is
+         * "Pickup Missed - For SPMU Review": the borrower can no longer
+         * request a reschedule (that decision now belongs to SPMU alone;
+         * a direct POST to custody.request-pickup-reschedule is rejected),
+         * and SPMU may call custody.reschedule-pickup / Continue Release
+         * directly, without waiting for any borrower action, as long as the
+         * next valid Pickup / Release window still falls on or before the
+         * approved Items Needed From date.
          */
         $this->withSession(['active_workspace' => 'BORROWER'])
             ->actingAs($borrower)
             ->post(route('custody.request-pickup-reschedule', $custody))
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasErrors([
+                'pickup' => 'This missed pickup is now under SPMU review. SPMU will decide whether to continue the release or cancel the borrowing; a borrower reschedule request is not accepted for this step.',
+            ]);
+
+        $afterBorrowerRejection = $custody->fresh();
+        $this->assertSame('PREPARING_RELEASE', $afterBorrowerRejection->status);
+        $this->assertNull($afterBorrowerRejection->released_at);
+        $this->assertEquals($missedCustody->scheduled_release_at, $afterBorrowerRejection->scheduled_release_at);
+        $this->assertEquals($missedCustody->pickup_expires_at, $afterBorrowerRejection->pickup_expires_at);
+        $this->assertEquals($missedCustody->pickup_expired_at, $afterBorrowerRejection->pickup_expired_at);
 
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($spmuOfficer)
@@ -779,22 +797,19 @@ class CompleteWorkflowTest extends TestCase
          * DATE-ONLY rule:
          * Expected return yesterday + outstanding property today
          * = exactly one late calendar day.
+         *
+         * synchronizeCustodyDueDate() re-derives the effective due date from
+         * original_due_at (set at release time) every time the deadline
+         * processor runs, so it must move together with the override above
+         * or it will recompute due_at back to the originally approved return
+         * date and this custody will never appear overdue.
          */
+        $this->travelPastAnOpenReturnDay();
+        $pastDueDate = now()->subDay()->endOfDay();
+
         $custody->update([
-            'due_at' => now()
-                ->subDay()
-                ->endOfDay(),
-            /*
-             * synchronizeCustodyDueDate() re-derives the effective due date
-             * from original_due_at (set at release time) every time the
-             * deadline processor runs, so it must move together with the
-             * override above or it will recompute due_at back to the
-             * originally approved return date and this custody will never
-             * appear overdue.
-             */
-            'original_due_at' => now()
-                ->subDay()
-                ->endOfDay(),
+            'due_at' => $pastDueDate,
+            'original_due_at' => $pastDueDate,
         ]);
 
         SystemSetting::where(
@@ -1046,9 +1061,12 @@ class CompleteWorkflowTest extends TestCase
             'status' => 'ACTIVE',
         ]);
 
+        $this->travelPastAnOpenReturnDay();
+        $pastDueDate = now()->subDay()->endOfDay();
+
         $custody->update([
-            'due_at' => now()->subDay()->endOfDay(),
-            'original_due_at' => now()->subDay()->endOfDay(),
+            'due_at' => $pastDueDate,
+            'original_due_at' => $pastDueDate,
         ]);
 
         SystemSetting::where('setting_key', 'daily_overdue_tariff')
@@ -1116,9 +1134,12 @@ class CompleteWorkflowTest extends TestCase
             )
             ->assertSessionHasNoErrors();
 
+        $this->travelPastAnOpenReturnDay();
+        $pastDueDate = now()->subDay()->endOfDay();
+
         $custody->update([
-            'due_at' => now()->subDay()->endOfDay(),
-            'original_due_at' => now()->subDay()->endOfDay(),
+            'due_at' => $pastDueDate,
+            'original_due_at' => $pastDueDate,
         ]);
 
         SystemSetting::where('setting_key', 'daily_overdue_tariff')
@@ -1505,13 +1526,32 @@ class CompleteWorkflowTest extends TestCase
             )
                 ->firstOrFail();
 
+        /*
+         * The approved request's Items Needed From date must land exactly
+         * one day after a valid SPMU Pickup/Issuance operating day (weekends
+         * are closed by default), or SPMU approval itself throws a
+         * validation error. Resolve that date via the calendar service
+         * instead of a fixed now()->addDays() offset, so this fixture is
+         * deterministic regardless of which real-world weekday the suite
+         * runs on.
+         */
+        $pickupDay =
+            app(\App\Services\OperationalCalendarService::class)
+                ->nextOpenDate(
+                    \App\Services\OperationalCalendarService::PICKUP,
+                    now()->addDays(2),
+                    true
+                );
+
         $scheduleDate =
-            now()
-                ->addDays(2)
+            $pickupDay
+                ->copy()
+                ->addDay()
                 ->startOfDay();
 
         $returnDate =
-            now()
+            $scheduleDate
+                ->copy()
                 ->addDays($returnDays)
                 ->startOfDay();
 
@@ -1966,6 +2006,50 @@ class CompleteWorkflowTest extends TestCase
         $this->assertNotNull($close, 'A configured RETURN operating window is required for this fixture.');
 
         return $open->copy()->addMinutes(30);
+    }
+
+    /**
+     * Advance the test clock so "yesterday" (now()->subDay()) is guaranteed
+     * to land on a valid SPMU RETURN operating day, AND "now" itself lands
+     * inside a valid RETURN operating window - callers use this both to
+     * compute an overdue due_at via the natural now()->subDay() expression
+     * and, immediately after, to actually submit a physical return.
+     *
+     * If "yesterday" happens to be a closed weekend/holiday,
+     * synchronizeCustodyDueDate() re-derives the effective due date forward
+     * to the next open RETURN day whenever the deadline processor runs -
+     * which could land on or after today and silently prevent the OVERDUE
+     * transition (and the exact "one day late" accrual) these fixtures rely
+     * on. Anchoring the clock to two *consecutive* open RETURN days, rather
+     * than assuming a fixed now()->subDay() offset, keeps that deterministic
+     * regardless of which real-world weekday the suite runs on.
+     */
+    private function travelPastAnOpenReturnDay(): void
+    {
+        $calendar = app(\App\Services\OperationalCalendarService::class);
+        $candidate = now()->startOfDay();
+
+        for ($i = 0; $i <= 370; $i++) {
+            $yesterday = $candidate;
+            $today = $candidate->copy()->addDay();
+
+            if (
+                $calendar->isOpenFor(\App\Services\OperationalCalendarService::RETURN, $yesterday, false)
+                && $calendar->isOpenFor(\App\Services\OperationalCalendarService::RETURN, $today, false)
+            ) {
+                [$open, $close] = $calendar->operatingWindow(\App\Services\OperationalCalendarService::RETURN, $today);
+
+                if ($open && $close && $open->lt($close)) {
+                    $this->travelTo($open->copy()->addMinutes(30));
+
+                    return;
+                }
+            }
+
+            $candidate = $candidate->copy()->addDay();
+        }
+
+        throw new \RuntimeException('No two consecutive open RETURN days found; check the seeded Operational Calendar.');
     }
 
     private function roleUser(

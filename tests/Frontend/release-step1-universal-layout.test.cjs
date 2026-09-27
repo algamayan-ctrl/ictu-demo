@@ -6,6 +6,7 @@ const root = path.resolve(__dirname, '../..');
 const pickup = fs.readFileSync(path.join(root, 'resources/views/custody/partials/pickup-schedule-form.blade.php'), 'utf8');
 const process = fs.readFileSync(path.join(root, 'resources/views/custody/partials/release-process.blade.php'), 'utf8');
 const styles = fs.readFileSync(path.join(root, 'resources/views/custody/partials/release-process-styles.blade.php'), 'utf8');
+const heading = fs.readFileSync(path.join(root, 'resources/views/custody/partials/release-heading.blade.php'), 'utf8');
 
 const tests = [
   ['normal expanded Step 1 does not repeat the pickup schedule card', () => {
@@ -22,13 +23,17 @@ const tests = [
     assert(pickup.includes('release-schedule-exception'));
     assert(!pickup.includes('notice warning compact release-pickup-exception-actions'));
   }],
-  ['Step 1 header remains the single place showing date and time', () => {
-    assert(process.includes('release-step-schedule'));
-    assert(process.includes("scheduled_release_at->format('M j, Y')"));
+  ['the top status card remains the single place showing the routine pickup date and time', () => {
+    // The numbered "Pickup & Issuance Schedule" step (a duplicate of this
+    // same chip) was removed; the release page now only repeats the
+    // schedule when it genuinely needs the AO's attention.
+    assert(heading.includes("scheduled_release_at?->format('M j, Y')"));
+    assert(!process.includes('release-step-schedule'));
+    assert(!process.includes("scheduled_release_at->format('M j, Y')"));
   }],
-  ['expanded panel language is generic and not a duplicate schedule label', () => {
-    assert(process.includes('aria-label="Toggle pickup details"'));
-    assert(process.includes('title="Show or hide pickup details"'));
+  ['no collapsible step-toggle chrome remains on the release page', () => {
+    assert(!process.includes('data-release-panel-toggle'));
+    assert(!process.includes('release-step-toggle'));
   }],
   ['neutral schedule styles contain no info or success backgrounds', () => {
     assert(styles.includes('.release-schedule-detail-row'));

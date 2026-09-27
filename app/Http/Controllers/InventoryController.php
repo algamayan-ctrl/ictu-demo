@@ -1338,7 +1338,6 @@ class InventoryController extends Controller
                 'required',
                 Rule::in([
                     'STOCK_ADDITION',
-                    'PHYSICAL_COUNT_CORRECTION',
                     'PLACE_UNDER_MAINTENANCE',
                     'RETURN_MAINTENANCE_TO_SERVICE',
                     'RETIRE_MAINTENANCE_STOCK',
@@ -1347,13 +1346,11 @@ class InventoryController extends Controller
             ],
             'incident_source' => ['nullable', 'string', 'max:120'],
             'quantity' => ['nullable', 'numeric', 'min:0.001'],
-            'new_total_quantity' => ['nullable', 'numeric', 'min:0'],
             'reason' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $requiredReasonActions = [
             'STOCK_ADDITION',
-            'PHYSICAL_COUNT_CORRECTION',
             'PLACE_UNDER_MAINTENANCE',
             'RETIRE_MAINTENANCE_STOCK',
             'WRITE_OFF_RETIRED',
@@ -1363,7 +1360,6 @@ class InventoryController extends Controller
             throw ValidationException::withMessages([
                 'reason' => match ($data['action']) {
                     'STOCK_ADDITION' => 'Enter the source or reference for the newly received stock.',
-                    'PHYSICAL_COUNT_CORRECTION' => 'Enter the reason for the physical count correction.',
                     'PLACE_UNDER_MAINTENANCE' => 'Enter the verified condition or reason for the maintenance hold.',
                     'RETIRE_MAINTENANCE_STOCK' => 'Enter the retirement or condemnation basis.',
                     'WRITE_OFF_RETIRED' => 'Enter the approved write-off basis.',

@@ -69,6 +69,17 @@ class OperationalCalendarService
         return $profiles;
     }
 
+    /**
+     * Whether the effective Operational Calendar is open for a calendar day.
+     *
+     * This deliberately evaluates only weekly/special-date availability. It
+     * does not apply a physical transaction permission or operating hours.
+     */
+    public function isOpenDate(CarbonInterface|string $date): bool
+    {
+        return (bool) $this->profile($date)['is_open'];
+    }
+
     public function isOpenFor(string $activity, CarbonInterface|string $dateTime, bool $respectHours = false): bool
     {
         $activity = strtoupper($activity);
@@ -780,4 +791,3 @@ class OperationalCalendarService
             : CarbonImmutable::parse($value, $timezone);
     }
 }
-

@@ -22,7 +22,6 @@
             href="{{ route('requests.index') }}"
         >
             <span>View Request Records</span>
-            <x-icon name="arrow-right" size="15" />
         </a>
     </section>
 

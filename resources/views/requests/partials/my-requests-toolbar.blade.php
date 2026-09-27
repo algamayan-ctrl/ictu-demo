@@ -1,21 +1,24 @@
-<section class="universal-record-toolbar mr-toolbar" aria-label="Borrowing request controls">
-    <label class="universal-record-search">
-        <span>Search</span>
+<section class="record-browser-toolbar mr-toolbar" aria-label="Borrowing request controls">
+    <label class="record-browser-search">
+        Search
+
         <span class="search-input-shell">
             <span class="search-input-icon" aria-hidden="true">
                 <x-icon name="search" size="17" />
             </span>
+
             <input
                 id="request-search"
                 type="search"
-                placeholder="Search request no. or purpose..."
+                placeholder="Search request no., purpose, or item..."
                 autocomplete="off"
             >
         </span>
     </label>
 
     <label>
-        <span>Status</span>
+        Status
+
         <select id="request-status-filter">
             <option value="all">All statuses</option>
             <option value="action">Action required</option>
@@ -29,7 +32,8 @@
     </label>
 
     <label>
-        <span>Sort</span>
+        Sort
+
         <select id="request-sort" aria-label="Sort requests">
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>

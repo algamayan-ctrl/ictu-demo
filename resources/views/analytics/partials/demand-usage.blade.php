@@ -158,14 +158,14 @@
 @endphp
 
 {{-- Headline figures --------------------------------------------------- --}}
-<div class="analytics-kpis">
+<div class="analytics-kpis analytics-kpis-demand">
     {{--
         Requests Filed opens the record-backed Requests detail. The three
         beside it open card-level details that restate the same aggregate the
         card was rendered from, so every card here is a real link.
     --}}
     <a
-        class="analytics-kpi-card tone-requests"
+        class="analytics-kpi-card tone-units"
         href="{{ AnalyticsDetailLink::to('requests', 'demand', $periodSelection, $division, $unit) }}"
         aria-label="View the borrowing requests filed in this period"
     >
@@ -199,7 +199,7 @@
     </a>
 
     <a
-        class="analytics-kpi-card tone-units"
+        class="analytics-kpi-card tone-custody"
         href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.active-units']) }}"
     >
         <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="users" size="19" /></span>

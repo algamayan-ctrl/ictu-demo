@@ -40,6 +40,29 @@
         </div>
     </section>
 
+    <section class="card record-browser-toolbar gate-pass-toolbar" aria-label="Gate Pass filters">
+                <label class="record-browser-search" for="gate-pass-search">Search
+                    <span class="search-input-shell">
+                        <span class="search-input-icon" aria-hidden="true"><x-icon name="search" size="17" /></span>
+                        <input id="gate-pass-search" type="search" placeholder="Request, borrower, custody, destination..." data-gate-pass-search autocomplete="off">
+                    </span>
+                </label>
+                <label for="gate-pass-status">Status
+                    <select id="gate-pass-status" data-gate-pass-status>
+                        <option value="">All statuses</option>
+                        @foreach($statuses as $status)
+                            <option value="{{ $status['key'] }}">{{ $status['label'] }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label for="gate-pass-sort">Sort
+                    <select id="gate-pass-sort" data-gate-pass-sort>
+                        <option value="newest">Newest first</option>
+                        <option value="oldest">Oldest first</option>
+                    </select>
+                </label>
+            </section>
+
     @if($gatePasses->isEmpty())
         <section class="card gate-pass-empty-card" aria-labelledby="gate-pass-empty-title">
             @include('gate-passes.partials.empty-illustration')
@@ -47,28 +70,7 @@
             <p>Off-campus borrowing records will appear here<br>once an approved request requires a Gate Pass.</p>
         </section>
     @else
-        <section class="card gate-pass-toolbar" aria-label="Gate Pass filters">
-            <label for="gate-pass-search">Search
-                <span class="search-input-shell">
-                    <span class="search-input-icon" aria-hidden="true"><x-icon name="search" size="18" /></span>
-                    <input id="gate-pass-search" type="search" placeholder="Request, borrower, custody, destination..." data-gate-pass-search autocomplete="off">
-                </span>
-            </label>
-            <label for="gate-pass-status">Status
-                <select id="gate-pass-status" data-gate-pass-status>
-                    <option value="">All statuses</option>
-                    @foreach($statuses as $status)
-                        <option value="{{ $status['key'] }}">{{ $status['label'] }}</option>
-                    @endforeach
-                </select>
-            </label>
-            <label for="gate-pass-sort">Sort
-                <select id="gate-pass-sort" data-gate-pass-sort>
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                </select>
-            </label>
-        </section>
+
 
         <section class="card gate-pass-records-card" aria-labelledby="gate-pass-records-title">
             <div class="gate-pass-records-heading">

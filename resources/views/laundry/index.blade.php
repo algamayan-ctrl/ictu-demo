@@ -55,32 +55,33 @@
         </a>
     </section>
 
+    <section class="card record-browser-toolbar laundry-toolbar" aria-label="Laundry case filters">
+                <label class="record-browser-search" for="laundry-search">Search
+                    <span class="search-input-shell">
+                        <span class="search-input-icon" aria-hidden="true"><x-icon name="search" size="17" /></span>
+                        <input id="laundry-search" type="search" placeholder="Search borrower, request no., custody no., or event..." data-laundry-search autocomplete="off">
+                    </span>
+                </label>
+                <label for="laundry-status">Status
+                    <select id="laundry-status" data-laundry-status>
+                        <option value="">All statuses</option>
+                        @foreach($laundryStatuses as $status)
+                            <option value="{{ $status['key'] }}">{{ $status['label'] }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label for="laundry-sort">Sort
+                    <select id="laundry-sort" data-laundry-sort>
+                        <option value="newest">Newest first</option>
+                        <option value="oldest">Oldest first</option>
+                    </select>
+                </label>
+                @if($jobs->hasPages())
+                @endif
+            </section>
+
     @if($hasLaundryCases)
-        <section class="card laundry-toolbar" aria-label="Laundry case filters">
-            <label for="laundry-search">Search
-                <span class="search-input-shell">
-                    <span class="search-input-icon" aria-hidden="true"><x-icon name="search" size="18" /></span>
-                    <input id="laundry-search" type="search" placeholder="Search borrower, request no., custody no., or event..." data-laundry-search autocomplete="off">
-                </span>
-            </label>
-            <label for="laundry-status">Status
-                <select id="laundry-status" data-laundry-status>
-                    <option value="">All statuses</option>
-                    @foreach($laundryStatuses as $status)
-                        <option value="{{ $status['key'] }}">{{ $status['label'] }}</option>
-                    @endforeach
-                </select>
-            </label>
-            <label for="laundry-sort">Sort
-                <select id="laundry-sort" data-laundry-sort>
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                </select>
-            </label>
-            @if($jobs->hasPages())
-                <p class="laundry-filter-scope">Search, status, and sort apply to the cases on this page.</p>
-            @endif
-        </section>
+
 
         <section class="card laundry-cases-card" aria-labelledby="laundry-cases-title">
             <div class="laundry-cases-heading">

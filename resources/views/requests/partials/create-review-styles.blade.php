@@ -148,5 +148,319 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
 @media (prefers-reduced-motion: reduce) {
     #request-form .create-request-ui .document-dropzone { transition: none; }
 }
-</style>
 
+/* BORROWER E-SIGN UNIVERSAL MODAL START */
+
+
+/* =========================================================
+   BACKDROP
+   ========================================================= */
+
+#request-submit-confirmation-dialog.request-dialog-backdrop {
+    padding:16px !important;
+}
+
+
+/* =========================================================
+   CARD
+   Same modal family as Admin approval / revision / reject
+   ========================================================= */
+
+#request-submit-confirmation-dialog
+.request-submit-dialog {
+    width:min(500px, calc(100vw - 28px)) !important;
+    max-width:500px !important;
+    min-width:0 !important;
+
+    margin:auto !important;
+
+    border:1px solid #d8e1ec !important;
+    border-radius:12px !important;
+
+    background:#ffffff !important;
+
+    box-shadow:
+        0 18px 44px rgba(15,23,42,.18) !important;
+
+    overflow:hidden !important;
+
+    font-family:inherit !important;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+#request-submit-confirmation-dialog
+.request-dialog-header {
+    align-items:flex-start !important;
+
+    gap:11px !important;
+
+    padding:16px 18px 10px !important;
+
+    border-bottom:0 !important;
+
+    background:#ffffff !important;
+
+    font-family:inherit !important;
+}
+
+
+/* eyebrow */
+
+#request-submit-confirmation-dialog
+.request-section-label {
+    margin:0 0 4px !important;
+
+    color:#1769e0 !important;
+
+    font-family:inherit !important;
+    font-size:10px !important;
+    font-weight:800 !important;
+    line-height:1.2 !important;
+
+    letter-spacing:.08em !important;
+    text-transform:uppercase !important;
+}
+
+
+/* title */
+
+#request-submit-confirmation-dialog
+#request-submit-confirmation-title,
+
+#request-submit-confirmation-dialog
+[data-esign-modal-title] {
+    margin:0 !important;
+    padding:0 !important;
+
+    color:#0b2a56 !important;
+
+    font-family:inherit !important;
+    font-size:18px !important;
+    font-weight:800 !important;
+    line-height:1.25 !important;
+
+    white-space:normal !important;
+    word-break:normal !important;
+    overflow-wrap:normal !important;
+}
+
+
+/*
+ | Cancel already provides the modal exit.
+ | Hide X only on final submit confirmation.
+ */
+
+#request-submit-confirmation-dialog
+.request-dialog-close {
+    display:none !important;
+}
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+#request-submit-confirmation-dialog
+.request-dialog-body {
+    padding:0 18px 14px !important;
+
+    color:#617492 !important;
+
+    font-family:inherit !important;
+    font-size:12px !important;
+    font-weight:400 !important;
+    line-height:1.5 !important;
+}
+
+
+/* intro */
+
+#request-submit-confirmation-dialog
+.request-dialog-body > p:first-child {
+    margin:0 0 10px !important;
+
+    color:#617492 !important;
+
+    font-family:inherit !important;
+    font-size:12px !important;
+    font-weight:400 !important;
+    line-height:1.5 !important;
+}
+
+
+/* =========================================================
+   INFO PANEL
+   ========================================================= */
+
+#request-submit-confirmation-dialog
+.request-dialog-body > p:last-child,
+
+#request-submit-confirmation-dialog
+[data-esign-modal-note] {
+    margin:0 !important;
+
+    padding:10px 12px !important;
+
+    border:1px solid #bddafb !important;
+    border-radius:8px !important;
+
+    background:#f3f8ff !important;
+
+    color:#28558f !important;
+
+    font-family:inherit !important;
+    font-size:11.5px !important;
+    font-weight:400 !important;
+    line-height:1.55 !important;
+
+    white-space:normal !important;
+    word-break:normal !important;
+    overflow-wrap:normal !important;
+}
+
+
+/* Terms link */
+
+#request-submit-confirmation-dialog
+.request-dialog-body a,
+
+#request-submit-confirmation-dialog
+[data-esign-modal-note] a {
+    color:#1769e0 !important;
+
+    font:inherit !important;
+    font-weight:700 !important;
+
+    text-decoration:underline !important;
+    text-underline-offset:2px !important;
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+#request-submit-confirmation-dialog
+.request-dialog-actions {
+    display:flex !important;
+
+    align-items:center !important;
+    justify-content:flex-end !important;
+
+    gap:8px !important;
+
+    padding:0 18px 16px !important;
+
+    border-top:0 !important;
+
+    background:#ffffff !important;
+
+    font-family:inherit !important;
+}
+
+
+/* Universal buttons */
+
+#request-submit-confirmation-dialog
+.request-dialog-actions .button {
+    width:auto !important;
+
+    min-height:34px !important;
+
+    padding:0 14px !important;
+
+    border-radius:8px !important;
+
+    font-family:inherit !important;
+    font-size:11.5px !important;
+    font-weight:700 !important;
+    line-height:1 !important;
+
+    white-space:nowrap !important;
+}
+
+
+/* Cancel */
+
+#request-submit-confirmation-dialog
+[data-cancel-request-submit] {
+    min-width:86px !important;
+
+    border:1px solid #b9c7d8 !important;
+
+    background:#ffffff !important;
+
+    color:#415673 !important;
+
+    box-shadow:none !important;
+}
+
+
+/* Confirm */
+
+#request-submit-confirmation-dialog
+[data-confirm-request-submit] {
+    min-width:140px !important;
+
+    border:1px solid #1766df !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #2d7df5 0%,
+            #1769e0 100%
+        ) !important;
+
+    color:#ffffff !important;
+
+    font-weight:800 !important;
+
+    box-shadow:
+        0 6px 14px rgba(23,105,224,.16) !important;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width:620px) {
+
+    #request-submit-confirmation-dialog
+    .request-submit-dialog {
+        width:calc(100vw - 24px) !important;
+    }
+
+    #request-submit-confirmation-dialog
+    .request-dialog-header {
+        padding:15px 16px 9px !important;
+    }
+
+    #request-submit-confirmation-dialog
+    .request-dialog-body {
+        padding-left:16px !important;
+        padding-right:16px !important;
+    }
+
+    #request-submit-confirmation-dialog
+    .request-dialog-actions {
+        align-items:stretch !important;
+        flex-direction:column-reverse !important;
+
+        padding-left:16px !important;
+        padding-right:16px !important;
+    }
+
+    #request-submit-confirmation-dialog
+    .request-dialog-actions .button {
+        width:100% !important;
+        min-width:0 !important;
+    }
+}
+
+/* BORROWER E-SIGN UNIVERSAL MODAL END */
+</style>

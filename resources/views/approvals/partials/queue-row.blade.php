@@ -51,6 +51,7 @@
     data-approval-record
     data-created="{{ optional($submittedAt)->timestamp ?? 0 }}"
     data-search="{{ $searchText }}"
+    data-status="{{ $needsAttention ? 'attention' : 'review' }}"
 >
     <td class="approval-queue-no">{{ $request->request_no }}</td>
 

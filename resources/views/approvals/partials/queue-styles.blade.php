@@ -26,8 +26,17 @@
 .approval-queue .button.approval-queue-records { flex-shrink: 0; white-space: nowrap; }
 .approval-queue-heading > .approval-queue-records { justify-self: end; }
 
-/* Search and sort */
+/* Search, status, and sort */
 .approval-queue-filters { display: grid; grid-template-columns: minmax(0, 2.6fr) minmax(170px, 1fr); align-items: end; gap: 14px 18px; margin-bottom: 16px; padding: 17px 18px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); }
+
+.approval-queue-filters.is-verification {
+    grid-template-columns:
+        minmax(0, 2.6fr)
+        minmax(180px, .95fr)
+        minmax(170px, .9fr);
+    gap: 13px;
+}
+
 .approval-queue-filters label { min-width: 0; margin: 0; display: grid; gap: 8px; color: var(--text-secondary); font-size: 12px; font-weight: 700; }
 .approval-queue-filters input, .approval-queue-filters select { width: 100%; min-height: 40px; border-radius: 7px; font-size: 12px; }
 .approval-queue-filters .search-input-shell input { padding-left: 36px; }

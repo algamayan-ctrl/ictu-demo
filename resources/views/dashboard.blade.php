@@ -427,6 +427,467 @@
             justify-self:start;
         }
     }
+
+    /* DASHBOARD KPI ANALYTICS VISUAL V3 START
+   FINAL UNIVERSAL ROLE DASHBOARD KPI DESIGN
+   Presentation only. Routes, counts, permissions and logic remain unchanged.
+*/
+
+.dashboard-kpi-card {
+    --dashboard-kpi-start:#32a5f5;
+    --dashboard-kpi-mid:#1479ea;
+    --dashboard-kpi-end:#075fd3;
+
+    position:relative;
+
+    display:grid !important;
+
+    grid-template-columns:54px minmax(0,1fr);
+    grid-template-rows:auto auto auto;
+
+    align-content:center;
+    align-items:center;
+
+    column-gap:15px;
+    row-gap:4px;
+
+    width:100%;
+    min-width:0;
+    min-height:142px;
+
+    padding:19px 44px 19px 20px !important;
+
+    color:#fff !important;
+
+    background:
+        radial-gradient(
+            90% 48% at 94% 112%,
+            rgba(255,255,255,.15) 0%,
+            rgba(255,255,255,.08) 50%,
+            transparent 51%
+        ),
+        linear-gradient(
+            150deg,
+            rgba(255,255,255,.14) 0%,
+            rgba(255,255,255,.04) 31%,
+            transparent 49%
+        ),
+        linear-gradient(
+            135deg,
+            var(--dashboard-kpi-start) 0%,
+            var(--dashboard-kpi-mid) 48%,
+            var(--dashboard-kpi-end) 100%
+        ) !important;
+
+    border:0 !important;
+    border-radius:12px !important;
+
+    box-shadow:
+        0 7px 17px rgba(15,35,58,.13) !important;
+
+    overflow:hidden;
+
+    text-decoration:none !important;
+    cursor:pointer;
+
+    transition:
+        transform 160ms ease,
+        box-shadow 160ms ease,
+        filter 160ms ease;
+}
+
+/* Remove legacy colored top stripe. */
+.dashboard-kpi-card::before {
+    display:none !important;
+}
+
+
+/* ============================================================
+   SEMANTIC COLORS
+   ============================================================ */
+
+/* BLUE — normal workflow / pending action */
+.dashboard-kpi-card.kpi-accent-info,
+.dashboard-kpi-card.dashboard-kpi-for-approval,
+.dashboard-kpi-card.dashboard-kpi-for-verification,
+.dashboard-kpi-card.dashboard-kpi-active-borrowings,
+.dashboard-kpi-card.dashboard-kpi-active-delegations {
+    --dashboard-kpi-start:#32a5f5;
+    --dashboard-kpi-mid:#1479ea;
+    --dashboard-kpi-end:#075fd3;
+}
+
+
+/* GREEN / TEAL — active / ready / progressing */
+.dashboard-kpi-card.kpi-accent-success,
+.dashboard-kpi-card.dashboard-kpi-active-custodies,
+.dashboard-kpi-card.dashboard-kpi-for-release,
+.dashboard-kpi-card.dashboard-kpi-upcoming-pickup,
+.dashboard-kpi-card.dashboard-kpi-active-accounts {
+    --dashboard-kpi-start:#2acb9e;
+    --dashboard-kpi-mid:#12ab83;
+    --dashboard-kpi-end:#087b69;
+}
+
+
+/* RED — unresolved accountability / failure / obligation */
+.dashboard-kpi-card.kpi-accent-danger,
+.dashboard-kpi-card.dashboard-kpi-open-accountability-cases,
+.dashboard-kpi-card.dashboard-kpi-accountability-cases,
+.dashboard-kpi-card.dashboard-kpi-active-obligations,
+.dashboard-kpi-card.dashboard-kpi-failed-notifications {
+    --dashboard-kpi-start:#fb5d5d;
+    --dashboard-kpi-mid:#ea3939;
+    --dashboard-kpi-end:#c92525;
+}
+
+
+/* AMBER — restriction / due / return warning */
+.dashboard-kpi-card.kpi-accent-warning,
+.dashboard-kpi-card.dashboard-kpi-active-restrictions,
+.dashboard-kpi-card.dashboard-kpi-for-return,
+.dashboard-kpi-card.dashboard-kpi-returns-due,
+.dashboard-kpi-card.dashboard-kpi-inactive-accounts {
+    --dashboard-kpi-start:#ffc443;
+    --dashboard-kpi-mid:#f6a10c;
+    --dashboard-kpi-end:#dc7b00;
+}
+
+
+/* Neutral fallback only when no semantic class applies. */
+.dashboard-kpi-card.kpi-accent-neutral {
+    --dashboard-kpi-start:#718096;
+    --dashboard-kpi-mid:#59687b;
+    --dashboard-kpi-end:#425064;
+}
+
+
+/* ============================================================
+   UNIVERSAL ICON CIRCLE
+   ============================================================ */
+
+.dashboard-stat-grid .dashboard-kpi-card .kpi-icon {
+    grid-column:1 !important;
+    grid-row:1 / span 3 !important;
+
+    display:grid !important;
+    place-items:center !important;
+
+    justify-self:start !important;
+    align-self:center !important;
+
+    width:54px !important;
+    height:54px !important;
+
+    min-width:54px !important;
+    min-height:54px !important;
+
+    max-width:54px !important;
+    max-height:54px !important;
+
+    inline-size:54px !important;
+    block-size:54px !important;
+
+    aspect-ratio:1 / 1 !important;
+
+    padding:0 !important;
+    margin:0 !important;
+
+    color:#fff !important;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.20),
+            rgba(255,255,255,.10)
+        ) !important;
+
+    border:1px solid rgba(255,255,255,.38) !important;
+    border-radius:50% !important;
+
+    box-sizing:border-box !important;
+
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.15) !important;
+
+    overflow:hidden !important;
+}
+
+.dashboard-stat-grid .dashboard-kpi-card .kpi-icon > svg {
+    display:block !important;
+
+    width:21px !important;
+    height:21px !important;
+
+    min-width:21px !important;
+    min-height:21px !important;
+
+    margin:0 !important;
+
+    color:#fff !important;
+    stroke:currentColor !important;
+}
+
+
+/* ============================================================
+   TEXT HIERARCHY
+   ============================================================ */
+
+.dashboard-kpi-card .kpi-label {
+    grid-column:2;
+    grid-row:1;
+
+    align-self:end;
+
+    margin:0 !important;
+
+    color:#fff !important;
+
+    font-size:12px !important;
+    font-weight:800 !important;
+    line-height:1.25 !important;
+
+    letter-spacing:0;
+
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+
+    overflow:hidden;
+}
+
+.dashboard-kpi-card .kpi-value {
+    grid-column:2;
+    grid-row:2;
+
+    align-self:center;
+
+    margin:1px 0 0 !important;
+
+    color:#fff !important;
+
+    font-size:30px !important;
+    font-weight:800 !important;
+    line-height:1 !important;
+
+    letter-spacing:-.025em;
+    font-variant-numeric:tabular-nums;
+}
+
+.dashboard-kpi-card .kpi-note {
+    grid-column:2;
+    grid-row:3;
+
+    align-self:start;
+
+    margin:2px 0 0 !important;
+
+    color:rgba(255,255,255,.94) !important;
+
+    font-size:10.5px !important;
+    font-weight:600 !important;
+    line-height:1.4 !important;
+
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+
+    overflow:hidden;
+}
+
+
+/* ============================================================
+   CLICKABLE ARROW
+   Entire <a> card remains the click target.
+   ============================================================ */
+
+a.dashboard-kpi-card::after {
+    content:"\2192";
+
+    position:absolute;
+
+    top:14px;
+    right:14px;
+
+    display:grid;
+    place-items:center;
+
+    width:30px;
+    height:30px;
+
+    color:#fff;
+
+    background:rgba(255,255,255,.13);
+
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:50%;
+
+    font-size:17px;
+    font-weight:500;
+    line-height:1;
+
+    pointer-events:none;
+
+    transition:
+        transform 160ms ease,
+        background-color 160ms ease;
+}
+
+/* Hide any legacy inline arrow. */
+.dashboard-kpi-card-arrow {
+    display:none !important;
+}
+
+
+/* ============================================================
+   INTERACTION
+   ============================================================ */
+
+a.dashboard-kpi-card:hover {
+    color:#fff !important;
+
+    transform:translateY(-2px);
+
+    filter:saturate(1.03) brightness(1.015);
+
+    border-color:transparent !important;
+
+    box-shadow:
+        0 11px 24px rgba(15,35,58,.18) !important;
+}
+
+a.dashboard-kpi-card:hover::after {
+    transform:translateX(2px);
+
+    background:rgba(255,255,255,.21);
+}
+
+a.dashboard-kpi-card:focus-visible {
+    outline:3px solid rgba(37,99,235,.24);
+    outline-offset:3px;
+
+    box-shadow:
+        0 10px 22px rgba(15,35,58,.18) !important;
+}
+
+
+/* ============================================================
+   TABLET / MOBILE
+   ============================================================ */
+
+@media (max-width:760px) {
+    .dashboard-kpi-card {
+        min-height:124px;
+
+        grid-template-columns:46px minmax(0,1fr);
+
+        column-gap:12px;
+
+        padding:16px 40px 16px 16px !important;
+    }
+
+    .dashboard-stat-grid .dashboard-kpi-card .kpi-icon {
+        width:46px !important;
+        height:46px !important;
+
+        min-width:46px !important;
+        min-height:46px !important;
+
+        max-width:46px !important;
+        max-height:46px !important;
+
+        inline-size:46px !important;
+        block-size:46px !important;
+    }
+
+    .dashboard-stat-grid .dashboard-kpi-card .kpi-icon > svg {
+        width:19px !important;
+        height:19px !important;
+
+        min-width:19px !important;
+        min-height:19px !important;
+    }
+
+    .dashboard-kpi-card .kpi-label {
+        font-size:11px !important;
+    }
+
+    .dashboard-kpi-card .kpi-value {
+        font-size:27px !important;
+    }
+
+    .dashboard-kpi-card .kpi-note {
+        font-size:10px !important;
+    }
+
+    a.dashboard-kpi-card::after {
+        top:12px;
+        right:12px;
+
+        width:27px;
+        height:27px;
+
+        font-size:16px;
+    }
+}
+
+@media (prefers-reduced-motion:reduce) {
+    .dashboard-kpi-card,
+    a.dashboard-kpi-card::after {
+        transition:none;
+    }
+
+    a.dashboard-kpi-card:hover {
+        transform:none;
+    }
+}
+
+/* DASHBOARD FINAL SEMANTIC COLORS START */
+
+/* BLUE — normal workflow / primary pending action */
+.dashboard-kpi-card.dashboard-kpi-for-approval,
+.dashboard-kpi-card.dashboard-kpi-for-verification,
+.dashboard-kpi-card.dashboard-kpi-active-borrowings,
+.dashboard-kpi-card.dashboard-kpi-active-delegations {
+    --dashboard-kpi-start:#32a5f5 !important;
+    --dashboard-kpi-mid:#1479ea !important;
+    --dashboard-kpi-end:#075fd3 !important;
+}
+
+/* GREEN — active / ongoing / ready */
+.dashboard-kpi-card.dashboard-kpi-active-custodies,
+.dashboard-kpi-card.dashboard-kpi-for-release,
+.dashboard-kpi-card.dashboard-kpi-upcoming-pickup,
+.dashboard-kpi-card.dashboard-kpi-active-accounts {
+    --dashboard-kpi-start:#2acb9e !important;
+    --dashboard-kpi-mid:#12ab83 !important;
+    --dashboard-kpi-end:#087b69 !important;
+}
+
+/* RED — accountability / unresolved obligation / failure */
+.dashboard-kpi-card.dashboard-kpi-open-accountability-cases,
+.dashboard-kpi-card.dashboard-kpi-accountability-cases,
+.dashboard-kpi-card.dashboard-kpi-active-obligations,
+.dashboard-kpi-card.dashboard-kpi-failed-notifications {
+    --dashboard-kpi-start:#fb5d5d !important;
+    --dashboard-kpi-mid:#ea3939 !important;
+    --dashboard-kpi-end:#c92525 !important;
+}
+
+/* AMBER — restriction / return due / warning */
+.dashboard-kpi-card.dashboard-kpi-active-restrictions,
+.dashboard-kpi-card.dashboard-kpi-for-return,
+.dashboard-kpi-card.dashboard-kpi-returns-due,
+.dashboard-kpi-card.dashboard-kpi-inactive-accounts {
+    --dashboard-kpi-start:#ffc443 !important;
+    --dashboard-kpi-mid:#f6a10c !important;
+    --dashboard-kpi-end:#dc7b00 !important;
+}
+
+/* DASHBOARD FINAL SEMANTIC COLORS END */
+
+/* DASHBOARD KPI ANALYTICS VISUAL V3 END */
+
     html[data-theme="dark"] .dashboard-kpi-card,
     html[data-theme="dark"] .dashboard-balanced-grid > .card,
     html[data-theme="dark"] .dashboard-recent-card { box-shadow:var(--shadow-sm); }
@@ -491,26 +952,26 @@
         'BORROWER' => [
             'Active Borrowings' => ['custody', 'info', route('custody.index', ['kpi' => 'active_borrowings']), 'Released property currently on custody'],
             'Upcoming Pickup' => ['calendar', 'info', route('custody.index', ['kpi' => 'upcoming_pickup']), 'Approved transactions scheduled for pickup'],
-            'Returns Due' => ['calendar', 'warning', route('custody.index', ['kpi' => 'returns_due']), 'Borrowings due for return'],
-            'Active Obligations' => ['warning', 'warning', route('accountability.index'), 'Unresolved obligations'],
+            'Returns Due' => ['calendar-clock', 'warning', route('custody.index', ['kpi' => 'returns_due']), 'Borrowings due for return'],
+            'Active Obligations' => ['accountability', 'warning', route('accountability.index'), 'Unresolved obligations'],
         ],
         'SPMU_OFFICER' => [
-            'For Verification' => ['approval', 'info', route('verifications.index'), 'Awaiting verification'],
+            'For Verification' => ['clipboard-check', 'info', route('verifications.index'), 'Awaiting verification'],
             'For Release' => ['custody', 'info', route('custody.release.index'), 'Awaiting release processing'],
-            'For Return' => ['calendar', 'warning', route('custody.return.index'), 'Outstanding property to return'],
+            'For Return' => ['calendar-clock', 'warning', route('custody.return.index'), 'Outstanding property to return'],
             'Accountability Cases' => ['accountability', 'warning', route('accountability.index'), 'Open accountability matters'],
         ],
         'SPMU_HEAD' => [
             'For Approval' => ['approval', 'info', route('approvals.index'), 'Awaiting final approval'],
             'Active Custodies' => ['custody', 'info', route('custody.index', ['kpi' => 'active_custodies']), 'Ongoing custody transactions'],
-            'Open Accountability Cases' => ['accountability', 'warning', route('accountability.index'), 'Unresolved accountability matters'],
-            'Active Restrictions' => ['warning', 'warning', route('accountability.index', ['view' => 'restrictions']).'#accountability-cases-section', 'Restrictions currently in effect'],
+            'Open Accountability Cases' => ['requests', 'warning', route('accountability.index'), 'Unresolved accountability matters'],
+            'Active Restrictions' => ['lock', 'warning', route('accountability.index', ['view' => 'restrictions']).'#accountability-cases-section', 'Restrictions currently in effect'],
         ],
         'ICTU' => [
             'Active Accounts' => ['users', 'success', route('administration.users.index', ['status' => 'active']), 'User accounts currently enabled'],
             'Failed Notifications' => ['notifications', 'danger', route('reports.notifications', ['status' => 'failed']), 'Current delivery failures requiring technical review'],
             'Active Delegations' => ['delegation', 'info', route('administration.delegations.index', ['status' => 'active']), 'Temporary delegations currently in effect'],
-            'Inactive Accounts' => ['users', 'neutral', route('administration.users.index', ['status' => 'inactive']), 'User accounts currently inactive'],
+            'Inactive Accounts' => ['lock', 'neutral', route('administration.users.index', ['status' => 'inactive']), 'User accounts currently inactive'],
         ],
         default => [],
     };
@@ -556,7 +1017,7 @@
             unfiltered list. Every role shares the same clickable treatment.
         --}}
         <a
-            class="card stat-card kpi-card dashboard-kpi-card kpi-accent-{{ $tone }} ui-pressable"
+            class="card stat-card kpi-card dashboard-kpi-card dashboard-kpi-{{ str($label)->slug() }} kpi-accent-{{ $tone }} ui-pressable"
             href="{{ $link }}"
             aria-label="{{ $label }}: {{ number_format($value) }}. {{ $note }}."
         >

@@ -400,6 +400,46 @@
                     :file="$requestLetterDoc?->file"
                     title="Inspect the signed Borrowing Request Letter"
                 />
+                @if($v->represents_student_activity)
+                    <div
+                        class="spmu-document-tabs"
+                        data-spmu-document-tabs
+                        role="tablist"
+                        aria-label="Submitted request documents"
+                    >
+                        <button
+                            type="button"
+                            class="spmu-document-tab is-active"
+                            role="tab"
+                            aria-selected="true"
+                            tabindex="0"
+                            data-document-tab
+                            @if($requestLetterDoc)
+                                data-document-url="{{ route('files.show', $requestLetterDoc->file, false) }}"
+                            @endif
+                        >
+                            Borrowing Request Letter
+                        </button>
+
+                        <button
+                            type="button"
+                            class="spmu-document-tab"
+                            role="tab"
+                            aria-selected="false"
+                            tabindex="-1"
+                            data-document-tab
+                            @if($permissionToConductDoc)
+                                data-document-url="{{ route('files.show', $permissionToConductDoc->file, false) }}"
+                            @else
+                                aria-disabled="true"
+                                disabled
+                                title="Permission to Conduct Letter is not available"
+                            @endif
+                        >
+                            Permission to Conduct
+                        </button>
+                    </div>
+                @endif
             </div>
 
             <article class="card spmu-checklist-panel">
@@ -459,22 +499,7 @@
                         @endif
                     </section>
                 @endif
-
-                @if($v->represents_student_activity)
-                    <div class="spmu-supporting-document">
-                        <div>
-                            <strong>Permission to Conduct Letter</strong>
-                            <small>Required for this student activity.</small>
-                        </div>
-                        @if($permissionToConductDoc)
-                            <a class="button secondary small ui-pressable" href="{{ route('files.preview', $permissionToConductDoc->file) }}">Preview</a>
-                        @else
-                            <span class="status-badge status-danger">Not available</span>
-                        @endif
-                    </div>
-                @endif
-
-                <form
+<form
                     method="post"
                     action="{{ $canVerify ? route('verifications.verify', $borrowingRequest) : route('approvals.decide', $borrowingRequest) }}"
                     class="spmu-verification-form top-gap"
@@ -557,6 +582,57 @@
                             </label>
                         @endif
                     </div>
+                    <section
+                        class="spmu-review-readiness"
+                        data-review-readiness
+                        aria-live="polite"
+                    >
+                        <div class="spmu-review-readiness-heading">
+                            <div>
+                                <p class="eyebrow">
+                                    {{ $canVerify ? 'VERIFICATION READINESS' : 'APPROVAL READINESS' }}
+                                </p>
+
+                                <strong>Review completion</strong>
+                            </div>
+
+                            <span
+                                class="spmu-review-readiness-status"
+                                data-review-readiness-status
+                            >
+                                In progress
+                            </span>
+                        </div>
+
+                        <div class="spmu-review-readiness-summary">
+                            <strong data-review-readiness-count>
+                                0 of 3 checks completed
+                            </strong>
+
+                            <span data-review-readiness-percent>
+                                0%
+                            </span>
+                        </div>
+
+                        <div
+                            class="spmu-review-readiness-track"
+                            role="progressbar"
+                            aria-label="Review completion"
+                            aria-valuemin="0"
+                            aria-valuemax="3"
+                            aria-valuenow="0"
+                            data-review-readiness-progress
+                        >
+                            <span class="spmu-review-readiness-bar"></span>
+                        </div>
+
+                        <p
+                            class="spmu-review-readiness-message"
+                            data-review-readiness-message
+                        >
+                            Complete all review checks to continue.
+                        </p>
+                    </section>
 
                     @unless($hasCurrentESignature)
                         <p class="field-error top-gap">
@@ -656,7 +732,8 @@
                 </div>
             </div>
 
-            <div class="spmu-left-borrowing-grid">
+            <div class="spmu-left-borrowing-grid spmu-left-borrowing-grid-clean">
+
                 <div class="spmu-left-borrowing-cell">
                     <span>Borrower</span>
                     <strong>{{ $borrowingRequest->borrower->full_name }}</strong>
@@ -668,23 +745,13 @@
                 </div>
 
                 <div class="spmu-left-borrowing-cell">
-                    <span>Event Details</span>
+                    <span>Purpose of Borrowing</span>
                     <strong>{{ $v->purpose_event }}</strong>
                 </div>
 
                 <div class="spmu-left-borrowing-cell">
-                    <span>Location</span>
+                    <span>Event Location</span>
                     <strong>{{ $v->location }}</strong>
-                </div>
-
-                <div class="spmu-left-borrowing-cell">
-                    <span>Scheduled Use</span>
-                    <strong>{{ optional($v->schedule_date ?: $v->needed_from)->format('d F Y') }}</strong>
-                </div>
-
-                <div class="spmu-left-borrowing-cell">
-                    <span>Expected Return</span>
-                    <strong>{{ optional($v->return_date ?: $v->return_due_at)->format('d F Y') }}</strong>
                 </div>
 
                 <div class="spmu-left-borrowing-cell">
@@ -692,8 +759,17 @@
                     <strong>{{ $v->represents_student_activity ? 'Yes' : 'No' }}</strong>
                 </div>
 
-            </div>
-        </article>
+                <div class="spmu-left-borrowing-cell">
+                    <span>Items Needed From</span>
+                    <strong>{{ optional($v->schedule_date ?: $v->needed_from)->format('d F Y') }}</strong>
+                </div>
+
+                <div class="spmu-left-borrowing-cell">
+                    <span>Expected Return Date</span>
+                    <strong>{{ optional($v->return_date ?: $v->return_due_at)->format('d F Y') }}</strong>
+                </div>
+
+            </div></article>
 
         <div class="spmu-inventory-slot">
             @include('requests.partials.spmu-availability-review')
@@ -1184,15 +1260,17 @@
 
     const decisionCopy = {
         VERIFIED: {
-            title: 'Mark this request VERIFIED?',
-            message: 'Your registered E-signature will certify Action Officer verification and route the request to the SPMU Head. This does not approve the request, reserve inventory, or generate release documents.',
-            confirm: 'Yes, Mark VERIFIED',
+            title: 'Confirm E-signature and Verification',
+            message: 'Your registered e-signature will be applied to this Action Officer verification.',
+            note: 'This will mark the request as VERIFIED and route it to the SPMU Head. It does not approve the request, reserve inventory, or generate release documents.',
+            confirm: 'E-sign & Mark VERIFIED',
             tone: 'primary',
         },
         APPROVED: {
-            title: 'E-sign and approve this verified request?',
-            message: 'Your registered E-signature will be bound to the separate Head approval step. The approved quantities will be reserved and the applicable release documents will be generated, but the property is not yet physically issued.',
-            confirm: 'Yes, E-sign & Approve',
+            title: 'Confirm E-signature and Approval',
+            message: 'Your registered e-signature will be applied to this final approval.',
+            note: 'Approved quantities will be reserved and the required release documents will be generated. The property is not yet physically released to the borrower.',
+            confirm: 'E-sign & Approve',
             tone: 'primary',
         },
         RETURNED_FOR_REVISION: {
@@ -1259,12 +1337,1831 @@
 
     const openConfirmation = (decision) => {
         const copy = decisionCopy[decision];
+
         pendingDecision = decision;
         decisionInput.value = decision;
+
         confirmTitle.textContent = copy.title;
         confirmMessage.textContent = copy.message;
         confirmSubmit.textContent = copy.confirm;
         confirmSubmit.className = `button ${copy.tone} ui-pressable`;
+
+        /*
+         * Approval receives the richer confirmation treatment.
+         * Verification / revision / rejection retain the standard dialog.
+         */
+        const approvalMode = decision === 'APPROVED';
+
+        dialog.classList.toggle(
+            'is-admin-approval-confirmation',
+            approvalMode
+        );
+
+        const surface = dialog.firstElementChild;
+
+        if (surface) {
+            surface.classList.toggle(
+                'is-admin-approval-surface',
+                approvalMode
+            );
+        }
+
+        const copyWrap = confirmTitle.parentElement;
+
+        if (copyWrap) {
+            copyWrap.classList.toggle(
+                'is-admin-approval-copy',
+                approvalMode
+            );
+        }
+
+        const actions = confirmSubmit.parentElement;
+
+        if (actions) {
+            actions.classList.toggle(
+                'is-admin-approval-actions',
+                approvalMode
+            );
+        }
+
+
+        /* -----------------------------------------------
+           Icon
+           ----------------------------------------------- */
+
+        const icon =
+            dialog.querySelector('.spmu-confirm-dialog__icon');
+
+        if (icon) {
+            icon.classList.toggle(
+                'is-admin-approval-icon',
+                approvalMode
+            );
+
+            icon.textContent =
+                approvalMode ? '✓' : '?';
+        }
+
+
+        /* -----------------------------------------------
+           CONFIRMATION eyebrow
+           ----------------------------------------------- */
+
+        let eyebrow =
+            dialog.querySelector(
+                '[data-admin-approval-eyebrow]'
+            );
+
+        if (!eyebrow && copyWrap) {
+
+            eyebrow = document.createElement('p');
+
+            eyebrow.dataset.adminApprovalEyebrow = '';
+
+            eyebrow.className =
+                'admin-approval-eyebrow';
+
+            eyebrow.textContent =
+                'CONFIRMATION';
+
+            copyWrap.insertBefore(
+                eyebrow,
+                confirmTitle
+            );
+        }
+
+        if (eyebrow) {
+            eyebrow.hidden =
+                !approvalMode;
+        }
+
+
+        /* -----------------------------------------------
+           Approval information panel
+           ----------------------------------------------- */
+
+        let approvalNote =
+            dialog.querySelector(
+                '[data-admin-approval-note]'
+            );
+
+        if (!approvalNote && surface) {
+
+            approvalNote =
+                document.createElement('div');
+
+            approvalNote.dataset.adminApprovalNote = '';
+
+            approvalNote.className =
+                'admin-approval-note';
+
+            approvalNote.setAttribute(
+                'role',
+                'note'
+            );
+
+            const infoIcon =
+                document.createElement('span');
+
+            infoIcon.className =
+                'admin-approval-note-icon';
+
+            infoIcon.setAttribute(
+                'aria-hidden',
+                'true'
+            );
+
+            infoIcon.textContent = 'i';
+
+            const noteCopy =
+                document.createElement('p');
+
+            noteCopy.className =
+                'admin-approval-note-copy';
+
+            approvalNote.append(
+                infoIcon,
+                noteCopy
+            );
+
+            if (actions) {
+                surface.insertBefore(
+                    approvalNote,
+                    actions
+                );
+            }
+            else {
+                surface.appendChild(
+                    approvalNote
+                );
+            }
+        }
+
+        /*
+         * Keep the approval information panel inside the normal
+         * dialog content column. The shared SPMU dialog surface
+         * is already a grid: adding this panel directly to the
+         * surface places it in the narrow icon column.
+         */
+        if (
+            approvalNote &&
+            copyWrap &&
+            approvalNote.parentElement !== copyWrap
+        ) {
+            const remarksBlock =
+                copyWrap.querySelector(
+                    '[data-confirm-remarks-wrap]'
+                );
+
+            if (remarksBlock) {
+                copyWrap.insertBefore(
+                    approvalNote,
+                    remarksBlock
+                );
+            }
+            else {
+                copyWrap.appendChild(
+                    approvalNote
+                );
+            }
+        }
+
+        if (approvalNote) {
+
+            approvalNote.hidden =
+                !approvalMode;
+
+            const noteCopy =
+                approvalNote.querySelector(
+                    '.admin-approval-note-copy'
+                );
+
+            if (noteCopy) {
+                noteCopy.textContent =
+                    copy.note || '';
+            }
+        }
+
+        /* ADMIN APPROVAL INLINE VISUAL START */
+
+        /*
+         * Compact, universal approval confirmation modal.
+         * Uses the shared app typography by inheriting font-family.
+         * Presentation only.
+         */
+
+        const applyApprovalInlineStyle = (element, declarations) => {
+            if (!element) {
+                return;
+            }
+
+            if (!element.dataset.adminApprovalOriginalStyleStored) {
+                element.dataset.adminApprovalOriginalStyleStored = '1';
+                element.dataset.adminApprovalOriginalStyle =
+                    element.getAttribute('style') ?? '__NONE__';
+            }
+
+            Object.entries(declarations).forEach(([property, value]) => {
+                element.style.setProperty(property, value, 'important');
+            });
+        };
+
+
+        const restoreApprovalInlineStyle = (element) => {
+            if (
+                !element ||
+                !element.dataset.adminApprovalOriginalStyleStored
+            ) {
+                return;
+            }
+
+            const original =
+                element.dataset.adminApprovalOriginalStyle;
+
+            if (original === '__NONE__') {
+                element.removeAttribute('style');
+            } else {
+                element.setAttribute('style', original);
+            }
+
+            delete element.dataset.adminApprovalOriginalStyle;
+            delete element.dataset.adminApprovalOriginalStyleStored;
+        };
+
+
+        const approvalNoteIcon =
+            approvalNote?.querySelector('.admin-approval-note-icon');
+
+        const approvalNoteCopy =
+            approvalNote?.querySelector('.admin-approval-note-copy');
+
+        const approvalStyledElements = [
+            dialog,
+            surface,
+            icon,
+            copyWrap,
+            eyebrow,
+            confirmTitle,
+            confirmMessage,
+            approvalNote,
+            approvalNoteIcon,
+            approvalNoteCopy,
+            actions,
+            confirmCancel,
+            confirmSubmit
+        ];
+
+
+        if (approvalMode) {
+
+            applyApprovalInlineStyle(dialog, {
+                width: 'auto',
+                'max-width': 'none',
+                padding: '0',
+                border: '0',
+                background: 'transparent',
+                overflow: 'visible'
+            });
+
+            applyApprovalInlineStyle(surface, {
+                display: 'grid',
+                'grid-template-columns': '46px minmax(0, 1fr)',
+                'grid-template-rows': 'auto auto',
+                'column-gap': '11px',
+                'row-gap': '12px',
+                width: 'min(500px, calc(100vw - 28px))',
+                'max-width': '500px',
+                'min-width': '0',
+                margin: '0',
+                padding: '16px 18px',
+                border: '1px solid #d8e1ec',
+                'border-radius': '12px',
+                background: '#ffffff',
+                'box-shadow': '0 18px 44px rgba(15,23,42,.18)',
+                overflow: 'visible',
+                'box-sizing': 'border-box',
+                'font-family': 'inherit'
+            });
+
+            applyApprovalInlineStyle(icon, {
+                'grid-column': '1',
+                'grid-row': '1',
+                display: 'grid',
+                'place-items': 'center',
+                width: '32px',
+                height: '32px',
+                'min-width': '32px',
+                'max-width': '32px',
+                margin: '0',
+                padding: '0',
+                border: '5px solid #e1efff',
+                'border-radius': '50%',
+                background: '#2374eb',
+                color: '#ffffff',
+                'font-size': '11px',
+                'font-weight': '800',
+                'line-height': '1',
+                'box-sizing': 'content-box'
+            });
+
+            applyApprovalInlineStyle(copyWrap, {
+                'grid-column': '2',
+                'grid-row': '1',
+                display: 'block',
+                width: '100%',
+                'min-width': '0',
+                'max-width': 'none',
+                margin: '0',
+                padding: '0',
+                'font-family': 'inherit'
+            });
+
+            applyApprovalInlineStyle(eyebrow, {
+                display: 'block',
+                width: '100%',
+                margin: '0 0 4px',
+                padding: '0',
+                color: '#557ab3',
+                'font-family': 'inherit',
+                'font-size': '10px',
+                'font-weight': '700',
+                'line-height': '1.2',
+                'letter-spacing': '.10em',
+                'text-transform': 'uppercase',
+                'white-space': 'normal',
+                'word-break': 'normal',
+                'overflow-wrap': 'normal'
+            });
+
+            applyApprovalInlineStyle(confirmTitle, {
+                display: 'block',
+                width: '100%',
+                'min-width': '0',
+                'max-width': 'none',
+                margin: '0',
+                padding: '0',
+                color: '#0b2a56',
+                'font-family': 'inherit',
+                'font-size': '11px',
+                'font-weight': '700',
+                'line-height': '1.25',
+                'white-space': 'normal',
+                'word-break': 'normal',
+                'overflow-wrap': 'normal'
+            });
+
+            applyApprovalInlineStyle(confirmMessage, {
+                display: 'block',
+                width: '100%',
+                'min-width': '0',
+                'max-width': 'none',
+                margin: '5px 0 0',
+                padding: '0',
+                color: '#617492',
+                'font-family': 'inherit',
+                'font-size': '12px',
+                'font-weight': '400',
+                'line-height': '1.5',
+                'white-space': 'normal',
+                'word-break': 'normal',
+                'overflow-wrap': 'normal'
+            });
+
+            if (approvalNote) {
+                applyApprovalInlineStyle(approvalNote, {
+                    display: 'grid',
+                    'grid-template-columns': '22px minmax(0, 1fr)',
+                    'align-items': 'start',
+                    gap: '9px',
+                    width: '100%',
+                    'min-width': '0',
+                    'max-width': '100%',
+                    margin: '10px 0 0',
+                    padding: '10px 12px',
+                    border: '1px solid #bddafb',
+                    'border-radius': '7px',
+                    background: '#f3f8ff',
+                    'box-sizing': 'border-box',
+                    overflow: 'visible',
+                    'font-family': 'inherit'
+                });
+
+                applyApprovalInlineStyle(approvalNoteIcon, {
+                    display: 'grid',
+                    'place-items': 'center',
+                    width: '22px',
+                    height: '22px',
+                    'min-width': '22px',
+                    'max-width': '22px',
+                    margin: '0',
+                    padding: '0',
+                    'border-radius': '50%',
+                    background: '#d6e9ff',
+                    color: '#246bdc',
+                    'font-size': '12px',
+                    'font-weight': '600',
+                    'line-height': '1'
+                });
+
+                applyApprovalInlineStyle(approvalNoteCopy, {
+                    display: 'block',
+                    width: 'auto',
+                    'min-width': '0',
+                    'max-width': 'none',
+                    margin: '0',
+                    padding: '0',
+                    color: '#28558f',
+                    'font-family': 'inherit',
+                    'font-size': '11.5px',
+                    'font-weight': '400',
+                    'line-height': '1.55',
+                    'white-space': 'normal',
+                    'word-break': 'normal',
+                    'overflow-wrap': 'normal',
+                    hyphens: 'none'
+                });
+            }
+
+            applyApprovalInlineStyle(actions, {
+                'grid-column': '1 / -1',
+                'grid-row': '2',
+                display: 'flex',
+                'align-items': 'center',
+                'justify-content': 'flex-end',
+                gap: '9px',
+                width: '100%',
+                margin: '0',
+                padding: '0',
+                'font-family': 'inherit'
+            });
+
+            applyApprovalInlineStyle(confirmCancel, {
+                width: 'auto',
+                'min-width': '86px',
+                'min-height': '34px',
+                padding: '0 12px',
+                border: '1px solid #b9c7d8',
+                'border-radius': '7px',
+                background: '#ffffff',
+                color: '#415673',
+                'font-family': 'inherit',
+                'font-size': '11.5px',
+                'font-weight': '600',
+                'white-space': 'nowrap',
+                'box-shadow': 'none'
+            });
+
+            applyApprovalInlineStyle(confirmSubmit, {
+                width: 'auto',
+                'min-width': '132px',
+                'min-height': '34px',
+                padding: '0 14px',
+                border: '1px solid #1766df',
+                'border-radius': '7px',
+                background: 'linear-gradient(180deg, #2d7df5 0%, #1769e0 100%)',
+                color: '#ffffff',
+                'font-family': 'inherit',
+                'font-size': '11.5px',
+                'font-weight': '700',
+                'white-space': 'nowrap',
+                'box-shadow': '0 6px 14px rgba(23,105,224,.16)'
+            });
+
+        } else {
+            approvalStyledElements.forEach(
+                restoreApprovalInlineStyle
+            );
+        }
+
+/* ADMIN APPROVAL INLINE VISUAL END */
+
+/* RETURN REVISION INLINE VISUAL START */
+
+        /*
+         * Return for Revision uses the same compact modal
+         * geometry and typography as final approval, while
+         * retaining an amber revision/warning semantic tone.
+         */
+
+        const revisionMode =
+            decision === 'RETURNED_FOR_REVISION';
+
+        const revisionStyledElements = [
+            dialog,
+            surface,
+            icon,
+            copyWrap,
+            confirmTitle,
+            confirmMessage,
+            remarksWrap,
+            remarksLabel,
+            remarksField,
+            remarksHelp,
+            actions,
+            confirmCancel,
+            confirmSubmit
+        ];
+
+
+        if (revisionMode) {
+
+            /* ---------------------------------------------
+               Dialog
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                dialog,
+                {
+                    width: 'auto',
+                    'max-width': 'none',
+                    padding: '0',
+                    border: '0',
+                    background: 'transparent',
+                    overflow: 'visible'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Surface
+               Same medium size as Approval
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                surface,
+                {
+                    display: 'grid',
+
+                    'grid-template-columns':
+                        '46px minmax(0, 1fr)',
+
+                    'grid-template-rows':
+                        'auto auto',
+
+                    'column-gap': '11px',
+                    'row-gap': '12px',
+
+                    width:
+                        'min(500px, calc(100vw - 28px))',
+
+                    'max-width': '500px',
+                    'min-width': '0',
+
+                    margin: '0',
+
+                    padding: '16px 18px',
+
+                    border:
+                        '1px solid #d8e1ec',
+
+                    'border-radius': '12px',
+
+                    background: '#ffffff',
+
+                    'box-shadow':
+                        '0 18px 44px rgba(15,23,42,.18)',
+
+                    overflow: 'visible',
+
+                    'box-sizing': 'border-box',
+
+                    'font-family': 'inherit'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Amber revision icon
+               --------------------------------------------- */
+
+            icon.textContent = '?';
+
+            applyApprovalInlineStyle(
+                icon,
+                {
+                    'grid-column': '1',
+                    'grid-row': '1',
+
+                    display: 'grid',
+                    'place-items': 'center',
+
+                    width: '32px',
+                    height: '32px',
+
+                    'min-width': '32px',
+                    'max-width': '32px',
+
+                    margin: '0',
+                    padding: '0',
+
+                    border:
+                        '5px solid #fff3d5',
+
+                    'border-radius': '50%',
+
+                    background: '#f5ad28',
+
+                    color: '#ffffff',
+
+                    'font-family': 'inherit',
+                    'font-size': '16px',
+                    'font-weight': '800',
+                    'line-height': '1',
+
+                    'box-sizing': 'content-box'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Main content
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                copyWrap,
+                {
+                    'grid-column': '2',
+                    'grid-row': '1',
+
+                    display: 'block',
+
+                    width: '100%',
+                    'min-width': '0',
+                    'max-width': 'none',
+
+                    margin: '0',
+                    padding: '0',
+
+                    'font-family': 'inherit'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Title
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                confirmTitle,
+                {
+                    display: 'block',
+
+                    width: '100%',
+
+                    margin: '0',
+                    padding: '0',
+
+                    color: '#0b2a56',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '16px',
+                    'font-weight': '700',
+                    'line-height': '1.3',
+
+                    'white-space': 'normal',
+                    'word-break': 'normal',
+                    'overflow-wrap': 'normal'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Description
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                confirmMessage,
+                {
+                    display: 'block',
+
+                    width: '100%',
+
+                    margin: '5px 0 0',
+                    padding: '0',
+
+                    color: '#617492',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '11.5px',
+                    'font-weight': '400',
+                    'line-height': '1.5',
+
+                    'white-space': 'normal',
+                    'word-break': 'normal',
+                    'overflow-wrap': 'normal'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Revision remarks section
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                remarksWrap,
+                {
+                    width: '100%',
+                    'min-width': '0',
+
+                    margin: '14px 0 0',
+                    padding: '0',
+
+                    'font-family': 'inherit'
+                }
+            );
+
+
+            applyApprovalInlineStyle(
+                remarksLabel,
+                {
+                    display: 'block',
+
+                    margin: '0 0 6px',
+
+                    color: '#324966',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '11.5px',
+                    'font-weight': '600',
+                    'line-height': '1.35'
+                }
+            );
+
+
+            /* textarea */
+
+            applyApprovalInlineStyle(
+                remarksField,
+                {
+                    display: 'block',
+
+                    width: '100%',
+                    'min-width': '0',
+
+                    height: '92px',
+                    'min-height': '92px',
+                    'max-height': '150px',
+
+                    margin: '0',
+
+                    padding: '10px 11px',
+
+                    border:
+                        '1px solid #b7c6d8',
+
+                    'border-radius': '8px',
+
+                    background: '#ffffff',
+
+                    color: '#263d59',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '11.5px',
+                    'font-weight': '400',
+                    'line-height': '1.5',
+
+                    resize: 'vertical',
+
+                    'box-sizing': 'border-box'
+                }
+            );
+
+
+            /* helper text */
+
+            applyApprovalInlineStyle(
+                remarksHelp,
+                {
+                    display: 'block',
+
+                    margin: '5px 0 0',
+
+                    color: '#657a96',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '10.5px',
+                    'font-weight': '400',
+                    'line-height': '1.45'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Actions
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                actions,
+                {
+                    'grid-column': '1 / -1',
+                    'grid-row': '2',
+
+                    display: 'flex',
+
+                    'align-items': 'center',
+                    'justify-content': 'flex-end',
+
+                    gap: '8px',
+
+                    width: '100%',
+
+                    margin: '0',
+                    padding: '0',
+
+                    'font-family': 'inherit'
+                }
+            );
+
+
+            /* Go Back */
+
+            applyApprovalInlineStyle(
+                confirmCancel,
+                {
+                    width: 'auto',
+
+                    'min-width': '86px',
+                    'min-height': '34px',
+
+                    padding: '0 12px',
+
+                    border:
+                        '1px solid #b9c7d8',
+
+                    'border-radius': '8px',
+
+                    background: '#ffffff',
+
+                    color: '#415673',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '11.5px',
+                    'font-weight': '600',
+
+                    'white-space': 'nowrap',
+
+                    'box-shadow': 'none'
+                }
+            );
+
+
+            /* Return for Revision */
+
+            applyApprovalInlineStyle(
+                confirmSubmit,
+                {
+                    width: 'auto',
+
+                    'min-width': '132px',
+                    'min-height': '34px',
+
+                    padding: '0 14px',
+
+                    border:
+                        '1px solid #d68b08',
+
+                    'border-radius': '8px',
+
+                    background:
+                        'linear-gradient(180deg, #f7b733 0%, #e99a10 100%)',
+
+                    color: '#ffffff',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '11.5px',
+                    'font-weight': '700',
+
+                    'white-space': 'nowrap',
+
+                    'box-shadow':
+                        '0 6px 14px rgba(217,145,12,.16)'
+                }
+            );
+
+        }
+        else if (!approvalMode) {
+
+            /*
+             * Restore the normal shared modal for Reject /
+             * Verification. Approval has its own inline styling.
+             */
+
+            revisionStyledElements.forEach(
+                restoreApprovalInlineStyle
+            );
+        }
+
+        /* RETURN REVISION INLINE VISUAL END */
+
+/* REJECT REQUEST INLINE VISUAL START */
+
+        /*
+         * Reject uses the same universal modal geometry and
+         * typography as Approval and Return for Revision.
+         * Only the destructive semantic treatment differs.
+         */
+
+        const rejectMode =
+            decision === 'REJECTED';
+
+        const rejectStyledElements = [
+            dialog,
+            surface,
+            icon,
+            copyWrap,
+            confirmTitle,
+            confirmMessage,
+            remarksWrap,
+            remarksLabel,
+            remarksField,
+            remarksHelp,
+            actions,
+            confirmCancel,
+            confirmSubmit
+        ];
+
+
+        if (rejectMode) {
+
+            /* ---------------------------------------------
+               Dialog
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                dialog,
+                {
+                    width: 'auto',
+                    'max-width': 'none',
+
+                    padding: '0',
+
+                    border: '0',
+
+                    background: 'transparent',
+
+                    overflow: 'visible'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Universal 500px surface
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                surface,
+                {
+                    display: 'grid',
+
+                    'grid-template-columns':
+                        '46px minmax(0, 1fr)',
+
+                    'grid-template-rows':
+                        'auto auto',
+
+                    'column-gap': '11px',
+                    'row-gap': '12px',
+
+                    width:
+                        'min(500px, calc(100vw - 28px))',
+
+                    'max-width': '500px',
+                    'min-width': '0',
+
+                    margin: '0',
+
+                    padding: '16px 18px',
+
+                    border:
+                        '1px solid #d8e1ec',
+
+                    'border-radius': '12px',
+
+                    background: '#ffffff',
+
+                    'box-shadow':
+                        '0 18px 44px rgba(15,23,42,.18)',
+
+                    overflow: 'visible',
+
+                    'box-sizing': 'border-box',
+
+                    'font-family': 'inherit'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               RED destructive icon
+               --------------------------------------------- */
+
+            icon.textContent = '!';
+
+            applyApprovalInlineStyle(
+                icon,
+                {
+                    'grid-column': '1',
+                    'grid-row': '1',
+
+                    display: 'grid',
+                    'place-items': 'center',
+
+                    width: '32px',
+                    height: '32px',
+
+                    'min-width': '32px',
+                    'max-width': '32px',
+
+                    margin: '0',
+                    padding: '0',
+
+                    border:
+                        '5px solid #fee2e2',
+
+                    'border-radius': '50%',
+
+                    background: '#dc3d3d',
+
+                    color: '#ffffff',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '16px',
+                    'font-weight': '700',
+                    'line-height': '1',
+
+                    'box-sizing': 'content-box'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Main content
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                copyWrap,
+                {
+                    'grid-column': '2',
+                    'grid-row': '1',
+
+                    display: 'block',
+
+                    width: '100%',
+                    'min-width': '0',
+                    'max-width': 'none',
+
+                    margin: '0',
+                    padding: '0',
+
+                    'font-family': 'inherit'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Title
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                confirmTitle,
+                {
+                    display: 'block',
+
+                    width: '100%',
+
+                    margin: '0',
+                    padding: '0',
+
+                    color: '#0b2a56',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '16px',
+                    'font-weight': '700',
+                    'line-height': '1.3',
+
+                    'white-space': 'normal',
+                    'word-break': 'normal',
+                    'overflow-wrap': 'normal'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Description
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                confirmMessage,
+                {
+                    display: 'block',
+
+                    width: '100%',
+
+                    margin: '5px 0 0',
+                    padding: '0',
+
+                    color: '#617492',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '11.5px',
+                    'font-weight': '400',
+                    'line-height': '1.5',
+
+                    'white-space': 'normal',
+                    'word-break': 'normal',
+                    'overflow-wrap': 'normal'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Rejection reason section
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                remarksWrap,
+                {
+                    width: '100%',
+                    'min-width': '0',
+
+                    margin: '14px 0 0',
+                    padding: '0',
+
+                    'font-family': 'inherit'
+                }
+            );
+
+
+            applyApprovalInlineStyle(
+                remarksLabel,
+                {
+                    display: 'block',
+
+                    margin: '0 0 6px',
+
+                    color: '#324966',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '11.5px',
+                    'font-weight': '600',
+                    'line-height': '1.35'
+                }
+            );
+
+
+            /* textarea */
+
+            applyApprovalInlineStyle(
+                remarksField,
+                {
+                    display: 'block',
+
+                    width: '100%',
+                    'min-width': '0',
+
+                    height: '92px',
+                    'min-height': '92px',
+                    'max-height': '150px',
+
+                    margin: '0',
+
+                    padding: '10px 11px',
+
+                    border:
+                        '1px solid #b7c6d8',
+
+                    'border-radius': '8px',
+
+                    background: '#ffffff',
+
+                    color: '#263d59',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '11.5px',
+                    'font-weight': '400',
+                    'line-height': '1.5',
+
+                    resize: 'vertical',
+
+                    'box-sizing': 'border-box'
+                }
+            );
+
+
+            /* helper */
+
+            applyApprovalInlineStyle(
+                remarksHelp,
+                {
+                    display: 'block',
+
+                    margin: '5px 0 0',
+
+                    color: '#657a96',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '10.5px',
+                    'font-weight': '400',
+                    'line-height': '1.45'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Actions
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                actions,
+                {
+                    'grid-column': '1 / -1',
+                    'grid-row': '2',
+
+                    display: 'flex',
+
+                    'align-items': 'center',
+                    'justify-content': 'flex-end',
+
+                    gap: '8px',
+
+                    width: '100%',
+
+                    margin: '0',
+                    padding: '0',
+
+                    'font-family': 'inherit'
+                }
+            );
+
+
+            /* Go Back */
+
+            applyApprovalInlineStyle(
+                confirmCancel,
+                {
+                    width: 'auto',
+
+                    'min-width': '86px',
+                    'min-height': '34px',
+
+                    padding: '0 12px',
+
+                    border:
+                        '1px solid #b9c7d8',
+
+                    'border-radius': '8px',
+
+                    background: '#ffffff',
+
+                    color: '#415673',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '11.5px',
+                    'font-weight': '600',
+
+                    'white-space': 'nowrap',
+
+                    'box-shadow': 'none'
+                }
+            );
+
+
+            /* Reject */
+
+            applyApprovalInlineStyle(
+                confirmSubmit,
+                {
+                    width: 'auto',
+
+                    'min-width': '118px',
+                    'min-height': '34px',
+
+                    padding: '0 14px',
+
+                    border:
+                        '1px solid #c92d2d',
+
+                    'border-radius': '8px',
+
+                    background:
+                        'linear-gradient(180deg, #ee5151 0%, #d93434 100%)',
+
+                    color: '#ffffff',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '11.5px',
+                    'font-weight': '700',
+
+                    'white-space': 'nowrap',
+
+                    'box-shadow':
+                        '0 6px 14px rgba(217,52,52,.16)'
+                }
+            );
+        }
+
+        /*
+         * Do not restore while Approval or Return for Revision
+         * has its own universal treatment active.
+         */
+        else if (
+            !approvalMode &&
+            decision !== 'RETURNED_FOR_REVISION'
+        ) {
+            rejectStyledElements.forEach(
+                restoreApprovalInlineStyle
+            );
+        }
+
+        /* REJECT REQUEST INLINE VISUAL END */
+
+/* ACTION OFFICER VERIFIED INLINE VISUAL START */
+
+        const verificationMode =
+            decision === 'VERIFIED';
+
+        if (verificationMode) {
+
+            /*
+             * Reuse the universal confirmation elements already
+             * created for the shared SPMU decision dialog.
+             */
+
+            if (eyebrow) {
+                eyebrow.hidden = false;
+                eyebrow.textContent = 'CONFIRMATION';
+            }
+
+            if (approvalNote) {
+                approvalNote.hidden = false;
+
+                const verificationNoteCopy =
+                    approvalNote.querySelector(
+                        '.admin-approval-note-copy'
+                    );
+
+                if (verificationNoteCopy) {
+                    verificationNoteCopy.textContent =
+                        copy.note || '';
+                }
+            }
+
+            if (
+                approvalNote &&
+                copyWrap &&
+                approvalNote.parentElement !== copyWrap
+            ) {
+                const remarksBlock =
+                    copyWrap.querySelector(
+                        '[data-confirm-remarks-wrap]'
+                    );
+
+                if (remarksBlock) {
+                    copyWrap.insertBefore(
+                        approvalNote,
+                        remarksBlock
+                    );
+                }
+                else {
+                    copyWrap.appendChild(
+                        approvalNote
+                    );
+                }
+            }
+
+
+            /* ---------------------------------------------
+               Dialog
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                dialog,
+                {
+                    width: 'auto',
+                    'max-width': 'none',
+                    padding: '0',
+                    border: '0',
+                    background: 'transparent',
+                    overflow: 'visible'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Universal 500px confirmation card
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                surface,
+                {
+                    display: 'grid',
+
+                    'grid-template-columns':
+                        '46px minmax(0, 1fr)',
+
+                    'grid-template-rows':
+                        'auto auto',
+
+                    'column-gap': '11px',
+                    'row-gap': '12px',
+
+                    width:
+                        'min(500px, calc(100vw - 28px))',
+
+                    'max-width': '500px',
+                    'min-width': '0',
+
+                    margin: '0',
+
+                    padding: '16px 18px',
+
+                    border:
+                        '1px solid #d8e1ec',
+
+                    'border-radius': '12px',
+
+                    background: '#ffffff',
+
+                    'box-shadow':
+                        '0 18px 44px rgba(15,23,42,.18)',
+
+                    overflow: 'visible',
+
+                    'box-sizing': 'border-box',
+
+                    'font-family': 'inherit'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Verification check icon
+               --------------------------------------------- */
+
+            if (icon) {
+                icon.textContent = '✓';
+            }
+
+            applyApprovalInlineStyle(
+                icon,
+                {
+                    'grid-column': '1',
+                    'grid-row': '1',
+
+                    display: 'grid',
+                    'place-items': 'center',
+
+                    width: '32px',
+                    height: '32px',
+
+                    'min-width': '32px',
+                    'max-width': '32px',
+
+                    margin: '0',
+                    padding: '0',
+
+                    border:
+                        '5px solid #e1efff',
+
+                    'border-radius': '50%',
+
+                    background: '#2374eb',
+
+                    color: '#ffffff',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '16px',
+                    'font-weight': '800',
+                    'line-height': '1',
+
+                    'box-sizing': 'content-box'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Copy column
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                copyWrap,
+                {
+                    'grid-column': '2',
+                    'grid-row': '1',
+
+                    display: 'block',
+
+                    width: '100%',
+                    'min-width': '0',
+                    'max-width': 'none',
+
+                    margin: '0',
+                    padding: '0',
+
+                    'font-family': 'inherit'
+                }
+            );
+
+
+            /* eyebrow */
+
+            applyApprovalInlineStyle(
+                eyebrow,
+                {
+                    display: 'block',
+
+                    width: '100%',
+
+                    margin: '0 0 4px',
+                    padding: '0',
+
+                    color: '#1769e0',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '10px',
+                    'font-weight': '700',
+                    'line-height': '1.2',
+
+                    'letter-spacing': '.08em',
+                    'text-transform': 'uppercase'
+                }
+            );
+
+
+            /* title */
+
+            applyApprovalInlineStyle(
+                confirmTitle,
+                {
+                    display: 'block',
+
+                    width: '100%',
+
+                    margin: '0',
+                    padding: '0',
+
+                    color: '#0b2a56',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '18px',
+                    'font-weight': '700',
+                    'line-height': '1.25',
+
+                    'white-space': 'normal',
+                    'word-break': 'normal',
+                    'overflow-wrap': 'normal'
+                }
+            );
+
+
+            /* subtitle */
+
+            applyApprovalInlineStyle(
+                confirmMessage,
+                {
+                    display: 'block',
+
+                    width: '100%',
+
+                    margin: '5px 0 0',
+                    padding: '0',
+
+                    color: '#617492',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '12px',
+                    'font-weight': '400',
+                    'line-height': '1.5',
+
+                    'white-space': 'normal',
+                    'word-break': 'normal',
+                    'overflow-wrap': 'normal'
+                }
+            );
+
+
+            /* ---------------------------------------------
+               Verification information box
+               --------------------------------------------- */
+
+            if (approvalNote) {
+
+                const verificationInfoIcon =
+                    approvalNote.querySelector(
+                        '.admin-approval-note-icon'
+                    );
+
+                const verificationInfoCopy =
+                    approvalNote.querySelector(
+                        '.admin-approval-note-copy'
+                    );
+
+                applyApprovalInlineStyle(
+                    approvalNote,
+                    {
+                        display: 'grid',
+
+                        'grid-template-columns':
+                            '22px minmax(0, 1fr)',
+
+                        'align-items': 'start',
+
+                        gap: '9px',
+
+                        width: '100%',
+                        'min-width': '0',
+                        'max-width': '100%',
+
+                        margin: '10px 0 0',
+
+                        padding: '10px 12px',
+
+                        border:
+                            '1px solid #bddafb',
+
+                        'border-radius': '8px',
+
+                        background: '#f3f8ff',
+
+                        'box-sizing': 'border-box',
+
+                        'font-family': 'inherit'
+                    }
+                );
+
+                applyApprovalInlineStyle(
+                    verificationInfoIcon,
+                    {
+                        display: 'grid',
+                        'place-items': 'center',
+
+                        width: '22px',
+                        height: '22px',
+
+                        'min-width': '22px',
+                        'max-width': '22px',
+
+                        margin: '0',
+                        padding: '0',
+
+                        'border-radius': '50%',
+
+                        background: '#d6e9ff',
+
+                        color: '#246bdc',
+
+                        'font-family': 'inherit',
+
+                        'font-size': '12px',
+                        'font-weight': '800',
+                        'line-height': '1'
+                    }
+                );
+
+                applyApprovalInlineStyle(
+                    verificationInfoCopy,
+                    {
+                        display: 'block',
+
+                        width: 'auto',
+                        'min-width': '0',
+                        'max-width': 'none',
+
+                        margin: '0',
+                        padding: '0',
+
+                        color: '#28558f',
+
+                        'font-family': 'inherit',
+
+                        'font-size': '11.5px',
+                        'font-weight': '400',
+                        'line-height': '1.55',
+
+                        'white-space': 'normal',
+                        'word-break': 'normal',
+                        'overflow-wrap': 'normal'
+                    }
+                );
+            }
+
+
+            /* ---------------------------------------------
+               Footer
+               --------------------------------------------- */
+
+            applyApprovalInlineStyle(
+                actions,
+                {
+                    'grid-column': '1 / -1',
+                    'grid-row': '2',
+
+                    display: 'flex',
+
+                    'align-items': 'center',
+                    'justify-content': 'flex-end',
+
+                    gap: '8px',
+
+                    width: '100%',
+
+                    margin: '0',
+                    padding: '0',
+
+                    'font-family': 'inherit'
+                }
+            );
+
+
+            /* Go Back */
+
+            applyApprovalInlineStyle(
+                confirmCancel,
+                {
+                    width: 'auto',
+
+                    'min-width': '86px',
+                    'min-height': '34px',
+
+                    padding: '0 12px',
+
+                    border:
+                        '1px solid #b9c7d8',
+
+                    'border-radius': '8px',
+
+                    background: '#ffffff',
+
+                    color: '#415673',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '11.5px',
+                    'font-weight': '600',
+
+                    'white-space': 'nowrap',
+
+                    'box-shadow': 'none'
+                }
+            );
+
+
+            /* E-sign & Mark VERIFIED */
+
+            applyApprovalInlineStyle(
+                confirmSubmit,
+                {
+                    width: 'auto',
+
+                    'min-width': '150px',
+                    'min-height': '34px',
+
+                    padding: '0 14px',
+
+                    border:
+                        '1px solid #1766df',
+
+                    'border-radius': '8px',
+
+                    background:
+                        'linear-gradient(180deg, #2d7df5 0%, #1769e0 100%)',
+
+                    color: '#ffffff',
+
+                    'font-family': 'inherit',
+
+                    'font-size': '11.5px',
+                    'font-weight': '700',
+
+                    'white-space': 'nowrap',
+
+                    'box-shadow':
+                        '0 6px 14px rgba(23,105,224,.16)'
+                }
+            );
+        }
+
+        /* ACTION OFFICER VERIFIED INLINE VISUAL END */
+
         configureRemarks(decision);
 
         if (typeof dialog.showModal === 'function') {
@@ -1476,4 +3373,722 @@
 @if($isOperationalRequestLayout)
     </div>
 @endif
+<style>
+/* SPMU REVIEW WORKSPACE RECOVERY START */
+
+
+/* =========================================================
+   EQUAL HEIGHT LEFT / RIGHT
+   ========================================================= */
+
+.spmu-verification-workspace
+.spmu-review-top-row {
+    align-items:stretch !important;
+}
+
+.spmu-verification-workspace
+.spmu-scan-slot,
+
+.spmu-verification-workspace
+.spmu-checklist-panel {
+    min-width:0 !important;
+    height:auto !important;
+}
+
+.spmu-verification-workspace
+.spmu-checklist-panel {
+    display:flex !important;
+    flex-direction:column !important;
+}
+
+.spmu-verification-workspace
+.spmu-verification-form {
+    display:flex !important;
+    flex:1 1 auto !important;
+    flex-direction:column !important;
+    min-height:0 !important;
+}
+
+
+/* =========================================================
+   DOCUMENT TABS
+   ========================================================= */
+
+.spmu-verification-workspace
+.spmu-document-tabs {
+    display:flex !important;
+    align-items:center !important;
+
+    width:100% !important;
+
+    padding:0 12px !important;
+
+    border-bottom:1px solid var(--border, #d7dee8) !important;
+
+    background:#f8fafc !important;
+}
+
+.spmu-verification-workspace
+.spmu-document-tab {
+    min-height:42px !important;
+
+    padding:0 14px !important;
+
+    border:0 !important;
+    border-bottom:2px solid transparent !important;
+
+    background:transparent !important;
+
+    color:var(--text-secondary, #40536f) !important;
+
+    font:inherit !important;
+    font-size:11px !important;
+    font-weight:700 !important;
+
+    cursor:pointer !important;
+}
+
+.spmu-verification-workspace
+.spmu-document-tab.is-active {
+    border-bottom-color:#1769e0 !important;
+
+    color:#0b5fc7 !important;
+    background:#ffffff !important;
+}
+
+.spmu-verification-workspace
+.spmu-document-tab:hover:not(:disabled),
+.spmu-verification-workspace
+.spmu-document-tab:focus-visible:not(:disabled) {
+    color:#1769e0 !important;
+    background:#f6f9ff !important;
+}
+
+.spmu-verification-workspace
+.spmu-document-tab:disabled {
+    color:#8a99aa !important;
+    cursor:not-allowed !important;
+}
+
+
+/* =========================================================
+   CHECKLIST → READINESS
+   ========================================================= */
+
+.spmu-verification-workspace
+.spmu-checklist {
+    margin-bottom:0 !important;
+}
+
+.spmu-verification-workspace
+.spmu-review-readiness {
+    --readiness-progress:0%;
+
+    display:grid !important;
+
+    gap:12px !important;
+
+    margin-top:20px !important;
+    padding:16px 17px !important;
+
+    border:1px solid var(--border, #d7dee8) !important;
+    border-radius:10px !important;
+
+    background:#f8fafc !important;
+
+    box-shadow:none !important;
+}
+
+
+/* heading */
+
+.spmu-verification-workspace
+.spmu-review-readiness-heading {
+    display:flex !important;
+    align-items:flex-start !important;
+    justify-content:space-between !important;
+
+    gap:12px !important;
+}
+
+.spmu-verification-workspace
+.spmu-review-readiness-heading .eyebrow {
+    margin:0 0 3px !important;
+
+    color:var(--text-secondary, #526782) !important;
+
+    font-size:9px !important;
+    font-weight:800 !important;
+    letter-spacing:.055em !important;
+}
+
+.spmu-verification-workspace
+.spmu-review-readiness-heading > div > strong {
+    display:block !important;
+
+    color:var(--heading, #102746) !important;
+
+    font-size:12px !important;
+    font-weight:750 !important;
+}
+
+
+/* status */
+
+.spmu-verification-workspace
+.spmu-review-readiness-status {
+    display:inline-flex !important;
+    align-items:center !important;
+
+    min-height:23px !important;
+
+    padding:4px 9px !important;
+
+    border:1px solid #f0c66c !important;
+    border-radius:999px !important;
+
+    background:#fff8e7 !important;
+
+    color:#9a6500 !important;
+
+    font-size:9px !important;
+    font-weight:750 !important;
+}
+
+.spmu-verification-workspace
+.spmu-review-readiness.is-ready
+.spmu-review-readiness-status {
+    border-color:#a9ddbf !important;
+
+    background:#eaf9f0 !important;
+
+    color:#087b55 !important;
+}
+
+
+/* count */
+
+.spmu-verification-workspace
+.spmu-review-readiness-summary {
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+
+    gap:12px !important;
+}
+
+.spmu-verification-workspace
+.spmu-review-readiness-summary strong {
+    color:var(--heading, #102746) !important;
+
+    font-size:11px !important;
+    font-weight:700 !important;
+}
+
+.spmu-verification-workspace
+.spmu-review-readiness-summary span {
+    color:var(--text-secondary, #526782) !important;
+
+    font-size:10px !important;
+    font-weight:700 !important;
+}
+
+
+/* progress */
+
+.spmu-verification-workspace
+.spmu-review-readiness-track {
+    position:relative !important;
+
+    width:100% !important;
+    height:7px !important;
+
+    overflow:hidden !important;
+
+    border-radius:999px !important;
+
+    background:#dce4ee !important;
+}
+
+.spmu-verification-workspace
+.spmu-review-readiness-bar {
+    display:block !important;
+
+    width:var(--readiness-progress) !important;
+    height:100% !important;
+
+    border-radius:inherit !important;
+
+    background:#1769e0 !important;
+
+    transition:width 180ms ease !important;
+}
+
+.spmu-verification-workspace
+.spmu-review-readiness.is-ready
+.spmu-review-readiness-bar {
+    background:#177551 !important;
+}
+
+
+/* message */
+
+.spmu-verification-workspace
+.spmu-review-readiness-message {
+    margin:0 !important;
+
+    color:var(--text-muted, #64748b) !important;
+
+    font-size:10px !important;
+    line-height:1.4 !important;
+}
+
+.spmu-verification-workspace
+.spmu-review-readiness.is-ready
+.spmu-review-readiness-message {
+    color:#087b55 !important;
+    font-weight:600 !important;
+}
+
+
+/* =========================================================
+   KEEP DECISION ACTIONS LOW / BALANCED
+   ========================================================= */
+
+.spmu-verification-workspace
+.spmu-decision-actions {
+    margin-top:auto !important;
+    padding-top:20px !important;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width:680px) {
+
+    .spmu-verification-workspace
+    .spmu-document-tabs {
+        overflow-x:auto !important;
+    }
+
+    .spmu-verification-workspace
+    .spmu-document-tab {
+        white-space:nowrap !important;
+    }
+
+    .spmu-verification-workspace
+    .spmu-review-readiness {
+        margin-top:16px !important;
+    }
+}
+
+
+/* SPMU REVIEW WORKSPACE RECOVERY END */
+</style>
+
+<script>
+/* SPMU REVIEW WORKSPACE RECOVERY SCRIPT START */
+
+(() => {
+    const workspace =
+        document.querySelector('[data-spmu-verification-workspace]');
+
+    if (!workspace) {
+        return;
+    }
+
+
+    /* =====================================================
+       DOCUMENT TABS
+       ===================================================== */
+
+    const tabList =
+        workspace.querySelector('[data-spmu-document-tabs]');
+
+    if (tabList) {
+        const viewer =
+            workspace.querySelector('.spmu-scan-slot .scanned-document-card');
+
+        const header =
+            viewer?.querySelector('.scanned-document-header');
+
+        const frame =
+            viewer?.querySelector('.scanned-pdf-frame');
+
+        /*
+         | Visually place tabs directly below:
+         | "Inspect the signed Borrowing Request Letter"
+         */
+        if (viewer && header && tabList.parentElement !== viewer) {
+            header.insertAdjacentElement('afterend', tabList);
+        }
+
+        const tabs = Array.from(
+            tabList.querySelectorAll('[data-document-tab]')
+        );
+
+        const activate = (tab) => {
+            const documentUrl = tab.dataset.documentUrl;
+
+            if (
+                tab.disabled ||
+                !documentUrl ||
+                !frame
+            ) {
+                return;
+            }
+
+            tabs.forEach((candidate) => {
+                const active = candidate === tab;
+
+                candidate.classList.toggle(
+                    'is-active',
+                    active
+                );
+
+                candidate.setAttribute(
+                    'aria-selected',
+                    active ? 'true' : 'false'
+                );
+
+                candidate.tabIndex =
+                    active ? 0 : -1;
+            });
+
+            frame.src =
+                documentUrl +
+                '#page=1&zoom=page-fit&toolbar=1&navpanes=0&scrollbar=1&view=Fit';
+        };
+
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                activate(tab);
+            });
+
+            tab.addEventListener('keydown', (event) => {
+                if (
+                    ![
+                        'ArrowLeft',
+                        'ArrowRight',
+                        'Home',
+                        'End'
+                    ].includes(event.key)
+                ) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                const available = tabs.filter(
+                    (candidate) =>
+                        !candidate.disabled &&
+                        candidate.dataset.documentUrl
+                );
+
+                if (available.length === 0) {
+                    return;
+                }
+
+                const current =
+                    available.indexOf(tab);
+
+                let next = current;
+
+                if (event.key === 'ArrowLeft') {
+                    next =
+                        (current - 1 + available.length) %
+                        available.length;
+                }
+
+                if (event.key === 'ArrowRight') {
+                    next =
+                        (current + 1) %
+                        available.length;
+                }
+
+                if (event.key === 'Home') {
+                    next = 0;
+                }
+
+                if (event.key === 'End') {
+                    next = available.length - 1;
+                }
+
+                available[next].focus();
+                activate(available[next]);
+            });
+        });
+    }
+
+
+    /* =====================================================
+       APPROVAL / VERIFICATION READINESS
+       ===================================================== */
+
+    workspace
+        .querySelectorAll('[data-verification-form]')
+        .forEach((form) => {
+
+            const readiness =
+                form.querySelector('[data-review-readiness]');
+
+            if (!readiness) {
+                return;
+            }
+
+            const checks = Array.from(
+                form.querySelectorAll(
+                    '.spmu-checklist input[type="checkbox"][data-verification-check]'
+                )
+            );
+
+            const countNode =
+                readiness.querySelector(
+                    '[data-review-readiness-count]'
+                );
+
+            const percentNode =
+                readiness.querySelector(
+                    '[data-review-readiness-percent]'
+                );
+
+            const statusNode =
+                readiness.querySelector(
+                    '[data-review-readiness-status]'
+                );
+
+            const messageNode =
+                readiness.querySelector(
+                    '[data-review-readiness-message]'
+                );
+
+            const progressNode =
+                readiness.querySelector(
+                    '[data-review-readiness-progress]'
+                );
+
+            const update = () => {
+                const total = checks.length;
+
+                const completed =
+                    checks.filter(
+                        (checkbox) => checkbox.checked
+                    ).length;
+
+                const remaining =
+                    Math.max(0, total - completed);
+
+                const percent =
+                    total > 0
+                        ? Math.round(
+                            completed / total * 100
+                        )
+                        : 0;
+
+                const ready =
+                    total > 0 &&
+                    completed === total;
+
+                readiness.style.setProperty(
+                    '--readiness-progress',
+                    `${percent}%`
+                );
+
+                readiness.classList.toggle(
+                    'is-ready',
+                    ready
+                );
+
+                if (countNode) {
+                    countNode.textContent =
+                        `${completed} of ${total} checks completed`;
+                }
+
+                if (percentNode) {
+                    percentNode.textContent =
+                        `${percent}%`;
+                }
+
+                if (statusNode) {
+                    statusNode.textContent =
+                        ready
+                            ? 'Ready'
+                            : 'In progress';
+                }
+
+                if (messageNode) {
+                    messageNode.textContent =
+                        ready
+                            ? 'All required review checks are complete.'
+                            : (
+                                remaining === 1
+                                    ? '1 review check remaining.'
+                                    : `${remaining} review checks remaining.`
+                            );
+                }
+
+                if (progressNode) {
+                    progressNode.setAttribute(
+                        'aria-valuemax',
+                        String(total)
+                    );
+
+                    progressNode.setAttribute(
+                        'aria-valuenow',
+                        String(completed)
+                    );
+                }
+            };
+
+            checks.forEach((checkbox) => {
+                checkbox.addEventListener(
+                    'change',
+                    update
+                );
+            });
+
+            update();
+        });
+})();
+
+/* SPMU REVIEW WORKSPACE RECOVERY SCRIPT END */
+</script>
+
+<style>
+/* ADMIN REQUEST DETAILS CLEAN START */
+
+/*
+ | Clean request details presentation.
+ | Keep the original request data; presentation only.
+ */
+
+.spmu-verification-workspace
+.spmu-left-borrowing-info
+.spmu-left-borrowing-grid-clean {
+    display:grid !important;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr)) !important;
+
+    column-gap:46px !important;
+    row-gap:25px !important;
+
+    width:100% !important;
+
+    padding:22px 20px 24px !important;
+
+    border:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+}
+
+
+/* ---------------------------------------------------------
+   Remove the previous table/cell appearance
+   --------------------------------------------------------- */
+
+.spmu-verification-workspace
+.spmu-left-borrowing-grid-clean
+.spmu-left-borrowing-cell {
+    min-width:0 !important;
+
+    display:block !important;
+
+    margin:0 !important;
+    padding:0 !important;
+
+    border:0 !important;
+    border-radius:0 !important;
+
+    background:transparent !important;
+    box-shadow:none !important;
+}
+
+
+/* ---------------------------------------------------------
+   Label
+   --------------------------------------------------------- */
+
+.spmu-verification-workspace
+.spmu-left-borrowing-grid-clean
+.spmu-left-borrowing-cell > span {
+    display:block !important;
+
+    margin:0 0 6px !important;
+    padding:0 !important;
+
+    color:var(--text-secondary, #526782) !important;
+
+    font-size:11.5px !important;
+    font-weight:500 !important;
+    line-height:1.35 !important;
+
+    text-transform:none !important;
+    letter-spacing:0 !important;
+}
+
+
+/* ---------------------------------------------------------
+   Value
+   --------------------------------------------------------- */
+
+.spmu-verification-workspace
+.spmu-left-borrowing-grid-clean
+.spmu-left-borrowing-cell > strong {
+    display:block !important;
+
+    width:auto !important;
+    max-width:100% !important;
+
+    margin:0 !important;
+    padding:0 !important;
+
+    color:var(--heading, #0f2744) !important;
+
+    font-size:13.5px !important;
+    font-weight:750 !important;
+    line-height:1.45 !important;
+
+    overflow-wrap:anywhere !important;
+
+    border:0 !important;
+    background:transparent !important;
+}
+
+
+/* ---------------------------------------------------------
+   Header remains separate and clean
+   --------------------------------------------------------- */
+
+.spmu-verification-workspace
+.spmu-left-borrowing-info
+.card-header {
+    margin-bottom:0 !important;
+}
+
+
+/* ---------------------------------------------------------
+   Responsive
+   --------------------------------------------------------- */
+
+@media (max-width:760px) {
+
+    .spmu-verification-workspace
+    .spmu-left-borrowing-info
+    .spmu-left-borrowing-grid-clean {
+        grid-template-columns:1fr !important;
+
+        column-gap:0 !important;
+        row-gap:20px !important;
+
+        padding:20px 16px 22px !important;
+    }
+
+}
+
+/* ADMIN REQUEST DETAILS CLEAN END */
+</style>
+
 @endsection

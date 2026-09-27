@@ -813,3 +813,618 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     padding: 15px 18px;
 }
 </style>
+
+<style>
+/* MY OBLIGATIONS FULL COLOR KPI START */
+
+/*
+ | Exact visual alignment with the main role dashboard KPI cards.
+ | Presentation only.
+ */
+
+/* ============================================================
+   GRID
+   ============================================================ */
+
+.ob-workspace .ob-summary {
+    display:grid !important;
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+    gap:12px !important;
+    width:100% !important;
+}
+
+
+/* ============================================================
+   CARD
+   ============================================================ */
+
+.ob-workspace .ob-summary-card {
+    --ob-from:#32a5f5;
+    --ob-mid:#1479ea;
+    --ob-to:#075fd3;
+    --ob-shadow:rgba(20,121,234,.20);
+
+    position:relative !important;
+
+    display:grid !important;
+    grid-template-columns:52px minmax(0,1fr) !important;
+    grid-template-rows:auto auto auto !important;
+
+    column-gap:12px !important;
+    row-gap:2px !important;
+
+    align-content:center !important;
+
+    min-width:0 !important;
+
+    height:132px !important;
+    min-height:132px !important;
+
+    padding:16px 43px 16px 20px !important;
+
+    overflow:hidden !important;
+
+    border:0 !important;
+    border-radius:11px !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--ob-from) 0%,
+            var(--ob-mid) 55%,
+            var(--ob-to) 100%
+        ) !important;
+
+    color:#fff !important;
+
+    box-shadow:
+        0 4px 12px var(--ob-shadow) !important;
+
+    text-decoration:none !important;
+
+    opacity:1 !important;
+    transform:none !important;
+
+    transition:
+        transform 160ms ease,
+        box-shadow 160ms ease !important;
+}
+
+
+/* ============================================================
+   DASHBOARD LOWER CURVE
+   ============================================================ */
+
+.ob-workspace .ob-summary-card::before {
+    content:"" !important;
+
+    position:absolute !important;
+
+    right:-28px !important;
+    bottom:-58px !important;
+
+    width:180px !important;
+    height:88px !important;
+
+    border-radius:55% 0 0 0 !important;
+
+    background:rgba(255,255,255,.085) !important;
+
+    transform:rotate(-5deg) !important;
+
+    pointer-events:none !important;
+}
+
+
+/* ============================================================
+   DASHBOARD ARROW
+   ============================================================ */
+
+.ob-workspace .ob-summary-card::after {
+    content:"→" !important;
+
+    position:absolute !important;
+    top:14px !important;
+    right:13px !important;
+
+    display:grid !important;
+    place-items:center !important;
+
+    width:30px !important;
+    height:30px !important;
+
+    border:1px solid rgba(255,255,255,.15) !important;
+    border-radius:50% !important;
+
+    background:rgba(255,255,255,.12) !important;
+
+    color:#fff !important;
+
+    font-size:14px !important;
+    font-weight:700 !important;
+    line-height:1 !important;
+
+    pointer-events:none !important;
+
+    transition:
+        background 160ms ease,
+        transform 160ms ease !important;
+}
+
+.ob-workspace .ob-summary-card > * {
+    position:relative !important;
+    z-index:1 !important;
+}
+
+
+/* ============================================================
+   UNIVERSAL DASHBOARD SEMANTIC COLORS
+   ============================================================ */
+
+/*
+ | RED
+ | Active Obligations = same metric and same semantic treatment
+ | as the Borrower Dashboard.
+ */
+.ob-workspace .ob-summary-card.is-info {
+    --ob-from:#fb5d5d;
+    --ob-mid:#ea3939;
+    --ob-to:#c92525;
+    --ob-shadow:rgba(234,57,57,.20);
+}
+
+
+/*
+ | BLUE
+ | Needs My Action = primary/current action.
+ */
+.ob-workspace .ob-summary-card.is-warning {
+    --ob-from:#32a5f5;
+    --ob-mid:#1479ea;
+    --ob-to:#075fd3;
+    --ob-shadow:rgba(20,121,234,.20);
+}
+
+
+/*
+ | AMBER
+ | Amount Due = financial warning / outstanding amount.
+ */
+.ob-workspace .ob-summary-card.is-orange {
+    --ob-from:#ffc443;
+    --ob-mid:#f6a10c;
+    --ob-to:#dc7b00;
+    --ob-shadow:rgba(246,161,12,.21);
+}
+
+
+/*
+ | GREEN
+ | Borrowing status clear.
+ */
+.ob-workspace .ob-summary-card.is-success {
+    --ob-from:#2acb9e;
+    --ob-mid:#12ab83;
+    --ob-to:#087b69;
+    --ob-shadow:rgba(18,171,131,.20);
+}
+
+
+/*
+ | If Borrowing Status becomes restricted, its existing Blade
+ | changes the tone to warning. Since "warning" above is used by
+ | Needs My Action, override the last card specifically to amber.
+ */
+.ob-workspace .ob-summary-card:last-child.is-warning {
+    --ob-from:#ffc443;
+    --ob-mid:#f6a10c;
+    --ob-to:#dc7b00;
+    --ob-shadow:rgba(246,161,12,.21);
+}
+
+
+/* Future danger support */
+.ob-workspace .ob-summary-card.is-danger {
+    --ob-from:#fb5d5d;
+    --ob-mid:#ea3939;
+    --ob-to:#c92525;
+    --ob-shadow:rgba(234,57,57,.20);
+}
+
+
+/* ============================================================
+   ICON
+   ============================================================ */
+
+.ob-workspace .ob-summary-icon {
+    grid-column:1 !important;
+    grid-row:1 / span 3 !important;
+
+    display:grid !important;
+
+    width:52px !important;
+    height:52px !important;
+
+    place-items:center !important;
+    align-self:center !important;
+
+    margin:0 !important;
+    padding:0 !important;
+
+    border:1px solid rgba(255,255,255,.42) !important;
+    border-radius:50% !important;
+
+    background:rgba(255,255,255,.12) !important;
+
+    color:#fff !important;
+}
+
+.ob-workspace .ob-summary-icon svg,
+.ob-workspace .ob-summary-icon .ui-icon {
+    width:20px !important;
+    height:20px !important;
+    color:#fff !important;
+}
+
+
+/* ============================================================
+   LABEL
+   ============================================================ */
+
+.ob-workspace .ob-summary-label {
+    grid-column:2 !important;
+    grid-row:1 !important;
+
+    align-self:end !important;
+
+    min-width:0 !important;
+    margin:0 !important;
+
+    color:#fff !important;
+
+    font-size:12px !important;
+    font-weight:800 !important;
+    line-height:1.25 !important;
+
+    letter-spacing:0 !important;
+    text-transform:none !important;
+
+    display:-webkit-box !important;
+    -webkit-box-orient:vertical !important;
+    -webkit-line-clamp:2 !important;
+
+    overflow:hidden !important;
+}
+
+
+/* ============================================================
+   VALUE
+   ============================================================ */
+
+.ob-workspace .ob-summary-value {
+    grid-column:2 !important;
+    grid-row:2 !important;
+
+    min-width:0 !important;
+
+    margin:2px 0 0 !important;
+
+    color:#fff !important;
+
+    font-size:29px !important;
+    font-weight:800 !important;
+    line-height:1.05 !important;
+
+    letter-spacing:-.02em !important;
+
+    font-variant-numeric:tabular-nums !important;
+
+    white-space:nowrap !important;
+}
+
+
+/* Amount Due */
+.ob-workspace .ob-summary-card.is-orange .ob-summary-value {
+    font-size:28px !important;
+}
+
+
+/* ============================================================
+   NOTE
+   ============================================================ */
+
+.ob-workspace .ob-summary-note {
+    grid-column:2 !important;
+    grid-row:3 !important;
+
+    min-width:0 !important;
+
+    margin:2px 0 0 !important;
+
+    color:rgba(255,255,255,.96) !important;
+
+    font-size:10.5px !important;
+    font-weight:600 !important;
+    line-height:1.3 !important;
+
+    display:-webkit-box !important;
+    -webkit-box-orient:vertical !important;
+    -webkit-line-clamp:2 !important;
+
+    overflow:hidden !important;
+}
+
+
+/* ============================================================
+   HOVER
+   ============================================================ */
+
+.ob-workspace .ob-summary-card:hover {
+    background:
+        linear-gradient(
+            135deg,
+            var(--ob-from) 0%,
+            var(--ob-mid) 55%,
+            var(--ob-to) 100%
+        ) !important;
+
+    color:#fff !important;
+
+    transform:translateY(-1px) !important;
+
+    box-shadow:
+        0 7px 17px var(--ob-shadow) !important;
+}
+
+.ob-workspace .ob-summary-card:hover::after {
+    background:rgba(255,255,255,.20) !important;
+    transform:translateX(1px) !important;
+}
+
+
+/* ============================================================
+   REMOVE FILTER-SELECTION VISUAL DIFFERENCE
+   ============================================================ */
+
+/*
+ | The URL focus behavior still works.
+ | We only remove the special yellow/white outline so cards remain
+ | visually identical to dashboard cards.
+ */
+
+.ob-workspace .ob-summary-card.is-selected,
+.ob-workspace .ob-summary-card[aria-current="true"] {
+    outline:0 !important;
+    border:0 !important;
+
+    box-shadow:
+        0 4px 12px var(--ob-shadow) !important;
+}
+
+.ob-workspace .ob-summary-card.is-selected:hover,
+.ob-workspace .ob-summary-card[aria-current="true"]:hover {
+    box-shadow:
+        0 7px 17px var(--ob-shadow) !important;
+}
+
+
+/* keyboard accessibility remains visible */
+.ob-workspace .ob-summary-card:focus-visible {
+    outline:2px solid rgba(255,255,255,.95) !important;
+    outline-offset:2px !important;
+}
+
+
+/* Zero values retain full semantic color */
+.ob-workspace .ob-summary-card.is-empty {
+    opacity:1 !important;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width:1100px) {
+
+    .ob-workspace .ob-summary {
+        grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    }
+
+}
+
+@media (max-width:680px) {
+
+    .ob-workspace .ob-summary {
+        grid-template-columns:1fr !important;
+        gap:10px !important;
+    }
+
+    .ob-workspace .ob-summary-card {
+        height:auto !important;
+        min-height:124px !important;
+    }
+
+}
+
+@media (prefers-reduced-motion:reduce) {
+
+    .ob-workspace .ob-summary-card,
+    .ob-workspace .ob-summary-card::after {
+        transition:none !important;
+    }
+
+    .ob-workspace .ob-summary-card:hover {
+        transform:none !important;
+    }
+
+}
+
+/* MY OBLIGATIONS FULL COLOR KPI END */
+</style>
+
+<style>
+/* MY OBLIGATIONS ALL CLEAR PANEL START */
+
+.ob-workspace
+.ob-clear-card.ob-all-clear-card {
+    position:relative !important;
+
+    display:grid !important;
+    grid-template-columns:42px minmax(0,1fr) auto !important;
+
+    align-items:center !important;
+
+    gap:14px !important;
+
+    min-height:76px !important;
+
+    margin:0 !important;
+    padding:14px 17px !important;
+
+    overflow:hidden !important;
+
+    border:1px solid var(--border) !important;
+    border-left:3px solid #16825d !important;
+    border-radius:11px !important;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(22,130,93,.055) 0%,
+            rgba(255,255,255,.98) 42%,
+            #fff 100%
+        ) !important;
+
+    box-shadow:
+        0 1px 3px rgba(15,23,42,.04) !important;
+
+    color:inherit !important;
+}
+
+
+/* ICON */
+
+.ob-workspace
+.ob-all-clear-icon {
+    display:grid !important;
+    place-items:center !important;
+
+    width:40px !important;
+    height:40px !important;
+
+    border:1px solid rgba(22,130,93,.24) !important;
+    border-radius:50% !important;
+
+    background:#ecfdf5 !important;
+
+    color:#087b55 !important;
+}
+
+.ob-workspace
+.ob-all-clear-icon svg,
+.ob-workspace
+.ob-all-clear-icon .ui-icon {
+    width:22px !important;
+    height:22px !important;
+
+    color:#087b55 !important;
+}
+
+
+/* COPY */
+
+.ob-workspace
+.ob-all-clear-copy {
+    min-width:0 !important;
+}
+
+.ob-workspace
+.ob-all-clear-copy strong {
+    display:block !important;
+
+    margin:0 !important;
+
+    color:var(--heading) !important;
+
+    font-size:13.5px !important;
+    font-weight:800 !important;
+    line-height:1.35 !important;
+}
+
+.ob-workspace
+.ob-all-clear-copy p {
+    max-width:760px !important;
+
+    margin:4px 0 0 !important;
+
+    color:var(--text-muted) !important;
+
+    font-size:11px !important;
+    line-height:1.45 !important;
+}
+
+
+/* VIEW HISTORY */
+
+.ob-workspace
+.ob-all-clear-history {
+    display:inline-flex !important;
+    align-items:center !important;
+
+    gap:6px !important;
+
+    padding:7px 10px !important;
+
+    border-radius:8px !important;
+
+    color:#087b55 !important;
+    background:transparent !important;
+
+    font-size:11px !important;
+    font-weight:750 !important;
+
+    text-decoration:none !important;
+    white-space:nowrap !important;
+}
+
+.ob-workspace
+.ob-all-clear-history:hover {
+    background:rgba(22,130,93,.06) !important;
+    color:#075f46 !important;
+}
+
+
+#obligation-history {
+    scroll-margin-top:
+        calc(var(--topbar-height, 64px) + 16px) !important;
+}
+
+
+@media (max-width:680px) {
+
+    .ob-workspace
+    .ob-clear-card.ob-all-clear-card {
+        grid-template-columns:38px minmax(0,1fr) !important;
+
+        gap:11px !important;
+
+        padding:13px 14px !important;
+    }
+
+    .ob-workspace
+    .ob-all-clear-icon {
+        width:38px !important;
+        height:38px !important;
+    }
+
+    .ob-workspace
+    .ob-all-clear-history {
+        grid-column:2 !important;
+        justify-self:start !important;
+        padding-left:0 !important;
+    }
+}
+
+/* MY OBLIGATIONS ALL CLEAR PANEL END */
+</style>

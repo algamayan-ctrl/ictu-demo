@@ -198,9 +198,9 @@
 @endphp
 
 {{-- Headline state ------------------------------------------------------- --}}
-<div class="analytics-kpis">
+<div class="analytics-kpis analytics-kpis-forecast">
     <a
-        class="analytics-kpi-card tone-quantity"
+        class="analytics-kpi-card tone-attention"
         href="{{ App\Support\AnalyticsDetailLink::to('card', 'predictive', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'forecast.readiness']) }}"
     >
         <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="clipboard-check" size="19" /></span>
@@ -229,7 +229,7 @@
     </a>
 
     <a
-        class="analytics-kpi-card tone-available"
+        class="analytics-kpi-card {{ $hasDemand ? 'tone-requests' : 'tone-stock' }}"
         href="{{ AnalyticsDetailLink::to('forecast', 'predictive', $periodSelection, $division, $unit, ['metric' => 'demand']) }}"
         aria-label="View how the demand forecast was produced"
     >
@@ -245,7 +245,7 @@
     </a>
 
     <a
-        class="analytics-kpi-card tone-attention"
+        class="analytics-kpi-card {{ ! $hasEquipment ? 'tone-stock' : ((($equipmentForecast['at_risk_count'] ?? 0) > 0) ? 'tone-attention' : 'tone-available') }}"
         href="{{ AnalyticsDetailLink::to('forecast', 'predictive', $periodSelection, $division, $unit, ['metric' => 'equipment']) }}"
         aria-label="View equipment coverage against expected demand"
     >

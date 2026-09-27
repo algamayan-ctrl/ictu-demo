@@ -677,6 +677,453 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     ];
 @endphp
 
+<style>
+/* ACCOUNTABILITY UNIVERSAL KPI DASHBOARD START */
+
+/*
+ | Match the full-color KPI cards used by the role dashboards.
+ | Presentation only. No accountability business logic is changed.
+ */
+
+/* ============================================================
+   GRID
+   ============================================================ */
+
+.accountability-overview {
+    display:grid !important;
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+    gap:13px !important;
+    width:100% !important;
+    margin:0 0 16px !important;
+}
+
+
+/* ============================================================
+   CARD BASE
+   ============================================================ */
+
+.accountability-overview .accountability-overview-card {
+    --accountability-start:#32a5f5;
+    --accountability-mid:#1479ea;
+    --accountability-end:#075fd3;
+    --accountability-shadow:rgba(20,121,234,.22);
+
+    position:relative !important;
+
+    display:grid !important;
+    grid-template-columns:54px minmax(0,1fr) !important;
+    grid-template-rows:auto auto auto !important;
+
+    column-gap:14px !important;
+    row-gap:2px !important;
+
+    align-content:center !important;
+
+    min-width:0 !important;
+    min-height:138px !important;
+    height:138px !important;
+
+    padding:18px 46px 18px 20px !important;
+
+    overflow:hidden !important;
+
+    border:0 !important;
+    border-radius:12px !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--accountability-start) 0%,
+            var(--accountability-mid) 52%,
+            var(--accountability-end) 100%
+        ) !important;
+
+    color:#fff !important;
+
+    box-shadow:
+        0 5px 14px var(--accountability-shadow) !important;
+
+    text-decoration:none !important;
+
+    transform:none !important;
+
+    transition:
+        transform 160ms ease,
+        box-shadow 160ms ease !important;
+}
+
+
+/* ============================================================
+   DECORATIVE LOWER-RIGHT HIGHLIGHT
+   ============================================================ */
+
+.accountability-overview .accountability-overview-card::before {
+    content:"" !important;
+
+    position:absolute !important;
+
+    right:-30px !important;
+    bottom:-55px !important;
+
+    width:190px !important;
+    height:90px !important;
+
+    display:block !important;
+
+    border-radius:50% 0 0 0 !important;
+
+    background:rgba(255,255,255,.08) !important;
+
+    transform:rotate(-5deg) !important;
+
+    pointer-events:none !important;
+}
+
+
+/* remove old top-border/decorative treatment */
+.accountability-overview .accountability-overview-card::after {
+    content:none !important;
+    display:none !important;
+}
+
+
+/* Keep content over decorative background */
+.accountability-overview .accountability-overview-card > * {
+    position:relative !important;
+    z-index:1 !important;
+}
+
+
+/* ============================================================
+   SEMANTIC COLORS
+   ============================================================ */
+
+/* BLUE — Open Accountability Cases */
+.accountability-overview
+.accountability-overview-card.tone-open {
+    --accountability-start:#32a5f5;
+    --accountability-mid:#1479ea;
+    --accountability-end:#075fd3;
+    --accountability-shadow:rgba(20,121,234,.22);
+}
+
+
+/* RED — Items Still Overdue */
+.accountability-overview
+.accountability-overview-card.tone-overdue {
+    --accountability-start:#fb5d5d;
+    --accountability-mid:#ea3939;
+    --accountability-end:#c92525;
+    --accountability-shadow:rgba(234,57,57,.22);
+}
+
+
+/* AMBER — Outstanding Balance */
+.accountability-overview
+.accountability-overview-card.tone-balance {
+    --accountability-start:#ffc443;
+    --accountability-mid:#f6a10c;
+    --accountability-end:#dc7b00;
+    --accountability-shadow:rgba(246,161,12,.23);
+}
+
+
+/* GREEN — Resolved This Period */
+.accountability-overview
+.accountability-overview-card.tone-resolved {
+    --accountability-start:#2acb9e;
+    --accountability-mid:#12ab83;
+    --accountability-end:#087b69;
+    --accountability-shadow:rgba(18,171,131,.22);
+}
+
+
+/* ============================================================
+   ICON CIRCLE
+   ============================================================ */
+
+.accountability-overview .accountability-overview-icon {
+    grid-column:1 !important;
+    grid-row:1 / span 3 !important;
+
+    display:grid !important;
+
+    width:54px !important;
+    height:54px !important;
+
+    place-items:center !important;
+    align-self:center !important;
+
+    margin:0 !important;
+    padding:0 !important;
+
+    border:1px solid rgba(255,255,255,.42) !important;
+    border-radius:50% !important;
+
+    background:rgba(255,255,255,.13) !important;
+
+    color:#fff !important;
+
+    box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.04) !important;
+
+    backdrop-filter:blur(2px) !important;
+}
+
+.accountability-overview
+.accountability-overview-icon svg,
+.accountability-overview
+.accountability-overview-icon .ui-icon {
+    width:21px !important;
+    height:21px !important;
+
+    color:#fff !important;
+}
+
+
+/* ============================================================
+   LABEL
+   ============================================================ */
+
+.accountability-overview .accountability-overview-label {
+    grid-column:2 !important;
+    grid-row:1 !important;
+
+    align-self:end !important;
+
+    min-width:0 !important;
+    max-width:calc(100% - 10px) !important;
+
+    margin:0 !important;
+
+    color:#fff !important;
+
+    font-size:12px !important;
+    font-weight:800 !important;
+    line-height:1.25 !important;
+
+    letter-spacing:0 !important;
+    text-transform:none !important;
+
+    display:-webkit-box !important;
+    -webkit-box-orient:vertical !important;
+    -webkit-line-clamp:2 !important;
+
+    overflow:hidden !important;
+}
+
+
+/* ============================================================
+   KPI VALUE
+   ============================================================ */
+
+.accountability-overview .accountability-overview-value {
+    grid-column:2 !important;
+    grid-row:2 !important;
+
+    align-self:center !important;
+
+    min-width:0 !important;
+
+    margin:2px 0 0 !important;
+
+    color:#fff !important;
+
+    font-size:30px !important;
+    font-weight:800 !important;
+    line-height:1.05 !important;
+
+    letter-spacing:-.02em !important;
+
+    font-variant-numeric:tabular-nums !important;
+
+    white-space:nowrap !important;
+
+    text-shadow:
+        0 1px 1px rgba(0,0,0,.06) !important;
+}
+
+
+/* slightly smaller only because PHP value is longer */
+.accountability-overview
+.accountability-overview-card.tone-balance
+.accountability-overview-value {
+    font-size:28px !important;
+}
+
+
+/* ============================================================
+   NOTE
+   ============================================================ */
+
+.accountability-overview .accountability-overview-note {
+    grid-column:2 !important;
+    grid-row:3 !important;
+
+    align-self:start !important;
+
+    min-width:0 !important;
+
+    margin:2px 0 0 !important;
+
+    color:rgba(255,255,255,.96) !important;
+
+    font-size:10.5px !important;
+    font-weight:600 !important;
+    line-height:1.3 !important;
+
+    display:-webkit-box !important;
+    -webkit-box-orient:vertical !important;
+    -webkit-line-clamp:2 !important;
+
+    overflow:hidden !important;
+}
+
+
+/* ============================================================
+   UPPER-RIGHT ARROW CIRCLE
+   ============================================================ */
+
+.accountability-overview .accountability-overview-arrow {
+    position:absolute !important;
+
+    top:14px !important;
+    right:13px !important;
+
+    display:grid !important;
+
+    width:30px !important;
+    height:30px !important;
+
+    padding:7px !important;
+
+    border:1px solid rgba(255,255,255,.14) !important;
+    border-radius:50% !important;
+
+    background:rgba(255,255,255,.12) !important;
+
+    color:#fff !important;
+
+    opacity:1 !important;
+
+    transition:
+        transform 160ms ease,
+        background 160ms ease !important;
+}
+
+
+/* ============================================================
+   HOVER / FOCUS
+   ============================================================ */
+
+.accountability-overview a.accountability-overview-card {
+    cursor:pointer !important;
+}
+
+.accountability-overview a.accountability-overview-card:hover {
+    color:#fff !important;
+
+    box-shadow:
+        0 9px 22px var(--accountability-shadow) !important;
+
+    transform:translateY(-2px) !important;
+}
+
+.accountability-overview
+a.accountability-overview-card:hover
+.accountability-overview-arrow {
+    background:rgba(255,255,255,.20) !important;
+    transform:translateX(2px) !important;
+}
+
+.accountability-overview
+a.accountability-overview-card:focus-visible {
+    outline:3px solid rgba(255,255,255,.9) !important;
+    outline-offset:2px !important;
+}
+
+
+/* ============================================================
+   STATIC CARD SUPPORT
+   ============================================================ */
+
+.accountability-overview
+.accountability-overview-card.is-static {
+    cursor:default !important;
+}
+
+.accountability-overview
+.accountability-overview-card.is-static:hover {
+    transform:none !important;
+
+    box-shadow:
+        0 5px 14px var(--accountability-shadow) !important;
+}
+
+
+/* neutralize older emphasis variation */
+.accountability-overview
+.accountability-overview-card.has-emphasis {
+    filter:none !important;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width:1100px) {
+
+    .accountability-overview {
+        grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    }
+
+}
+
+
+@media (max-width:680px) {
+
+    .accountability-overview {
+        grid-template-columns:1fr !important;
+        gap:10px !important;
+    }
+
+    .accountability-overview
+    .accountability-overview-card {
+        min-height:128px !important;
+        height:auto !important;
+
+        padding:17px 46px 17px 18px !important;
+    }
+
+}
+
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion:reduce) {
+
+    .accountability-overview
+    .accountability-overview-card,
+
+    .accountability-overview
+    .accountability-overview-arrow {
+        transition:none !important;
+    }
+
+    .accountability-overview
+    a.accountability-overview-card:hover {
+        transform:none !important;
+    }
+
+}
+
+
+/* ACCOUNTABILITY UNIVERSAL KPI DASHBOARD END */
+</style>
+
 <section class="accountability-overview" aria-label="Accountability summary">
     @foreach($summaryCards as $card)
         <a

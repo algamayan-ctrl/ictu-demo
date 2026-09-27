@@ -163,6 +163,8 @@
 
 <div class="my-requests">
     @if($requests->isEmpty())
+        @include('requests.partials.my-requests-toolbar')
+
         @include('requests.partials.my-requests-empty')
     @else
         @include('requests.partials.my-requests-toolbar')

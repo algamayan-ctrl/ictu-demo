@@ -106,9 +106,9 @@
 @endphp
 
 {{-- Headline figures ------------------------------------------------- --}}
-<div class="analytics-kpis">
+<div class="analytics-kpis analytics-kpis-returns">
     <a
-        class="analytics-kpi-card tone-ontime"
+        class="analytics-kpi-card tone-accountability"
         href="{{ AnalyticsDetailLink::to('returns', 'returns', $periodSelection, $division, $unit, ['state' => 'on-time']) }}"
     >
         <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="check-circle" size="19" /></span>
@@ -136,7 +136,7 @@
     </a>
 
     <a
-        class="analytics-kpi-card tone-stock"
+        class="analytics-kpi-card tone-overdue"
         href="{{ AnalyticsDetailLink::to('follow-up', 'returns', $periodSelection, $division, $unit) }}"
     >
         <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="warning" size="19" /></span>
@@ -146,7 +146,7 @@
     </a>
 
     <a
-        class="analytics-kpi-card tone-custody"
+        class="analytics-kpi-card tone-attention"
         href="{{ AnalyticsDetailLink::to('card', 'returns', $periodSelection, $division, $unit, ['for' => 'returns.issues']) }}"
     >
         <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="accountability" size="19" /></span>

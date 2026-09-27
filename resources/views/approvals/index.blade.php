@@ -25,6 +25,47 @@
         </a>
     </section>
 
+    @if($mode === 'ACTION_OFFICER_VERIFICATION' || $requests->isNotEmpty())
+<div class="approval-queue-filters {{ $mode === 'ACTION_OFFICER_VERIFICATION' ? 'is-verification record-browser-toolbar' : '' }}">
+            <label class="{{ $mode === 'ACTION_OFFICER_VERIFICATION' ? 'record-browser-search' : '' }}">
+                Search
+                <span class="search-input-shell">
+                    <span class="search-input-icon" aria-hidden="true"><x-icon name="search" size="17" /></span>
+                    <input
+                        id="approval-queue-search"
+                        type="search"
+                        placeholder="Search request no., borrower, event, or item..."
+                        autocomplete="off"
+                    >
+                </span>
+            </label>
+
+            @if($mode === 'ACTION_OFFICER_VERIFICATION')
+                <label>
+                    Status
+                    <select id="approval-queue-status">
+                        <option value="">All statuses</option>
+                        <option value="review">For review</option>
+                        <option value="attention">Needs attention</option>
+                    </select>
+                </label>
+            @endif
+
+            <label>
+                Sort
+                <select id="approval-queue-sort">
+                    @if($mode === 'ACTION_OFFICER_VERIFICATION')
+                        <option value="newest">Newest first</option>
+                        <option value="oldest">Oldest first</option>
+                    @else
+                        <option value="oldest">Oldest submitted</option>
+                        <option value="newest">Newest submitted</option>
+                    @endif
+                </select>
+            </label>
+        </div>
+    @endif
+
     @if($requests->isEmpty())
         @include('approvals.partials.queue-empty', [
             'emptyId' => null,
@@ -38,28 +79,6 @@
                 : 'On-campus submissions and Action Officer-verified off-campus requests will appear here.',
         ])
     @else
-        <div class="approval-queue-filters">
-            <label>
-                Search
-                <span class="search-input-shell">
-                    <span class="search-input-icon" aria-hidden="true"><x-icon name="search" size="17" /></span>
-                    <input
-                        id="approval-queue-search"
-                        type="search"
-                        placeholder="Search request no., borrower, event, or item..."
-                        autocomplete="off"
-                    >
-                </span>
-            </label>
-
-            <label>
-                Sort
-                <select id="approval-queue-sort">
-                    <option value="oldest">Oldest submitted</option>
-                    <option value="newest">Newest submitted</option>
-                </select>
-            </label>
-        </div>
 
         <section class="card approval-queue-card" aria-labelledby="approval-queue-title">
             <h2 class="approval-queue-card-heading" id="approval-queue-title">

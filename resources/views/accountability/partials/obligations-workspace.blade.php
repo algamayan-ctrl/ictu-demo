@@ -277,18 +277,55 @@
             No outstanding obligations match the search criteria.
         </div>
     @else
-        <article class="ob-clear-card" id="obligations-empty">
-            <span aria-hidden="true"><x-icon name="check-circle" size="34" /></span>
-            <div>
-                <strong>{{ $focusMeta[1] }}</strong>
-                <p>{{ $focusMeta[2] }}</p>
-            </div>
-        </article>
+        @if($obligationCount === 0)
+            <article
+    class="ob-clear-card ob-all-clear-card"
+    id="obligations-empty"
+    data-ob-all-clear
+>
+    <span class="ob-all-clear-icon" aria-hidden="true">
+        <x-icon name="check-circle" size="22" />
+    </span>
+
+    <div class="ob-all-clear-copy">
+        <strong>You're all clear</strong>
+
+        @if($resolvedCount > 0)
+            <p>
+                You have no unresolved obligations. Previous resolved records remain available in your history.
+            </p>
+        @else
+            <p>
+                No unresolved property, payment, late-return, or borrowing restriction currently requires your action.
+            </p>
+        @endif
+    </div>
+
+    @if($resolvedCount > 0)
+        <a
+            href="#obligation-history"
+            class="ob-all-clear-history"
+            data-ob-view-history
+        >
+            <span>View History</span>
+            <x-icon name="arrow-right" size="14" />
+        </a>
+    @endif
+</article>
+        @else
+            <article class="ob-clear-card" id="obligations-empty">
+                <span aria-hidden="true"><x-icon name="check-circle" size="34" /></span>
+                <div>
+                    <strong>{{ $focusMeta[1] }}</strong>
+                    <p>{{ $focusMeta[2] }}</p>
+                </div>
+            </article>
+        @endif
     @endif
     </div>
 
     @if($resolvedCount > 0)
-        <details class="ob-resolved-history-disclosure">
+        <details class="ob-resolved-history-disclosure" id="obligation-history">
             <summary>
                 <span>Resolved Obligations</span>
                 <span class="ob-resolved-history-meta">
@@ -327,4 +364,45 @@
         if (empty) empty.hidden = visible !== 0;
     });
 })();
+</script>
+
+<script>
+/* OBLIGATIONS ALL CLEAR HISTORY START */
+
+(() => {
+    const workspace =
+        document.querySelector('[data-borrower-accountability-clean]');
+
+    if (!workspace) {
+        return;
+    }
+
+    const trigger =
+        workspace.querySelector('[data-ob-view-history]');
+
+    const history =
+        document.getElementById('obligation-history');
+
+    if (!trigger || !history) {
+        return;
+    }
+
+    trigger.addEventListener('click', (event) => {
+        event.preventDefault();
+
+        if (history.tagName === 'DETAILS') {
+            history.open = true;
+        }
+
+        history.scrollIntoView({
+            behavior:
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                    ? 'auto'
+                    : 'smooth',
+            block: 'start',
+        });
+    });
+})();
+
+/* OBLIGATIONS ALL CLEAR HISTORY END */
 </script>

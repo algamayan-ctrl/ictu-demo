@@ -4747,4 +4747,773 @@ body.analytics-detail-open { overflow: hidden; }
         border-top: 0;
     }
 }
+
+/* ANALYTICS COLORED DASHBOARD CARDS START */
+
+/*
+ * Analytics KPI cards intentionally match the colored Dashboard KPI cards.
+ * Visual only — no Analytics data or behavior is changed.
+ */
+
+.analytics-page .analytics-kpis {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    width: 100% !important;
+}
+
+
+/* =========================================================
+   BASE CARD
+   ========================================================= */
+
+.analytics-page .analytics-kpi-card {
+    --card-from: #2588ef;
+    --card-to: #1769de;
+    --card-shadow: rgba(23, 105, 224, .22);
+
+    position: relative !important;
+
+    display: grid !important;
+    grid-template-columns: 58px minmax(0, 1fr) 30px !important;
+    grid-template-rows: auto auto auto auto !important;
+
+    align-content: center !important;
+    align-items: center !important;
+
+    column-gap: 11px !important;
+    row-gap: 2px !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 138px !important;
+
+    padding: 17px 14px 17px 19px !important;
+
+    overflow: hidden !important;
+
+    border: 0 !important;
+    border-radius: 12px !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--card-from) 0%,
+            var(--card-to) 100%
+        ) !important;
+
+    box-shadow:
+        0 7px 18px var(--card-shadow) !important;
+
+    color: #fff !important;
+    text-decoration: none !important;
+
+    cursor: pointer !important;
+
+    transform: translateY(0) !important;
+
+    transition:
+        transform 160ms ease,
+        box-shadow 160ms ease,
+        filter 160ms ease !important;
+}
+
+
+/* subtle dashboard-style curved highlight at the foot */
+.analytics-page .analytics-kpi-card::before {
+    content: "" !important;
+
+    position: absolute !important;
+
+    right: -28px !important;
+    bottom: -56px !important;
+
+    display: block !important;
+
+    width: 170px !important;
+    height: 78px !important;
+
+    border-radius: 50% !important;
+
+    background: rgba(255, 255, 255, .075) !important;
+
+    pointer-events: none !important;
+}
+
+
+/* second soft layer to avoid a flat color block */
+.analytics-page .analytics-kpi-card::after {
+    content: "" !important;
+
+    position: absolute !important;
+
+    left: -70px !important;
+    top: -80px !important;
+
+    display: block !important;
+
+    width: 180px !important;
+    height: 180px !important;
+
+    border-radius: 50% !important;
+
+    background: rgba(255, 255, 255, .055) !important;
+
+    pointer-events: none !important;
+}
+
+.analytics-page .analytics-kpi-card > * {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+
+/* =========================================================
+   LARGE CIRCULAR ICON
+   ========================================================= */
+
+.analytics-page .analytics-kpi-card-icon {
+    grid-column: 1 !important;
+    grid-row: 1 / span 4 !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    align-self: center !important;
+
+    width: 54px !important;
+    height: 54px !important;
+
+    margin: 0 !important;
+
+    border: 1px solid rgba(255, 255, 255, .40) !important;
+    border-radius: 50% !important;
+
+    background: rgba(255, 255, 255, .09) !important;
+
+    color: #fff !important;
+
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, .04) !important;
+}
+
+
+/* =========================================================
+   LABEL
+   ========================================================= */
+
+.analytics-page .analytics-kpi-card-label {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+
+    align-self: end !important;
+
+    min-width: 0 !important;
+
+    margin: 0 0 1px !important;
+
+    color: #fff !important;
+
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    line-height: 1.22 !important;
+    letter-spacing: 0 !important;
+
+    text-transform: none !important;
+
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+
+    overflow: hidden !important;
+}
+
+
+/* =========================================================
+   VALUE
+   ========================================================= */
+
+.analytics-page .analytics-kpi-card-value {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+
+    margin: 0 !important;
+
+    color: #fff !important;
+
+    font-size: 28px !important;
+    font-weight: 800 !important;
+    line-height: 1.05 !important;
+
+    font-variant-numeric: tabular-nums !important;
+}
+
+.analytics-page .analytics-kpi-card-value.is-text {
+    font-size: 19px !important;
+    line-height: 1.12 !important;
+}
+
+
+/* =========================================================
+   NOTE
+   ========================================================= */
+
+.analytics-page .analytics-kpi-card-note {
+    grid-column: 2 / span 2 !important;
+    grid-row: 3 !important;
+
+    min-width: 0 !important;
+
+    margin: 4px 0 0 !important;
+
+    color: rgba(255, 255, 255, .94) !important;
+
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
+
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+
+    overflow: hidden !important;
+}
+
+
+/* =========================================================
+   PERIOD COMPARISON
+   ========================================================= */
+
+.analytics-page .analytics-kpi-card-meta {
+    grid-column: 2 / span 2 !important;
+    grid-row: 4 !important;
+
+    min-width: 0 !important;
+
+    margin: 3px 0 0 !important;
+
+    color: rgba(255, 255, 255, .78) !important;
+
+    font-size: 9.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+
+/* =========================================================
+   TOP-RIGHT ARROW CIRCLE
+   ========================================================= */
+
+.analytics-page .analytics-kpi-card-arrow {
+    position: absolute !important;
+
+    top: 14px !important;
+    right: 14px !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    width: 29px !important;
+    height: 29px !important;
+
+    padding: 7px !important;
+
+    border: 1px solid rgba(255, 255, 255, .18) !important;
+    border-radius: 50% !important;
+
+    background: rgba(255, 255, 255, .10) !important;
+
+    color: #fff !important;
+
+    opacity: .92 !important;
+
+    box-sizing: border-box !important;
+
+    transform: none !important;
+
+    transition:
+        background 160ms ease,
+        transform 160ms ease !important;
+}
+
+
+/* =========================================================
+   INTERACTION
+   ========================================================= */
+
+.analytics-page .analytics-kpi-card:hover {
+    color: #fff !important;
+
+    filter: brightness(1.025) !important;
+
+    box-shadow:
+        0 10px 22px var(--card-shadow) !important;
+
+    transform: translateY(-2px) !important;
+}
+
+.analytics-page .analytics-kpi-card:hover .analytics-kpi-card-arrow {
+    background: rgba(255, 255, 255, .17) !important;
+    transform: translateX(1px) !important;
+}
+
+.analytics-page .analytics-kpi-card:focus-visible {
+    outline: 3px solid rgba(255, 255, 255, .75) !important;
+    outline-offset: 2px !important;
+}
+
+
+/* =========================================================
+   SEMANTIC DASHBOARD COLORS
+   ========================================================= */
+
+
+/* BLUE — general/request activity */
+.analytics-page .analytics-kpi-card.tone-requests,
+.analytics-page .analytics-kpi-card.tone-released,
+.analytics-page .analytics-kpi-card.tone-quantity {
+    --card-from: #36a4f4;
+    --card-to: #1768de;
+    --card-shadow: rgba(23, 105, 224, .24);
+}
+
+
+/* GREEN — healthy/current/available */
+.analytics-page .analytics-kpi-card.tone-custody,
+.analytics-page .analytics-kpi-card.tone-available,
+.analytics-page .analytics-kpi-card.tone-ontime {
+    --card-from: #2dc6a4;
+    --card-to: #0a987b;
+    --card-shadow: rgba(10, 152, 123, .22);
+}
+
+
+/* RED — overdue/problem/accountability */
+.analytics-page .analytics-kpi-card.tone-overdue,
+.analytics-page .analytics-kpi-card.tone-attention {
+    --card-from: #ff6064;
+    --card-to: #df292f;
+    --card-shadow: rgba(223, 41, 47, .22);
+}
+
+
+/* ORANGE — warning/risk/stock */
+.analytics-page .analytics-kpi-card.tone-stock,
+.analytics-page .analytics-kpi-card.tone-units {
+    --card-from: #ffbc45;
+    --card-to: #ed8b00;
+    --card-shadow: rgba(237, 139, 0, .22);
+}
+
+
+/* =========================================================
+   FORECAST CARDS
+   Prevent older forecast-specific sizing from overriding
+   the universal Dashboard card geometry.
+   ========================================================= */
+
+.analytics-page .analytics-forecast-kpis .analytics-kpi-card {
+    grid-template-columns: 58px minmax(0, 1fr) 30px !important;
+    grid-template-rows: auto auto auto auto !important;
+
+    min-height: 138px !important;
+
+    padding: 17px 14px 17px 19px !important;
+}
+
+.analytics-page .analytics-forecast-kpis .analytics-kpi-card-icon {
+    grid-column: 1 !important;
+    grid-row: 1 / span 4 !important;
+}
+
+.analytics-page .analytics-forecast-kpis .analytics-kpi-card-label {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+}
+
+.analytics-page .analytics-forecast-kpis .analytics-kpi-card-value {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+}
+
+.analytics-page .analytics-forecast-kpis .analytics-kpi-card-note {
+    grid-column: 2 / span 2 !important;
+    grid-row: 3 !important;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1050px) {
+    .analytics-page .analytics-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (max-width: 620px) {
+    .analytics-page .analytics-kpis {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .analytics-page .analytics-kpi-card {
+        min-height: 130px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .analytics-page .analytics-kpi-card,
+    .analytics-page .analytics-kpi-card-arrow {
+        transition: none !important;
+    }
+
+    .analytics-page .analytics-kpi-card:hover,
+    .analytics-page .analytics-kpi-card:hover .analytics-kpi-card-arrow {
+        transform: none !important;
+    }
+}
+
+/* ANALYTICS COLORED DASHBOARD CARDS END */
+
+/* ANALYTICS KPI TYPOGRAPHY START */
+
+/* Label */
+.analytics-page .analytics-kpi-card-label {
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+    letter-spacing: 0 !important;
+}
+
+/* Main numeric value */
+.analytics-page .analytics-kpi-card-value {
+    font-size: 30px !important;
+    font-weight: 800 !important;
+    line-height: 1.05 !important;
+}
+
+/* Text-based KPI values */
+.analytics-page .analytics-kpi-card-value.is-text {
+    font-size: 19px !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+}
+
+/* Supporting description */
+.analytics-page .analytics-kpi-card-note {
+    margin-top: 5px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    line-height: 1.4 !important;
+}
+
+/* Comparison / previous-period text */
+.analytics-page .analytics-kpi-card-meta {
+    margin-top: 4px !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
+}
+
+/* Keep longer labels readable without making cards uneven */
+.analytics-page .analytics-kpi-card-label {
+    -webkit-line-clamp: 2 !important;
+}
+
+.analytics-page .analytics-kpi-card-note {
+    -webkit-line-clamp: 2 !important;
+}
+
+/* ANALYTICS KPI TYPOGRAPHY END */
+
+/* ANALYTICS KPI META VISIBILITY START */
+
+/* Remove previous-period / comparison text under Analytics KPI cards */
+.analytics-page .analytics-kpi-card-meta {
+    display: none !important;
+}
+
+/* Tighten spacing after removing the meta line */
+.analytics-page .analytics-kpi-card-note {
+    margin-bottom: 0 !important;
+}
+
+.analytics-page .analytics-kpi-card {
+    row-gap: 2px !important;
+}
+
+/* ANALYTICS KPI META VISIBILITY END */
+
+/* ANALYTICS UNIQUE ROW COLORS START */
+
+/*
+ * Every 4-card Analytics KPI row uses four visually distinct colors.
+ * Both legacy and current gradient variables are assigned so the palette
+ * remains stable regardless of which KPI visual block is active.
+ */
+
+
+/* BLUE ------------------------------------------------------- */
+.analytics-page .analytics-kpi-card.tone-requests {
+    --card-from: #39a7f4 !important;
+    --card-to: #176bdd !important;
+    --card-shadow: rgba(23, 107, 221, .24) !important;
+
+    --kpi-from: #39a7f4 !important;
+    --kpi-to: #176bdd !important;
+    --kpi-glow: rgba(23, 107, 221, .24) !important;
+}
+
+
+/* PURPLE ----------------------------------------------------- */
+.analytics-page .analytics-kpi-card.tone-quantity,
+.analytics-page .analytics-kpi-card.tone-accountability {
+    --card-from: #8868f4 !important;
+    --card-to: #5c3edb !important;
+    --card-shadow: rgba(92, 62, 219, .23) !important;
+
+    --kpi-from: #8868f4 !important;
+    --kpi-to: #5c3edb !important;
+    --kpi-glow: rgba(92, 62, 219, .23) !important;
+}
+
+
+/* GREEN ------------------------------------------------------ */
+.analytics-page .analytics-kpi-card.tone-released,
+.analytics-page .analytics-kpi-card.tone-custody,
+.analytics-page .analytics-kpi-card.tone-available,
+.analytics-page .analytics-kpi-card.tone-ontime {
+    --card-from: #35c7a4 !important;
+    --card-to: #0c987b !important;
+    --card-shadow: rgba(12, 152, 123, .22) !important;
+
+    --kpi-from: #35c7a4 !important;
+    --kpi-to: #0c987b !important;
+    --kpi-glow: rgba(12, 152, 123, .22) !important;
+}
+
+
+/* ORANGE ----------------------------------------------------- */
+.analytics-page .analytics-kpi-card.tone-units,
+.analytics-page .analytics-kpi-card.tone-stock {
+    --card-from: #ffbd49 !important;
+    --card-to: #ed8d00 !important;
+    --card-shadow: rgba(237, 141, 0, .22) !important;
+
+    --kpi-from: #ffbd49 !important;
+    --kpi-to: #ed8d00 !important;
+    --kpi-glow: rgba(237, 141, 0, .22) !important;
+}
+
+
+/* RED -------------------------------------------------------- */
+.analytics-page .analytics-kpi-card.tone-overdue,
+.analytics-page .analytics-kpi-card.tone-attention {
+    --card-from: #ff6268 !important;
+    --card-to: #df2d36 !important;
+    --card-shadow: rgba(223, 45, 54, .22) !important;
+
+    --kpi-from: #ff6268 !important;
+    --kpi-to: #df2d36 !important;
+    --kpi-glow: rgba(223, 45, 54, .22) !important;
+}
+
+/* ANALYTICS UNIQUE ROW COLORS END */
+
+/* ANALYTICS FORCED UNIQUE KPI PALETTE START */
+
+/*
+ * Final Analytics KPI palette.
+ * These selectors intentionally override tone-based card backgrounds.
+ * Every four-card row has four different colors.
+ */
+
+
+/* ============================================================
+   OVERVIEW
+   Blue | Green | Red | Orange
+   ============================================================ */
+
+.analytics-page .analytics-kpis-overview > .analytics-kpi-card:nth-child(1) {
+    background: linear-gradient(135deg, #39a7f4 0%, #176bdd 100%) !important;
+    --card-shadow: rgba(23,107,221,.24) !important;
+}
+
+.analytics-page .analytics-kpis-overview > .analytics-kpi-card:nth-child(2) {
+    background: linear-gradient(135deg, #35c7a4 0%, #0c987b 100%) !important;
+    --card-shadow: rgba(12,152,123,.23) !important;
+}
+
+.analytics-page .analytics-kpis-overview > .analytics-kpi-card:nth-child(3) {
+    background: linear-gradient(135deg, #ff6268 0%, #df2d36 100%) !important;
+    --card-shadow: rgba(223,45,54,.23) !important;
+}
+
+.analytics-page .analytics-kpis-overview > .analytics-kpi-card:nth-child(4) {
+    background: linear-gradient(135deg, #ffbd49 0%, #ed8d00 100%) !important;
+    --card-shadow: rgba(237,141,0,.23) !important;
+}
+
+
+/* ============================================================
+   DEMAND & UTILIZATION
+   Blue | Purple | Green | Orange
+   ============================================================ */
+
+.analytics-page .analytics-kpis-demand > .analytics-kpi-card:nth-child(1) {
+    background: linear-gradient(135deg, #39a7f4 0%, #176bdd 100%) !important;
+    --card-shadow: rgba(23,107,221,.24) !important;
+}
+
+.analytics-page .analytics-kpis-demand > .analytics-kpi-card:nth-child(2) {
+    background: linear-gradient(135deg, #8c70f6 0%, #5f43df 100%) !important;
+    --card-shadow: rgba(95,67,223,.23) !important;
+}
+
+.analytics-page .analytics-kpis-demand > .analytics-kpi-card:nth-child(3) {
+    background: linear-gradient(135deg, #35c7a4 0%, #0c987b 100%) !important;
+    --card-shadow: rgba(12,152,123,.23) !important;
+}
+
+.analytics-page .analytics-kpis-demand > .analytics-kpi-card:nth-child(4) {
+    background: linear-gradient(135deg, #ffbd49 0%, #ed8d00 100%) !important;
+    --card-shadow: rgba(237,141,0,.23) !important;
+}
+
+
+/* ============================================================
+   INVENTORY HEALTH
+   Green | Purple | Blue | Red
+   ============================================================ */
+
+.analytics-page .analytics-kpis-inventory > .analytics-kpi-card:nth-child(1) {
+    background: linear-gradient(135deg, #35c7a4 0%, #0c987b 100%) !important;
+    --card-shadow: rgba(12,152,123,.23) !important;
+}
+
+.analytics-page .analytics-kpis-inventory > .analytics-kpi-card:nth-child(2) {
+    background: linear-gradient(135deg, #8c70f6 0%, #5f43df 100%) !important;
+    --card-shadow: rgba(95,67,223,.23) !important;
+}
+
+.analytics-page .analytics-kpis-inventory > .analytics-kpi-card:nth-child(3) {
+    background: linear-gradient(135deg, #39a7f4 0%, #176bdd 100%) !important;
+    --card-shadow: rgba(23,107,221,.24) !important;
+}
+
+.analytics-page .analytics-kpis-inventory > .analytics-kpi-card:nth-child(4) {
+    background: linear-gradient(135deg, #ff6268 0%, #df2d36 100%) !important;
+    --card-shadow: rgba(223,45,54,.23) !important;
+}
+
+
+/* ============================================================
+   BORROWING & RETURN PERFORMANCE
+   Green | Red | Orange | Purple
+   ============================================================ */
+
+.analytics-page .analytics-kpis-returns > .analytics-kpi-card:nth-child(1) {
+    background: linear-gradient(135deg, #35c7a4 0%, #0c987b 100%) !important;
+    --card-shadow: rgba(12,152,123,.23) !important;
+}
+
+.analytics-page .analytics-kpis-returns > .analytics-kpi-card:nth-child(2) {
+    background: linear-gradient(135deg, #ff6268 0%, #df2d36 100%) !important;
+    --card-shadow: rgba(223,45,54,.23) !important;
+}
+
+.analytics-page .analytics-kpis-returns > .analytics-kpi-card:nth-child(3) {
+    background: linear-gradient(135deg, #ffbd49 0%, #ed8d00 100%) !important;
+    --card-shadow: rgba(237,141,0,.23) !important;
+}
+
+.analytics-page .analytics-kpis-returns > .analytics-kpi-card:nth-child(4) {
+    background: linear-gradient(135deg, #8c70f6 0%, #5f43df 100%) !important;
+    --card-shadow: rgba(95,67,223,.23) !important;
+}
+
+
+/* ============================================================
+   FORECAST & PLANNING
+   Purple | Blue | Green | Red
+   ============================================================ */
+
+.analytics-page .analytics-kpis-forecast > .analytics-kpi-card:nth-child(1) {
+    background: linear-gradient(135deg, #8c70f6 0%, #5f43df 100%) !important;
+    --card-shadow: rgba(95,67,223,.23) !important;
+}
+
+.analytics-page .analytics-kpis-forecast > .analytics-kpi-card:nth-child(2) {
+    background: linear-gradient(135deg, #39a7f4 0%, #176bdd 100%) !important;
+    --card-shadow: rgba(23,107,221,.24) !important;
+}
+
+.analytics-page .analytics-kpis-forecast > .analytics-kpi-card:nth-child(3) {
+    background: linear-gradient(135deg, #35c7a4 0%, #0c987b 100%) !important;
+    --card-shadow: rgba(12,152,123,.23) !important;
+}
+
+.analytics-page .analytics-kpis-forecast > .analytics-kpi-card:nth-child(4) {
+    background: linear-gradient(135deg, #ff6268 0%, #df2d36 100%) !important;
+    --card-shadow: rgba(223,45,54,.23) !important;
+}
+
+
+/* keep text/icons consistently white regardless of old tone rules */
+.analytics-page
+.analytics-kpis-overview > .analytics-kpi-card,
+.analytics-page
+.analytics-kpis-demand > .analytics-kpi-card,
+.analytics-page
+.analytics-kpis-inventory > .analytics-kpi-card,
+.analytics-page
+.analytics-kpis-returns > .analytics-kpi-card,
+.analytics-page
+.analytics-kpis-forecast > .analytics-kpi-card {
+    color: #fff !important;
+}
+
+.analytics-page
+.analytics-kpis-overview > .analytics-kpi-card .analytics-kpi-card-label,
+.analytics-page
+.analytics-kpis-overview > .analytics-kpi-card .analytics-kpi-card-value,
+.analytics-page
+.analytics-kpis-overview > .analytics-kpi-card .analytics-kpi-card-note,
+
+.analytics-page
+.analytics-kpis-demand > .analytics-kpi-card .analytics-kpi-card-label,
+.analytics-page
+.analytics-kpis-demand > .analytics-kpi-card .analytics-kpi-card-value,
+.analytics-page
+.analytics-kpis-demand > .analytics-kpi-card .analytics-kpi-card-note,
+
+.analytics-page
+.analytics-kpis-inventory > .analytics-kpi-card .analytics-kpi-card-label,
+.analytics-page
+.analytics-kpis-inventory > .analytics-kpi-card .analytics-kpi-card-value,
+.analytics-page
+.analytics-kpis-inventory > .analytics-kpi-card .analytics-kpi-card-note,
+
+.analytics-page
+.analytics-kpis-returns > .analytics-kpi-card .analytics-kpi-card-label,
+.analytics-page
+.analytics-kpis-returns > .analytics-kpi-card .analytics-kpi-card-value,
+.analytics-page
+.analytics-kpis-returns > .analytics-kpi-card .analytics-kpi-card-note,
+
+.analytics-page
+.analytics-kpis-forecast > .analytics-kpi-card .analytics-kpi-card-label,
+.analytics-page
+.analytics-kpis-forecast > .analytics-kpi-card .analytics-kpi-card-value,
+.analytics-page
+.analytics-kpis-forecast > .analytics-kpi-card .analytics-kpi-card-note {
+    color: #fff !important;
+}
+
+/* ANALYTICS FORCED UNIQUE KPI PALETTE END */
 </style>

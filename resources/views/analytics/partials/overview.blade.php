@@ -195,9 +195,9 @@
 @include('analytics.partials.overview-summary-styles')
 
 {{-- Headline figures ------------------------------------------------- --}}
-<div class="analytics-kpis">
+<div class="analytics-kpis analytics-kpis-overview">
     <a
-        class="analytics-kpi-card tone-requests"
+        class="analytics-kpi-card tone-stock"
         href="{{ AnalyticsDetailLink::to('requests', 'overview', $periodSelection, $division, $unit) }}"
     >
         <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="requests" size="19" /></span>

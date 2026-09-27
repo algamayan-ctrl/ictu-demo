@@ -853,7 +853,7 @@
 @include('requests.partials.create-validation-styles')
 
 <section class="page-heading create-request-heading">
-    <div>
+    <div data-esign-modal-note>
         <p class="eyebrow">Borrowing request</p>
 
         <h1>
@@ -1546,20 +1546,20 @@
                         <span class="request-submit-icon" aria-hidden="true"><x-icon name="approval" size="20" /></span>
                         <div>
                             <p class="request-section-label">Confirmation</p>
-                            <h2 id="request-submit-confirmation-title">Confirm E-signature and Submission</h2>
+                            <h2 id="request-submit-confirmation-title" data-esign-modal-title>Confirm E-signature and Submission</h2>
                         </div>
                     </div>
                     <button type="button" class="request-dialog-close" data-cancel-request-submit aria-label="Close confirmation">&times;</button>
                 </div>
                 <div class="request-dialog-body">
-                    <p>You are about to submit this request to SPMU using your registered E-signature.</p>
+                    <p data-esign-modal-intro>Your registered e-signature will be applied to this request before it is submitted to SPMU.</p>
                     <p class="request-submit-note">
                         By continuing, you confirm that you have reviewed the request and agree to the SPMU
                         <a href="#request-terms-dialog" class="request-terms-link" data-open-request-terms>Terms and Conditions</a>.
                     </p>
                 </div>
                 <div class="request-dialog-actions">
-                    <button type="button" class="button secondary ui-pressable" data-cancel-request-submit>Cancel</button>
+                    <button type="button" class="button secondary ui-pressable" data-cancel-request-submit data-esign-cancel>Cancel</button>
                     <button type="button" class="button primary ui-pressable" data-confirm-request-submit>Confirm E-sign &amp; Submit</button>
                 </div>
             </div>
@@ -2906,6 +2906,106 @@ document.addEventListener('DOMContentLoaded', () => {
     syncForwardActionStates();
 });
 </script>
+
+<style>
+/* E-SIGN CONFIRM MODAL ENHANCEMENTS START */
+
+/* Title */
+[data-esign-modal-title] {
+    margin:0 !important;
+    color:var(--heading, #0f2d57) !important;
+    font-size:2rem !important;
+    font-weight:800 !important;
+    line-height:1.2 !important;
+}
+
+/* Intro */
+[data-esign-modal-intro] {
+    margin:0 !important;
+    color:var(--text-secondary, #4a6284) !important;
+    font-size:1rem !important;
+    line-height:1.65 !important;
+}
+
+/* Notice / confirmation box */
+[data-esign-modal-note] {
+    margin-top:14px !important;
+    padding:16px 18px !important;
+
+    border:1px solid #b9d6f4 !important;
+    border-radius:10px !important;
+
+    background:#f4f8ff !important;
+    color:var(--text-secondary, #4a6284) !important;
+
+    font-size:.97rem !important;
+    line-height:1.65 !important;
+}
+
+[data-esign-modal-note] a {
+    color:#1769e0 !important;
+    font-weight:700 !important;
+    text-decoration:underline !important;
+}
+
+/* Secondary CTA */
+[data-esign-cancel] {
+    min-width:132px !important;
+    min-height:44px !important;
+
+    border:1px solid #b7c5d9 !important;
+    border-radius:10px !important;
+
+    background:#fff !important;
+    color:#3d526f !important;
+
+    font-weight:700 !important;
+
+    box-shadow:none !important;
+}
+
+/* Primary CTA */
+[data-esign-confirm] {
+    min-width:180px !important;
+    min-height:44px !important;
+
+    border:1px solid #1d63d8 !important;
+    border-radius:10px !important;
+
+    background:linear-gradient(180deg, #2d7df6 0%, #1769e0 100%) !important;
+    color:#fff !important;
+
+    font-weight:800 !important;
+
+    box-shadow:
+        0 8px 18px rgba(23, 105, 224, .18) !important;
+}
+
+[data-esign-confirm]:hover {
+    filter:brightness(.98) !important;
+}
+
+[data-esign-confirm]:focus,
+[data-esign-cancel]:focus {
+    outline:none !important;
+    box-shadow:0 0 0 3px rgba(23, 105, 224, .14) !important;
+}
+
+/* Slightly calmer spacing on narrow screens */
+@media (max-width:640px) {
+    [data-esign-modal-title] {
+        font-size:1.45rem !important;
+    }
+
+    [data-esign-confirm],
+    [data-esign-cancel] {
+        min-width:0 !important;
+        width:100% !important;
+    }
+}
+
+/* E-SIGN CONFIRM MODAL ENHANCEMENTS END */
+</style>
 
 @endsection
 

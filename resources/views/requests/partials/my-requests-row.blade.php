@@ -154,7 +154,15 @@
     data-submitted="{{ optional($submittedAt)->timestamp ?? 0 }}"
 >
     <span class="operational-record-primary">
-        <strong>{{ $request->request_no }}</strong>
+        <span class="mr-request-identity-line">
+            <strong>{{ $request->request_no }}</strong>
+
+            <x-status-badge
+                :status="$statusKey"
+                :label="$statusLabel"
+            />
+        </span>
+
         <span>{{ $version?->purpose_event ?: 'Borrowing request' }}</span>
         <small>{{ $context ?: 'No additional details recorded' }}</small>
     </span>
@@ -180,10 +188,14 @@
     </span>
 
     <span class="operational-record-action">
-        <x-status-badge
-            :status="$statusKey"
-            :label="$statusLabel"
-        />
-        <strong>{{ $isDraft ? 'Resume Draft' : 'View Request' }}</strong>
+        <strong class="mr-request-action-label">
+            @if($isDraft)
+                <x-icon name="edit" size="15" />
+                <span>Resume Draft</span>
+            @else
+                <span>View Request</span>
+                <x-icon name="arrow-right" size="14" />
+            @endif
+        </strong>
     </span>
 </a>

@@ -9,6 +9,7 @@
 
         const records = Array.from(body.querySelectorAll('[data-approval-record]'));
         const search = document.getElementById('approval-queue-search');
+        const status = document.getElementById('approval-queue-status');
         const sort = document.getElementById('approval-queue-sort');
         const noResults = document.getElementById('approval-queue-no-results');
         const footer = document.getElementById('approval-queue-footer');
@@ -129,11 +130,20 @@
 
         const render = () => {
             const query = (search?.value || '').trim().toLowerCase();
+            const selectedStatus = status?.value || '';
             const ordered = sortRecords();
             const matched = [];
 
             ordered.forEach((record) => {
-                if (!query || (record.dataset.search || '').includes(query)) {
+                const matchesSearch =
+                    !query ||
+                    (record.dataset.search || '').includes(query);
+
+                const matchesStatus =
+                    !selectedStatus ||
+                    record.dataset.status === selectedStatus;
+
+                if (matchesSearch && matchesStatus) {
                     matched.push(record);
                 } else {
                     record.hidden = true;
@@ -167,6 +177,11 @@
         };
 
         search?.addEventListener('input', () => {
+            currentPage = 1;
+            render();
+        });
+
+        status?.addEventListener('change', () => {
             currentPage = 1;
             render();
         });

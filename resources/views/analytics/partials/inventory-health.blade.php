@@ -72,14 +72,14 @@
 @endphp
 
 {{-- Current position ---------------------------------------------------- --}}
-<div class="analytics-kpis">
+<div class="analytics-kpis analytics-kpis-inventory">
     {{--
         Current-state readings. Each card opens its own Analytics detail, which
         restates the snapshot and offers the Inventory Status Report where one
         matches; the rows further down link to per-item details.
     --}}
     <a
-        class="analytics-kpi-card tone-available"
+        class="analytics-kpi-card tone-attention"
         href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.available']) }}"
     >
         <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="check-circle" size="19" /></span>
@@ -99,7 +99,7 @@
     </a>
 
     <a
-        class="analytics-kpi-card tone-requests"
+        class="analytics-kpi-card tone-custody"
         href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.custody']) }}"
     >
         <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="custody" size="19" /></span>

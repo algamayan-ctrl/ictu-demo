@@ -45,7 +45,10 @@
     $focus = request('focus', 'active');
     $focus = in_array($focus, ['active', 'action', 'payment', 'status'], true) ? $focus : 'active';
 
-    $openBillingNumbers = $openBillings->pluck('billing_no')->filter()->values();
+    $openBillingNumbers = $openBillings->filter(function ($billing): bool {
+        $verified = (float) $billing->payments->where('status', 'VERIFIED')->sum('amount');
+        return max(0, (float) $billing->total_amount - $verified) > 0;
+    })->pluck('billing_no')->filter()->values();
     $focusedRows = $obligationCollection->filter(function (array $row) use ($focus, $openBillingNumbers): bool {
         return match ($focus) {
             'action' => ($row['action_state'] ?? null) === \App\Services\BorrowerObligationService::ACTION_BORROWER,
@@ -157,19 +160,6 @@
                         <span>{{ $row['action_state'] === \App\Services\BorrowerObligationService::ACTION_BORROWER ? 'Next step' : 'Current status' }}</span>
                         <strong>{{ $row['next_action'] }}</strong>
                     </div>
-
-                    @if($row['rslddp_upload_incident_id'] ?? null)
-                        <details class="ob-details" open>
-                            <summary><span>Upload Accomplished RSLDDP</span><x-icon name="chevron-down" size="14" class="ob-disclosure-chevron" /></summary>
-                            <div class="ob-detail-body">
-                                <form method="post" action="{{ route('incidents.rslddp.upload', $row['rslddp_upload_incident_id']) }}" enctype="multipart/form-data" class="form-grid">
-                                    @csrf
-                                    <label>Accomplished/Notarized RSLDDP Scan<input type="file" name="evidence" accept="application/pdf,image/png,image/jpeg,image/webp" required></label>
-                                    <button class="button primary">Upload Accomplished RSLDDP</button>
-                                </form>
-                            </div>
-                        </details>
-                    @endif
 
                     @php
                         /*

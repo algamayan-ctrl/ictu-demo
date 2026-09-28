@@ -401,7 +401,7 @@ HTML;
             'LATE_RETURN_BILLING_STATEMENT_ISSUED' => 'Late Return Billing Statement',
             'ACCOUNTABILITY_OPENED', 'INCIDENT_RECORDED' => 'Property Accountability Case Opened',
             'ACCOUNTABILITY_BILLING_STATEMENT_ISSUED' => 'Property Accountability Billing Recorded',
-            'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' => 'Property Accountability Decision Recorded',
+            'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' => 'Property Accountability — In-Person Processing Required',
             'PROPERTY_ACCOUNTABILITY_OFFICIAL_DISPOSITION_RECORDED' => 'Property Accountability Next Step Updated',
             'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED' => 'Required Action Verified',
             'PROPERTY_ACCOUNTABILITY_COMPLIANCE_NOT_ACCEPTED' => 'Required Action Needs Correction',
@@ -420,7 +420,7 @@ HTML;
         $headDecisionNext = null;
         if ($eventCode === 'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' && $source instanceof Incident) {
             $headDecisionNext = match (strtoupper((string) $source->status)) {
-                'RSLDDP_AWAITING_UPLOAD' => 'Complete the RSLDDP requirement shown in My Obligations.',
+                'F2F_PROCESSING', 'RSLDDP_AWAITING_UPLOAD' => 'Please coordinate in person with CSPC SPMU to complete the required RSLDDP processing.',
                 'COMPLIANCE_REQUIRED' => 'Complete the repair, replacement, or other required action shown in My Obligations.',
                 'FOR_BILLING' => 'Follow the payment instructions in My Obligations and present the official Cashier receipt to SPMU after payment.',
                 default => 'Check My Obligations for the current case status and next step.',
@@ -929,7 +929,7 @@ HTML;
 
             $caseStatus = match ($eventCode) {
                 'ACCOUNTABILITY_OPENED', 'INCIDENT_RECORDED' => 'Awaiting SPMU Review',
-                'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' => 'RSLDDP Processing',
+                'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' => 'Pending In-Person Resolution',
                 'PROPERTY_ACCOUNTABILITY_OFFICIAL_DISPOSITION_RECORDED' => 'Next Step Updated',
                 'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED' => 'For Final SPMU Review',
                 'PROPERTY_ACCOUNTABILITY_COMPLIANCE_NOT_ACCEPTED' => 'Correction Required',
@@ -1460,13 +1460,13 @@ HTML;
 
             'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' =>
                 $isBorrower
-                    ? 'The SPMU Head/Admin confirmed this property accountability case. Complete the RSLDDP requirement shown in My Obligations. Borrowing remains restricted until the case is resolved.'
+                    ? 'The SPMU Head/Admin has confirmed this property accountability case. Please coordinate in person with CSPC SPMU to complete the required RSLDDP and accountability processing. Borrowing remains restricted until the case is formally resolved.'
                     : 'The SPMU Head/Admin confirmed this property accountability case. Review the case for the required next step.',
 
             'PROPERTY_ACCOUNTABILITY_OFFICIAL_DISPOSITION_RECORDED' =>
                 $isBorrower
-                    ? 'SPMU recorded the result of the completed RSLDDP process for this property accountability case. Check My Obligations for the next step.'
-                    : 'SPMU recorded the RSLDDP result for this property accountability case.',
+                    ? 'SPMU has recorded the approved accountability requirement following in-person processing. Check My Obligations for the applicable next step.'
+                    : 'SPMU recorded the approved accountability requirement following in-person processing.',
 
             'PROPERTY_ACCOUNTABILITY_COMPLIANCE_NOT_ACCEPTED' =>
                 $isBorrower

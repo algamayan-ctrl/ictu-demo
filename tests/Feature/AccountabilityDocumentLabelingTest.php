@@ -467,7 +467,8 @@ class AccountabilityDocumentLabelingTest extends TestCase
             'items' => [],
         ])->render();
 
-        $this->assertStringContainsString('A separate Late Return Billing Statement is the financial document used for CSPC Cashier settlement.', $html);
+        $this->assertStringContainsString('Separate Late Return Billing Statement', $html);
+        $this->assertStringNotContainsString('Document Purpose', $html);
         $this->assertStringNotContainsString('A separate Billing Statement is the financial document', $html);
     }
 
@@ -512,6 +513,9 @@ class AccountabilityDocumentLabelingTest extends TestCase
         $this->assertStringNotContainsString('Final Late Days', $html);
         $this->assertStringNotContainsString('999.99', $html);
         $this->assertStringNotContainsString('Confirmed By — SPMU Head', $html);
+        $this->assertStringNotContainsString('Document Purpose', $html);
+        $this->assertStringNotContainsString('Assessment Basis', $html);
+        $this->assertStringNotContainsString('Actual Return Date', $html);
     }
 
     /* ------------------------------------------------------------------ */

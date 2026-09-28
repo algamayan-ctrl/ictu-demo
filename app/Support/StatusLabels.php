@@ -45,11 +45,12 @@ class StatusLabels
         'OBLIGATION_OPEN' => 'Accountability Pending',
         'ACCOUNTABILITY_REVIEW' => 'Accountability Review',
         'COMPLIANCE_REQUIRED' => 'Compliance Required',
-        'COMPLIANCE_RSLDDP_PENDING' => 'Compliance - RSLDDP Pending',
-        'RSLDDP_AWAITING_UPLOAD' => 'RSLDDP Processing',
+        'COMPLIANCE_RSLDDP_PENDING' => 'Compliance Verification (Legacy)',
+        'F2F_PROCESSING' => 'For F2F Processing',
+        'RSLDDP_AWAITING_UPLOAD' => 'For F2F Processing (Legacy)',
         'RSLDDP_FOR_ACCOUNTING_PROCESSING' => 'For Accounting Processing', // legacy only, no new row ever reaches this
         'RSLDDP_PAYMENT_REQUIRED' => 'Payment Required', // legacy only, no new row ever reaches this
-        'RSLDDP_DISPOSITION_PENDING' => 'Official Disposition Pending',
+        'RSLDDP_DISPOSITION_PENDING' => 'For F2F Processing (Legacy)',
         'RSLDDP_COMPLIANCE_VERIFICATION' => 'Compliance Verification',
         'RSLDDP_FOR_RESOLUTION' => 'For Final Review',
         'FOR_BILLING' => 'Billing Statement Pending',

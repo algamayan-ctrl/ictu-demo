@@ -29,10 +29,21 @@
     } elseif ($resolvedHistoryRequested) {
         $requestedStaffTab = 'history';
     }
+    // Legacy waiting links open All Active Cases; waiting remains included in case rollups.
+    if ($requestedStaffTab === 'waiting') {
+        $requestedStaffTab = 'all';
+    }
     $allowedStaffTabs = $isHead
-        ? ['work', 'waiting', 'all', 'sanctions', 'history']
-        : ['work', 'waiting', 'all', 'history'];
+        ? ['work', 'all', 'sanctions', 'history']
+        : ['work', 'all', 'history'];
     $activeStaffTab = in_array($requestedStaffTab, $allowedStaffTabs, true) ? $requestedStaffTab : 'work';
+    $requestedMetric = (string) request('metric', '');
+    $allowedMetrics = match ($activeStaffTab) {
+        'work' => $isHead ? ['resolution'] : ['verification', 'receipts'],
+        'all' => ['balance'],
+        default => [],
+    };
+    $selectedMetric = in_array($requestedMetric, $allowedMetrics, true) ? $requestedMetric : '';
     $staffWorkQueue = collect(data_get($accountabilityWorkQueue, 'work', collect()));
     $staffWaitingQueue = collect(data_get($accountabilityWorkQueue, 'waiting', collect()));
 
@@ -353,13 +364,8 @@
 </style>
 @include('accountability.partials.oversight-styles')
 <style>
-/* Universal accountability visual language --------------------------------
-   Shares its metrics with the dashboard KPI card (.dashboard-kpi-card) and
-   the borrower summary card (.ob-summary-card): 46px icon column, 122px
-   min-height, 12px radius, 3px top accent, 25/11/10px value/label/note
-   type. Keep this the single definition - a second pass here previously
-   re-declared the same rules to layer the accent on top, which just made
-   the source harder to trust as the story of what renders. */
+/* Accountability KPI cards use the same full-color visual family as Analytics.
+   Meaning remains role-specific; only the visual component is unified. */
 .accountability-overview {
     display:grid;
     grid-template-columns:repeat(4,minmax(0,1fr));
@@ -367,8 +373,9 @@
     margin-bottom:16px;
 }
 .accountability-overview-card {
-    --accountability-card-accent: var(--info);
-    --accountability-card-hover: rgba(23, 105, 224, .035);
+    --tone-from:#1d4ed8;
+    --tone-to:#38bdf8;
+    --tone-glow:rgba(29,78,216,.28);
 
     position:relative;
     display:grid;
@@ -378,41 +385,63 @@
     row-gap:2px;
     min-height:122px;
     padding:16px 18px;
-    border:1px solid var(--border);
+    overflow:hidden;
+    border:0;
     border-radius:12px;
-    background:var(--surface-elevated);
-    color:inherit;
+    background:linear-gradient(135deg,var(--tone-from),var(--tone-to));
+    box-shadow:0 10px 24px var(--tone-glow);
+    color:#fff;
     text-decoration:none;
-    box-shadow:inset 0 3px 0 var(--accountability-card-accent), var(--shadow-sm);
-    cursor:default;
+    cursor:pointer;
+    transition:transform .16s ease, box-shadow .16s ease;
 }
-.accountability-overview-card.tone-open {
-    --accountability-card-accent:var(--info);
-    --accountability-card-hover:rgba(23, 105, 224, .075);
+.accountability-overview-card::before {
+    content:"";
+    position:absolute;
+    inset:-18% auto auto -12%;
+    width:42%;
+    aspect-ratio:1;
+    border-radius:50%;
+    background:rgba(255,255,255,.08);
 }
-.accountability-overview-card.tone-overdue {
-    --accountability-card-accent:var(--danger);
-    --accountability-card-hover:rgba(220, 53, 69, .070);
+.accountability-overview-card::after {
+    content:"";
+    position:absolute;
+    inset:auto -8% -28% 32%;
+    height:72%;
+    border-radius:999px;
+    background:rgba(255,255,255,.08);
+    transform:rotate(-8deg);
 }
-.accountability-overview-card.tone-balance {
-    --accountability-card-accent:var(--warning);
-    --accountability-card-hover:rgba(217, 155, 22, .085);
-}
-.accountability-overview-card.tone-resolved {
-    --accountability-card-accent:var(--success);
-    --accountability-card-hover:rgba(21, 148, 71, .070);
-}
-/* Summary cards use the same whole-card navigation affordance as dashboard KPIs. */
-.accountability-overview-card { cursor:pointer; transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease; }
-.accountability-overview-card:hover {
+.accountability-overview-card > * { position:relative; z-index:1; }
+.accountability-overview-card:hover,
+.accountability-overview-card:focus-visible {
     transform:translateY(-1px);
-    border-color:color-mix(in srgb, var(--accountability-card-accent) 32%, var(--border));
-    background:color-mix(in srgb, var(--surface-elevated) 96%, var(--accountability-card-hover));
-    box-shadow:inset 0 3px 0 var(--accountability-card-accent), 0 8px 20px rgba(15, 38, 66, .08);
+    box-shadow:0 14px 28px var(--tone-glow);
 }
 .accountability-overview-card:focus-visible {
-    outline:3px solid color-mix(in srgb, var(--accountability-card-accent) 28%, transparent);
+    outline:3px solid rgba(255,255,255,.34);
     outline-offset:3px;
+}
+.accountability-overview-card.tone-open {
+    --tone-from:#1d4ed8;
+    --tone-to:#38bdf8;
+    --tone-glow:rgba(29,78,216,.30);
+}
+.accountability-overview-card.tone-overdue {
+    --tone-from:#dc2626;
+    --tone-to:#fb923c;
+    --tone-glow:rgba(220,38,38,.28);
+}
+.accountability-overview-card.tone-balance {
+    --tone-from:#d97706;
+    --tone-to:#f59e0b;
+    --tone-glow:rgba(217,119,6,.30);
+}
+.accountability-overview-card.tone-resolved {
+    --tone-from:#0f766e;
+    --tone-to:#10b981;
+    --tone-glow:rgba(15,118,110,.28);
 }
 .accountability-overview-icon {
     grid-column:1;
@@ -422,68 +451,46 @@
     height:44px;
     place-items:center;
     align-self:center;
-    border:1px solid var(--border);
+    border:1px solid rgba(255,255,255,.28);
     border-radius:50%;
-    background:var(--surface-subtle);
-    color:var(--text-secondary);
+    background:rgba(255,255,255,.12);
+    color:#fff;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
 }
 .accountability-overview-label {
     grid-column:2;
     grid-row:1;
     align-self:end;
-    color:var(--text-secondary);
+    color:rgba(255,255,255,.95);
     font-size:11px;
     font-weight:800;
 }
 .accountability-overview-value {
     grid-column:2;
     grid-row:2;
-    color:var(--heading);
+    color:#fff;
     font-size:25px;
     line-height:1.15;
+    font-variant-numeric:tabular-nums;
 }
 .accountability-overview-note {
     grid-column:2;
     grid-row:3;
-    color:var(--text-muted);
+    color:rgba(255,255,255,.86);
     font-size:10px;
     line-height:1.35;
 }
-.accountability-overview-arrow {
-    position:absolute;
-    top:14px;
-    right:15px;
-    display:inline-flex;
-    color:var(--text-muted);
-    font-size:16px;
-    line-height:1;
-    transition:transform .16s ease, color .16s ease;
-}
-.accountability-overview-card:hover .accountability-overview-arrow,
-.accountability-overview-card:focus-visible .accountability-overview-arrow {
-    color:var(--accountability-card-accent);
-    transform:translateX(2px);
-}
-.accountability-overview-card.tone-open .accountability-overview-icon {
-    border-color:#cfe0f3;
-    background:#edf5fd;
-    color:#1d6fb8;
-}
-.accountability-overview-card.tone-overdue .accountability-overview-icon {
-    border-color:#f1c6c2;
-    background:#fff1ef;
-    color:#c4493d;
-}
-.accountability-overview-card.tone-balance .accountability-overview-icon {
-    border-color:#ead5ab;
-    background:#fff8e9;
-    color:#b9770e;
-}
-.accountability-overview-card.tone-resolved .accountability-overview-icon {
-    border-color:#c3e5d0;
-    background:#eefaf3;
-    color:#159447;
-}
+.accountability-overview-arrow { display:none; }
+.accountability-overview-card.tone-balance .accountability-overview-value { font-size:24px; }
+
+:root[data-theme="dark"] .accountability-overview-card.tone-open,
+html[data-theme="dark"] .accountability-overview-card.tone-open { --tone-from:#1e40af; --tone-to:#0284c7; --tone-glow:rgba(0,0,0,.42); }
+:root[data-theme="dark"] .accountability-overview-card.tone-overdue,
+html[data-theme="dark"] .accountability-overview-card.tone-overdue { --tone-from:#991b1b; --tone-to:#ea580c; --tone-glow:rgba(0,0,0,.42); }
+:root[data-theme="dark"] .accountability-overview-card.tone-balance,
+html[data-theme="dark"] .accountability-overview-card.tone-balance { --tone-from:#b45309; --tone-to:#d97706; --tone-glow:rgba(0,0,0,.42); }
+:root[data-theme="dark"] .accountability-overview-card.tone-resolved,
+html[data-theme="dark"] .accountability-overview-card.tone-resolved { --tone-from:#115e59; --tone-to:#059669; --tone-glow:rgba(0,0,0,.42); }
 
 /* Case identity: make borrower/reference/status scannable instead of one bold line. */
 .accountability-case-ref {
@@ -571,11 +578,11 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 
 .accountability-staff-tabs {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
     margin: 16px 0 14px;
 }
-.accountability-staff-tabs.is-head { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.accountability-staff-tabs.is-head { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .accountability-staff-tab {
     display: inline-flex;
     align-items: center;
@@ -611,7 +618,42 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 .accountability-waiting-on { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-subtle); color: var(--text-secondary); font-size: 9.5px; font-weight: 800; }
 .accountability-next-step-copy { color: var(--text-secondary); font-size: 10.5px; line-height: 1.5; }
 .accountability-queue-amount { display: block; margin-top: 4px; color: var(--text-primary); font-size: 10px; font-weight: 800; }
-.accountability-queue-action { display: inline-flex; justify-content: center; width: 100%; max-width: 170px; white-space: normal; text-align: center; }
+.accountability-queue-action {
+    display: inline-flex;
+    justify-content: center;
+    width: 100%;
+    max-width: 170px;
+    white-space: normal;
+    text-align: center;
+    color: var(--interactive);
+    background: var(--surface-elevated);
+    border-color: var(--interactive);
+}
+.accountability-queue-action:hover,
+.accountability-queue-action:focus-visible {
+    color: #fff;
+    background: var(--interactive);
+    border-color: var(--interactive);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
+[data-accountability-history-toggle],
+[data-accountability-sanction-toggle],
+.accountability-expand-button {
+    transition: background-color .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+[data-accountability-history-toggle]:hover,
+[data-accountability-history-toggle]:focus-visible,
+[data-accountability-sanction-toggle]:hover,
+[data-accountability-sanction-toggle]:focus-visible,
+.accountability-expand-button:hover,
+.accountability-expand-button:focus-visible {
+    color: #fff;
+    background: var(--interactive);
+    border-color: var(--interactive);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
 .accountability-workspace-empty { padding: 26px 20px; }
 
 @media (max-width: 980px) {
@@ -711,6 +753,19 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     $allQueueRows = $staffWorkQueue->concat($staffWaitingQueue);
     $waitingOnBorrower = $allQueueRows->where('waiting_on', 'Borrower')->count();
     $waitingOnHead = $allQueueRows->where('waiting_on', 'SPMU Head/Admin')->count();
+    // Derive card counts from the exact rows that the corresponding drilldown displays.
+    $finalResolutionCases = $staffWorkQueue->filter(fn (array $item) => in_array((string) ($item['action_label'] ?? ''), [
+        'Resolve Accountability', 'Resolve Case',
+    ], true))->values();
+    $finalResolutionCount = $finalResolutionCases->count();
+    $outstandingBorrowerIds = $openBillings
+        ->filter(fn ($billing) => max(0, (float) $billing->total_amount - (float) $billing->payments
+            ->where('status', 'VERIFIED')->sum('amount')) > 0)
+        ->pluck('borrower_user_id')->map(fn ($id) => (int) $id)->unique()->values();
+    $balanceByBorrower = $openBillings->groupBy('borrower_user_id')->map(fn ($records) => (float) $records->sum(
+        fn ($billing) => max(0, (float) $billing->total_amount - (float) $billing->payments
+            ->where('status', 'VERIFIED')->sum('amount'))
+    ));
     if ($isHead) {
         $summaryCards = [
             [
@@ -722,63 +777,68 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                 'href' => route('accountability.index', ['queue' => 'work']).'#accountability-workspace',
             ],
             [
+                'tone' => 'resolved',
+                'icon' => 'approval',
+                'label' => 'For Final Resolution',
+                'value' => $finalResolutionCount,
+                'note' => 'Completed compliance ready for final review',
+                'href' => route('accountability.index', ['queue' => 'work', 'metric' => 'resolution']).'#accountability-workspace',
+            ],
+            [
                 'tone' => 'overdue',
-                'icon' => 'warning',
-                'label' => 'Waiting / Monitoring',
-                'value' => $staffWaitingQueue->count(),
-                'note' => 'Cases currently assigned to another actor',
-                'href' => route('accountability.index', ['queue' => 'waiting']).'#accountability-workspace',
+                'icon' => 'accountability',
+                'label' => 'Open Accountability Cases',
+                'value' => $openAccountabilities,
+                'note' => 'All unresolved accountability matters',
+                'href' => route('accountability.index', ['queue' => 'all']).'#accountability-workspace',
             ],
             [
                 'tone' => 'balance',
-                'icon' => 'clock',
-                'label' => 'Waiting on Borrower',
-                'value' => $waitingOnBorrower,
-                'note' => 'Return, payment, or compliance pending',
-                'href' => route('accountability.index', ['queue' => 'waiting']).'#accountability-workspace',
-            ],
-            [
-                'tone' => 'resolved',
                 'icon' => 'coins',
                 'label' => 'Outstanding Balance',
                 'value' => 'PHP '.number_format($outstandingBalance, 2),
                 'note' => 'Not covered by verified payments',
-                'href' => route('accountability.index', ['queue' => 'all']).'#accountability-workspace',
+                'href' => route('accountability.index', ['queue' => 'all', 'metric' => 'balance']).'#accountability-workspace',
             ],
         ];
     } else {
+        $pendingAoVerification = $staffWorkQueue->where('stage', 'Physical Compliance Verification')->count();
+        $outstandingReceiptFollowUp = $staffWorkQueue->filter(fn (array $item) => in_array((string) ($item['stage'] ?? ''), [
+            'Awaiting Cashier Payment', 'Cashier Payment',
+        ], true))->count();
+
         $summaryCards = [
             [
                 'tone' => 'open',
                 'icon' => 'requests',
-                'label' => 'Operational Queue',
+                'label' => 'Needs My Action',
                 'value' => $staffWorkQueue->count(),
-                'note' => 'Return, compliance, and receipt follow-up',
+                'note' => 'Operational actions currently assigned to the Action Officer',
                 'href' => route('accountability.index', ['queue' => 'work']).'#accountability-workspace',
             ],
             [
                 'tone' => 'overdue',
-                'icon' => 'clock',
-                'label' => 'Waiting on Borrower',
-                'value' => $waitingOnBorrower,
-                'note' => 'Return, payment, or compliance pending',
-                'href' => route('accountability.index', ['queue' => 'work']).'#accountability-workspace',
+                'icon' => 'approval',
+                'label' => 'Pending AO Verification',
+                'value' => $pendingAoVerification,
+                'note' => 'Repair, replacement, or recovery awaiting physical verification',
+                'href' => route('accountability.index', ['queue' => 'work', 'metric' => 'verification']).'#accountability-workspace',
             ],
             [
                 'tone' => 'balance',
                 'icon' => 'accountability',
-                'label' => 'Waiting on Head/Admin',
-                'value' => $waitingOnHead,
-                'note' => 'Decision or review currently pending',
-                'href' => route('accountability.index', ['queue' => 'waiting']).'#accountability-workspace',
+                'label' => 'Open Accountability Cases',
+                'value' => $openAccountabilities,
+                'note' => 'All unresolved accountability matters visible to SPMU',
+                'href' => route('accountability.index', ['queue' => 'all']).'#accountability-workspace',
             ],
             [
                 'tone' => 'resolved',
-                'icon' => 'approval',
-                'label' => 'Resolved This Period',
-                'value' => $resolvedThisPeriod,
-                'note' => 'Closed during '.$resolvedPeriodLabel,
-                'href' => route('accountability.index', ['queue' => 'history']).'#accountability-workspace',
+                'icon' => 'report-document',
+                'label' => 'Outstanding Receipts',
+                'value' => $outstandingReceiptFollowUp,
+                'note' => 'Cashier receipt follow-up available when the borrower presents payment proof',
+                'href' => route('accountability.index', ['queue' => 'work', 'metric' => 'receipts']).'#accountability-workspace',
             ],
         ];
     }
@@ -787,448 +847,8 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 <style>
 /* ACCOUNTABILITY UNIVERSAL KPI DASHBOARD START */
 
-/*
- | Match the full-color KPI cards used by the role dashboards.
- | Presentation only. No accountability business logic is changed.
- */
+/* Accountability KPI cards intentionally reuse the established white-card design above. */
 
-/* ============================================================
-   GRID
-   ============================================================ */
-
-.accountability-overview {
-    display:grid !important;
-    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
-    gap:13px !important;
-    width:100% !important;
-    margin:0 0 16px !important;
-}
-
-
-/* ============================================================
-   CARD BASE
-   ============================================================ */
-
-.accountability-overview .accountability-overview-card {
-    --accountability-start:#32a5f5;
-    --accountability-mid:#1479ea;
-    --accountability-end:#075fd3;
-    --accountability-shadow:rgba(20,121,234,.22);
-
-    position:relative !important;
-
-    display:grid !important;
-    grid-template-columns:54px minmax(0,1fr) !important;
-    grid-template-rows:auto auto auto !important;
-
-    column-gap:14px !important;
-    row-gap:2px !important;
-
-    align-content:center !important;
-
-    min-width:0 !important;
-    min-height:138px !important;
-    height:138px !important;
-
-    padding:18px 46px 18px 20px !important;
-
-    overflow:hidden !important;
-
-    border:0 !important;
-    border-radius:12px !important;
-
-    background:
-        linear-gradient(
-            135deg,
-            var(--accountability-start) 0%,
-            var(--accountability-mid) 52%,
-            var(--accountability-end) 100%
-        ) !important;
-
-    color:#fff !important;
-
-    box-shadow:
-        0 5px 14px var(--accountability-shadow) !important;
-
-    text-decoration:none !important;
-
-    transform:none !important;
-
-    transition:
-        transform 160ms ease,
-        box-shadow 160ms ease !important;
-}
-
-
-/* ============================================================
-   DECORATIVE LOWER-RIGHT HIGHLIGHT
-   ============================================================ */
-
-.accountability-overview .accountability-overview-card::before {
-    content:"" !important;
-
-    position:absolute !important;
-
-    right:-30px !important;
-    bottom:-55px !important;
-
-    width:190px !important;
-    height:90px !important;
-
-    display:block !important;
-
-    border-radius:50% 0 0 0 !important;
-
-    background:rgba(255,255,255,.08) !important;
-
-    transform:rotate(-5deg) !important;
-
-    pointer-events:none !important;
-}
-
-
-/* remove old top-border/decorative treatment */
-.accountability-overview .accountability-overview-card::after {
-    content:none !important;
-    display:none !important;
-}
-
-
-/* Keep content over decorative background */
-.accountability-overview .accountability-overview-card > * {
-    position:relative !important;
-    z-index:1 !important;
-}
-
-
-/* ============================================================
-   SEMANTIC COLORS
-   ============================================================ */
-
-/* BLUE — Open Accountability Cases */
-.accountability-overview
-.accountability-overview-card.tone-open {
-    --accountability-start:#32a5f5;
-    --accountability-mid:#1479ea;
-    --accountability-end:#075fd3;
-    --accountability-shadow:rgba(20,121,234,.22);
-}
-
-
-/* RED — Items Still Overdue */
-.accountability-overview
-.accountability-overview-card.tone-overdue {
-    --accountability-start:#fb5d5d;
-    --accountability-mid:#ea3939;
-    --accountability-end:#c92525;
-    --accountability-shadow:rgba(234,57,57,.22);
-}
-
-
-/* AMBER — Outstanding Balance */
-.accountability-overview
-.accountability-overview-card.tone-balance {
-    --accountability-start:#ffc443;
-    --accountability-mid:#f6a10c;
-    --accountability-end:#dc7b00;
-    --accountability-shadow:rgba(246,161,12,.23);
-}
-
-
-/* GREEN — Resolved This Period */
-.accountability-overview
-.accountability-overview-card.tone-resolved {
-    --accountability-start:#2acb9e;
-    --accountability-mid:#12ab83;
-    --accountability-end:#087b69;
-    --accountability-shadow:rgba(18,171,131,.22);
-}
-
-
-/* ============================================================
-   ICON CIRCLE
-   ============================================================ */
-
-.accountability-overview .accountability-overview-icon {
-    grid-column:1 !important;
-    grid-row:1 / span 3 !important;
-
-    display:grid !important;
-
-    width:54px !important;
-    height:54px !important;
-
-    place-items:center !important;
-    align-self:center !important;
-
-    margin:0 !important;
-    padding:0 !important;
-
-    border:1px solid rgba(255,255,255,.42) !important;
-    border-radius:50% !important;
-
-    background:rgba(255,255,255,.13) !important;
-
-    color:#fff !important;
-
-    box-shadow:
-        inset 0 0 0 1px rgba(255,255,255,.04) !important;
-
-    backdrop-filter:blur(2px) !important;
-}
-
-.accountability-overview
-.accountability-overview-icon svg,
-.accountability-overview
-.accountability-overview-icon .ui-icon {
-    width:21px !important;
-    height:21px !important;
-
-    color:#fff !important;
-}
-
-
-/* ============================================================
-   LABEL
-   ============================================================ */
-
-.accountability-overview .accountability-overview-label {
-    grid-column:2 !important;
-    grid-row:1 !important;
-
-    align-self:end !important;
-
-    min-width:0 !important;
-    max-width:calc(100% - 10px) !important;
-
-    margin:0 !important;
-
-    color:#fff !important;
-
-    font-size:12px !important;
-    font-weight:800 !important;
-    line-height:1.25 !important;
-
-    letter-spacing:0 !important;
-    text-transform:none !important;
-
-    display:-webkit-box !important;
-    -webkit-box-orient:vertical !important;
-    -webkit-line-clamp:2 !important;
-
-    overflow:hidden !important;
-}
-
-
-/* ============================================================
-   KPI VALUE
-   ============================================================ */
-
-.accountability-overview .accountability-overview-value {
-    grid-column:2 !important;
-    grid-row:2 !important;
-
-    align-self:center !important;
-
-    min-width:0 !important;
-
-    margin:2px 0 0 !important;
-
-    color:#fff !important;
-
-    font-size:30px !important;
-    font-weight:800 !important;
-    line-height:1.05 !important;
-
-    letter-spacing:-.02em !important;
-
-    font-variant-numeric:tabular-nums !important;
-
-    white-space:nowrap !important;
-
-    text-shadow:
-        0 1px 1px rgba(0,0,0,.06) !important;
-}
-
-
-/* slightly smaller only because PHP value is longer */
-.accountability-overview
-.accountability-overview-card.tone-balance
-.accountability-overview-value {
-    font-size:28px !important;
-}
-
-
-/* ============================================================
-   NOTE
-   ============================================================ */
-
-.accountability-overview .accountability-overview-note {
-    grid-column:2 !important;
-    grid-row:3 !important;
-
-    align-self:start !important;
-
-    min-width:0 !important;
-
-    margin:2px 0 0 !important;
-
-    color:rgba(255,255,255,.96) !important;
-
-    font-size:10.5px !important;
-    font-weight:600 !important;
-    line-height:1.3 !important;
-
-    display:-webkit-box !important;
-    -webkit-box-orient:vertical !important;
-    -webkit-line-clamp:2 !important;
-
-    overflow:hidden !important;
-}
-
-
-/* ============================================================
-   UPPER-RIGHT ARROW CIRCLE
-   ============================================================ */
-
-.accountability-overview .accountability-overview-arrow {
-    position:absolute !important;
-
-    top:14px !important;
-    right:13px !important;
-
-    display:grid !important;
-
-    width:30px !important;
-    height:30px !important;
-
-    padding:7px !important;
-
-    border:1px solid rgba(255,255,255,.14) !important;
-    border-radius:50% !important;
-
-    background:rgba(255,255,255,.12) !important;
-
-    color:#fff !important;
-
-    opacity:1 !important;
-
-    transition:
-        transform 160ms ease,
-        background 160ms ease !important;
-}
-
-
-/* ============================================================
-   HOVER / FOCUS
-   ============================================================ */
-
-.accountability-overview a.accountability-overview-card {
-    cursor:pointer !important;
-}
-
-.accountability-overview a.accountability-overview-card:hover {
-    color:#fff !important;
-
-    box-shadow:
-        0 9px 22px var(--accountability-shadow) !important;
-
-    transform:translateY(-2px) !important;
-}
-
-.accountability-overview
-a.accountability-overview-card:hover
-.accountability-overview-arrow {
-    background:rgba(255,255,255,.20) !important;
-    transform:translateX(2px) !important;
-}
-
-.accountability-overview
-a.accountability-overview-card:focus-visible {
-    outline:3px solid rgba(255,255,255,.9) !important;
-    outline-offset:2px !important;
-}
-
-
-/* ============================================================
-   STATIC CARD SUPPORT
-   ============================================================ */
-
-.accountability-overview
-.accountability-overview-card.is-static {
-    cursor:default !important;
-}
-
-.accountability-overview
-.accountability-overview-card.is-static:hover {
-    transform:none !important;
-
-    box-shadow:
-        0 5px 14px var(--accountability-shadow) !important;
-}
-
-
-/* neutralize older emphasis variation */
-.accountability-overview
-.accountability-overview-card.has-emphasis {
-    filter:none !important;
-}
-
-
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
-
-@media (max-width:1100px) {
-
-    .accountability-overview {
-        grid-template-columns:repeat(2,minmax(0,1fr)) !important;
-    }
-
-}
-
-
-@media (max-width:680px) {
-
-    .accountability-overview {
-        grid-template-columns:1fr !important;
-        gap:10px !important;
-    }
-
-    .accountability-overview
-    .accountability-overview-card {
-        min-height:128px !important;
-        height:auto !important;
-
-        padding:17px 46px 17px 18px !important;
-    }
-
-}
-
-
-/* ============================================================
-   REDUCED MOTION
-   ============================================================ */
-
-@media (prefers-reduced-motion:reduce) {
-
-    .accountability-overview
-    .accountability-overview-card,
-
-    .accountability-overview
-    .accountability-overview-arrow {
-        transition:none !important;
-    }
-
-    .accountability-overview
-    a.accountability-overview-card:hover {
-        transform:none !important;
-    }
-
-}
-
-
-/* ACCOUNTABILITY UNIVERSAL KPI DASHBOARD END */
 </style>
 
 <section class="accountability-overview" aria-label="Accountability summary">
@@ -1247,8 +867,7 @@ a.accountability-overview-card:focus-visible {
 </section>
 
 <nav id="accountability-workspace" class="accountability-staff-tabs {{ $isHead ? 'is-head' : '' }}" aria-label="Accountability workspace sections">
-    <a class="accountability-staff-tab {{ $activeStaffTab === 'work' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">{{ $isHead ? 'Needs My Decision' : 'Operational Queue' }}</a>
-    <a class="accountability-staff-tab {{ $activeStaffTab === 'waiting' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'waiting']) }}#accountability-workspace">Waiting / Monitoring</a>
+    <a class="accountability-staff-tab {{ $activeStaffTab === 'work' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">{{ $isHead ? 'Needs My Decision' : 'Needs My Action' }}</a>
     <a class="accountability-staff-tab {{ $activeStaffTab === 'all' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'all']) }}#accountability-workspace">All Active Cases</a>
     @if($isHead)
         <a class="accountability-staff-tab {{ $activeStaffTab === 'sanctions' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'sanctions']) }}#accountability-workspace">Sanctions</a>
@@ -1256,17 +875,30 @@ a.accountability-overview-card:focus-visible {
     <a class="accountability-staff-tab {{ $activeStaffTab === 'history' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'history']) }}#accountability-workspace">History</a>
 </nav>
 
-@if(in_array($activeStaffTab, ['work', 'waiting'], true))
+@if($activeStaffTab === 'work')
     @php
-        $visibleQueue = $activeStaffTab === 'work' ? $staffWorkQueue : $staffWaitingQueue;
-        $queueTitle = $activeStaffTab === 'work'
-            ? ($isHead ? 'Cases Requiring My Decision' : 'Action Officer Operational Queue')
-            : 'Waiting / Monitoring';
-        $queueIntro = $activeStaffTab === 'work'
-            ? ($isHead
+        $visibleQueue = match ($selectedMetric) {
+            'resolution' => $finalResolutionCases,
+            'verification' => $staffWorkQueue->where('stage', 'Physical Compliance Verification')->values(),
+            'receipts' => $staffWorkQueue->filter(fn (array $item) => in_array((string) ($item['stage'] ?? ''), [
+                'Awaiting Cashier Payment', 'Cashier Payment',
+            ], true))->values(),
+            default => $staffWorkQueue,
+        };
+        $queueTitle = match ($selectedMetric) {
+            'resolution' => 'For Final Resolution',
+            'verification' => 'Pending AO Verification',
+            'receipts' => 'Outstanding Receipts',
+            default => $isHead ? 'Cases Requiring My Decision' : 'Cases Requiring My Action',
+        };
+        $queueIntro = match ($selectedMetric) {
+            'resolution' => 'Head/Admin cases with a final resolution action available.',
+            'verification' => 'Cases awaiting Action Officer physical verification.',
+            'receipts' => 'Cases awaiting Cashier receipt recording by the Action Officer.',
+            default => $isHead
                 ? 'Cases are listed by the decision or official action currently assigned to the SPMU Head/Admin.'
-                : 'Cases are listed by the next Action Officer touchpoint. The Waiting On column shows when the borrower must act first.')
-            : 'Reference-only cases currently waiting on another actor or process. No duplicate processing action is created here.';
+                : 'Cases are listed by the next Action Officer touchpoint. The Waiting On column shows when the borrower must act first.',
+        };
     @endphp
     <section class="content-area">
         <article class="card accountability-work-queue-card">
@@ -1281,10 +913,8 @@ a.accountability-overview-card:focus-visible {
                 <div class="accountability-workspace-empty">
                     <x-empty-state
                         icon="accountability"
-                        :title="$activeStaffTab === 'work' ? 'No accountability work is assigned here right now.' : 'No accountability cases are waiting on another actor right now.'"
-                        :message="$activeStaffTab === 'work'
-                            ? 'Use All Active Cases for complete borrower records and History for resolved matters.'
-                            : 'Cases requiring your current role are shown in the first workspace tab.'"
+                         :title="$selectedMetric !== '' ? 'No '.$queueTitle.' cases.' : 'No accountability work is assigned here right now.'"
+                        :message="$selectedMetric !== '' ? 'There are currently no cases matching this card.' : 'Use All Active Cases for complete borrower records and History for resolved matters.'"
                     />
                 </div>
             @else
@@ -1313,7 +943,11 @@ a.accountability-overview-card:focus-visible {
                                     <td>
                                         <div class="accountability-queue-stage">
                                             <strong>{{ $item['stage'] ?? 'Processing' }}</strong>
-                                            <small>{{ optional($item['date'] ?? null)->format('d M Y, g:i A') ?: '—' }}</small>
+                                            @if(($item['stage'] ?? null) === 'Awaiting Cashier Payment')
+                                                <small>Since {{ optional($item['date'] ?? null)->format('d M Y') ?: '—' }}</small>
+                                            @else
+                                                <small>{{ optional($item['date'] ?? null)->format('d M Y, g:i A') ?: '—' }}</small>
+                                            @endif
                                         </div>
                                     </td>
                                     <td><span class="accountability-waiting-on">{{ $item['waiting_on'] ?? 'SPMU Processing' }}</span></td>
@@ -1534,7 +1168,7 @@ a.accountability-overview-card:focus-visible {
             ->concat($standaloneActiveRestrictions)
             ->filter(fn ($record) => $record->borrower_user_id)
             ->groupBy('borrower_user_id')
-            ->map(function ($records) use ($activeRestrictions, $staffWorkQueue, $staffWaitingQueue, $isHead) {
+            ->map(function ($records) use ($activeRestrictions, $staffWorkQueue, $staffWaitingQueue, $isHead, $balanceByBorrower) {
                 $borrowerId = (int) $records->first()->borrower_user_id;
                 $workCount = $staffWorkQueue->filter(
                     fn (array $item) => (int) ($item['borrower']?->id ?? 0) === $borrowerId
@@ -1553,6 +1187,7 @@ a.accountability-overview-card:focus-visible {
                 return [
                     'borrower' => $records->first()->borrower,
                     'case_count' => $records->count(),
+                    'outstanding_amount' => (float) ($balanceByBorrower->get($borrowerId) ?? 0),
                     'work_count' => $workCount,
                     'waiting_count' => $waitingCount,
                     'attention' => $attention,
@@ -1563,6 +1198,9 @@ a.accountability-overview-card:focus-visible {
             })
             /* Preserves the Head/Admin dashboard's "Active Restrictions" ?view=restrictions deep link. */
             ->when($restrictionsFocusRequested, fn ($rows) => $rows->where('restricted', true))
+            ->when($selectedMetric === 'balance', fn ($rows) => $rows->filter(
+                fn (array $row) => $outstandingBorrowerIds->contains((int) ($row['borrower']?->id ?? 0))
+            ))
             ->sortBy(fn (array $row) => Str::lower($row['borrower']?->full_name ?? ''))
             ->values()
         : collect();
@@ -1600,7 +1238,8 @@ a.accountability-overview-card:focus-visible {
             'BILLING_PENDING' => 'Awaiting Payment',
             'COMPLIANCE_REQUIRED' => 'Compliance Required',
             'COMPLIANCE_RSLDDP_PENDING' => 'Compliance Pending',
-            'RSLDDP_AWAITING_UPLOAD' => 'RSLDDP Upload',
+            'F2F_PROCESSING' => 'Pending In-Person Resolution',
+            'RSLDDP_AWAITING_UPLOAD' => 'Pending In-Person Resolution',
             'RSLDDP_FOR_ACCOUNTING_PROCESSING' => 'For Accounting',
             'RSLDDP_PAYMENT_REQUIRED' => 'Payment Required',
             'RSLDDP_FOR_RESOLUTION' => 'For Resolution',
@@ -2001,6 +1640,9 @@ a.accountability-overview-card:focus-visible {
             $isBillingPending = $statusKey === 'BILLING_PENDING';
             $isComplianceRequired = $statusKey === 'COMPLIANCE_REQUIRED';
             $isComplianceRsldppPending = $statusKey === 'COMPLIANCE_RSLDDP_PENDING';
+            $isF2FProcessing = $statusKey === 'F2F_PROCESSING';
+            $isDirectF2fResolution = ($isF2FProcessing && $incident->accountability_flow_version === 'V3')
+                || (in_array($statusKey, ['RSLDDP_AWAITING_UPLOAD', 'RSLDDP_DISPOSITION_PENDING'], true) && ! $incident->official_disposition);
             $isRsldppAwaitingUpload = $statusKey === 'RSLDDP_AWAITING_UPLOAD';
             $isRsldppDispositionPending = $statusKey === 'RSLDDP_DISPOSITION_PENDING';
             $isRsldppComplianceVerification = $statusKey === 'RSLDDP_COMPLIANCE_VERIFICATION';
@@ -2032,11 +1674,9 @@ a.accountability-overview-card:focus-visible {
                 ->whereNotIn('status', ['SUPERSEDED', 'INVALIDATED', 'EXPIRED'])
                 ->sortByDesc('generated_at')
                 ->first();
-            $rsldppDocument = $incident->documents
-                ->where('document_type', 'RSLDDP')
-                ->whereNotIn('status', ['SUPERSEDED', 'INVALIDATED', 'EXPIRED'])
-                ->sortByDesc('generated_at')
-                ->first();
+            // Historical generated RSLDDPs are retained for audit but never
+            // shown as an accomplished document while this case is unresolved.
+            $rsldppDocument = null;
 
             $stepTwoState = $decisionDone ? 'is-done' : 'is-active';
             $stepThreeState = $isResolvedIncident
@@ -2048,8 +1688,9 @@ a.accountability-overview-card:focus-visible {
                 'FOR_BILLING' => 'Billing Statement',
                 'BILLING_PENDING' => 'Cashier Payment',
                 'COMPLIANCE_REQUIRED', 'COMPLIANCE_RSLDDP_PENDING' => 'Property Compliance',
-                'RSLDDP_AWAITING_UPLOAD', 'RSLDDP_FOR_ACCOUNTING_PROCESSING' => 'RSLDDP & Settlement',
-                'RSLDDP_DISPOSITION_PENDING' => 'Official Disposition',
+                'F2F_PROCESSING' => 'In-Person Resolution',
+                'RSLDDP_AWAITING_UPLOAD', 'RSLDDP_DISPOSITION_PENDING' => 'In-Person Resolution',
+                'RSLDDP_FOR_ACCOUNTING_PROCESSING' => 'RSLDDP & Settlement',
                 'RSLDDP_COMPLIANCE_VERIFICATION' => 'Compliance Verification',
                 'RSLDDP_PAYMENT_REQUIRED' => 'Cashier Payment',
                 'RSLDDP_FOR_RESOLUTION' => 'Admin Verification',
@@ -2060,9 +1701,9 @@ a.accountability-overview-card:focus-visible {
                 'FOR_BILLING' => 'Generate & issue',
                 'BILLING_PENDING' => 'AO receipt recording',
                 'COMPLIANCE_REQUIRED', 'COMPLIANCE_RSLDDP_PENDING' => 'Borrower compliance → AO verification',
-                'RSLDDP_AWAITING_UPLOAD' => 'Head/Admin uploads accomplished RSLDDP',
+                'F2F_PROCESSING' => 'Borrower completes in-person accountability processing with SPMU',
+                'RSLDDP_AWAITING_UPLOAD', 'RSLDDP_DISPOSITION_PENDING' => 'Complete in-person processing before final resolution',
                 'RSLDDP_FOR_ACCOUNTING_PROCESSING' => 'Official Billing Statement pending',
-                'RSLDDP_DISPOSITION_PENDING' => 'Head/Admin records the stated disposition',
                 'RSLDDP_COMPLIANCE_VERIFICATION' => \App\Support\AccountabilityDispositionLabels::subStatusLabel($incident),
                 'RSLDDP_PAYMENT_REQUIRED' => 'AO receipt recording',
                 'RSLDDP_FOR_RESOLUTION' => 'Head/Admin reviews & resolves',
@@ -2167,10 +1808,11 @@ a.accountability-overview-card:focus-visible {
                         $isOfficer && $statusKey === 'OPEN' => ['waiting', 'Waiting for Head'],
                         $isHead && $isForBilling => ['action', 'Issue Billing'],
                         $isOfficer && $isForBilling => ['waiting', 'Waiting for Head'],
-                        $isOfficer && $isComplianceRequired => ['action', 'Verify Compliance'],
-                        $isHead && $isComplianceRequired => ['waiting', 'Waiting for AO'],
-                        $isHead && ($isComplianceRsldppPending || $isRsldppAwaitingUpload) => ['action', 'Upload RSLDDP'],
-                        $isOfficer && ($isComplianceRsldppPending || $isRsldppAwaitingUpload) => ['waiting', 'Waiting for Head'],
+                        $isOfficer && ($isComplianceRequired || $isComplianceRsldppPending) => ['action', 'Verify Compliance'],
+                        $isHead && ($isComplianceRequired || $isComplianceRsldppPending) => ['waiting', 'Waiting for AO'],
+                        $isHead && $isDirectF2fResolution => ['action', 'Resolve Accountability'],
+                        $isHead && ($isRsldppAwaitingUpload || $isF2FProcessing) => ['view', 'View Case'],
+                        $isOfficer && ($isRsldppAwaitingUpload || $isF2FProcessing) => ['waiting', 'In-Person Resolution'],
                         $isHead && $isRsldppForAccountingProcessing => ['action', 'Record Billing'],
                         $isOfficer && $isRsldppForAccountingProcessing => ['waiting', 'Waiting for Head'],
                         $isOfficer && ($isBillingPending || $isRsldppPaymentRequired) && $incidentBilling && ! in_array($incidentBilling->status, ['SETTLED', 'WAIVED', 'VOID'], true) => ['action', 'Record Payment'],
@@ -2305,7 +1947,7 @@ a.accountability-overview-card:focus-visible {
                                         <input type="radio" name="decision" value="CONFIRM" required>
                                         <span class="head-offense-choice__copy">
                                             <strong>Confirm Accountability</strong>
-                                            <small>Generates the RSLDDP and moves the case to RSLDDP Processing. The offense/sanction above, if applicable, applies automatically.</small>
+                                            <small>Notifies the borrower to coordinate with SPMU for the required in-person processing. Applicable administrative actions remain recorded.</small>
                                         </span>
                                     </label>
                                     <label class="head-offense-choice">
@@ -2440,115 +2082,72 @@ a.accountability-overview-card:focus-visible {
                 <div class="accountability-current-step">
                     <div class="accountability-current-step__heading">
                         <div>
-                            <small>{{ $isHead ? 'Your current action' : 'Current status' }}</small>
-                            <strong>RSLDDP Pending Upload</strong>
-                            <p>{{ $isHead
-                                ? 'This confirmed compliance case requires an RSLDDP. Upload the accomplished/notarized scan once external signing is complete to resume Action Officer compliance verification.'
-                                : 'Action by: SPMU Head/Admin. An RSLDDP is being processed for this case alongside the required compliance. No borrower or Action Officer action is required until it is uploaded.' }}</p>
+                            <small>{{ $isOfficer ? 'Your current action' : 'Current status' }}</small>
+                            <strong>Legacy Compliance Verification</strong>
+                            <p>{{ $isOfficer
+                                ? 'Verify the existing recorded property compliance. No provisional RSLDDP upload is required.'
+                                : 'The borrower presents the recorded property compliance to the SPMU Action Officer. The linked restriction stays active until final resolution.' }}</p>
                         </div>
-                        @if($rsldppDocument)
-                            <div class="actions">
-                                <a class="button secondary small" href="{{ route('documents.preview', $rsldppDocument) }}">Preview</a>
-                            </div>
-                        @endif
                     </div>
-                    @if($isHead)
+                    @if($isOfficer)
                         <details class="accountability-action-disclosure">
-                            <summary><span>Upload Accomplished RSLDDP</span><x-icon name="chevron-down" size="15" class="accountability-disclosure-chevron" /></summary>
+                            <summary><span>Verify Property Compliance</span><x-icon name="chevron-down" size="15" class="accountability-disclosure-chevron" /></summary>
                             <div class="accountability-action-body">
-                                <form method="post" action="{{ route('incidents.rslddp.upload', $incident) }}" enctype="multipart/form-data" class="form-grid">
+                                <form method="post" action="{{ route('incidents.resolve', $incident) }}" class="form-grid">
                                     @csrf
-                                    <label>Accomplished/Notarized RSLDDP Scan<input type="file" name="evidence" accept="application/pdf,image/png,image/jpeg,image/webp" required></label>
-                                    <button class="button primary">Upload Accomplished RSLDDP</button>
+                                    <input type="hidden" name="resolution_outcome" value="COMPLIANCE_COMPLETED">
+                                    <button class="button primary">Verify Compliance</button>
                                 </form>
                             </div>
                         </details>
                     @endif
                 </div>
-            @elseif($isRsldppAwaitingUpload)
+            @elseif($isDirectF2fResolution)
                 <div class="accountability-current-step">
                     <div class="accountability-current-step__heading">
                         <div>
                             <small>{{ $isHead ? 'Your current action' : 'Current status' }}</small>
-                            <strong>RSLDDP Processing</strong>
+                            <strong>Resolve Accountability</strong>
                             <p>{{ $isHead
-                                ? 'Upload the accomplished/notarized RSLDDP scan once external processing is complete.'
-                                : 'Action by: SPMU Head/Admin. External RSLDDP processing is required. Borrowing Status: Restricted. No borrower or Action Officer action is required until the accomplished RSLDDP is uploaded.' }}</p>
+                                ? 'After the required in-person processing is completed, attach the accomplished RSLDDP and confirm the resolution.'
+                                : 'The borrower remains restricted until the required in-person process and final resolution are completed.' }}</p>
                         </div>
-                        @if($rsldppDocument)
-                            <div class="actions">
-                                <a class="button secondary small" href="{{ route('documents.preview', $rsldppDocument) }}">Preview</a>
-                            </div>
-                        @endif
                     </div>
                     @if($isHead)
-                        <details class="accountability-action-disclosure">
-                            <summary><span>Upload Accomplished RSLDDP</span><x-icon name="chevron-down" size="15" class="accountability-disclosure-chevron" /></summary>
-                            <div class="accountability-action-body">
-                                <form method="post" action="{{ route('incidents.rslddp.upload', $incident) }}" enctype="multipart/form-data" class="form-grid">
-                                    @csrf
-                                    <label>Accomplished/Notarized RSLDDP Scan<input type="file" name="evidence" accept="application/pdf,image/png,image/jpeg,image/webp" required></label>
-                                    <button class="button primary">Upload Accomplished RSLDDP</button>
-                                </form>
-                            </div>
-                        </details>
+                        <div class="accountability-action-body accountability-action-body--direct">
+                            <form method="post" action="{{ route('incidents.rslddp.resolve', $incident) }}" enctype="multipart/form-data" class="form-grid">
+                                @csrf
+                                <label>Accomplished RSLDDP
+                                    <input type="file" name="rslddp_attachment" accept=".pdf,.png,.jpg,.jpeg,.webp" required>
+                                </label>
+                                <label>Resolution Remarks
+                                    <textarea name="resolution_remarks" required maxlength="2000" rows="3" placeholder="State the basis for resolving this accountability case."></textarea>
+                                </label>
+                                <label class="check-row">
+                                    <input type="checkbox" name="f2f_processing_completed" value="1" required>
+                                    <span>I confirm that the required in-person accountability processing has been completed.</span>
+                                </label>
+                                <div class="inline-actions">
+                                    <a class="button secondary" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
+                                    <button class="button primary">Confirm Resolution</button>
+                                </div>
+                            </form>
+                        </div>
                     @endif
                 </div>
-            @elseif($isRsldppDispositionPending)
+            @elseif($isRsldppAwaitingUpload || $isRsldppDispositionPending)
                 <div class="accountability-current-step">
                     <div class="accountability-current-step__heading">
                         <div>
-                            <small>{{ $isHead ? 'Your current action' : 'Current status' }}</small>
-                            <strong>Official Disposition Pending</strong>
-                            <p>{{ $isHead
-                                ? 'Record the official disposition stated in the accomplished RSLDDP.'
-                                : 'Action by: SPMU Head/Admin. The accomplished RSLDDP has been received. Borrowing Status: Restricted.' }}</p>
+                            <small>Current stage</small>
+                            <strong>Pending In-Person Resolution</strong>
+                            <p>This is a legacy accountability case. Follow its recorded obligation without creating a new provisional RSLDDP.</p>
                         </div>
-                        @if($rsldppDocument)
-                            <div class="actions">
-                                <a class="button secondary small" href="{{ route('documents.preview', $rsldppDocument) }}">Preview</a>
-                            </div>
-                        @endif
                     </div>
                     @if($isHead)
-                        <details class="accountability-action-disclosure">
-                            <summary><span>Record Official Disposition</span><x-icon name="chevron-down" size="15" class="accountability-disclosure-chevron" /></summary>
-                            <div class="accountability-action-body">
-                                <form method="post" action="{{ route('incidents.disposition.record', $incident) }}" class="form-grid">
-                                    @csrf
-                                    <label>
-                                        Official Disposition
-                                        <select name="official_disposition" required data-official-disposition>
-                                            <option value="">Select the disposition stated in the RSLDDP</option>
-                                            <option value="MONETARY_SETTLEMENT">Monetary Settlement</option>
-                                            @if($allowRepairCompliance)
-                                                <option value="REPAIR">Repair</option>
-                                            @endif
-                                            @if($allowReplacementCompliance)
-                                                <option value="REPLACEMENT">Replacement</option>
-                                            @endif
-                                            @if($allowRecoveryCompliance)
-                                                <option value="RETURN_RECOVERY">Return / Recovery</option>
-                                            @endif
-                                            <option value="OTHER">Other</option>
-                                        </select>
-                                    </label>
-                                    <label data-official-disposition-amount hidden>
-                                        Amount
-                                        <input type="number" step="0.01" min="0.01" name="official_disposition_amount" placeholder="0.00">
-                                    </label>
-                                    <label data-official-disposition-details hidden>
-                                        Details
-                                        <textarea name="official_disposition_details" rows="2" maxlength="2000" placeholder="Describe the disposition stated in the RSLDDP."></textarea>
-                                    </label>
-                                    <label>
-                                        Remarks
-                                        <textarea name="resolution_remarks" rows="2" maxlength="2000" required placeholder="Note where this disposition is stated in the accomplished RSLDDP."></textarea>
-                                    </label>
-                                    <button class="button primary">Record Official Disposition</button>
-                                </form>
-                            </div>
-                        </details>
+                        <div class="actions">
+                            <a class="button secondary small" href="{{ route('accountability.borrower', [$incident->borrower, 'tab' => 'cases', 'focus' => 'incident-'.$incident->id]) }}#incident-{{ $incident->id }}">View Case →</a>
+                        </div>
                     @endif
                 </div>
             @elseif($isRsldppComplianceVerification)
@@ -2720,32 +2319,14 @@ a.accountability-overview-card:focus-visible {
                     <div class="accountability-current-step__heading">
                         <div>
                             <small>{{ $isHead ? 'Your current action' : 'Current status' }}</small>
-                            <strong>For Resolution</strong>
-                            <p>{{ $isHead
-                                ? 'The official Billing Statement is fully settled through a confirmed Cashier payment. Verify the accomplished RSLDDP and resolve this case.'
-                                : 'Action by: SPMU Head/Admin. Payment has been confirmed. The case awaits final SPMU Head/Admin verification and resolution.' }}</p>
+                            <strong>For Final Resolution</strong>
+                            <p>Attach the accomplished RSLDDP and confirm the outcome after the required compliance or payment is verified.</p>
                         </div>
-                        @if($rsldppDocument)
-                            <div class="actions">
-                                <a class="button secondary small" href="{{ route('documents.preview', $rsldppDocument) }}">Preview</a>
-                            </div>
-                        @endif
                     </div>
                     @if($isHead)
-                        <details class="accountability-action-disclosure">
-                            <summary><span>Verify & Resolve</span><x-icon name="chevron-down" size="15" class="accountability-disclosure-chevron" /></summary>
-                            <div class="accountability-action-body">
-                                <form method="post" action="{{ route('incidents.rslddp.resolve', $incident) }}" class="form-grid">
-                                    @csrf
-                                    <label>
-                                        Resolution Remarks
-                                        <textarea name="resolution_remarks" rows="3" maxlength="2000" required placeholder="Confirm the accomplished RSLDDP and settlement, and state the resolution basis."></textarea>
-                                    </label>
-                                    <button class="button primary">Verify & Resolve</button>
-                                    <small class="accountability-resolution-note">The system will resolve the case and clear the linked restriction automatically.</small>
-                                </form>
-                            </div>
-                        </details>
+                        <div class="actions">
+                            <a class="button secondary small" href="{{ route('accountability.borrower', [$incident->borrower, 'tab' => 'cases', 'focus' => 'incident-'.$incident->id]) }}#incident-{{ $incident->id }}">Resolve Case →</a>
+                        </div>
                     @endif
                 </div>
             @endif
@@ -2964,7 +2545,7 @@ a.accountability-overview-card:focus-visible {
     <article class="card accountability-cases-card">
         <div class="accountability-cases-head">
             <h2>
-                Borrowers with Active Accountability
+                {{ $selectedMetric === 'balance' ? 'Borrowers with Outstanding Balance' : 'Borrowers with Active Accountability' }}
                 <span class="accountability-count-chip" id="accountability-borrower-count" data-total="{{ $borrowerRollups->count() }}">{{ $borrowerRollups->count() }}</span>
             </h2>
         </div>
@@ -2972,10 +2553,10 @@ a.accountability-overview-card:focus-visible {
         @if($borrowerRollups->isEmpty())
             <x-empty-state
                 icon="accountability"
-                title="No active accountability cases."
-                :message="$isOfficer
-                    ? 'There are no overdue returns, property cases, standalone billings, or borrowing restrictions needing action right now.'
-                    : 'There are no property cases, late-return assessments, or borrowing restrictions waiting on a decision right now.'"
+                :title="$selectedMetric === 'balance' ? 'No outstanding balance.' : 'No active accountability cases.'"
+                :message="$selectedMetric === 'balance'
+                    ? 'No borrower has an unpaid balance from the currently open billing records.'
+                    : 'There are no active borrower accountability cases to display.'"
             />
         @else
             <div class="table-wrap accountability-cases-table">
@@ -2983,7 +2564,7 @@ a.accountability-overview-card:focus-visible {
                     <thead>
                         <tr>
                             <th scope="col">Borrower</th>
-                            <th scope="col" class="is-numeric">Active Cases</th>
+                            <th scope="col" class="is-numeric">{{ $selectedMetric === 'balance' ? 'Outstanding Balance' : 'Active Cases' }}</th>
                             <th scope="col">Borrowing Status</th>
                             <th scope="col">Current Attention</th>
                             <th scope="col"><span class="sr-only">Actions</span></th>
@@ -2993,7 +2574,7 @@ a.accountability-overview-card:focus-visible {
                         @foreach($borrowerRollups as $row)
                             <tr class="accountability-borrower-row">
                                 <td><span class="accountability-case-borrower">{{ $row['borrower']?->full_name ?: '—' }}</span></td>
-                                <td class="is-numeric">{{ $row['case_count'] }}</td>
+                                <td class="is-numeric">{{ $selectedMetric === 'balance' ? 'PHP '.number_format($row['outstanding_amount'], 2) : $row['case_count'] }}</td>
                                 <td>
                                     @if($row['restricted'])
                                         <x-status-badge status="BORROWING_RESTRICTED" label="Restricted" />
@@ -3004,8 +2585,10 @@ a.accountability-overview-card:focus-visible {
                                 <td>{{ $row['attention'] }}</td>
                                 <td>
                                     @if($row['borrower'])
-                                        <a class="table-action accountability-next-link" href="{{ route('accountability.borrower', $row['borrower']) }}">
-                                            <span>Open Workspace →</span>
+                                        <a class="table-action accountability-next-link" href="{{ route('accountability.borrower', $selectedMetric === 'balance'
+                                            ? [$row['borrower'], 'tab' => 'cases', 'scope' => 'payment']
+                                            : [$row['borrower'], 'tab' => 'cases']) }}#accountability-active-cases">
+                                            <span>{{ $selectedMetric === 'balance' ? 'View Payment Cases →' : 'View Cases →' }}</span>
                                         </a>
                                     @endif
                                 </td>
@@ -3033,7 +2616,7 @@ a.accountability-overview-card:focus-visible {
     @include('accountability.partials.cases-interactions')
 @endunless
 
-@if((($isHead && $activeStaffTab === 'sanctions') || $workspace === 'BORROWER') && $sanctions->isNotEmpty())
+@if(($isHead && $activeStaffTab === 'sanctions') || ($workspace === 'BORROWER' && $sanctions->isNotEmpty()))
 <section class="content-area accountability-sanctions-section">
     <article class="card accountability-cases-card accountability-sanctions-card">
         <div class="accountability-cases-head">
@@ -3043,6 +2626,9 @@ a.accountability-overview-card:focus-visible {
             </h2>
         </div>
 
+        @if($sanctions->isEmpty())
+            <x-empty-state icon="accountability" title="No sanction records." message="There are no sanction records to display." />
+        @else
         <div class="table-wrap accountability-cases-table accountability-sanctions-table">
             <table>
                 <thead>
@@ -3115,6 +2701,7 @@ a.accountability-overview-card:focus-visible {
                 </tbody>
             </table>
         </div>
+        @endif
     </article>
 </section>
 @endif

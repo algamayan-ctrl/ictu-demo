@@ -19,8 +19,6 @@
     <div class="document-title">
         <h1>{{ $hasBorrowingSuspension ? 'Suspension Notice' : 'Administrative Sanction Notice' }}</h1>
         <div class="document-meta">
-            <strong>Offense Level</strong> {{ $offenseLabel }}
-            <span class="meta-separator">•</span>
             <strong>Date Confirmed</strong> {{ $confirmedDate }}
         </div>
     </div>
@@ -37,7 +35,6 @@
         </tr>
         <tr>
             <td><span class="field-label">Academic Period</span><span class="field-value">{{ $academicPeriod }}</span></td>
-            <td><span class="field-label">Administrative Status</span><span class="field-value">Confirmed</span></td>
         </tr>
     </table>
 
@@ -61,15 +58,10 @@
         </tr>
     </table>
 
-    <div class="notice-box {{ $hasBorrowingSuspension ? 'warning-box' : '' }}">
-        <strong>Sanction Effect</strong>
-        @if($hasBorrowingSuspension)
-            <p>{{ $sanction->sanction_label }} is effective for the period stated above.</p>
-        @else
-            <p>{{ $sanction->sanction_label }} only — no borrowing suspension is imposed by this administrative sanction.</p>
-        @endif
-        <p>Any separate property, billing, overdue, or other unresolved borrowing restriction remains effective until that obligation is independently resolved.</p>
-    </div>
+    @unless($hasBorrowingSuspension)
+        <p class="decision-copy">No additional borrowing suspension is imposed by this sanction.</p>
+    @endunless
+    <p class="decision-copy">Separate unresolved accountability restrictions remain in effect.</p>
 
     <table class="signature-table" role="presentation">
         <tr>

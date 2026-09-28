@@ -25,6 +25,12 @@
             <dt>Final Status</dt>
             <dd><x-status-badge :status="$incident->status" /></dd>
         </div>
+        @if($incident->rslddp_attachment_file_id)
+            <div>
+                <dt>Accomplished RSLDDP</dt>
+                <dd><a class="button secondary small ui-pressable" href="{{ route('files.preview', $incident->rslddp_attachment_file_id) }}">Preview Attachment</a></dd>
+            </div>
+        @endif
     </dl>
 @endif
 

@@ -295,6 +295,10 @@ class DocumentController extends Controller
                 ->where('supporting_evidence_file_id', $file->id)
                 ->where('borrower_user_id', $user->id)
                 ->exists()
+            || Incident::query()
+                ->where('rslddp_attachment_file_id', $file->id)
+                ->where('borrower_user_id', $user->id)
+                ->exists()
             || Payment::query()
                 ->where('evidence_file_id', $file->id)
                 ->whereHas(

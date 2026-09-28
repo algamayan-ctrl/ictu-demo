@@ -17,29 +17,37 @@ test('borrower Accountability workspace stays grouped and does not route normal 
 });
 
 test('role-owned Accountability actions use focused controls instead of forward-arrow navigation', () => {
-  assert.match(workspace, /data-accountability-dialog/);
-  assert.match(workspace, />Review Assessment</);
+  assert.match(workspace, /accountability-action-button/);
+  assert.match(workspace, /\$shouldAutoOpenFocusedAction/);
+  assert.match(workspace, /class="accountability-action-panel"/);
+  assert.match(workspace, /Review Assessment/);
   assert.match(workspace, /Confirm \/ Clear/);
-  assert.match(workspace, />Record Verification</);
-  assert.match(workspace, />Record Receipt</);
-  assert.match(workspace, />Resolve Case</);
+  assert.match(workspace, /Record Verification/);
+  assert.match(workspace, /Record Receipt/);
+  assert.match(workspace, /Resolve Case/);
+  assert.match(workspace, /Resolve Accountability/);
+  assert.match(workspace, /name="f2f_processing_completed"/);
+  assert.doesNotMatch(workspace, /route\('incidents\.rslddp\.upload'/);
+  assert.doesNotMatch(workspace, /route\('incidents\.disposition\.record'/);
   assert.doesNotMatch(workspace, /→/);
 });
 
 test('workspace uses compact readable sizing and wraps long status/action text', () => {
   assert.match(workspace, /font-size: clamp\(24px, 1\.9vw, 29px\)/);
-  assert.match(workspace, /min-height: 108px/);
+  assert.match(workspace, /min-height: 122px/);
   assert.match(workspace, /overflow-wrap: anywhere/);
   assert.match(workspace, /white-space: normal/);
 });
 
 
-test('documents tab uses its own left-aligned compact list instead of dashboard queue alignment', () => {
-  assert.match(workspace, /accountability-document-list/);
-  assert.match(workspace, /accountability-document-row/);
-  assert.match(workspace, /accountability-document-copy/);
-  assert.match(workspace, /text-align: left/);
-  assert.doesNotMatch(workspace, /class="dashboard-primary-queue-row" style="grid-template-columns: 34px/);
+test('documents are attached to their accountability case instead of using a standalone Documents tab', () => {
+  const relatedDocuments = fs.readFileSync(path.join(root, 'resources/views/accountability/partials/case-documents.blade.php'), 'utf8');
+  assert.doesNotMatch(workspace, />Documents<\/a>/);
+  assert.doesNotMatch(workspace, /activeTab === 'documents'/);
+  assert.match(workspace, /@include\('accountability\.partials\.case-documents'/);
+  assert.match(relatedDocuments, /Related Documents/);
+  assert.match(relatedDocuments, /route\('documents\.preview', \$document\)/);
+  assert.match(relatedDocuments, /accountability-case-record__row/);
 });
 
 test('embedded borrower history suppresses the duplicate resolved-accountability heading', () => {
@@ -54,14 +62,15 @@ test('staff borrower History loads the shared resolved-row interaction script', 
 });
 
 
-test('staff borrower accountability summary cards are clickable and Active Cases includes standalone open matters', () => {
-  assert.equal((workspace.match(/class="card stat-card kpi-card dashboard-kpi-card stat-card-link ui-pressable/g) || []).length, 3);
+test('staff borrower accountability summary uses the same universal accountability cards and separates case count from restrictions', () => {
+  assert.equal((workspace.match(/class="accountability-summary-card tone-/g) || []).length, 3);
+  assert.match(workspace, /Open Accountability Matters/);
+  assert.match(workspace, /\$openMatterCount = \$openIncidents->count\(\) \+ \$openOverdueCases->count\(\) \+ \$standaloneBillingCount/);
+  assert.match(workspace, /Pending Borrower Compliance/);
+  assert.match(workspace, /\$pendingBorrowerNote/);
   assert.match(workspace, /id="accountability-active-cases"/);
   assert.match(workspace, /\$standaloneRows = collect\(\$rows\)[\s\S]*?whereIn\('category', \['billing', 'restriction'\]\)/);
-  assert.match(workspace, /\$custodyGroups->isEmpty\(\) && \$standaloneRows->isEmpty\(\)/);
   assert.match(workspace, /accountability-standalone-groups/);
-  assert.match(workspace, /Borrower action pending/);
-  assert.match(workspace, /SPMU \/ policy processing/);
 });
 
 
@@ -72,7 +81,7 @@ test('standalone accountability disclosures stay anchored and use a compact sepa
   assert.match(workspace, /accountability-standalone-toggle \{ justify-self: end; min-width: 118px; \}/);
   assert.match(workspace, /accountability-standalone-detail-body\[hidden\] \{ display: none; \}/);
   assert.doesNotMatch(workspace, /<details class="accountability-standalone-details">/);
-  assert.match(workspace, /class="accountability-custody-groups accountability-standalone-groups"[\s\S]*?class="ob-case-card accountability-custody-case accountability-standalone-case"/);
+  assert.match(workspace, /class="accountability-custody-groups accountability-standalone-groups"[\s\S]*?class="ob-case-card accountability-custody-case accountability-standalone-case tone-/);
 });
 
 test('resolved accountability expansion stays compact and omits unavailable late-return facts', () => {

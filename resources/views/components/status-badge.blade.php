@@ -8,7 +8,7 @@
         // Explicit RSLDDP-lifecycle tones, checked first so the generic
         // substring rules below (which would otherwise catch "AWAITING"/
         // "PENDING"/"REQUIRED" by accident) never override them.
-        in_array($key, ['RSLDDP_AWAITING_UPLOAD', 'RSLDDP_FOR_ACCOUNTING_PROCESSING', 'RSLDDP_FOR_RESOLUTION', 'COMPLIANCE_RSLDDP_PENDING', 'RSLDDP_DISPOSITION_PENDING', 'GATE_PASS_PROCESSING'], true) => 'info',
+        in_array($key, ['F2F_PROCESSING', 'RSLDDP_AWAITING_UPLOAD', 'RSLDDP_FOR_ACCOUNTING_PROCESSING', 'RSLDDP_FOR_RESOLUTION', 'COMPLIANCE_RSLDDP_PENDING', 'RSLDDP_DISPOSITION_PENDING', 'GATE_PASS_PROCESSING'], true) => 'info',
         in_array($key, ['RSLDDP_PAYMENT_REQUIRED', 'RSLDDP_COMPLIANCE_VERIFICATION'], true) => 'warning',
         str_contains($key, 'OVERDUE') || in_array($key, ['REJECTED', 'EXPIRED', 'FAILED', 'UNAVAILABLE', 'CRITICAL', 'LOST', 'DESTROYED', 'STOLEN', 'CONDEMNED'], true) => 'danger',
         str_contains($key, 'APPROVED') || str_contains($key, 'COMPLETED') || str_contains($key, 'VERIFIED') || in_array($key, ['ACTIVE', 'AVAILABLE', 'READY_FOR_RELEASE', 'RELEASED', 'RETURNED', 'SETTLED', 'EFFECTIVE', 'FINAL', 'CLOSED', 'BORROWER_CLEARED', 'RESOLVED'], true) => 'success',

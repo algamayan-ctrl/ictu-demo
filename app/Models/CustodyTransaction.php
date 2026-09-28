@@ -206,11 +206,12 @@ class CustodyTransaction extends Model
                 'FOR_BILLING' => ['key' => 'FOR_BILLING', 'label' => 'Billing Required'],
                 'BILLING_PENDING' => ['key' => 'BILLING_PENDING', 'label' => 'Billing Pending'],
                 'COMPLIANCE_REQUIRED' => ['key' => 'COMPLIANCE_REQUIRED', 'label' => 'Compliance Required'],
-                'COMPLIANCE_RSLDDP_PENDING' => ['key' => 'COMPLIANCE_RSLDDP_PENDING', 'label' => 'Compliance - RSLDDP Pending'],
-                'RSLDDP_AWAITING_UPLOAD' => ['key' => 'RSLDDP_AWAITING_UPLOAD', 'label' => 'RSLDDP Processing'],
+                'COMPLIANCE_RSLDDP_PENDING' => ['key' => 'COMPLIANCE_RSLDDP_PENDING', 'label' => 'Compliance Verification (Legacy)'],
+                'F2F_PROCESSING' => ['key' => 'F2F_PROCESSING', 'label' => 'For F2F Processing'],
+                'RSLDDP_AWAITING_UPLOAD' => ['key' => 'RSLDDP_AWAITING_UPLOAD', 'label' => 'For F2F Processing (Legacy)'],
                 'RSLDDP_FOR_ACCOUNTING_PROCESSING' => ['key' => 'RSLDDP_FOR_ACCOUNTING_PROCESSING', 'label' => 'For Accounting Processing'], // legacy only
                 'RSLDDP_PAYMENT_REQUIRED' => ['key' => 'RSLDDP_PAYMENT_REQUIRED', 'label' => 'Payment Required'], // legacy only
-                'RSLDDP_DISPOSITION_PENDING' => ['key' => 'RSLDDP_DISPOSITION_PENDING', 'label' => 'Official Disposition Pending'],
+                'RSLDDP_DISPOSITION_PENDING' => ['key' => 'RSLDDP_DISPOSITION_PENDING', 'label' => 'For F2F Processing (Legacy)'],
                 'RSLDDP_COMPLIANCE_VERIFICATION' => ['key' => 'RSLDDP_COMPLIANCE_VERIFICATION', 'label' => \App\Support\AccountabilityDispositionLabels::subStatusLabel($incident)],
                 'RSLDDP_FOR_RESOLUTION' => ['key' => 'RSLDDP_FOR_RESOLUTION', 'label' => 'For Final Review'],
                 default => ['key' => 'INCIDENT_OPEN', 'label' => 'Accountability Pending'],
@@ -383,15 +384,21 @@ class CustodyTransaction extends Model
                 ],
                 'COMPLIANCE_RSLDDP_PENDING' => [
                     'key' => 'COMPLIANCE_RSLDDP_PENDING',
-                    'label' => 'Compliance - RSLDDP Pending',
-                    'title' => 'RSLDDP required for compliance case',
-                    'copy' => 'The SPMU Head/Admin has determined this compliance case also requires an accomplished RSLDDP before it can be resolved.',
+                    'label' => 'Compliance Verification (Legacy)',
+                    'title' => 'Legacy compliance verification required',
+                    'copy' => 'The borrower must present the existing recorded compliance to the SPMU Action Officer before final resolution.',
+                ],
+                'F2F_PROCESSING' => [
+                    'key' => 'F2F_PROCESSING',
+                    'label' => 'For F2F Processing',
+                    'title' => 'Face-to-face accountability processing',
+                    'copy' => 'The borrower must coordinate personally with CSPC SPMU regarding the required RSLDDP and approved compliance.',
                 ],
                 'RSLDDP_AWAITING_UPLOAD' => [
                     'key' => 'RSLDDP_AWAITING_UPLOAD',
-                    'label' => 'RSLDDP Processing',
-                    'title' => 'RSLDDP in progress',
-                    'copy' => 'The RSLDDP has been generated and is awaiting the accomplished, notarized copy to be uploaded.',
+                    'label' => 'For F2F Processing (Legacy)',
+                    'title' => 'Face-to-face accountability processing',
+                    'copy' => 'Complete face-to-face processing. The SPMU Head/Admin attaches the final accomplished RSLDDP only when resolving the case.',
                 ],
                 'RSLDDP_FOR_ACCOUNTING_PROCESSING' => [
                     'key' => 'RSLDDP_FOR_ACCOUNTING_PROCESSING',
@@ -407,9 +414,9 @@ class CustodyTransaction extends Model
                 ], // legacy only
                 'RSLDDP_DISPOSITION_PENDING' => [
                     'key' => 'RSLDDP_DISPOSITION_PENDING',
-                    'label' => 'Official Disposition Pending',
-                    'title' => 'Official disposition pending',
-                    'copy' => 'The accomplished RSLDDP has been received. The SPMU Head/Admin still needs to record the official disposition it states.',
+                    'label' => 'For F2F Processing (Legacy)',
+                    'title' => 'Face-to-face accountability processing',
+                    'copy' => 'Complete face-to-face processing. The SPMU Head/Admin records the final resolution with the accomplished RSLDDP.',
                 ],
                 'RSLDDP_COMPLIANCE_VERIFICATION' => [
                     'key' => 'RSLDDP_COMPLIANCE_VERIFICATION',

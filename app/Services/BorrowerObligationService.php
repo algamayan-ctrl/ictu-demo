@@ -346,7 +346,6 @@ class BorrowerObligationService
             $document = $billingDocument($linkedBilling);
             $billingLabel = 'Preview';
             $complianceDocument = $activeDocument($incident->documents, 'ACCOUNTABILITY_COMPLIANCE_NOTICE');
-            $rslddpDocument = $activeDocument($incident->documents, 'RSLDDP');
             $complianceActionLabel = match (strtoupper((string) $incident->compliance_action)) {
                 'REPAIR' => 'repair and return-to-service requirement',
                 'REPLACEMENT' => 'one-for-one replacement',
@@ -360,7 +359,6 @@ class BorrowerObligationService
             $nextAction = 'No borrower action is required while the SPMU decision is pending.';
             $nextTone = 'info';
             $actionState = self::ACTION_PROCESSING;
-            $rslddpUploadIncidentId = null;
 
             if ($incident->status === 'COMPLIANCE_REQUIRED') {
                 $statusLabel = 'Compliance Required';
@@ -369,31 +367,27 @@ class BorrowerObligationService
                 $nextTone = 'warning';
                 $actionState = self::ACTION_BORROWER;
             } elseif ($incident->status === 'COMPLIANCE_RSLDDP_PENDING') {
-                /*
-                 * Legacy status only - no new decision ever sets this. Kept
-                 * exactly as it operated before the Accountability rework,
-                 * including the borrower-upload copy, since a row already
-                 * sitting here predates the SPMU-Head-only upload
-                 * authorization change and its own linked EvidenceSubmission
-                 * flow is unaffected by that change.
-                 */
-                $statusLabel = 'RSLDDP Pending Upload';
+                // Safe mapping for a pre-existing compliance case. Its
+                // physical requirement stays intact, but the retired upload
+                // stage is never shown to the borrower.
+                $statusLabel = 'Compliance Required';
                 $statusTone = 'warning';
-                $nextAction = 'Print the generated RSLDDP for external signing/notarization, then upload the accomplished scan below to resume Action Officer compliance verification.';
+                $nextAction = 'Complete the recorded '.$complianceActionLabel.', then present the property to the SPMU Action Officer for physical verification.';
                 $nextTone = 'warning';
                 $actionState = self::ACTION_BORROWER;
-                $rslddpUploadIncidentId = $incident->id;
-            } elseif ($incident->status === 'RSLDDP_AWAITING_UPLOAD') {
-                /*
-                 * The borrower is never the uploader of the accomplished
-                 * RSLDDP (spec Section F) - SPMU Head/Admin uploads it, for
-                 * both legacy and new-flow incidents reaching this status,
-                 * so this is SPMU_PROCESSING regardless of
-                 * accountability_flow_version.
-                 */
-                $statusLabel = 'RSLDDP Processing';
+            } elseif ($incident->status === 'F2F_PROCESSING') {
+                $statusLabel = 'Pending In-Person Resolution';
                 $statusTone = 'warning';
-                $nextAction = 'No borrower action is required. SPMU Head/Admin will upload the accomplished RSLDDP after external processing.';
+                $nextAction = 'Please coordinate in person with CSPC SPMU to complete the required RSLDDP and property accountability processing.';
+                $nextTone = 'warning';
+                $actionState = self::ACTION_BORROWER;
+            } elseif ($incident->status === 'RSLDDP_AWAITING_UPLOAD') {
+                // A safe pre-resolution legacy mapping: the recorded case
+                // finishes through the final F2F resolution action, not a
+                // separate document-upload step.
+                $statusLabel = 'Pending In-Person Resolution';
+                $statusTone = 'warning';
+                $nextAction = 'Please coordinate in person with CSPC SPMU regarding the required property accountability processing.';
                 $actionState = self::ACTION_PROCESSING;
             } elseif ($incident->status === 'RSLDDP_FOR_ACCOUNTING_PROCESSING') {
                 // Legacy only - no new decision ever sets this.
@@ -402,9 +396,9 @@ class BorrowerObligationService
                 $nextAction = 'No borrower action is required while the accomplished RSLDDP is processed by the Accounting Office.';
                 $actionState = self::ACTION_PROCESSING;
             } elseif ($incident->status === 'RSLDDP_DISPOSITION_PENDING') {
-                $statusLabel = 'Official Disposition Pending';
+                $statusLabel = 'Pending In-Person Resolution';
                 $statusTone = 'info';
-                $nextAction = 'No borrower action is required while the SPMU Head/Admin records the official disposition stated in the accomplished RSLDDP.';
+                $nextAction = 'SPMU will record the final resolution and retain the accomplished RSLDDP after the required in-person processing is completed.';
                 $actionState = self::ACTION_PROCESSING;
             } elseif ($incident->status === 'RSLDDP_COMPLIANCE_VERIFICATION' && $incident->official_disposition !== 'MONETARY_SETTLEMENT') {
                 // Monetary falls through to the $linkedBilling branch below -
@@ -460,9 +454,9 @@ class BorrowerObligationService
                 $actions[] = ['Preview', route('documents.preview', $document), false, 'primary', 'document', $billingLabel];
             }
 
-            if ($rslddpDocument) {
-                $actions[] = ['Preview', route('documents.preview', $rslddpDocument), false, 'secondary', 'document', 'RSLDDP'];
-            }
+            // A generated historical RSLDDP is never presented as the
+            // accomplished document for an unresolved matter. The final
+            // accomplished attachment is shown only after explicit resolution.
 
             if ($complianceDocument) {
                 $actions[] = ['Preview', route('documents.preview', $complianceDocument), false, 'primary', 'document', 'Compliance Notice'];
@@ -498,6 +492,8 @@ class BorrowerObligationService
                so this fact line no longer repeats the same thing more vaguely. */
 
             $obligationRows[] = [
+                'key' => 'incident-'.$incident->id,
+                'record_id' => (int) $incident->id,
                 'category' => 'property',
                 'custody_transaction_id' => $custody?->id,
                 'action_state' => $actionState,
@@ -522,13 +518,14 @@ class BorrowerObligationService
                 'next_tone' => $nextTone,
                 'facts' => $facts,
                 'actions' => $actions,
-                'rslddp_upload_incident_id' => $rslddpUploadIncidentId,
                 'search' => strtolower(implode(' ', [
                     'property accountability',
                     $itemName,
                     $incidentType,
                     $incident->incident_no,
                     $incident->status,
+                    $linkedBilling?->billing_no,
+                    $linkedBilling?->status,
                     $custody?->custody_no,
                     $linkedBilling?->billing_no,
                     $linkedBilling?->status,
@@ -691,6 +688,8 @@ class BorrowerObligationService
                panel in the expanded obligation - see 'restriction' below. */
 
             $obligationRows[] = [
+                'key' => 'overdue-'.$overdue->id,
+                'record_id' => (int) $overdue->id,
                 'category' => 'overdue',
                 'custody_transaction_id' => $custody?->id,
                 'action_state' => $actionState,
@@ -783,6 +782,8 @@ class BorrowerObligationService
             }
 
             $obligationRows[] = [
+                'key' => 'billing-'.$billing->id,
+                'record_id' => (int) $billing->id,
                 'category' => 'billing',
                 'action_state' => $actionState,
                 'status' => $billing->status,
@@ -870,6 +871,8 @@ class BorrowerObligationService
             }
 
             $obligationRows[] = [
+                'key' => 'restriction-'.$restriction->id,
+                'record_id' => (int) $restriction->id,
                 'category' => 'restriction',
                 'action_state' => $actionState,
                 'status' => $restriction->status,
@@ -947,6 +950,13 @@ class BorrowerObligationService
 
         $rows = $billings
             ->whereIn('status', ['SETTLED', 'WAIVED', 'VOID'])
+            // A paid property invoice is not a resolved accountability case until
+            // Head/Admin completes final resolution and attaches the RSLDDP.
+            ->reject(function (BillingStatement $billing) use ($incidentsById): bool {
+                $incidentId = $billing->lines->pluck('incident_id')->filter()->first();
+                $incident = $incidentId ? $incidentsById->get($incidentId) : null;
+                return $incident && ! in_array($incident->status, ['RESOLVED', 'CLOSED'], true);
+            })
             ->map(function (BillingStatement $billing) use ($casesById, $incidentsById, &$billedCaseIds, &$billedIncidentIds): array {
                 /* Only a verified payment proves a case was paid. A stored
                    receipt file on its own never counts as settlement. */

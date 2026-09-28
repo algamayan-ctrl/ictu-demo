@@ -318,13 +318,9 @@ class DashboardAccountabilityReconciliationTest extends TestCase
         $service = app(BorrowerObligationService::class);
 
         /*
-         * RSLDDP_AWAITING_UPLOAD is deliberately excluded from this list:
-         * AccountabilityController::uploadAccomplishedRslddp() requires the
-         * accomplished/notarized RSLDDP to be uploaded by the case's own
-         * borrower - never the Action Officer or Head - and accepts exactly
-         * this status, so it IS borrower-actionable (see
-         * test_dashboard_action_queue_includes_rslddp_awaiting_upload_incident()
-         * below).
+         * Approved F2F coordination is borrower-actionable, whereas the
+         * final RSLDDP attachment and case resolution are Head-only. Legacy
+         * statuses below remain useful for historical dashboard coverage.
          */
         foreach (['RSLDDP_FOR_ACCOUNTING_PROCESSING', 'RSLDDP_FOR_RESOLUTION'] as $status) {
             $custody = $this->custody($borrower, ['status' => 'OBLIGATION_OPEN'], ['returned_quantity' => 5]);

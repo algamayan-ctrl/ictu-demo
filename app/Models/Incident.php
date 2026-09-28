@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Incident extends Model
 {
-    protected $fillable = ['incident_no', 'custody_transaction_id', 'borrower_user_id', 'reported_by_user_id', 'head_decision_signature_snapshot_id', 'head_decided_by_user_id', 'head_decided_at', 'supporting_evidence_file_id', 'incident_type', 'reported_at', 'police_blotter_reference', 'appraisal_amount', 'rslddp_reference', 'requires_rslddp', 'compliance_action', 'rslddp_evidence_submission_id', 'status', 'remarks', 'official_disposition', 'official_disposition_amount', 'official_disposition_details', 'official_disposition_recorded_by_user_id', 'official_disposition_recorded_at', 'compliance_verification_status', 'compliance_verification_remarks', 'compliance_verified_by_user_id', 'compliance_verified_at', 'accountability_flow_version'];
+    protected $fillable = ['incident_no', 'custody_transaction_id', 'borrower_user_id', 'reported_by_user_id', 'head_decision_signature_snapshot_id', 'head_decided_by_user_id', 'head_decided_at', 'supporting_evidence_file_id', 'incident_type', 'reported_at', 'police_blotter_reference', 'appraisal_amount', 'rslddp_reference', 'requires_rslddp', 'compliance_action', 'rslddp_evidence_submission_id', 'rslddp_attachment_file_id', 'resolved_by_user_id', 'resolved_at', 'f2f_processing_completed_at', 'status', 'remarks', 'official_disposition', 'official_disposition_amount', 'official_disposition_details', 'official_disposition_recorded_by_user_id', 'official_disposition_recorded_at', 'compliance_verification_status', 'compliance_verification_remarks', 'compliance_verified_by_user_id', 'compliance_verified_at', 'accountability_flow_version'];
 
     protected function casts(): array
     {
@@ -21,6 +21,8 @@ class Incident extends Model
             'official_disposition_amount' => 'decimal:2',
             'official_disposition_recorded_at' => 'datetime',
             'compliance_verified_at' => 'datetime',
+            'resolved_at' => 'datetime',
+            'f2f_processing_completed_at' => 'datetime',
         ];
     }
 
@@ -59,8 +61,8 @@ class Incident extends Model
     }
 
     /**
-     * SPMU Head/Admin who recorded the official disposition stated in the
-     * accomplished RSLDDP (spec Section G).
+     * SPMU Head/Admin who recorded the requirement approved during F2F
+     * processing. The accomplished RSLDDP is attached only at resolution.
      */
     public function officialDispositionRecordedBy(): BelongsTo
     {
@@ -88,10 +90,23 @@ class Incident extends Model
     }
 
     /**
-     * The accomplished/notarized RSLDDP scan the borrower returns after
-     * external signing. Notarization itself never happens in-system; this
-     * only tracks the uploaded evidence of it.
+     * Accomplished RSLDDP retained once as a final-resolution attachment.
+     * Preparation and institutional processing happen outside the system.
      */
+    public function rslddpAttachment(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'rslddp_attachment_file_id');
+    }
+
+    /**
+     * SPMU Head/Admin who explicitly completed the final accountability
+     * resolution after the face-to-face RSLDDP process.
+     */
+    public function resolvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'resolved_by_user_id');
+    }
+
     public function rslddpEvidence(): BelongsTo
     {
         return $this->belongsTo(EvidenceSubmission::class, 'rslddp_evidence_submission_id');

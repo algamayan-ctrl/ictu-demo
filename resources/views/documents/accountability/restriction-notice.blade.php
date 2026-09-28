@@ -33,7 +33,6 @@
         </tr>
         <tr>
             <td><span class="field-label">Custody No.</span><span class="field-value">{{ $custodyNo ?: '—' }}</span></td>
-            <td><span class="field-label">Linked Case</span><span class="field-value">{{ $caseReference ?: '—' }}</span></td>
         </tr>
     </table>
 
@@ -51,8 +50,6 @@
 
     <div class="section-title">Reason</div>
     <p class="decision-copy">{{ $restriction->reason ?: 'Unresolved property accountability.' }}</p>
-
-    <p class="decision-copy">Borrowing privileges are temporarily restricted until this accountability is resolved. This notice is a factual record of the restriction and is not itself a decision or a formal sanction.</p>
 
     <div class="document-footer">
         <table role="presentation"><tr>

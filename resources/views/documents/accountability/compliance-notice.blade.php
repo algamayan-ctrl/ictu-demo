@@ -17,7 +17,7 @@
     </table>
 
     <div class="document-title">
-        <h1>Accountability / Compliance Notice</h1>
+        <h1>Property Compliance Notice</h1>
         <div class="document-meta">
             <strong>Case No.</strong> {{ $incident->incident_no }}
             <span class="meta-separator">•</span>

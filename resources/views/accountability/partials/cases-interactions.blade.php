@@ -1,5 +1,5 @@
 <script>
-/* One row, one disclosure. Filtering never changes workflow state. */
+/* One open detail at a time. Filtering never changes workflow state. */
 document.addEventListener('click', (event) => {
     const button = event.target.closest('[data-case-toggle]');
     if (!button) return;
@@ -9,9 +9,32 @@ document.addEventListener('click', (event) => {
     if (!detail?.classList.contains('accountability-case-detail-row')) return;
 
     const wasExpanded = detail.dataset.expanded === 'true';
-    detail.dataset.expanded = String(!wasExpanded);
-    detail.hidden = wasExpanded;
-    button.setAttribute('aria-expanded', String(!wasExpanded));
+    const table = row.closest('table');
+
+    if (!wasExpanded && table) {
+        table.querySelectorAll('[data-case-toggle][aria-expanded="true"]').forEach((otherButton) => {
+            if (otherButton === button) return;
+
+            const otherRow = otherButton.closest('tr');
+            const otherDetail = otherRow?.nextElementSibling;
+            if (otherDetail?.classList.contains('accountability-case-detail-row')) {
+                otherDetail.dataset.expanded = 'false';
+                otherDetail.hidden = true;
+            }
+
+            otherButton.setAttribute('aria-expanded', 'false');
+            const otherLabel = otherButton.querySelector('span');
+            if (otherLabel) otherLabel.textContent = 'View Details';
+        });
+    }
+
+    const willExpand = !wasExpanded;
+    detail.dataset.expanded = String(willExpand);
+    detail.hidden = !willExpand;
+    button.setAttribute('aria-expanded', String(willExpand));
+
+    const label = button.querySelector('span');
+    if (label) label.textContent = willExpand ? 'Hide Details' : 'View Details';
 });
 
 (() => {

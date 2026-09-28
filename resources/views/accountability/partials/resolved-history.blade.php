@@ -233,6 +233,21 @@
 </section>
 
 <style>
+
+.resolved-history-detail-toggle,
+.accountability-history-embedded [data-case-toggle] {
+    transition: background-color .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.resolved-history-detail-toggle:hover,
+.resolved-history-detail-toggle:focus-visible,
+.accountability-history-embedded [data-case-toggle]:hover,
+.accountability-history-embedded [data-case-toggle]:focus-visible {
+    color: #fff;
+    background: var(--interactive);
+    border-color: var(--interactive);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
 .accountability-history-embedded { padding: 0; overflow: hidden; }
 .accountability-history-embedded .table-wrap { border: 0; border-radius: 0; box-shadow: none; }
 .accountability-history-embedded table { margin: 0; }

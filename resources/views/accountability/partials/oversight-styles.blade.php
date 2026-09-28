@@ -562,8 +562,9 @@ html[data-theme="dark"] .kpi-accent-restriction {
 }
 
 .accountability-overview-card {
-    --tone: #1769e0;
-    --tone-tile: rgba(23, 105, 224, .14);
+    --tone-from: #2563eb;
+    --tone-to: #38bdf8;
+    --tone-glow: rgba(37, 99, 235, .28);
 
     position: relative;
     display: grid;
@@ -571,23 +572,44 @@ html[data-theme="dark"] .kpi-accent-restriction {
     align-content: start;
     min-width: 0;
     padding: 18px 20px 20px;
-    border: 1px solid var(--border);
+    border: 0;
     border-radius: 14px;
-    background: var(--surface-elevated);
-    /* Single top accent: inset stripe only; do not pair with border-top. */
-    box-shadow: inset 0 3px 0 var(--tone), var(--shadow-sm);
-    color: inherit;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--tone-from), var(--tone-to));
+    box-shadow: 0 10px 24px var(--tone-glow);
+    color: #fff;
     text-decoration: none;
-    cursor: default;
 }
 
+.accountability-overview-card::before {
+    content: "";
+    position: absolute;
+    inset: auto -10% -28% 34%;
+    height: 72%;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .08);
+    transform: rotate(-8deg);
+}
 
-/* Summary cards are informational only. Navigation lives in the case lists,
-   filters, and explicit action controls below. */
-.accountability-overview-card:hover {
-    border-color: var(--border);
-    box-shadow: inset 0 3px 0 var(--tone), var(--shadow-sm);
-    transform: none;
+.accountability-overview-card::after {
+    content: "";
+    position: absolute;
+    inset: -18% auto auto -12%;
+    width: 42%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .08);
+}
+
+.accountability-overview-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.accountability-overview-card:hover,
+.accountability-overview-card:focus-visible {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 28px var(--tone-glow);
 }
 .accountability-overview-arrow { display: none; }
 
@@ -598,12 +620,14 @@ html[data-theme="dark"] .kpi-accent-restriction {
     place-items: center;
     margin-bottom: 14px;
     border-radius: 50%;
-    color: var(--tone);
-    background: var(--tone-tile);
+    color: #fff;
+    background: rgba(255, 255, 255, .12);
+    border: 1px solid rgba(255, 255, 255, .28);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
 }
 
 .accountability-overview-label {
-    color: var(--heading);
+    color: rgba(255, 255, 255, .95);
     font-size: 14.5px;
     font-weight: 700;
     line-height: 1.3;
@@ -611,7 +635,7 @@ html[data-theme="dark"] .kpi-accent-restriction {
 
 .accountability-overview-value {
     margin-top: 6px;
-    color: var(--heading);
+    color: #fff;
     font-size: 31px;
     font-weight: 800;
     line-height: 1.1;
@@ -620,36 +644,40 @@ html[data-theme="dark"] .kpi-accent-restriction {
 
 .accountability-overview-note {
     margin-top: 8px;
-    color: var(--text-muted);
+    color: rgba(255, 255, 255, .86);
     font-size: 12px;
     line-height: 1.4;
 }
 
 /* Tones ------------------------------------------------------------------ */
 .accountability-overview-card.tone-open {
-    --tone: #2563eb;
-    --tone-tile: rgba(37, 99, 235, .13);
+    --tone-from: #1d4ed8;
+    --tone-to: #38bdf8;
+    --tone-glow: rgba(29, 78, 216, .30);
 }
 
 .accountability-overview-card.tone-overdue {
-    --tone: #dc2626;
-    --tone-tile: rgba(220, 38, 38, .12);
+    --tone-from: #dc2626;
+    --tone-to: #fb923c;
+    --tone-glow: rgba(220, 38, 38, .28);
 }
 
 .accountability-overview-card.tone-balance {
-    --tone: #d97706;
-    --tone-tile: rgba(217, 119, 6, .14);
+    --tone-from: #d97706;
+    --tone-to: #f59e0b;
+    --tone-glow: rgba(217, 119, 6, .30);
 }
 
 .accountability-overview-card.tone-resolved {
-    --tone: #16a34a;
-    --tone-tile: rgba(22, 163, 74, .13);
+    --tone-from: #0f766e;
+    --tone-to: #10b981;
+    --tone-glow: rgba(15, 118, 110, .28);
 }
 
-html[data-theme="dark"] .accountability-overview-card.tone-open { --tone: #6aa6f5; }
-html[data-theme="dark"] .accountability-overview-card.tone-overdue { --tone: #f08d82; }
-html[data-theme="dark"] .accountability-overview-card.tone-balance { --tone: #e0b354; }
-html[data-theme="dark"] .accountability-overview-card.tone-resolved { --tone: #5fc6a8; }
+html[data-theme="dark"] .accountability-overview-card.tone-open { --tone-from: #1e40af; --tone-to: #0284c7; --tone-glow: rgba(0, 0, 0, .42); }
+html[data-theme="dark"] .accountability-overview-card.tone-overdue { --tone-from: #991b1b; --tone-to: #ea580c; --tone-glow: rgba(0, 0, 0, .42); }
+html[data-theme="dark"] .accountability-overview-card.tone-balance { --tone-from: #b45309; --tone-to: #d97706; --tone-glow: rgba(0, 0, 0, .42); }
+html[data-theme="dark"] .accountability-overview-card.tone-resolved { --tone-from: #115e59; --tone-to: #059669; --tone-glow: rgba(0, 0, 0, .42); }
 
 /* A peso amount is a longer string than a case count, so it takes less size. */
 .accountability-overview-card.tone-balance .accountability-overview-value { font-size: 27px; }

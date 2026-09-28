@@ -17,7 +17,7 @@
     </table>
 
     <div class="document-title">
-        <h1>{{ $documentTitle ?? 'Billing Statement / Assessment Notice' }}</h1>
+        <h1>{{ ($documentTitle ?? '') === 'Billing Statement / Assessment Notice' ? 'Billing Statement' : ($documentTitle ?? 'Billing Statement') }}</h1>
         <div class="document-meta">
             <strong>Billing No.</strong> {{ $billing->billing_no }}
             <span class="meta-separator">•</span>
@@ -75,8 +75,8 @@
 
     <div class="section-title">Payment Instruction</div>
     <p class="decision-copy">
-        Present this Billing Statement to the CSPC Cashier. After payment, present the Cashier-issued Official Receipt to SPMU for verification.
-        <strong>This Billing Statement is not an Official Receipt.</strong>
+        Pay the stated amount at the CSPC Cashier and present the Official Receipt to SPMU for recording.
+        <strong>This statement is not an Official Receipt.</strong>
     </p>
 
     @if($billing->remarks)

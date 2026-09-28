@@ -8,16 +8,17 @@ const accountability = fs.readFileSync(path.join(root, 'resources/views/accounta
 const inventory = fs.readFileSync(path.join(root, 'resources/views/inventory/show.blade.php'), 'utf8');
 
 
-test('Head property decision follows Confirm/Clear then records the accomplished RSLDDP disposition', () => {
+test('Head property decision follows Confirm/Clear then resolves completed F2F processing', () => {
   assert.match(accountability, /Confirm Accountability/);
   assert.match(accountability, /Clear Finding \/ No Accountability/);
-  assert.match(accountability, /RSLDDP_DISPOSITION_PENDING/);
-  assert.match(accountability, /Select the disposition stated in the RSLDDP/);
-  assert.match(accountability, /value="MONETARY_SETTLEMENT"/);
-  assert.match(accountability, /value="REPAIR"/);
-  assert.match(accountability, /value="REPLACEMENT"/);
-  assert.match(accountability, /value="RETURN_RECOVERY"/);
+  assert.match(accountability, /F2F_PROCESSING/);
+  assert.match(accountability, /Resolve Accountability/);
+  assert.match(accountability, /Accomplished RSLDDP/);
+  assert.match(accountability, /name="f2f_processing_completed"/);
+  assert.match(accountability, /Confirm Resolution/);
   assert.doesNotMatch(accountability, /name="count_as_offense"/);
+  assert.doesNotMatch(accountability, /route\('incidents\.rslddp\.upload'/);
+  assert.doesNotMatch(accountability, /route\('incidents\.disposition\.record'/);
 });
 
 test('AO verification is one-step and does not ask for duplicate remarks or a second decision', () => {

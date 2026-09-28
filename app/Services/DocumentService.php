@@ -12,12 +12,10 @@ use App\Models\CustodyTransaction;
 use App\Models\DocumentTemplate;
 use App\Models\GeneratedDocument;
 use App\Models\Incident;
-use App\Models\IncidentLine;
 use App\Models\OverdueCase;
 use App\Models\RequestVersion;
 use App\Models\Sanction;
 use App\Models\SignatureSnapshot;
-use App\Models\SystemSetting;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -2012,77 +2010,6 @@ CSS;
         return 'data:image/jpeg;base64,'.base64_encode((string) file_get_contents($logoPath));
     }
 
-    /**
-     * The RSLDDP's official content, appraisal fields, signatories, and
-     * layout remain client-confirmation-required
-     * (docs/CONFIGURATION-REGISTER.md). This renders the two relationships
-     * the schema can actually prove - Incident::reportedBy (the SPMU Action
-     * Officer who inspected) and Incident::headDecidedBy (the SPMU
-     * Head/Admin who confirmed) - under literal labels, never a claimed
-     * "custodian" role the data model does not have. The generated document
-     * carries a visible provisional marker (RsldppLayoutVersion) until both
-     * the layout is code-approved and rslddp_template_status is APPROVED.
-     */
-    public function rslddp(Incident $incident): GeneratedDocument
-    {
-        $incident->loadMissing([
-            'borrower.organizationalUnit',
-            'custody.request.currentVersion',
-            'lines.custodyLine.requestItem.inventoryItem',
-            'reportedBy',
-            'headDecidedBy',
-            'headDecisionSignature.file',
-        ]);
-
-        $layoutVersion = app(\App\Support\RsldppLayoutVersion::class);
-        $isProvisional = SystemSetting::value('rslddp_template_status') !== 'APPROVED'
-            || ! $layoutVersion->isApprovedLayout();
-
-        $items = $incident->lines->map(function (IncidentLine $line): array {
-            $requestItem = $line->custodyLine?->requestItem;
-            $inventoryItem = $requestItem?->inventoryItem;
-
-            return [
-                'description' => (string) ($requestItem?->description_snapshot ?: $inventoryItem?->unique_description ?: 'Custody line '.$line->custody_line_id),
-                'quantity' => (float) $line->quantity,
-                'condition' => (string) (str($line->observed_condition ?: '')->replace('_', ' ')->title() ?: '—'),
-                'assessed_value' => $line->assessed_value !== null ? (float) $line->assessed_value : null,
-            ];
-        })->values()->all();
-
-        $html = view('documents.accountability.rslddp', [
-            'incident' => $incident,
-            'logoDataUri' => $this->institutionalLogoDataUri(),
-            'isProvisional' => $isProvisional,
-            'officeUnit' => (string) ($incident->borrower?->organizationalUnit?->unit_name
-                ?? $incident->borrower?->organizationalUnit?->name
-                ?? ''),
-            'requestNo' => (string) ($incident->custody?->request?->request_no ?? ''),
-            'items' => $items,
-            'reportedByName' => (string) ($incident->reportedBy?->full_name ?: 'SPMU Action Officer'),
-            'reportedByDesignation' => $this->templatePrintedDesignation($incident->reportedBy),
-            'reportedByDate' => $incident->reported_at?->timezone('Asia/Manila')->format('d F Y'),
-            'headName' => (string) ($incident->headDecidedBy?->full_name ?: 'SPMU Head/Admin'),
-            'headDesignation' => $this->templatePrintedDesignation($incident->headDecidedBy),
-            'headSignatureHtml' => $this->signatureImage($incident->headDecisionSignature, 150, 42),
-            'headDate' => $incident->head_decided_at?->timezone('Asia/Manila')->format('d F Y'),
-            'generatedAt' => now()->timezone('Asia/Manila')->format('d F Y, g:i A'),
-        ])->render();
-
-        $document = $this->saveHtml(
-            'RSLDDP',
-            $html,
-            $incident->custody?->request?->currentVersion,
-            $incident::class,
-            $incident->id,
-            'FINAL',
-            $incident->incident_no.'-RSLDDP.pdf',
-        );
-        $incident->update(['rslddp_reference' => $document->document_no]);
-
-        return $document;
-    }
-
     /** @param list<string> $lines */
     private function save(string $type, array $lines, ?RequestVersion $version, string $subjectType, int $subjectId, string $status, string $filename): GeneratedDocument
     {
@@ -2216,17 +2143,6 @@ CSS;
                 ->latest('id')
                 ->first())
                     ? $this->billingStatementRenderData($billing, null, false)
-                    : null,
-            'RSLDDP' => ($incident = Incident::query()
-                ->with([
-                    'borrower',
-                    'custody.request.currentVersion',
-                    'lines.custodyLine.requestItem',
-                    'reportedBy',
-                ])
-                ->latest('id')
-                ->first())
-                    ? $this->rslddpRenderData($incident)
                     : null,
             default => null,
         };
@@ -2533,35 +2449,6 @@ CSS;
     }
 
     /** @return array<string,mixed> */
-    private function rslddpRenderData(Incident $incident): array
-    {
-        return [
-            'rslddp_reference' => (string) ($incident->rslddp_reference ?? ''),
-            'incident_no' => (string) $incident->incident_no,
-            'custody_no' => (string) ($incident->custody?->custody_no ?? ''),
-            'request_no' => (string) ($incident->custody?->request?->request_no ?? ''),
-            'police_blotter_reference' => (string) ($incident->police_blotter_reference ?? ''),
-            'borrower_name' => (string) ($incident->borrower?->full_name ?? ''),
-            'incident_type' => (string) $incident->incident_type,
-            'reported_date' => $incident->reported_at?->format('F j, Y g:i A') ?: '',
-            'incident_remarks' => (string) ($incident->remarks ?? ''),
-            'appraisal_amount' => $incident->appraisal_amount === null ? '' : 'PHP '.number_format((float) $incident->appraisal_amount, 2),
-            'reported_by_signature' => null,
-            'reported_by_printed_name' => (string) ($incident->reportedBy?->full_name ?? ''),
-            'reported_by_designation' => $this->templatePrintedDesignation($incident->reportedBy),
-            'reported_by_date' => $incident->reported_at?->format('F j, Y') ?: '',
-            'items' => $incident->lines->map(fn ($line): array => [
-                'qty' => (string) ($line->quantity + 0),
-                'description' => (string) ($line->custodyLine?->requestItem?->description_snapshot ?? 'Custody line '.$line->custody_line_id),
-                'condition' => (string) $line->observed_condition,
-                'assessed_value' => $line->assessed_value === null ? '' : 'PHP '.number_format((float) $line->assessed_value, 2),
-                'disposition' => (string) ($line->disposition_state ?? ''),
-            ])->values()->all(),
-        ];
-    }
-
-
-    /** @return array<string,mixed> */
     private function borrowerSlipExcelData(CustodyTransaction $custody, int $pageNumber, int $pageCount): array
     {
         $custody->loadMissing([
@@ -2741,7 +2628,7 @@ CSS;
 
     private function activeTemplate(string $type): ?DocumentTemplate
     {
-        if (! in_array($type, ['BORROWER_SLIP', 'LAUNDRY_FORM', 'GATE_PASS', 'BILLING_STATEMENT', 'ACCOUNTABILITY_COMPLIANCE_NOTICE', 'ADMINISTRATIVE_SANCTION_NOTICE', 'RSLDDP'], true)) {
+        if (! in_array($type, ['BORROWER_SLIP', 'LAUNDRY_FORM', 'GATE_PASS', 'BILLING_STATEMENT', 'ACCOUNTABILITY_COMPLIANCE_NOTICE', 'ADMINISTRATIVE_SANCTION_NOTICE'], true)) {
             return null;
         }
 

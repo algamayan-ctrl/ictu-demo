@@ -33,6 +33,18 @@ class AccountabilityWorkQueueService
         $isHead = $classification === AccessClassification::SpmuHead;
         $isOfficer = $classification === AccessClassification::SpmuOfficer;
 
+        $focusedCaseUrl = static function ($borrower, string $focus): ?string {
+            if (! $borrower) {
+                return null;
+            }
+
+            return route('accountability.borrower', [
+                $borrower,
+                'tab' => 'cases',
+                'focus' => $focus,
+            ]).'#'.$focus;
+        };
+
         $work = collect();
         $waiting = collect();
 
@@ -71,9 +83,7 @@ class AccountabilityWorkQueueService
                 'status' => $status,
                 'date' => $overdue->overdue_started_at ?: $overdue->created_at,
                 'tone' => $status === LateReturnService::STATUS_OVERDUE ? 'danger' : 'warning',
-                'url' => $borrower
-                    ? route('accountability.borrower', [$borrower, 'tab' => 'cases', 'focus' => 'overdue-'.$overdue->id]).'#overdue-'.$overdue->id
-                    : null,
+                'url' => $focusedCaseUrl($borrower, 'overdue-'.$overdue->id),
             ];
 
             if ($status === LateReturnService::STATUS_OVERDUE) {
@@ -96,7 +106,9 @@ class AccountabilityWorkQueueService
                     'waiting_on' => 'SPMU Head/Admin',
                     'next_step' => 'Review the finalized late-return assessment and determine the applicable billing outcome.',
                     'action_label' => $isHead ? 'Review Assessment' : 'View Case',
-                    'action_url' => $base['url'],
+                    'action_url' => $isHead
+                        ? $focusedCaseUrl($borrower, 'overdue-'.$overdue->id)
+                        : $base['url'],
                 ];
                 ($isHead ? $work : $waiting)->push($item);
                 continue;
@@ -105,12 +117,14 @@ class AccountabilityWorkQueueService
             if ($status === LateReturnService::STATUS_AWAITING_PAYMENT) {
                 $remaining = $billing ? $this->remainingBalance($billing) : $fee;
                 $item = $base + [
-                    'stage' => 'Cashier Payment',
+                    'stage' => 'Awaiting Cashier Payment',
                     'waiting_on' => 'Borrower',
                     'next_step' => 'Borrower pays through the CSPC Cashier and presents the official receipt. The Action Officer records the receipt when presented.',
                     'amount' => $remaining > 0 ? 'PHP '.number_format($remaining, 2) : ($base['amount'] ?? null),
-                    'action_label' => $isOfficer ? 'Open Payment Record' : 'View Case',
-                    'action_url' => $base['url'],
+                    'action_label' => $isOfficer ? 'Record Cashier Receipt' : 'View Case',
+                    'action_url' => $isOfficer
+                        ? $focusedCaseUrl($borrower, 'overdue-'.$overdue->id)
+                        : $base['url'],
                 ];
                 ($isOfficer ? $work : $waiting)->push($item);
                 continue;
@@ -156,16 +170,14 @@ class AccountabilityWorkQueueService
                 'status' => $status,
                 'date' => $incident->reported_at ?: $incident->created_at,
                 'tone' => 'warning',
-                'url' => $borrower
-                    ? route('accountability.borrower', [$borrower, 'tab' => 'cases', 'focus' => 'incident-'.$incident->id]).'#incident-'.$incident->id
-                    : null,
+                'url' => $focusedCaseUrl($borrower, 'incident-'.$incident->id),
             ];
 
             $headOwned = in_array($status, [
                 'OPEN',
                 'FOR_BILLING',
+                'F2F_PROCESSING',
                 'RSLDDP_AWAITING_UPLOAD',
-                'COMPLIANCE_RSLDDP_PENDING',
                 'RSLDDP_DISPOSITION_PENDING',
                 'RSLDDP_FOR_ACCOUNTING_PROCESSING',
                 'RSLDDP_FOR_RESOLUTION',
@@ -175,10 +187,10 @@ class AccountabilityWorkQueueService
                 [$stage, $nextStep, $actionLabel] = match ($status) {
                     'OPEN' => ['Accountability Review', 'Review the Action Officer finding and record whether accountability is confirmed or the finding is cleared.', 'Review Finding'],
                     'FOR_BILLING' => ['Billing Decision', 'Record the approved billing details for this property accountability case.', 'Generate Billing'],
-                    'RSLDDP_AWAITING_UPLOAD', 'COMPLIANCE_RSLDDP_PENDING' => ['RSLDDP Processing', 'Upload the accomplished RSLDDP received after external signing/notarization processing.', 'Upload RSLDDP'],
-                    'RSLDDP_DISPOSITION_PENDING' => ['Official Disposition', 'Record the official disposition exactly as stated in the accomplished RSLDDP.', 'Record Disposition'],
+                    'F2F_PROCESSING' => ['Pending In-Person Resolution', 'Upon completion of in-person processing, attach the accomplished RSLDDP and confirm the resolution.', 'Resolve Accountability'],
+                    'RSLDDP_AWAITING_UPLOAD', 'RSLDDP_DISPOSITION_PENDING' => ['Pending In-Person Resolution', 'Complete the required in-person process, then attach the accomplished RSLDDP and confirm the resolution.', 'Resolve Accountability'],
                     'RSLDDP_FOR_ACCOUNTING_PROCESSING' => ['Accounting Billing', 'Record the official Billing Statement issued by Accounting.', 'Record Billing Statement'],
-                    'RSLDDP_FOR_RESOLUTION' => ['Final Review', 'Review completed compliance/payment and record the final case resolution.', 'Resolve Case'],
+                    'RSLDDP_FOR_RESOLUTION' => ['Final Resolution', 'Attach the accomplished RSLDDP and confirm resolution after required compliance is verified.', 'Resolve Case'],
                     default => ['Final Review', 'Review the official disposition and complete the required Head/Admin action.', 'Review Case'],
                 };
 
@@ -187,7 +199,9 @@ class AccountabilityWorkQueueService
                     'waiting_on' => 'SPMU Head/Admin',
                     'next_step' => $nextStep,
                     'action_label' => $isHead ? $actionLabel : 'View Case',
-                    'action_url' => $base['url'],
+                    'action_url' => $isHead
+                        ? $focusedCaseUrl($borrower, 'incident-'.$incident->id)
+                        : $base['url'],
                 ];
                 ($isHead ? $work : $waiting)->push($item);
                 continue;
@@ -196,17 +210,19 @@ class AccountabilityWorkQueueService
             if (in_array($status, ['BILLING_PENDING', 'RSLDDP_PAYMENT_REQUIRED'], true)
                 || ($status === 'RSLDDP_COMPLIANCE_VERIFICATION' && $disposition === 'MONETARY_SETTLEMENT')) {
                 $item = $base + [
-                    'stage' => 'Cashier Payment',
+                    'stage' => 'Awaiting Cashier Payment',
                     'waiting_on' => 'Borrower',
                     'next_step' => 'Borrower pays through the CSPC Cashier and presents the official receipt. The Action Officer records the receipt when presented.',
-                    'action_label' => $isOfficer ? 'Open Payment Record' : 'View Case',
-                    'action_url' => $base['url'],
+                    'action_label' => $isOfficer ? 'Record Cashier Receipt' : 'View Case',
+                    'action_url' => $isOfficer
+                        ? $focusedCaseUrl($borrower, 'incident-'.$incident->id)
+                        : $base['url'],
                 ];
                 ($isOfficer ? $work : $waiting)->push($item);
                 continue;
             }
 
-            if ($status === 'COMPLIANCE_REQUIRED'
+            if (in_array($status, ['COMPLIANCE_REQUIRED', 'COMPLIANCE_RSLDDP_PENDING'], true)
                 || ($status === 'RSLDDP_COMPLIANCE_VERIFICATION' && in_array($disposition, ['REPAIR', 'REPLACEMENT', 'RETURN_RECOVERY'], true))) {
                 $dispositionLabel = $disposition !== ''
                     ? \App\Support\AccountabilityDispositionLabels::officialDispositionLabel($disposition)
@@ -216,7 +232,9 @@ class AccountabilityWorkQueueService
                     'waiting_on' => 'Borrower',
                     'next_step' => 'Borrower completes and presents the required '.$dispositionLabel.'. The Action Officer physically verifies it before final Head/Admin review.',
                     'action_label' => $isOfficer ? 'Verify '.$dispositionLabel : 'View Case',
-                    'action_url' => $base['url'],
+                    'action_url' => $isOfficer
+                        ? $focusedCaseUrl($borrower, 'incident-'.$incident->id)
+                        : $base['url'],
                 ];
                 ($isOfficer ? $work : $waiting)->push($item);
                 continue;
@@ -252,12 +270,12 @@ class AccountabilityWorkQueueService
                 'issue' => $billing->lines->map(fn ($line) => str((string) $line->line_type)->replace('_', ' ')->title())->unique()->implode(', ') ?: 'Billing Statement',
                 'amount' => 'PHP '.number_format($this->remainingBalance($billing), 2),
                 'status' => (string) $billing->status,
-                'stage' => 'Cashier Payment',
+                'stage' => 'Awaiting Cashier Payment',
                 'waiting_on' => 'Borrower',
                 'next_step' => 'Borrower pays through the CSPC Cashier and presents the official receipt. The Action Officer records the receipt when presented.',
                 'action_label' => $isOfficer ? 'Open Payment Record' : 'View Borrower',
-                'action_url' => $borrower ? route('accountability.borrower', [$borrower, 'tab' => 'cases']) : null,
-                'url' => $borrower ? route('accountability.borrower', [$borrower, 'tab' => 'cases']) : null,
+                'action_url' => $borrower ? route('accountability.borrower', [$borrower, 'tab' => 'cases', 'focus' => 'billing-'.$billing->id]).'#billing-'.$billing->id : null,
+                'url' => $borrower ? route('accountability.borrower', [$borrower, 'tab' => 'cases', 'focus' => 'billing-'.$billing->id]).'#billing-'.$billing->id : null,
                 'date' => $billing->issued_at ?: $billing->created_at,
                 'tone' => 'warning',
             ];

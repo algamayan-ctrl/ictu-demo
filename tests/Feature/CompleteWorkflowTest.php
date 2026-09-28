@@ -1310,9 +1310,9 @@ class CompleteWorkflowTest extends TestCase
         );
 
         /*
-         * RSLDDP starts only after SPMU Admin/Head confirms actual
-         * accountability exists - never merely because an adverse
-         * inspection finding was reported.
+         * F2F accountability processing starts only after SPMU Admin/Head
+         * confirms actual accountability exists - never merely because an
+         * adverse inspection finding was reported.
          */
         $this->assertDatabaseMissing('generated_documents', [
             'subject_type' => Incident::class,
@@ -1325,12 +1325,8 @@ class CompleteWorkflowTest extends TestCase
             $custody->fresh()->status
         );
 
-        /*
-         * Confirming accountability always requires RSLDDP - it is the only
-         * path to an official disposition, monetary or otherwise. The Head
-         * never chooses Repair/Replacement/Payment upfront; only Confirm or
-         * Clear.
-         */
+        /* Confirming accountability enters the F2F process. The Head never
+         * chooses a separate in-system disposition upfront. */
         $this->actingAs($spmu)
             ->post(
                 route(
@@ -1345,14 +1341,13 @@ class CompleteWorkflowTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $incident->refresh();
-        $this->assertSame('RSLDDP_AWAITING_UPLOAD', $incident->status);
-        $this->assertSame('V2', $incident->accountability_flow_version);
+        $this->assertSame('F2F_PROCESSING', $incident->status);
+        $this->assertSame('V3', $incident->accountability_flow_version);
         $this->assertTrue((bool) $incident->requires_rslddp);
-        $this->assertDatabaseHas('generated_documents', [
+        $this->assertDatabaseMissing('generated_documents', [
             'subject_type' => Incident::class,
             'subject_id' => $incident->id,
             'document_type' => 'RSLDDP',
-            'status' => 'FINAL',
         ]);
 
         /*
@@ -1366,80 +1361,15 @@ class CompleteWorkflowTest extends TestCase
             )
             ->assertSessionHasErrors('incident');
 
-        /*
-         * The accomplished/notarized RSLDDP scan is uploaded by the SPMU
-         * Head/Admin, not the borrower (spec Section F) - the borrower may
-         * only view the case and its RSLDDP status.
-         */
-        $this->withSession(['active_workspace' => 'BORROWER'])
-            ->actingAs($borrower)
-            ->post(
-                route('incidents.rslddp.upload', $incident),
-                ['evidence' => UploadedFile::fake()->create('accomplished-rslddp.pdf', 10, 'application/pdf')]
-            );
-
-        $incident->refresh();
-        $this->assertSame('RSLDDP_AWAITING_UPLOAD', $incident->status, 'Borrower upload attempt must not advance the case.');
-        $this->assertNull($incident->rslddp_evidence_submission_id);
-
+        // RSLDDP is processed face-to-face, not generated or uploaded early.
         $this->actingAs($spmu)
-            ->post(
-                route('incidents.rslddp.upload', $incident),
-                ['evidence' => UploadedFile::fake()->create('accomplished-rslddp.pdf', 10, 'application/pdf')]
-            )
-            ->assertSessionHasNoErrors();
+            ->post(route('incidents.rslddp.upload', $incident), [
+                'evidence' => UploadedFile::fake()->create('premature-rslddp.pdf', 10, 'application/pdf'),
+            ])->assertGone();
+        $this->assertSame('F2F_PROCESSING', $incident->fresh()->status);
 
-        $incident->refresh();
-        $this->assertSame('RSLDDP_DISPOSITION_PENDING', $incident->status);
-        $this->assertNotNull($incident->rslddp_evidence_submission_id);
-        $this->assertDatabaseHas('evidence_submissions', [
-            'id' => $incident->rslddp_evidence_submission_id,
-            'upload_mode' => 'SPMU_HEAD_RECORDED',
-        ]);
-
-        /*
-         * Record Official Disposition: the Head records the official
-         * disposition stated in the accomplished RSLDDP - here, a Monetary
-         * Settlement. The amount recorded here already creates the payable
-         * BillingStatement; no separate Accounting Office upload is
-         * required to reach the Cashier receipt step.
-         */
-        $this->actingAs($spmu)
-            ->post(
-                route('incidents.disposition.record', $incident),
-                [
-                    'official_disposition' => 'MONETARY_SETTLEMENT',
-                    'official_disposition_amount' => 500,
-                    'resolution_remarks' => 'Accomplished RSLDDP states a Monetary Settlement of PHP 500.',
-                ]
-            )
-            ->assertSessionHasNoErrors();
-
-        $incident->refresh();
-        $this->assertSame('RSLDDP_COMPLIANCE_VERIFICATION', $incident->status);
-        $this->assertSame('MONETARY_SETTLEMENT', $incident->official_disposition);
-
-        $billing = BillingStatement::where('borrower_user_id', $borrower->id)
-            ->where('source', 'RSLDDP_DISPOSITION')
-            ->firstOrFail();
-        $this->assertSame(500.0, (float) $billing->total_amount);
-
-        $this->actingAs($spmuOfficer)
-            ->post(
-                route('payments.store', $billing),
-                [
-                    'evidence' => UploadedFile::fake()->create('receipt.pdf', 10, 'application/pdf'),
-                    'official_receipt_no' => 'OR-2026-001',
-                    'receipt_date' => now()->format('Y-m-d'),
-                    'amount' => 500,
-                ]
-            )
-            ->assertSessionHasNoErrors();
-
-        $this->assertSame('SETTLED', $billing->fresh()->status);
-
-        $incident->refresh();
-        $this->assertSame('RSLDDP_FOR_RESOLUTION', $incident->status);
+        // The case remains restricted until the Head explicitly confirms
+        // completed F2F processing and attaches the accomplished RSLDDP.
         $this->assertDatabaseHas('borrower_restrictions', [
             'incident_id' => $incident->id,
             'status' => 'ACTIVE',
@@ -1448,11 +1378,16 @@ class CompleteWorkflowTest extends TestCase
         $this->actingAs($spmu)
             ->post(
                 route('incidents.rslddp.resolve', $incident),
-                ['resolution_remarks' => 'RSLDDP and settlement verified.']
+                [
+                    'resolution_remarks' => 'Face-to-face RSLDDP processing and final resolution completed.',
+                    'f2f_processing_completed' => '1',
+                    'rslddp_attachment' => UploadedFile::fake()->create('accomplished-rslddp.pdf', 10, 'application/pdf'),
+                ]
             )
             ->assertSessionHasNoErrors();
 
         $this->assertSame('RESOLVED', $incident->fresh()->status);
+        $this->assertNotNull($incident->fresh()->rslddp_attachment_file_id);
 
         $this->assertSame(
             'CLOSED',

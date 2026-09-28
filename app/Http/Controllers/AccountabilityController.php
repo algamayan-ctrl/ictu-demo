@@ -19,6 +19,7 @@ use App\Models\Penalty;
 use App\Models\Sanction;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\AccountabilityWorkQueueService;
 use App\Services\BorrowerObligationService;
 use App\Services\LateReturnService;
 use App\Services\CustodyService;
@@ -39,7 +40,7 @@ use Illuminate\View\View;
 
 class AccountabilityController extends Controller
 {
-    public function index(Request $request, PolicyService $policy): View
+    public function index(Request $request, PolicyService $policy, AccountabilityWorkQueueService $workQueues): View
     {
         $incidentQuery = Incident::with(['borrower', 'evidenceFile', 'custody.request', 'custody.lines.requestItem', 'lines', 'documents'])->latest('reported_at');
         $billingQuery = BillingStatement::with(['borrower', 'lines.penalty', 'payments.verifiedBy', 'documents'])->latest('issued_at');
@@ -75,6 +76,16 @@ class AccountabilityController extends Controller
         $violations = $violationQuery->get();
         $sanctions = $sanctionQuery->get();
 
+        $accountabilityWorkQueue = null;
+        if (in_array($request->user()?->access_classification, [AccessClassification::SpmuHead, AccessClassification::SpmuOfficer], true)) {
+            $accountabilityWorkQueue = $workQueues->build(
+                $request->user()->access_classification,
+                $incidents,
+                $overdueCases,
+                $billings
+            );
+        }
+
         $incidentOffensePreviews = [];
         $violationOffensePreviews = [];
 
@@ -95,6 +106,7 @@ class AccountabilityController extends Controller
             'overdueCases' => $overdueCases,
             'violations' => $violations,
             'sanctions' => $sanctions,
+            'accountabilityWorkQueue' => $accountabilityWorkQueue,
             'incidentOffensePreviews' => $incidentOffensePreviews,
             'violationOffensePreviews' => $violationOffensePreviews,
             'resolvedHistory' => $this->resolvedHistory($billings, $overdueCases, $incidents),

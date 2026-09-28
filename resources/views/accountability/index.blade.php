@@ -20,6 +20,22 @@
     $caseListRequested = ! $isBorrower && request('view') === 'cases';
     $resolvedHistoryRequested = ! $isBorrower && request('view') === 'resolved';
 
+    // Staff accountability is task-first. Legacy ?view=cases/resolved links are
+    // still accepted, but normal navigation now uses one role-specific workspace
+    // with stable tabs instead of forcing staff to open borrowers one by one.
+    $requestedStaffTab = (string) request('queue', 'work');
+    if ($caseListRequested) {
+        $requestedStaffTab = 'all';
+    } elseif ($resolvedHistoryRequested) {
+        $requestedStaffTab = 'history';
+    }
+    $allowedStaffTabs = $isHead
+        ? ['work', 'waiting', 'all', 'sanctions', 'history']
+        : ['work', 'waiting', 'all', 'history'];
+    $activeStaffTab = in_array($requestedStaffTab, $allowedStaffTabs, true) ? $requestedStaffTab : 'work';
+    $staffWorkQueue = collect(data_get($accountabilityWorkQueue, 'work', collect()));
+    $staffWaitingQueue = collect(data_get($accountabilityWorkQueue, 'waiting', collect()));
+
     $activeRestrictions = $restrictions->filter(
         fn ($restriction) => $restriction->status === 'ACTIVE'
             && ($restriction->effective_from === null || $restriction->effective_from->lte(now()))
@@ -552,6 +568,70 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
  */
 .accountability-heading { align-items: flex-start; }
 .accountability-heading > .accountability-heading-action { flex-shrink: 0; }
+
+.accountability-staff-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: 16px 0 14px;
+}
+.accountability-staff-tabs.is-head { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.accountability-staff-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 800;
+    text-decoration: none;
+    transition: border-color .16s ease, background .16s ease, color .16s ease;
+}
+.accountability-staff-tab:hover,
+.accountability-staff-tab:focus-visible { border-color: #77aede; background: var(--surface-subtle); }
+.accountability-staff-tab.is-active { border-color: #1d6fb8; background: #eaf4fd; color: #155d9d; box-shadow: inset 0 0 0 1px #1d6fb8; }
+.accountability-work-queue-card { overflow: hidden; }
+.accountability-work-queue-card .accountability-cases-head { margin-bottom: 0; }
+.accountability-work-queue-intro { margin: 3px 0 0; color: var(--text-muted); font-size: 11px; }
+.accountability-work-queue-table th:nth-child(1) { width: 25%; }
+.accountability-work-queue-table th:nth-child(2) { width: 16%; }
+.accountability-work-queue-table th:nth-child(3) { width: 14%; }
+.accountability-work-queue-table th:nth-child(4) { width: 30%; }
+.accountability-work-queue-table th:nth-child(5) { width: 15%; }
+.accountability-queue-reference { display: block; color: var(--text-primary); font-weight: 800; line-height: 1.35; overflow-wrap: anywhere; }
+.accountability-queue-borrower { display: block; margin-top: 3px; color: var(--text-secondary); font-size: 10.5px; }
+.accountability-queue-issue { display: block; margin-top: 3px; color: var(--text-muted); font-size: 10px; line-height: 1.4; }
+.accountability-queue-stage { display: grid; gap: 2px; }
+.accountability-queue-stage strong { color: var(--text-primary); font-size: 11px; }
+.accountability-queue-stage small { color: var(--text-muted); font-size: 9.5px; line-height: 1.35; }
+.accountability-waiting-on { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-subtle); color: var(--text-secondary); font-size: 9.5px; font-weight: 800; }
+.accountability-next-step-copy { color: var(--text-secondary); font-size: 10.5px; line-height: 1.5; }
+.accountability-queue-amount { display: block; margin-top: 4px; color: var(--text-primary); font-size: 10px; font-weight: 800; }
+.accountability-queue-action { display: inline-flex; justify-content: center; width: 100%; max-width: 170px; white-space: normal; text-align: center; }
+.accountability-workspace-empty { padding: 26px 20px; }
+
+@media (max-width: 980px) {
+    .accountability-staff-tabs,
+    .accountability-staff-tabs.is-head { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+    .accountability-staff-tabs,
+    .accountability-staff-tabs.is-head { grid-template-columns: 1fr; }
+    .accountability-work-queue-table table,
+    .accountability-work-queue-table thead,
+    .accountability-work-queue-table tbody,
+    .accountability-work-queue-table tr,
+    .accountability-work-queue-table th,
+    .accountability-work-queue-table td { display: block; width: 100%; }
+    .accountability-work-queue-table thead { display: none; }
+    .accountability-work-queue-table tr { padding: 12px; border-bottom: 1px solid var(--border); }
+    .accountability-work-queue-table td { padding: 5px 0; border: 0; }
+    .accountability-queue-action { width: auto; max-width: none; }
+}
 </style>
 @endonce
 
@@ -568,11 +648,6 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         </p>
     </div>
 
-    @if($isOfficer)
-        <a class="button secondary small accountability-heading-action" href="{{ route('accountability.index', ['view' => 'cases']) }}#accountability-cases-section">
-            <span>View Accountability Cases</span>
-        </a>
-    @endif
 </section>
 
 @unless($isBorrower)
@@ -627,54 +702,86 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         ->count();
 
     /*
-     | Summary cards are informational only. Navigation and processing stay
-     | in the explicit case lists, filters, and action controls below.
+     | ROLE-SPECIFIC WORKSPACE SUMMARY
+     |
+     | The cards summarize the same accountability records already loaded on
+     | this page. They do not add a second dashboard or invent new states.
+     | Each card opens one of the universal workspace tabs below.
      */
-    $summaryCards = [
-        [
-            'tone' => 'open',
-            'icon' => 'requests',
-            'label' => 'Open Accountability Cases',
-            'value' => $openAccountabilities,
-            'note' => 'Unresolved cases',
-            'meta' => 'Counted once per matter',
-            'href' => route('accountability.index', ['view' => 'cases']).'#accountability-cases-section',
-        ],
-        [
-            'tone' => 'overdue',
-            'icon' => 'warning',
-            'label' => 'Items Still Overdue',
-            'value' => $currentlyOverdueCases->count(),
-            'note' => 'Awaiting return',
-            'meta' => 'Not yet returned, as of today',
-            'emphasis' => $currentlyOverdueCases->count() > 0,
-            /*
-             * cases-interactions.blade.php reads ?focus=overdue to narrow
-             * the rows already on the page to the Late Return type and the
-             * OVERDUE status - it never queries the server again.
-             */
-            'href' => route('accountability.index', ['view' => 'cases', 'focus' => 'overdue']).'#accountability-cases-section',
-        ],
-        [
-            'tone' => 'balance',
-            'icon' => 'coins',
-            'label' => 'Outstanding Balance',
-            'value' => 'PHP '.number_format($outstandingBalance, 2),
-            'note' => 'Unpaid obligations',
-            'meta' => 'Not covered by a verified payment',
-            'emphasis' => $outstandingBalance > 0,
-            'href' => route('accountability.index', ['view' => 'cases', 'focus' => 'balance']).'#accountability-cases-section',
-        ],
-        [
-            'tone' => 'resolved',
-            'icon' => 'approval',
-            'label' => 'Resolved This Period',
-            'value' => $resolvedThisPeriod,
-            'note' => 'Cleared cases',
-            'meta' => 'Closed during '.$resolvedPeriodLabel,
-            'href' => route('accountability.index', ['view' => 'resolved']).'#resolved-history',
-        ],
-    ];
+    $allQueueRows = $staffWorkQueue->concat($staffWaitingQueue);
+    $waitingOnBorrower = $allQueueRows->where('waiting_on', 'Borrower')->count();
+    $waitingOnHead = $allQueueRows->where('waiting_on', 'SPMU Head/Admin')->count();
+    if ($isHead) {
+        $summaryCards = [
+            [
+                'tone' => 'open',
+                'icon' => 'requests',
+                'label' => 'Needs My Decision',
+                'value' => $staffWorkQueue->count(),
+                'note' => 'Head/Admin actions ready to process',
+                'href' => route('accountability.index', ['queue' => 'work']).'#accountability-workspace',
+            ],
+            [
+                'tone' => 'overdue',
+                'icon' => 'warning',
+                'label' => 'Waiting / Monitoring',
+                'value' => $staffWaitingQueue->count(),
+                'note' => 'Cases currently assigned to another actor',
+                'href' => route('accountability.index', ['queue' => 'waiting']).'#accountability-workspace',
+            ],
+            [
+                'tone' => 'balance',
+                'icon' => 'clock',
+                'label' => 'Waiting on Borrower',
+                'value' => $waitingOnBorrower,
+                'note' => 'Return, payment, or compliance pending',
+                'href' => route('accountability.index', ['queue' => 'waiting']).'#accountability-workspace',
+            ],
+            [
+                'tone' => 'resolved',
+                'icon' => 'coins',
+                'label' => 'Outstanding Balance',
+                'value' => 'PHP '.number_format($outstandingBalance, 2),
+                'note' => 'Not covered by verified payments',
+                'href' => route('accountability.index', ['queue' => 'all']).'#accountability-workspace',
+            ],
+        ];
+    } else {
+        $summaryCards = [
+            [
+                'tone' => 'open',
+                'icon' => 'requests',
+                'label' => 'Operational Queue',
+                'value' => $staffWorkQueue->count(),
+                'note' => 'Return, compliance, and receipt follow-up',
+                'href' => route('accountability.index', ['queue' => 'work']).'#accountability-workspace',
+            ],
+            [
+                'tone' => 'overdue',
+                'icon' => 'clock',
+                'label' => 'Waiting on Borrower',
+                'value' => $waitingOnBorrower,
+                'note' => 'Return, payment, or compliance pending',
+                'href' => route('accountability.index', ['queue' => 'work']).'#accountability-workspace',
+            ],
+            [
+                'tone' => 'balance',
+                'icon' => 'accountability',
+                'label' => 'Waiting on Head/Admin',
+                'value' => $waitingOnHead,
+                'note' => 'Decision or review currently pending',
+                'href' => route('accountability.index', ['queue' => 'waiting']).'#accountability-workspace',
+            ],
+            [
+                'tone' => 'resolved',
+                'icon' => 'approval',
+                'label' => 'Resolved This Period',
+                'value' => $resolvedThisPeriod,
+                'note' => 'Closed during '.$resolvedPeriodLabel,
+                'href' => route('accountability.index', ['queue' => 'history']).'#accountability-workspace',
+            ],
+        ];
+    }
 @endphp
 
 <style>
@@ -1139,13 +1246,103 @@ a.accountability-overview-card:focus-visible {
     @endforeach
 </section>
 
+<nav id="accountability-workspace" class="accountability-staff-tabs {{ $isHead ? 'is-head' : '' }}" aria-label="Accountability workspace sections">
+    <a class="accountability-staff-tab {{ $activeStaffTab === 'work' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">{{ $isHead ? 'Needs My Decision' : 'Operational Queue' }}</a>
+    <a class="accountability-staff-tab {{ $activeStaffTab === 'waiting' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'waiting']) }}#accountability-workspace">Waiting / Monitoring</a>
+    <a class="accountability-staff-tab {{ $activeStaffTab === 'all' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'all']) }}#accountability-workspace">All Active Cases</a>
+    @if($isHead)
+        <a class="accountability-staff-tab {{ $activeStaffTab === 'sanctions' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'sanctions']) }}#accountability-workspace">Sanctions</a>
+    @endif
+    <a class="accountability-staff-tab {{ $activeStaffTab === 'history' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'history']) }}#accountability-workspace">History</a>
+</nav>
+
+@if(in_array($activeStaffTab, ['work', 'waiting'], true))
+    @php
+        $visibleQueue = $activeStaffTab === 'work' ? $staffWorkQueue : $staffWaitingQueue;
+        $queueTitle = $activeStaffTab === 'work'
+            ? ($isHead ? 'Cases Requiring My Decision' : 'Action Officer Operational Queue')
+            : 'Waiting / Monitoring';
+        $queueIntro = $activeStaffTab === 'work'
+            ? ($isHead
+                ? 'Cases are listed by the decision or official action currently assigned to the SPMU Head/Admin.'
+                : 'Cases are listed by the next Action Officer touchpoint. The Waiting On column shows when the borrower must act first.')
+            : 'Reference-only cases currently waiting on another actor or process. No duplicate processing action is created here.';
+    @endphp
+    <section class="content-area">
+        <article class="card accountability-work-queue-card">
+            <div class="accountability-cases-head">
+                <div>
+                    <h2>{{ $queueTitle }} <span class="accountability-count-chip">{{ $visibleQueue->count() }}</span></h2>
+                    <p class="accountability-work-queue-intro">{{ $queueIntro }}</p>
+                </div>
+            </div>
+
+            @if($visibleQueue->isEmpty())
+                <div class="accountability-workspace-empty">
+                    <x-empty-state
+                        icon="accountability"
+                        :title="$activeStaffTab === 'work' ? 'No accountability work is assigned here right now.' : 'No accountability cases are waiting on another actor right now.'"
+                        :message="$activeStaffTab === 'work'
+                            ? 'Use All Active Cases for complete borrower records and History for resolved matters.'
+                            : 'Cases requiring your current role are shown in the first workspace tab.'"
+                    />
+                </div>
+            @else
+                <div class="table-wrap accountability-cases-table accountability-work-queue-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Case / Borrower</th>
+                                <th scope="col">Current Stage</th>
+                                <th scope="col">Waiting On</th>
+                                <th scope="col">Next Required Step</th>
+                                <th scope="col"><span class="sr-only">Action</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($visibleQueue as $item)
+                                <tr>
+                                    <td>
+                                        <span class="accountability-queue-reference">{{ $item['reference'] ?? 'Accountability case' }}</span>
+                                        <span class="accountability-queue-borrower">{{ $item['borrower']?->full_name ?: '—' }} · {{ $item['case_type'] ?? 'Accountability' }}</span>
+                                        <span class="accountability-queue-issue">{{ $item['issue'] ?? 'Open accountability matter' }}</span>
+                                        @if(! empty($item['amount']))
+                                            <span class="accountability-queue-amount">{{ $item['amount'] }}</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <div class="accountability-queue-stage">
+                                            <strong>{{ $item['stage'] ?? 'Processing' }}</strong>
+                                            <small>{{ optional($item['date'] ?? null)->format('d M Y, g:i A') ?: '—' }}</small>
+                                        </div>
+                                    </td>
+                                    <td><span class="accountability-waiting-on">{{ $item['waiting_on'] ?? 'SPMU Processing' }}</span></td>
+                                    <td><span class="accountability-next-step-copy">{{ $item['next_step'] ?? 'Continue the applicable accountability process.' }}</span></td>
+                                    <td>
+                                        @if(! empty($item['action_url']))
+                                            <a class="button secondary small ui-pressable accountability-queue-action" href="{{ $item['action_url'] }}">
+                                                <span>{{ $item['action_label'] ?? 'View Case' }}</span>
+                                                <span aria-hidden="true">→</span>
+                                            </a>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </article>
+    </section>
+@endif
+
 @endunless
 
 @if($isBorrower)
 @include('accountability.partials.obligations-workspace')
 @endif
 
-@if($isHead && $pendingViolations->isNotEmpty())
+@if($isHead && $activeStaffTab === 'work' && $pendingViolations->isNotEmpty())
 <section class="content-area">
     <div class="section-heading">
         <div>
@@ -1337,13 +1534,28 @@ a.accountability-overview-card:focus-visible {
             ->concat($standaloneActiveRestrictions)
             ->filter(fn ($record) => $record->borrower_user_id)
             ->groupBy('borrower_user_id')
-            ->map(function ($records) use ($activeRestrictions) {
+            ->map(function ($records) use ($activeRestrictions, $staffWorkQueue, $staffWaitingQueue, $isHead) {
                 $borrowerId = (int) $records->first()->borrower_user_id;
+                $workCount = $staffWorkQueue->filter(
+                    fn (array $item) => (int) ($item['borrower']?->id ?? 0) === $borrowerId
+                )->count();
+                $waitingCount = $staffWaitingQueue->filter(
+                    fn (array $item) => (int) ($item['borrower']?->id ?? 0) === $borrowerId
+                )->count();
+
+                $attention = match (true) {
+                    $workCount > 0 && $isHead => $workCount.' decision'.($workCount === 1 ? '' : 's').' required',
+                    $workCount > 0 => $workCount.' operational item'.($workCount === 1 ? '' : 's'),
+                    $waitingCount > 0 => $waitingCount.' waiting / monitoring',
+                    default => 'Reference only',
+                };
 
                 return [
                     'borrower' => $records->first()->borrower,
                     'case_count' => $records->count(),
-                    'custody_count' => $records->pluck('custody_transaction_id')->filter()->unique()->count(),
+                    'work_count' => $workCount,
+                    'waiting_count' => $waitingCount,
+                    'attention' => $attention,
                     'restricted' => $activeRestrictions->contains(
                         fn ($restriction) => (int) $restriction->borrower_user_id === $borrowerId
                     ),
@@ -1412,7 +1624,7 @@ a.accountability-overview-card:focus-visible {
     $showCaseStatusFilter = $caseStatusOptions->count() > 1;
     $showCaseToolbar = $hasAnyCase && ($showCaseSearch || $showCaseTypeFilter || $showCaseStatusFilter || $restrictionsFocusRequested);
 @endphp
-@unless($isBorrower)
+@if(! $isBorrower && ($borrowerFilterId || $caseListRequested || $activeStaffTab === 'all'))
 <section class="content-area accountability-case-workspace" id="accountability-cases-section">
 @if($borrowerFilterId || $caseListRequested)
     <article class="card accountability-cases-card">
@@ -2789,11 +3001,11 @@ a.accountability-overview-card:focus-visible {
                                         <x-status-badge status="RESOLVED" label="Clear" />
                                     @endif
                                 </td>
-                                <td>{{ $row['custody_count'] }} Custody Record{{ $row['custody_count'] === 1 ? '' : 's' }}</td>
+                                <td>{{ $row['attention'] }}</td>
                                 <td>
                                     @if($row['borrower'])
                                         <a class="table-action accountability-next-link" href="{{ route('accountability.borrower', $row['borrower']) }}">
-                                            <span>View Accountability</span>
+                                            <span>Open Workspace →</span>
                                         </a>
                                     @endif
                                 </td>
@@ -2807,10 +3019,10 @@ a.accountability-overview-card:focus-visible {
 @endif
 
 </section>
-@endunless
+@endif
 
 @unless($isBorrower)
-    @if($resolvedHistoryRequested)
+    @if($activeStaffTab === 'history' || $resolvedHistoryRequested)
         @include('accountability.partials.resolved-history', [
             'resolvedHistory' => $resolvedHistory
                 ->filter(fn (array $row): bool => $row['resolved_at'] !== null
@@ -2821,7 +3033,7 @@ a.accountability-overview-card:focus-visible {
     @include('accountability.partials.cases-interactions')
 @endunless
 
-@if(($isHead || $workspace === 'BORROWER') && $sanctions->isNotEmpty())
+@if((($isHead && $activeStaffTab === 'sanctions') || $workspace === 'BORROWER') && $sanctions->isNotEmpty())
 <section class="content-area accountability-sanctions-section">
     <article class="card accountability-cases-card accountability-sanctions-card">
         <div class="accountability-cases-head">

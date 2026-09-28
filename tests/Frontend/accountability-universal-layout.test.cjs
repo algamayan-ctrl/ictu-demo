@@ -29,11 +29,11 @@ test('My Obligations keeps all four summary cards clickable even at zero or Clea
   assert.match(obligationStyles, /\.ob-clear-card\s*\{[\s\S]*?min-height:\s*0/);
 });
 
-// Resolved history is a drill-in from the KPI, not permanent default-page content.
-test('staff resolved history appears only after the Resolved This Period card is opened', () => {
+// Resolved history is a dedicated staff workspace tab, not permanent default-page content.
+test('staff resolved history appears only in the History workspace', () => {
   assert.match(index, /\$resolvedHistoryRequested = ! \$isBorrower && request\('view'\) === 'resolved'/);
-  assert.match(index, /\['view' => 'resolved'\]\)\.\'#resolved-history'/);
-  assert.match(index, /@if\(\$resolvedHistoryRequested\)[\s\S]*?@include\('accountability\.partials\.resolved-history'/);
+  assert.match(index, /\['queue' => 'history'\]/);
+  assert.match(index, /@if\(\$activeStaffTab === 'history' \|\| \$resolvedHistoryRequested\)[\s\S]*?@include\('accountability\.partials\.resolved-history'/);
   assert.match(index, /greaterThanOrEqualTo\(\$resolvedPeriodStart\)/);
 });
 

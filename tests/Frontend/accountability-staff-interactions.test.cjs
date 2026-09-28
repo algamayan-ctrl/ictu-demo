@@ -29,9 +29,10 @@ test('staff accountability KPI cards are whole-card links with universal navigat
   assert.match(index, /class="accountability-overview-card tone-\{\{ \$card\['tone'\] \}\} has-emphasis"/);
   assert.match(index, /href="\{\{ \$card\['href'\] \}\}"/);
   assert.match(index, /accountability-overview-arrow/);
-  assert.match(index, /\['view' => 'cases', 'focus' => 'overdue'\]/);
-  assert.match(index, /\['view' => 'cases', 'focus' => 'balance'\]/);
-  assert.match(index, /\['view' => 'resolved'\]/);
+  assert.match(index, /\['queue' => 'work'\]/);
+  assert.match(index, /\['queue' => 'waiting'\]/);
+  assert.match(index, /\['queue' => 'all'\]/);
+  assert.match(index, /\['queue' => 'history'\]/);
   assert.doesNotMatch(index, /accountability-overview-card[^\n]*is-static/);
 });
 

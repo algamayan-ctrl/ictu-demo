@@ -531,20 +531,17 @@
                                         };
                                         $statusTone = $isStillOverdue ? 'danger' : ($isAwaitingPayment ? 'warning' : 'info');
                                         $responsibleNow = match (true) {
-                                            $isStillOverdue => 'SPMU Action Officer',
+                                            $isStillOverdue => 'Borrower',
                                             $isHeadReview => 'SPMU Head/Admin',
-                                            $isAwaitingPayment => 'Borrower / SPMU Action Officer',
-                                            default => 'SPMU',
+                                            $isAwaitingPayment => 'Borrower',
+                                            default => 'SPMU Processing',
                                         };
                                         $currentRoleOwnsAction = ($isOfficer && ($isStillOverdue || $isAwaitingPayment)) || ($isHead && $isHeadReview);
                                         $roleMessage = match (true) {
-                                            $currentRoleOwnsAction && $isStillOverdue => 'Record the physical return.',
-                                            $currentRoleOwnsAction && $isHeadReview => 'Review the finalized late-return assessment.',
-                                            $currentRoleOwnsAction && $isAwaitingPayment => 'Record the official Cashier receipt after payment.',
-                                            $isOfficer && $isHeadReview => 'No action required at this stage. Waiting for SPMU Head/Admin review.',
-                                            $isHead && $isStillOverdue => 'No action required at this stage. Waiting for the Action Officer to record the return.',
-                                            $isHead && $isAwaitingPayment => 'No action required at this stage. Waiting for the borrower payment and Action Officer receipt recording.',
-                                            default => 'No action required at this stage.',
+                                            $isStillOverdue => 'Borrower must return the outstanding item(s). The Action Officer records the return and inspection when presented.',
+                                            $isHeadReview => 'SPMU Head/Admin must review the finalized late-return assessment and record the billing outcome.',
+                                            $isAwaitingPayment => 'Borrower must pay through the CSPC Cashier and present the official receipt. The Action Officer records the receipt when presented.',
+                                            default => 'Continue the applicable late-return process.',
                                         };
                                         $dialogId = 'late-return-action-'.$record->id;
                                         $remainingBilling = $linkedBilling
@@ -552,7 +549,7 @@
                                             : null;
                                     @endphp
 
-                                    <article class="ob-case-card accountability-custody-case">
+                                    <article id="overdue-{{ $record->id }}" class="ob-case-card accountability-custody-case">
                                         <div class="ob-case-top">
                                             <div class="ob-case-identity">
                                                 <span class="ob-case-icon is-{{ $isStillOverdue ? 'danger' : 'warning' }}" aria-hidden="true"><x-icon name="clock" size="17" /></span>
@@ -578,11 +575,11 @@
 
                                         <div class="accountability-case-responsibility">
                                             <div class="accountability-role-copy">
-                                                <small>Responsible Now</small>
+                                                <small>Waiting On</small>
                                                 <strong>{{ $responsibleNow }}</strong>
                                             </div>
                                             <div class="accountability-role-copy">
-                                                <small>{{ $currentRoleOwnsAction ? 'Your Action' : 'Current Stage' }}</small>
+                                                <small>Next Required Step</small>
                                                 <span>{{ $roleMessage }}</span>
                                             </div>
                                             @if($currentRoleOwnsAction && $isStillOverdue)
@@ -697,13 +694,13 @@
                                             'RSLDDP_AWAITING_UPLOAD',
                                             'RSLDDP_DISPOSITION_PENDING',
                                             'RSLDDP_FOR_ACCOUNTING_PROCESSING',
-                                            'RSLDDP_FOR_RESOLUTION' => 'SPMU Head/Admin',
-                                            'BILLING_PENDING',
-                                            'RSLDDP_PAYMENT_REQUIRED' => 'Borrower / SPMU Action Officer',
-                                            'RSLDDP_COMPLIANCE_VERIFICATION' => $incident->official_disposition === 'OTHER' ? 'SPMU Head/Admin' : 'SPMU Action Officer',
+                                            'RSLDDP_FOR_RESOLUTION',
                                             'COMPLIANCE_RSLDDP_PENDING' => 'SPMU Head/Admin',
-                                            'COMPLIANCE_REQUIRED' => 'SPMU Action Officer',
-                                            default => 'SPMU',
+                                            'BILLING_PENDING',
+                                            'RSLDDP_PAYMENT_REQUIRED' => 'Borrower',
+                                            'RSLDDP_COMPLIANCE_VERIFICATION' => $incident->official_disposition === 'OTHER' ? 'SPMU Head/Admin' : 'Borrower',
+                                            'COMPLIANCE_REQUIRED' => 'Borrower',
+                                            default => 'SPMU Processing',
                                         };
                                         $headOwnedStatuses = ['OPEN', 'FOR_BILLING', 'RSLDDP_AWAITING_UPLOAD', 'RSLDDP_DISPOSITION_PENDING', 'RSLDDP_FOR_ACCOUNTING_PROCESSING', 'RSLDDP_FOR_RESOLUTION', 'COMPLIANCE_RSLDDP_PENDING'];
                                         $officerOwnedStatuses = ['BILLING_PENDING', 'RSLDDP_PAYMENT_REQUIRED', 'COMPLIANCE_REQUIRED'];
@@ -722,23 +719,19 @@
                                             'RSLDDP_FOR_RESOLUTION' => 'Resolve Case',
                                             default => 'Open Action',
                                         };
-                                        $roleMessage = match (true) {
-                                            $roleOwnsAction => match ($statusKey) {
-                                                'OPEN' => 'Review the finding and record Confirm or Clear.',
-                                                'FOR_BILLING' => 'Generate the required property Billing Statement.',
-                                                'BILLING_PENDING', 'RSLDDP_PAYMENT_REQUIRED' => 'Record the official Cashier receipt after payment.',
-                                                'RSLDDP_AWAITING_UPLOAD', 'COMPLIANCE_RSLDDP_PENDING' => 'Upload the accomplished RSLDDP received by SPMU.',
-                                                'RSLDDP_DISPOSITION_PENDING' => 'Record the official disposition stated in the accomplished RSLDDP.',
-                                                'RSLDDP_COMPLIANCE_VERIFICATION' => $incident->official_disposition === 'MONETARY_SETTLEMENT' ? 'Record the official Cashier receipt after payment.' : 'Verify the required property compliance.',
-                                                'COMPLIANCE_REQUIRED' => 'Verify the completed property compliance recorded for this legacy case.',
-                                                'RSLDDP_FOR_ACCOUNTING_PROCESSING' => 'Record the official Accounting-issued Billing Statement.',
-                                                'RSLDDP_FOR_RESOLUTION' => 'Perform the final accountability review and resolution.',
-                                                default => 'Complete the current accountability action.',
-                                            },
-                                            $isOfficer && $responsibleNow === 'SPMU Head/Admin' => 'No action required at this stage. Waiting for SPMU Head/Admin.',
-                                            $isHead && str_contains($responsibleNow, 'Action Officer') => 'No action required at this stage. Waiting for the SPMU Action Officer.',
-                                            $isHead && str_contains($responsibleNow, 'Borrower') => 'No action required at this stage. Waiting for payment and Action Officer receipt recording.',
-                                            default => 'No action required at this stage.',
+                                        $roleMessage = match ($statusKey) {
+                                            'OPEN' => 'SPMU Head/Admin reviews the recorded finding and confirms accountability or clears the finding.',
+                                            'FOR_BILLING' => 'SPMU Head/Admin records the approved property Billing Statement details.',
+                                            'BILLING_PENDING', 'RSLDDP_PAYMENT_REQUIRED' => 'Borrower pays through the CSPC Cashier and presents the official receipt. The Action Officer records it when presented.',
+                                            'RSLDDP_AWAITING_UPLOAD', 'COMPLIANCE_RSLDDP_PENDING' => 'SPMU Head/Admin uploads the accomplished RSLDDP received after external processing.',
+                                            'RSLDDP_DISPOSITION_PENDING' => 'SPMU Head/Admin records the official disposition stated in the accomplished RSLDDP.',
+                                            'RSLDDP_COMPLIANCE_VERIFICATION' => $incident->official_disposition === 'MONETARY_SETTLEMENT'
+                                                ? 'Borrower pays through the CSPC Cashier and presents the official receipt. The Action Officer records it when presented.'
+                                                : 'Borrower completes and presents the required property compliance. The Action Officer physically verifies it.',
+                                            'COMPLIANCE_REQUIRED' => 'Borrower completes and presents the required property compliance. The Action Officer physically verifies it.',
+                                            'RSLDDP_FOR_ACCOUNTING_PROCESSING' => 'SPMU Head/Admin records the official Accounting-issued Billing Statement after external processing.',
+                                            'RSLDDP_FOR_RESOLUTION' => 'SPMU Head/Admin performs the final accountability review and resolution.',
+                                            default => 'Continue the applicable accountability process.',
                                         };
                                         $propertySummary = $incident->lines
                                             ->map(function ($line) use ($incident) {
@@ -756,7 +749,7 @@
                                             : null;
                                     @endphp
 
-                                    <article class="ob-case-card accountability-custody-case">
+                                    <article id="incident-{{ $incident->id }}" class="ob-case-card accountability-custody-case">
                                         <div class="ob-case-top">
                                             <div class="ob-case-identity">
                                                 <span class="ob-case-icon is-warning" aria-hidden="true"><x-icon name="warning" size="17" /></span>
@@ -779,11 +772,11 @@
 
                                         <div class="accountability-case-responsibility">
                                             <div class="accountability-role-copy">
-                                                <small>Responsible Now</small>
+                                                <small>Waiting On</small>
                                                 <strong>{{ $responsibleNow }}</strong>
                                             </div>
                                             <div class="accountability-role-copy">
-                                                <small>{{ $roleOwnsAction ? 'Your Action' : 'Current Stage' }}</small>
+                                                <small>Next Required Step</small>
                                                 <span>{{ $roleMessage }}</span>
                                             </div>
                                             @if($roleOwnsAction)

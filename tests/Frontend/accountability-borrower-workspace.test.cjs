@@ -9,8 +9,8 @@ const resolvedHistory = fs.readFileSync(path.join(root, 'resources/views/account
 
 test('borrower Accountability workspace stays grouped and does not route normal case actions back to the old expandable table', () => {
   assert.match(workspace, /groupBy\(fn \(\$record\) => \$record->custody_transaction_id/);
-  assert.match(workspace, /Responsible Now/);
-  assert.match(workspace, /No action required at this stage/);
+  assert.match(workspace, /Waiting On/);
+  assert.match(workspace, /Next Required Step/);
   assert.doesNotMatch(workspace, /data-case-toggle/);
   assert.doesNotMatch(workspace, /route\('accountability\.index', \['borrower'/);
   assert.doesNotMatch(workspace, /View Case/);

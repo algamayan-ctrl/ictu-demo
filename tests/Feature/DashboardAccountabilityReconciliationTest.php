@@ -662,12 +662,9 @@ class DashboardAccountabilityReconciliationTest extends TestCase
 
         $accountabilityPage = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
-            ->get(route('accountability.index'));
+            ->get(route('accountability.index', ['queue' => 'all']));
         $accountabilityPage->assertOk()
-            ->assertSee(
-                'aria-label="Open Accountability Cases: '.$expectedCaseCount.'. Unresolved cases"',
-                false
-            )
+            ->assertSee('All Active Cases')
             ->assertSee(
                 'id="accountability-borrower-count" data-total="'.$expectedBorrowerCount.'">'.$expectedBorrowerCount.'</span>',
                 false

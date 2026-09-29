@@ -317,16 +317,16 @@ HTML;
         </colgroup>
         <thead>
             <tr>
-                <th style="width: 43pt;">Qty.</th>
-                <th style="width: 54pt;">Unit</th>
-                <th style="width: 146pt;">Article/Description</th>
-                <th style="width: 125pt;">Purpose</th>
-                <th style="width: 85pt;">Expected Date of<br>Return</th>
-                <th class="split-gap" style="width: 32pt;"></th>
-                <th style="width: 77pt;">Date Released</th>
-                <th style="width: 77pt;">Release Time</th>
-                <th style="width: 77pt;">Date Returned</th>
-                <th style="width: 93pt;">Remarks</th>
+                <th style="width: 5.315204%;">Qty.</th>
+                <th style="width: 6.674907%;">Unit</th>
+                <th style="width: 18.046972%;">Article/Description</th>
+                <th style="width: 15.451174%;">Purpose</th>
+                <th style="width: 10.506799%;">Expected Date of<br>Return</th>
+                <th class="split-gap" style="width: 3.955501%;"></th>
+                <th style="width: 9.517923%;">Date Released</th>
+                <th style="width: 9.517923%;">Release Time</th>
+                <th style="width: 9.517923%;">Date Returned</th>
+                <th style="width: 11.495674%;">Remarks</th>
             </tr>
         </thead>
         <tbody>{$itemRows}</tbody>
@@ -360,15 +360,15 @@ HTML;
         </colgroup>
         <thead>
             <tr>
-                <th class="sig-row-label" style="width: 89pt;"></th>
-                <th style="width: 91pt;">Borrowed by:</th>
-                <th style="width: 91pt;">Approved by:</th>
-                <th style="width: 91pt;">Issued by:</th>
-                <th style="width: 91pt;">Received by:</th>
-                <th class="signature-gap" style="width: 32pt;"></th>
-                <th style="width: 108pt;">Returned by:</th>
-                <th style="width: 108pt;">Received by:</th>
-                <th style="width: 108pt;">Verified by:</th>
+                <th class="sig-row-label" style="width: 11.001236%;"></th>
+                <th style="width: 11.248455%;">Borrowed by:</th>
+                <th style="width: 11.248455%;">Approved by:</th>
+                <th style="width: 11.248455%;">Issued by:</th>
+                <th style="width: 11.248455%;">Received by:</th>
+                <th class="signature-gap" style="width: 3.955501%;"></th>
+                <th style="width: 13.349815%;">Returned by:</th>
+                <th style="width: 13.349815%;">Received by:</th>
+                <th style="width: 13.349815%;">Verified by:</th>
             </tr>
         </thead>
         <tbody>
@@ -475,7 +475,7 @@ HTML;
        long description, borrower name, or designation wraps. Dompdf may
        independently rebalance percentage-width <col> elements otherwise. */
     .borrower-items { width: 809pt; max-width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; font-size: {$tableFont}; line-height: 1.08; }
-    .borrower-items th, .borrower-items td { border: .55pt solid #777; padding: {$cellPadding}; vertical-align: middle; white-space: normal; word-wrap: break-word; overflow-wrap: anywhere; word-break: normal; }
+    .borrower-items th, .borrower-items td { border: .55pt solid #777; padding: {$cellPadding}; vertical-align: middle; white-space: normal; word-wrap: break-word; overflow-wrap: anywhere; word-break: break-word; }
     .borrower-items th { height: 20pt; text-align: center; font-weight: bold; font-size: 6.0pt; }
     .borrower-items tbody td { height: {$rowHeight}; }
     /* Left: 453pt / gap: 32pt / right: 324pt. The signature grid below
@@ -490,18 +490,19 @@ HTML;
     .borrower-items col.col-release-time { width: 77pt; }
     .borrower-items col.col-return-date { width: 77pt; }
     .borrower-items col.col-remarks { width: 93pt; }
-    /* Dompdf does not reliably apply <colgroup> as the table width constraint.
-       Apply widths to the header cells too; their first-row geometry controls
-       the cells beneath, even when a description or name needs wrapping. */
-    .borrower-items thead th:nth-child(1) { width: 43pt; }
-    .borrower-items thead th:nth-child(2) { width: 54pt; }
-    .borrower-items thead th:nth-child(3) { width: 146pt; }
-    .borrower-items thead th:nth-child(4) { width: 125pt; }
-    .borrower-items thead th:nth-child(5) { width: 85pt; }
-    .borrower-items thead th:nth-child(6) { width: 32pt; }
+    /* Dompdf can ignore absolute point widths on first-row cells of fixed-layout
+       tables and distribute them equally. Use proportions (point width / 809)
+       on the first header row to lock the shared left/gap/right boundaries.
+       Keep point widths on <colgroup> as structural documentation/fallback. */
+    .borrower-items thead th:nth-child(1) { width: 5.315204%; }
+    .borrower-items thead th:nth-child(2) { width: 6.674907%; }
+    .borrower-items thead th:nth-child(3) { width: 18.046972%; }
+    .borrower-items thead th:nth-child(4) { width: 15.451174%; }
+    .borrower-items thead th:nth-child(5) { width: 10.506799%; }
+    .borrower-items thead th:nth-child(6) { width: 3.955501%; }
     .borrower-items thead th:nth-child(7), .borrower-items thead th:nth-child(8),
-    .borrower-items thead th:nth-child(9) { width: 77pt; }
-    .borrower-items thead th:nth-child(10) { width: 93pt; }
+    .borrower-items thead th:nth-child(9) { width: 9.517923%; }
+    .borrower-items thead th:nth-child(10) { width: 11.495674%; }
     .borrower-items .c-qty, .borrower-items .c-unit,
     .borrower-items .c-expected, .borrower-items .c-release-date,
     .borrower-items .c-release-time, .borrower-items .c-return-date { text-align: center; }
@@ -530,20 +531,21 @@ HTML;
        item table. Keeping it a single grid synchronizes corresponding row
        heights if a name/designation wraps, without moving either section. */
     .borrower-signatures { width: 809pt; max-width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8pt; font-size: {$signatureFont}; line-height: 1.12; }
-    .borrower-signatures th, .borrower-signatures td { height: 11pt; border: .55pt solid #777; padding: 1.8pt 2.8pt; text-align: center; vertical-align: middle; white-space: normal; word-wrap: break-word; overflow-wrap: anywhere; word-break: normal; }
+    .borrower-signatures th, .borrower-signatures td { height: 11pt; border: .55pt solid #777; padding: 1.8pt 2.8pt; text-align: center; vertical-align: middle; white-space: normal; word-wrap: break-word; overflow-wrap: anywhere; word-break: break-word; }
     .borrower-signatures th { height: 9pt; font-weight: bold; }
-    /* 89 + (4 x 91) = 453pt; separator = 32pt;
-       (3 x 108) = 324pt. Total = 809pt (same as items). */
+    /* 89 + (4 x 91) = 453pt; separator = 32pt; (3 x 108) = 324pt.
+       Like the items table, the first-row width hints MUST use percentages
+       for Dompdf fixed table layout (all based on the same 809pt grid). */
     .borrower-signatures col.sig-label-col { width: 89pt; }
     .borrower-signatures col.sig-left-col { width: 91pt; }
     .borrower-signatures col.sig-gap-col { width: 32pt; }
     .borrower-signatures col.sig-right-col { width: 108pt; }
-    .borrower-signatures thead th:nth-child(1) { width: 89pt; }
+    .borrower-signatures thead th:nth-child(1) { width: 11.001236%; }
     .borrower-signatures thead th:nth-child(2), .borrower-signatures thead th:nth-child(3),
-    .borrower-signatures thead th:nth-child(4), .borrower-signatures thead th:nth-child(5) { width: 91pt; }
-    .borrower-signatures thead th:nth-child(6) { width: 32pt; }
+    .borrower-signatures thead th:nth-child(4), .borrower-signatures thead th:nth-child(5) { width: 11.248455%; }
+    .borrower-signatures thead th:nth-child(6) { width: 3.955501%; }
     .borrower-signatures thead th:nth-child(7), .borrower-signatures thead th:nth-child(8),
-    .borrower-signatures thead th:nth-child(9) { width: 108pt; }
+    .borrower-signatures thead th:nth-child(9) { width: 13.349815%; }
     .borrower-signatures .sig-row-label { text-align: left; }
     .borrower-signatures .signature-gap { border: 0 !important; background: #fff; padding: 0 !important; }
     .borrower-signatures .signature-row td { height: 22pt; }
@@ -780,14 +782,16 @@ CSS;
         $pageHeader = <<<HTML
 <div class="gp-header-inner">
     <table class="gp-header-table">
+        <!-- Explicit percentages on the first row are needed by Dompdf's fixed-table layout. -->
+        <colgroup><col style="width: 8%;"><col style="width: 72%;"><col style="width: 20%;"></colgroup>
         <tr>
-            <td class="gp-logo">{$logo}</td>
-            <td class="gp-school">
+            <td class="gp-logo" style="width: 8%;">{$logo}</td>
+            <td class="gp-school" style="width: 72%;">
                 <div>Republic of the Philippines</div>
                 <strong>CAMARINES SUR POLYTECHNIC COLLEGES</strong>
                 <div>Nabua, Camarines Sur</div>
             </td>
-            <td class="gp-form-code">{$formCode}</td>
+            <td class="gp-form-code" style="width: 20%;">{$formCode}</td>
         </tr>
     </table>
     <div class="gp-blue-rule"></div>
@@ -891,14 +895,16 @@ HTML;
 
     .gp-page-header { position: fixed; top: -60pt; left: 0; right: 0; height: 56pt; }
     .gp-header-inline { margin-bottom: 9pt; }
-    .gp-header-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .gp-header-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; }
     .gp-header-table td { border: 0; padding: 0; vertical-align: middle; }
-    .gp-logo { width: 40pt; padding-right: 7pt !important; }
+    /* Keep the logo, school name, and form code in a single locked first-row grid.
+       Dompdf can recalculate absolute pt widths as three equal cells in fixed tables. */
+    .gp-logo { width: 8%; padding-right: 7pt !important; }
     .gp-logo img { width: 30pt; height: 30pt; object-fit: contain; display: block; }
     .gp-logo-fallback { font-weight: bold; font-size: 7pt; }
-    .gp-school { font-size: 6.5pt; line-height: 1.15; }
+    .gp-school { width: 72%; font-size: 6.5pt; line-height: 1.15; text-align: left; }
     .gp-school strong { display: block; font-size: 8.2pt; line-height: 1.08; }
-    .gp-form-code { width: 110pt; text-align: right; vertical-align: bottom !important; font-size: 6.4pt; font-weight: bold; }
+    .gp-form-code { width: 20%; text-align: right; vertical-align: bottom !important; font-size: 6.4pt; font-weight: bold; }
     .gp-blue-rule { border-top: .9pt solid #78a6c8; margin: 6pt 0 5pt; }
     .gp-title { text-align: center; font-size: 9.2pt; font-weight: bold; letter-spacing: .08pt; }
 
@@ -1077,14 +1083,16 @@ CSS;
         $pageHeader = <<<HTML
 <div class="lf-header-inner">
     <table class="lf-header-table">
+        <!-- Dompdf needs percentage widths on the actual first-row cells in a fixed table. -->
+        <colgroup><col style="width: 8%;"><col style="width: 72%;"><col style="width: 20%;"></colgroup>
         <tr>
-            <td class="lf-logo">{$logo}</td>
-            <td class="lf-school">
+            <td class="lf-logo" style="width: 8%;">{$logo}</td>
+            <td class="lf-school" style="width: 72%;">
                 <div>Republic of the Philippines</div>
                 <strong>CAMARINES SUR POLYTECHNIC COLLEGES</strong>
                 <div>Nabua, Camarines Sur</div>
             </td>
-            <td class="lf-form-code">{$formCode}</td>
+            <td class="lf-form-code" style="width: 20%;">{$formCode}</td>
         </tr>
     </table>
     <div class="lf-blue-rule"></div>
@@ -1144,6 +1152,10 @@ HTML;
 </section>
 HTML;
 
+        // The standalone form uses a fixed header; reserve clearance below its title.
+        // An inline header (in the official packet) already reserves its own flow height.
+        $requestMetaTopMargin = $documentShell ? '13pt' : '1pt';
+
         $css = <<<CSS
 <style>
     @page { size: A4 portrait; margin: 72pt 34pt 38pt; }
@@ -1155,16 +1167,16 @@ HTML;
     .lf-header-inline { margin-bottom: 9pt; }
     .lf-header-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .lf-header-table td { border: 0; padding: 0; vertical-align: middle; }
-    .lf-logo { width: 40pt; padding-right: 7pt !important; }
+    .lf-logo { width: 8%; padding-right: 7pt !important; }
     .lf-logo img { width: 30pt; height: 30pt; object-fit: contain; display: block; }
     .lf-logo-fallback { font-weight: bold; font-size: 7pt; }
-    .lf-school { font-size: 6.5pt; line-height: 1.15; }
+    .lf-school { width: 72%; font-size: 6.5pt; line-height: 1.15; text-align: left; }
     .lf-school strong { display: block; font-size: 8.2pt; line-height: 1.08; }
-    .lf-form-code { width: 110pt; text-align: right; vertical-align: bottom !important; font-size: 6.4pt; font-weight: bold; }
+    .lf-form-code { width: 20%; text-align: right; vertical-align: bottom !important; font-size: 6.4pt; font-weight: bold; }
     .lf-blue-rule { border-top: .9pt solid #78a6c8; margin: 6pt 0 5pt; }
     .lf-title { text-align: center; font-size: 9.2pt; font-weight: bold; letter-spacing: .08pt; }
 
-    .lf-request-meta { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 1pt 0 9pt; font-size: 7.2pt; }
+    .lf-request-meta { width: 100%; border-collapse: collapse; table-layout: fixed; margin: {$requestMetaTopMargin} 0 9pt; font-size: 7.2pt; }
     .lf-request-meta td { border: 0; padding: 0 3pt 2pt 0; vertical-align: bottom; }
     .lf-meta-label { width: 15%; font-weight: bold; white-space: nowrap; }
     .lf-meta-value { width: 37%; border-bottom: .55pt solid #111 !important; text-align: center; overflow-wrap: anywhere; }

@@ -81,10 +81,39 @@ test('item and signature grids retain identical fixed widths and aligned section
   assert.equal(upperLeft + upperGap + upperRight, 809);
 });
 
-test('Dompdf first-row cells explicitly lock both grids, not only colgroup', () => {
-  const itemHeader = method.match(/<table class="borrower-items">[\s\S]*?<\/thead>/)?.[0] || '';
-  const signatureHeader = method.match(/<table class="borrower-signatures">[\s\S]*?<\/thead>/)?.[0] || '';
-  const values = html => [...html.matchAll(/<th(?: class="[^"]+")? style="width: (\d+)pt;">/g)].map(m => Number(m[1]));
-  assert.deepEqual(values(itemHeader), [43,54,146,125,85,32,77,77,77,93]);
-  assert.deepEqual(values(signatureHeader), [89,91,91,91,91,32,108,108,108]);
+test('Dompdf first-row percent hints lock both grids instead of equalizing absolute widths', () => {
+  const header = (grid) => method.match(new RegExp(`<table class="${grid}">[\\s\\S]*?<\\/thead>`))?.[0] || '';
+  const values = html => [...html.matchAll(/<th(?: class="[^"]+")? style="width: (\d+\.\d+)%;">/g)]
+    .map(m => Number(m[1]));
+  const item = values(header('borrower-items'));
+  const signature = values(header('borrower-signatures'));
+  assert.equal(item.length, 10, 'all item-grid first-row cells must have proportional widths');
+  assert.equal(signature.length, 9, 'all signature-grid first-row cells must have proportional widths');
+  const near = (a, b) => assert.ok(Math.abs(a - b) < 0.00001, `${a} should match ${b}`);
+  near(item.reduce((sum, val) => sum + val, 0), 100);
+  near(signature.reduce((sum, val) => sum + val, 0), 100);
+  const sections = arr => [arr.slice(0, 5).reduce((a, b) => a + b, 0), arr[5], arr.slice(6).reduce((a, b) => a + b, 0)];
+  const signatureSections = [signature.slice(0,5).reduce((a,b)=>a+b,0), signature[5], signature.slice(6).reduce((a,b)=>a+b,0)];
+  sections(item).forEach((v, i) => near(v, signatureSections[i]));
+  [453, 32, 324].forEach((pt, i) => near(sections(item)[i], pt / 809 * 100));
+  assert.doesNotMatch(header('borrower-items'), /style="width: \d+pt;/);
+  assert.doesNotMatch(header('borrower-signatures'), /style="width: \d+pt;/);
+});
+
+test('CSS first-row width rules use percentages and break long text within both fixed grids', () => {
+  const getRules = grid => {
+    const start = method.indexOf(`/* Dompdf can ignore absolute point widths`);
+    const end = method.indexOf(`.borrower-items .c-qty`, start);
+    const sigStart = method.indexOf(`.borrower-signatures thead th:nth-child(1)`, end);
+    const sigEnd = method.indexOf(`.borrower-signatures .sig-row-label`, sigStart);
+    return grid === 'borrower-items' ? method.slice(start, end) : method.slice(sigStart, sigEnd);
+  };
+  for (const grid of ['borrower-items', 'borrower-signatures']) {
+    const rules = getRules(grid);
+    assert.match(rules, /thead th:nth-child\(1\).*?\{ width: [\d.]+%; \}/);
+    assert.doesNotMatch(rules, /width: [\d.]+%pt;/);
+    assert.doesNotMatch(rules, /thead th:nth-child\(\d+\).*?\{ width: [\d.]+pt; \}/);
+    const cellRule = method.slice(method.indexOf(`.${grid} th, .${grid} td {`), method.indexOf("word-break:", method.indexOf(`.${grid} th, .${grid} td {`)) + 30);
+    assert.match(cellRule, /word-break: break-word;/);
+  }
 });

@@ -73,7 +73,7 @@ class GoogleAuthTest extends TestCase
         $response = $this->get('/login');
 
         $response->assertOk()
-            ->assertSee('CSPC Email Address')
+            ->assertSee('Email')
             ->assertDontSee('Sign in with Google');
     }
 
@@ -100,8 +100,8 @@ class GoogleAuthTest extends TestCase
         config(['services.google.client_id' => '', 'services.google.client_secret' => '', 'services.google.redirect' => '']);
 
         $this->get(route('auth.google.redirect'))
-            ->assertRedirect(route('login'))
-            ->assertSessionHasErrors('email');
+            ->assertRedirect(route('home'))
+            ->assertSessionHasErrors('google');
 
         $this->assertGuest();
     }
@@ -190,8 +190,8 @@ class GoogleAuthTest extends TestCase
         $this->fakeGoogleUser('student.not.registered@my.cspc.edu.ph');
 
         $this->get(route('auth.google.callback'))
-            ->assertRedirect(route('login'))
-            ->assertSessionHasErrors('email');
+            ->assertRedirect(route('home'))
+            ->assertSessionHasErrors('google');
 
         $this->assertGuest();
         $this->assertSame(0, User::query()->count());
@@ -208,8 +208,8 @@ class GoogleAuthTest extends TestCase
         $this->fakeGoogleUser('inactive@cspc.edu.ph');
 
         $this->get(route('auth.google.callback'))
-            ->assertRedirect(route('login'))
-            ->assertSessionHasErrors('email');
+            ->assertRedirect(route('home'))
+            ->assertSessionHasErrors('google');
 
         $this->assertGuest();
     }
@@ -224,8 +224,8 @@ class GoogleAuthTest extends TestCase
         $this->fakeGoogleUser('suspended@cspc.edu.ph');
 
         $this->get(route('auth.google.callback'))
-            ->assertRedirect(route('login'))
-            ->assertSessionHasErrors('email');
+            ->assertRedirect(route('home'))
+            ->assertSessionHasErrors('google');
 
         $this->assertGuest();
     }
@@ -242,8 +242,8 @@ class GoogleAuthTest extends TestCase
         $this->fakeGoogleUser('retired@cspc.edu.ph');
 
         $this->get(route('auth.google.callback'))
-            ->assertRedirect(route('login'))
-            ->assertSessionHasErrors('email');
+            ->assertRedirect(route('home'))
+            ->assertSessionHasErrors('google');
 
         $this->assertGuest();
     }
@@ -253,8 +253,8 @@ class GoogleAuthTest extends TestCase
         $this->fakeGoogleUser('');
 
         $this->get(route('auth.google.callback'))
-            ->assertRedirect(route('login'))
-            ->assertSessionHasErrors('email');
+            ->assertRedirect(route('home'))
+            ->assertSessionHasErrors('google');
 
         $this->assertGuest();
     }
@@ -262,8 +262,8 @@ class GoogleAuthTest extends TestCase
     public function test_cancelled_google_consent_returns_to_login(): void
     {
         $this->get(route('auth.google.callback', ['error' => 'access_denied']))
-            ->assertRedirect(route('login'))
-            ->assertSessionHasErrors('email');
+            ->assertRedirect(route('home'))
+            ->assertSessionHasErrors('google');
 
         $this->assertGuest();
     }
@@ -294,8 +294,8 @@ class GoogleAuthTest extends TestCase
         $this->fakeGoogleUser('outsider@gmail.com');
 
         $this->get(route('auth.google.callback'))
-            ->assertRedirect(route('login'))
-            ->assertSessionHasErrors('email');
+            ->assertRedirect(route('home'))
+            ->assertSessionHasErrors('google');
 
         $this->assertGuest();
     }
@@ -365,5 +365,88 @@ class GoogleAuthTest extends TestCase
         $this->get(route('auth.google.callback'))->assertRedirect(route('dashboard'));
 
         $this->assertNotNull($user->fresh()->last_login_at);
+    }
+
+    public function test_home_and_compatibility_login_render_the_same_landing_page(): void
+    {
+        $home = $this->get('/')->assertOk();
+        $login = $this->get('/login')->assertOk();
+
+        $this->assertSame($home->getContent(), $login->getContent());
+        $css = preg_replace('/\s+/', '', $home->getContent());
+        $this->assertStringContainsString(
+            'linear-gradient(90deg,rgba(255,255,255,.98)0%,rgba(255,255,255,.96)30%,rgba(255,255,255,.84)48%,rgba(255,255,255,.42)66%,rgba(255,255,255,.10)100%),url("http://localhost/images/cspc-campus-hero.png")centerright/coverno-repeat;',
+            $css
+        );
+        $this->assertSame(1, substr_count($css, 'images/cspc-campus-hero.png'));
+        $home->assertSee('class="landing-shell"', false)
+            ->assertSee('images/cspc-campus-hero.png')
+            ->assertSee('class="landing-login-slot login-page"', false)
+            ->assertDontSee('GOOGLE LOGIN BACKGROUND SYNC');
+    }
+
+    public function test_rejected_google_domain_returns_to_the_landing_card_and_refresh_keeps_it(): void
+    {
+        config(['services.google.allowed_domains' => 'cspc.edu.ph']);
+        $this->fakeGoogleUser('outsider@gmail.com');
+
+        $this->get(route('auth.google.callback'))
+            ->assertRedirect(route('home'))
+            ->assertSessionHasErrors('google');
+
+        $message = 'This Google account is not from an allowed domain. Contact ICTU for account access assistance.';
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $page = $this->get('/')->assertOk()
+            ->assertSeeInOrder(['class="landing-shell"', 'class="login-card"', 'class="login-google"', 'class="google-auth-error"', $message, 'Need help?'], false);
+        $this->assertSame(1, substr_count($page->getContent(), $message));
+        $this->get('/')->assertOk()->assertSee('class="landing-shell"', false)->assertDontSee($message);
+        $this->assertGuest();
+    }
+
+    public function test_oauth_exception_displays_on_the_landing_page(): void
+    {
+        $provider = Mockery::mock(Provider::class);
+        $provider->shouldReceive('user')->once()->andThrow(new \RuntimeException('Provider unavailable'));
+        Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
+
+        $this->get(route('auth.google.callback'))->assertRedirect(route('home'))->assertSessionHasErrors('google');
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $this->get('/')->assertOk()->assertSeeInOrder([
+            'class="landing-shell"', 'class="login-card"', 'Google sign-in could not be completed. Please try again.',
+        ], false);
+    }
+
+    public function test_password_validation_and_invalid_credentials_keep_the_landing_card(): void
+    {
+        foreach (['/', '/login'] as $origin) {
+            $this->from($origin)->post('/login', ['email' => 'staff@cspc.edu.ph'])
+                ->assertRedirect($origin)->assertSessionHasErrors('password');
+            $this->withCookie(config('session.cookie'), session()->getId());
+            $this->get($origin)->assertOk()->assertSee('class="landing-shell"', false)
+                ->assertSee('The password field is required.')->assertSee('staff@cspc.edu.ph');
+        }
+
+        $user = User::factory()->create(['password' => 'correct-password']);
+        $this->from('/')->post('/login', ['email' => $user->email, 'password' => 'wrong-password'])
+            ->assertRedirect('/')->assertSessionHasErrors('email');
+        $this->withCookie(config('session.cookie'), session()->getId());
+        $this->get('/')->assertOk()->assertSeeInOrder([
+            'class="landing-shell"', 'class="login-card"', 'The supplied credentials are invalid or the account is not active.',
+        ], false);
+        $this->assertGuest();
+    }
+
+    public function test_session_notices_and_general_errors_are_inside_the_shared_card(): void
+    {
+        $this->withSession([
+            'status' => 'Session status message.',
+            'error' => 'Session error message.',
+            'errors' => ['default' => ['format' => ':message', 'messages' => [
+                'authentication' => ['General authentication error.'],
+            ]]],
+        ])->get('/')->assertOk()->assertSeeInOrder([
+            'class="landing-shell"', 'class="login-card"', 'Session status message.',
+            'Session error message.', 'General authentication error.',
+        ], false);
     }
 }

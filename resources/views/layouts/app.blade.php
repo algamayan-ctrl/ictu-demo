@@ -531,6 +531,8 @@
         </div>
     </div>
 @else
+    {{-- LOGIN PORTAL HEADER VISIBILITY START --}}
+    @unless(request()->routeIs('home', 'login'))
     <header class="site-header public-header">
         <a class="brand" href="{{ route('home') }}" aria-label="SPMU-ACPMP home">
             <img
@@ -539,17 +541,19 @@
                 alt="SPMU-ACPMP — Supply and Property Management Unit, Asset Custody Monitoring Program"
             >
         </a>
+                @unless(request()->routeIs('home', 'login'))
         <nav aria-label="Public navigation">
-            <a class="public-nav-home" href="{{ route('home') }}">Home</a>
-            <a href="{{ route('home') }}#about">About</a>
-            <a href="{{ route('home') }}#features">Features</a>
-            <a href="{{ route('home') }}#how-it-works">How It Works</a>
             <a class="public-signin" href="{{ route('login') }}">Sign in</a>
         </nav>
+        @endunless
     </header>
+    @endunless
+    {{-- LOGIN PORTAL HEADER VISIBILITY END --}}
     <main id="main-content" tabindex="-1">
+        @unless(request()->routeIs('home', 'login'))
         @if(session('status'))<div class="notice success" role="status"><x-icon name="success" /><div>{{ session('status') }}</div></div>@endif
         @if($errors->any())<div class="notice error" role="alert"><x-icon name="error" /><div><strong>Please correct the following:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>@endif
+        @endunless
         @yield('content')
     </main>
     <footer><span>Camarines Sur Polytechnic Colleges</span><span>Official operational time: Asia/Manila</span></footer>

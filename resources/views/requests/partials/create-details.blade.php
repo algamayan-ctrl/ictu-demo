@@ -116,9 +116,7 @@
     <div class="request-schedule-fields" aria-labelledby="borrowing-schedule-heading">
         <div class="request-schedule-heading">
             <h3 class="eyebrow" id="borrowing-schedule-heading">Borrowing schedule</h3>
-            <p class="request-schedule-note">
-                Borrowers are encouraged to submit requests in advance to allow sufficient time for verification, approval, preparation, and release.
-            </p>
+            <p class="request-schedule-note">Borrowers are encouraged to submit requests in advance to allow sufficient time for verification, approval, preparation, and release.</p>
         </div>
 
         <div class="field-grid request-schedule-grid">
@@ -151,9 +149,6 @@
             </label>
         </div>
 
-        <small class="field-help request-schedule-help">
-            Enter the date by which you need the requested item(s) in your custody for the activity.
-        </small>
     </div>
 <div class="student-activity-panel">
         <input type="hidden" name="represents_student_activity" value="0">
@@ -168,7 +163,7 @@
             >
             <span>
                 <strong>This request represents a student activity</strong>
-                <small id="student-activity-help">Permission to Conduct may be required during Documents &amp; Review.</small>
+                <small id="student-activity-help">A Permission to Conduct (PTC) is required for student activities.</small>
             </span>
         </label>
     </div>

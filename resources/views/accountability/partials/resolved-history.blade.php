@@ -24,6 +24,7 @@
 @endphp
 <section class="content-area" id="resolved-history">
 @if($isBorrower ?? false)
+    @unless($embeddedInBorrowerWorkspace)
     <div class="section-heading accountability-section-heading">
         <div>
             <p class="eyebrow">Closed records</p>
@@ -38,6 +39,7 @@
             </span>
         @endif
     </div>
+    @endunless
 
     @if($resolvedHistory->isEmpty())
         <article class="card top-gap accountability-empty">
@@ -90,7 +92,9 @@
                 <div class="card-header">
                     <div>
                         <strong>{{ $row['reference'] }}</strong>
+                        @unless($isBorrower ?? false)
                         <h3>{{ $row['borrower']?->full_name ?? 'Unknown borrower' }}</h3>
+                        @endunless
                         <small>{{ $typeLabel }}</small>
                     </div>
 

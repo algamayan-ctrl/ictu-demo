@@ -426,13 +426,8 @@ class CustodyController extends Controller
             'preparationIssues' => $preparationIssues,
             'documents' => $custody->request->currentVersion
                 ->documents()
-                ->where(function ($query) use ($custody) {
-                    $query->where('document_type', 'APPROVED_REQUEST_LETTER')
-                        ->orWhere(function ($query) use ($custody) {
-                            $query->where('subject_type', CustodyTransaction::class)
-                                ->where('subject_id', $custody->id);
-                        });
-                })
+                ->where('subject_type', CustodyTransaction::class)
+                ->where('subject_id', $custody->id)
                 ->with('evidence')
                 ->latest()
                 ->get(),

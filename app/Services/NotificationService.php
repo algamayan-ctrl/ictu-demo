@@ -184,12 +184,12 @@ class NotificationService
         User $recipient,
         ?Model $source
     ): array {
-        $profile = $this->eventProfile($eventCode, $source);
+        $profile = $this->eventProfile($eventCode);
         $data = $this->sourceData($eventCode, $recipient, $source);
 
         $reference = $data['reference'];
 
-        $subject = '[SPMU-ACPMP] '.$profile['title'];
+        $subject = '[CSPC SPMU] '.$profile['title'];
         if ($reference) {
             $subject .= ' | '.$reference;
         }
@@ -208,8 +208,14 @@ class NotificationService
             ? '<p style="margin:8px 0 0;font-size:13px;line-height:1.6;color:#486581;"><strong>Reference:</strong> '.e($reference).'</p>'
             : '';
 
+        // The reference is already shown below the email heading. Do not
+        // repeat that same value inside the details table.
         $detailsRows = '';
         foreach ($data['details'] as $label => $value) {
+            if ($reference && trim((string) $value) === trim((string) $reference)) {
+                continue;
+            }
+
             $detailsRows .=
                 '<tr>'
                 .'<td style="padding:8px 0 8px 0;width:220px;vertical-align:top;font-size:14px;line-height:1.6;color:#486581;"><strong>'.e($label).'</strong></td>'
@@ -228,8 +234,12 @@ class NotificationService
                 </table>
             ';
 
+        // Keep the email readable for larger requests. The complete record
+        // remains available through the authorized transaction link.
+        $visibleItems = array_slice($data['items'], 0, 5);
+        $additionalItemCount = max(0, count($data['items']) - count($visibleItems));
         $itemsRows = '';
-        foreach ($data['items'] as $item) {
+        foreach ($visibleItems as $item) {
             $itemsRows .=
                 '<tr>'
                 .'<td style="padding:10px 8px 10px 0;border-bottom:1px solid #e6edf5;font-size:14px;line-height:1.55;color:#243b53;">'.e($item['name']).'</td>'
@@ -239,10 +249,14 @@ class NotificationService
                 .'</tr>';
         }
 
+        $moreItemsNote = $additionalItemCount > 0
+            ? '<p style="font-size:13px;line-height:1.6;color:#486581;">And '.$additionalItemCount.' more item(s). View the full list in SPMU-ACPMP.</p>'
+            : '';
+
         $itemsBlock = $itemsRows === ''
             ? ''
             : '
-                <h2 style="margin:28px 0 10px;font-size:15px;line-height:1.4;color:#102a43;font-weight:700;">'.e($data['itemsHeading']).'</h2>
+                <h2 style="margin:24px 0 10px;font-size:15px;line-height:1.4;color:#102a43;font-weight:700;">'.e($data['itemsHeading']).'</h2>
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
                     <thead>
                         <tr>
@@ -256,22 +270,17 @@ class NotificationService
                         '.$itemsRows.'
                     </tbody>
                 </table>
+                '.$moreItemsNote.'
             ';
 
-        $nextBlock = $profile['next']
-            ? '
-                <p style="margin:28px 0 0;font-size:14px;line-height:1.75;color:#243b53;">
-                    <strong>What happens next?</strong><br>'
-                    .e($profile['next']).'
-                </p>
-            '
-            : '';
+        // Each event summary already gives its applicable next instruction.
+        // A generic second instruction paragraph repeated that same guidance.
 
         $actionBlock = '';
         if ($data['actionUrl'] && $data['actionLabel']) {
             $actionBlock = '
                 <p style="margin:28px 0 0;font-size:14px;line-height:1.75;color:#243b53;">
-                    Open in SPMU-ACPMP:
+                    <strong>View details:</strong>
                     <a href="'.e($data['actionUrl']).'" style="color:#1769e0;text-decoration:underline;font-weight:700;">'.e($data['actionLabel']).'</a>
                 </p>
             ';
@@ -296,12 +305,9 @@ class NotificationService
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:760px;border-collapse:collapse;">
                     <tr>
                         <td style="padding:0 0 18px 0;border-bottom:3px solid #0b2854;">
-                            <div style="font-size:28px;line-height:1.15;font-weight:800;color:#0b2854;">SPMU-ACPMP</div>
+                            <div style="font-size:25px;line-height:1.15;font-weight:800;color:#0b2854;">Camarines Sur Polytechnic Colleges</div>
                             <div style="margin-top:6px;font-size:14px;line-height:1.55;font-weight:700;color:#243b53;">
                                 Supply and Property Management Unit
-                            </div>
-                            <div style="font-size:14px;line-height:1.55;color:#486581;">
-                                Camarines Sur Polytechnic Colleges
                             </div>
                         </td>
                     </tr>
@@ -330,8 +336,6 @@ class NotificationService
 
                             {$itemsBlock}
 
-                            {$nextBlock}
-
                             {$actionBlock}
 
                             <p style="margin:34px 0 0;font-size:12px;line-height:1.65;color:#829ab1;">
@@ -339,8 +343,8 @@ class NotificationService
                             </p>
 
                             <p style="margin:28px 0 0;padding-top:18px;border-top:1px solid #d9e2ec;font-size:12px;line-height:1.75;color:#627d98;">
-                                This message was sent by SPMU-ACPMP. Please do not reply to this email.
-                                For questions, contact the Supply and Property Management Unit through official institutional channels.
+                                This is an automated notice from CSPC SPMU. Please do not reply to this email.
+                                For assistance, contact the Supply and Property Management Unit through official institutional channels.
                             </p>
                         </td>
                     </tr>
@@ -360,11 +364,10 @@ HTML;
 
     /**
      * @return array{
-     *     title:string,
-     *     next:?string
+     *     title:string
      * }
      */
-    private function eventProfile(string $eventCode, ?Model $source = null): array
+    private function eventProfile(string $eventCode): array
     {
         $title = match ($eventCode) {
             'REQUEST_SUBMITTED' => 'Borrowing Request Submitted',
@@ -407,6 +410,7 @@ HTML;
             'PROPERTY_ACCOUNTABILITY_COMPLIANCE_NOT_ACCEPTED' => 'Required Action Needs Correction',
             'PROPERTY_ACCOUNTABILITY_PAYMENT_REQUIRED' => 'Property Accountability Payment Required',
             'PROPERTY_ACCOUNTABILITY_CASE_RESOLVED' => 'Property Accountability Resolved',
+            'LATE_RETURN_RESOLVED_WITHOUT_CHARGE' => 'Late Return Case Resolved — No Charge',
             'PAYMENT_RECORDED', 'RECEIPT_RECORDED' => 'Payment Record Received',
             'PAYMENT_VERIFIED', 'RECEIPT_VERIFIED' => 'Payment Confirmed',
             'EVIDENCE_VERIFIED' => 'Supporting Evidence Verified',
@@ -417,64 +421,7 @@ HTML;
             default => $this->humanize($eventCode),
         };
 
-        $headDecisionNext = null;
-        if ($eventCode === 'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' && $source instanceof Incident) {
-            $headDecisionNext = match (strtoupper((string) $source->status)) {
-                'F2F_PROCESSING', 'RSLDDP_AWAITING_UPLOAD' => 'Please coordinate in person with CSPC SPMU to complete the required RSLDDP processing.',
-                'COMPLIANCE_REQUIRED' => 'Complete the repair, replacement, or other required action shown in My Obligations.',
-                'FOR_BILLING' => 'Follow the payment instructions in My Obligations and present the official Cashier receipt to SPMU after payment.',
-                default => 'Check My Obligations for the current case status and next step.',
-            };
-        }
-
-        $next = match ($eventCode) {
-            'REQUEST_SUBMITTED' => 'Review the request in SPMU-ACPMP.',
-            'REQUEST_VERIFIED' => 'The request is ready for the SPMU Head/Admin decision.',
-            'REQUEST_APPROVED' => 'Follow the pickup schedule below. Required forms are available from the request page.',
-            'REQUEST_RETURNED_FOR_REVISION' => 'Review the SPMU remarks, make the required changes, and resubmit the request.',
-            'REQUEST_REJECTED' => 'Review the reason below. Contact SPMU if you need clarification.',
-            'REQUEST_CANCELLED' => 'No further pickup action is required for this request.',
-            'REQUEST_EXPIRED' => 'If you still need the items, submit a new borrowing request.',
-            'PICKUP_SCHEDULED' => 'Follow the updated pickup schedule below.',
-            'RETURN_SCHEDULE_ADJUSTED' => 'Use the updated return date shown below.',
-            'PICKUP_EXPIRED' => 'No action is required from you at this time. SPMU is reviewing whether the borrowing can still proceed.',
-            'PICKUP_HELD_PREPARATION_ISSUE' => 'No borrower action is required while SPMU reviews the item preparation issue.',
-            'PICKUP_RESCHEDULE_REQUESTED' => 'Review the request and set the next allowed pickup schedule.',
-            'PREPARATION_ISSUE_REPORTED' => 'Review the affected item before release continues.',
-            'PREPARATION_ISSUE_RESOLVED' => 'Recheck the affected item before confirming that all approved items are prepared.',
-            'PREPARATION_UNABLE_TO_FULFILL' => 'If the items are still needed, submit a new borrowing request.',
-            'ITEMS_RELEASED' => 'Return all borrowed items on or before the expected return date shown below.',
-            'LINEN_FOR_LAUNDRY' => 'On return, bring the linen and the Laundry Form to the Laundry Area first.',
-            'LAUNDRY_USED_LINEN_RECEIVED' => 'No further borrower action is required for the linen return unless SPMU contacts you.',
-            'LAUNDRY_READY_FOR_PICKUP', 'LAUNDRY_PROCESSING_COMPLETED' => 'No further borrower action is required.',
-            'LAUNDRY_FORM_PENDING_SPMU_VERIFICATION' => 'Review and record the accomplished Laundry Form.',
-            'LAUNDRY_INTERNAL_QUEUE', 'LAUNDRY_FINAL_FORM_ARCHIVED' => 'Continue the normal SPMU laundry processing if another step remains.',
-            'RETURN_RECORDED' => 'Review the return details below.',
-            'RETURN_INSPECTED' => 'Check My Obligations only if the return created a required action.',
-            'TRANSACTION_CLOSED' => 'No further action is required for this transaction.',
-            'RETURN_DUE_TODAY', 'RETURN_DUE_TOMORROW' => 'Please return the listed items to SPMU on the date shown below.',
-            'OVERDUE', 'RETURN_OVERDUE', 'BORROWING_OVERDUE' => 'Please return the outstanding items to SPMU as soon as possible.',
-            'LATE_RETURN_FOR_HEAD_APPROVAL' => 'Review the late-return assessment and record the SPMU Head/Admin decision.',
-            'LATE_RETURN_NOTICE_ISSUED' => 'Check My Obligations for the Late Return Notice. Any amount due will appear separately in the Late Return Billing Statement.',
-            'ACCOUNTABILITY_OPENED', 'INCIDENT_RECORDED' => 'Check My Obligations for the case status and any required action.',
-            'LATE_RETURN_BILLING_STATEMENT_ISSUED', 'ACCOUNTABILITY_BILLING_STATEMENT_ISSUED', 'PROPERTY_ACCOUNTABILITY_PAYMENT_REQUIRED' => 'Check My Obligations for the amount and payment instructions. After payment, present the official Cashier receipt to SPMU.',
-            'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' => $headDecisionNext,
-            'PROPERTY_ACCOUNTABILITY_OFFICIAL_DISPOSITION_RECORDED' => 'Check My Obligations for the recorded result and next step.',
-            'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED' => 'No further action is required until the final SPMU review unless you are contacted.',
-            'PROPERTY_ACCOUNTABILITY_COMPLIANCE_NOT_ACCEPTED' => 'Review the remarks and present the corrected requirement again.',
-            'PROPERTY_ACCOUNTABILITY_CASE_RESOLVED' => 'This case is resolved. Check My Obligations only if another active obligation remains.',
-            'BORROWING_SUSPENSION_LIFTED' => 'Your borrowing suspension has ended. Check My Obligations only if another active requirement remains.',
-            'PAYMENT_RECORDED', 'RECEIPT_RECORDED' => 'Wait for SPMU confirmation of the submitted payment record.',
-            'PAYMENT_VERIFIED', 'RECEIPT_VERIFIED' => 'Your Cashier receipt has been confirmed. Check My Obligations for any remaining balance or requirement.',
-            'EVIDENCE_REJECTED' => 'Review the reason below and submit the correct replacement document or evidence.',
-            'ACCOUNT_ACCESS_DISABLED' => 'Contact ICTU if you need help restoring account access.',
-            default => null,
-        };
-
-        return [
-            'title' => $title,
-            'next' => $next,
-        ];
+        return ['title' => $title];
     }
 
     /**
@@ -510,7 +457,7 @@ HTML;
             'detailsHeading' => match ($eventCode) {
                 'ADMINISTRATIVE_SANCTION_RECORDED' => 'Sanction Details',
                 'BORROWING_OVERDUE', 'OVERDUE', 'RETURN_OVERDUE' => 'Return Details',
-                'LATE_RETURN_NOTICE_ISSUED' => 'Late Return Details',
+                'LATE_RETURN_NOTICE_ISSUED', 'LATE_RETURN_RESOLVED_WITHOUT_CHARGE' => 'Late Return Details',
                 'RETURN_SCHEDULE_ADJUSTED' => 'Return Schedule Details',
                 'LATE_RETURN_BILLING_STATEMENT_ISSUED' => 'Late Return Billing Details',
                 'ACCOUNTABILITY_BILLING_STATEMENT_ISSUED', 'PAYMENT_VERIFIED', 'RECEIPT_VERIFIED' => 'Billing Details',
@@ -1005,7 +952,9 @@ HTML;
             if ($source->actual_return_date) {
                 $data['details']['Final Late Days'] = (string) ((int) $source->late_days);
 
-                if ($eventCode === 'LATE_RETURN_NOTICE_ISSUED') {
+                if ($eventCode === 'LATE_RETURN_RESOLVED_WITHOUT_CHARGE') {
+                    $data['details']['Assessment'] = 'Resolved — No Charge';
+                } elseif ($eventCode === 'LATE_RETURN_NOTICE_ISSUED') {
                     $data['details']['Official Daily Late-Return Fee'] = $source->rate_snapshot !== null
                         ? 'PHP '.number_format((float) $source->rate_snapshot, 2).' per day'
                         : 'Not configured';
@@ -1325,23 +1274,27 @@ HTML;
 
             'REQUEST_SUBMITTED' =>
                 $isBorrower
-                    ? 'Your borrowing request was submitted to SPMU for review. You will be notified when a decision or revision is needed.'
-                    : 'A borrowing request was submitted and is ready for Action Officer review.',
+                    ? 'Your borrowing request has been received by SPMU. You will be notified of the decision or any required revision.'
+                    : match ($recipient->access_classification) {
+                        AccessClassification::SpmuOfficer => 'A new borrowing request requiring Gate Pass verification has been submitted. Please review the request.',
+                        AccessClassification::SpmuHead => 'A new borrowing request has been submitted for your review and decision.',
+                        default => 'A new borrowing request has been submitted for SPMU review.',
+                    },
 
             'REQUEST_VERIFIED' =>
                 "The SPMU Action Officer verified the request. It is now ready for the SPMU Head's decision.",
 
             'REQUEST_APPROVED' =>
                 $isBorrower
-                    ? 'Your borrowing request has been approved by the SPMU Head. Your pickup schedule is shown below. Please preview and print your Borrower Slip before pickup, together with any other required form shown in your request.'
+                    ? 'Your borrowing request has been approved. Please follow the pickup schedule below and bring your Borrower Slip and other applicable forms.'
                     : 'The borrowing request has been approved. Prepare the approved items for the pickup schedule shown below.',
 
             'REQUEST_RETURNED_FOR_REVISION' =>
-                'Your borrowing request needs changes before it can continue. Review the SPMU remarks, update the request or required documents, and resubmit it.'
+                'Your borrowing request has been returned for revision. Please address the SPMU remarks and resubmit the request.'
                 .$this->reasonParagraph($reason),
 
             'REQUEST_REJECTED' =>
-                'The borrowing request was not approved. Review the reason below and contact SPMU if you need clarification.'
+                'Your borrowing request was not approved. Please review the SPMU remarks below.'
                 .$this->reasonParagraph($reason),
 
             'REQUEST_CANCELLED' =>
@@ -1362,7 +1315,7 @@ HTML;
 
             'PICKUP_EXPIRED' =>
                 $isBorrower
-                    ? 'Your scheduled pickup was not completed. SPMU is reviewing whether the items can still be released or whether the borrowing must be cancelled. No action is required from you at this time.'
+                    ? 'Your scheduled pickup was missed. SPMU will review whether the approved borrowing can proceed or must be cancelled. Please await its decision.'
                     : 'The scheduled pickup was not completed. Review whether the approved release can still continue within the Items Needed From boundary or cancel the borrowing through the authorized SPMU action.',
 
             'PICKUP_HELD_PREPARATION_ISSUE' =>
@@ -1445,22 +1398,22 @@ HTML;
 
             'LATE_RETURN_NOTICE_ISSUED' =>
                 $isBorrower
-                    ? 'A Late Return Notice has been issued for this transaction. Check My Obligations for the return dates, number of late days, and official daily fee rate. The total amount due, when applicable, is shown in the separate Late Return Billing Statement.'
+                    ? 'A Late Return Notice is available in My Obligations. Any payable amount will be specified in a separate Billing Statement, if issued.'
                     : 'The Late Return Notice is now available for this transaction.',
 
             'LATE_RETURN_BILLING_STATEMENT_ISSUED' =>
                 $isBorrower
-                    ? 'A Late Return Billing Statement has been issued for this transaction. Check My Obligations for the total amount due and payment instructions. After payment, present the official Cashier receipt to the SPMU Action Officer.'
+                    ? 'A Late Return Billing Statement has been issued. Please review the amount in My Obligations, settle it through the CSPC Cashier, and present the official receipt to SPMU.'
                     : 'A Late Return Billing Statement has been issued and is ready for payment processing.',
 
             'ACCOUNTABILITY_BILLING_STATEMENT_ISSUED' =>
                 $isBorrower
-                    ? 'A billing statement has been recorded for this property accountability case. Check My Obligations for the amount and payment instructions. After payment, present the official Cashier receipt to SPMU.'
+                    ? 'A Billing Statement has been issued for this case. Please review the amount in My Obligations, settle it through the CSPC Cashier, and present the official receipt to SPMU.'
                     : 'A billing statement has been recorded for this property accountability case.',
 
             'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' =>
                 $isBorrower
-                    ? 'The SPMU Head/Admin has confirmed this property accountability case. Please coordinate in person with CSPC SPMU to complete the required RSLDDP and accountability processing. Borrowing remains restricted until the case is formally resolved.'
+                    ? 'The SPMU Head/Admin has confirmed the property finding. Please visit SPMU to complete the required in-person resolution. The related borrowing restriction remains in effect until this case is resolved.'
                     : 'The SPMU Head/Admin confirmed this property accountability case. Review the case for the required next step.',
 
             'PROPERTY_ACCOUNTABILITY_OFFICIAL_DISPOSITION_RECORDED' =>
@@ -1473,9 +1426,12 @@ HTML;
                     ? 'The SPMU Action Officer did not accept the presented requirement for this property accountability case. Review the remarks below and present the corrected requirement.'
                     : 'A compliance verification for this property accountability case was not accepted.',
 
+            'LATE_RETURN_RESOLVED_WITHOUT_CHARGE' =>
+                'Your late-return case has been resolved without a charge. The restriction linked to this case has been lifted. Any separate active restriction remains in effect.',
+
             'PROPERTY_ACCOUNTABILITY_CASE_RESOLVED' =>
                 $isBorrower
-                    ? 'This property accountability case has been resolved. The restriction for this case has been lifted. Check My Obligations only if another active obligation remains.'
+                    ? 'Your property accountability case has been resolved. The restriction linked to this case has been lifted; any separate active restriction remains in effect.'
                     : 'This property accountability case has been resolved. The affected property, finding, and final status are shown below.',
 
             /*
@@ -1527,14 +1483,14 @@ HTML;
             'INCIDENT_RECORDED',
             'ACCOUNTABILITY_OPENED' =>
                 $isBorrower
-                    ? 'A property accountability case has been opened for one or more returned items. The SPMU Head/Admin will review the recorded finding. Check My Obligations for updates and any required action.'
+                    ? 'A property accountability case has been recorded following your return inspection. The SPMU Head/Admin will review the finding. Please see My Obligations for details.'
                     : 'A property accountability case has been opened and is waiting for SPMU Head/Admin review.',
 
             'ACCOUNTABILITY_RESOLVED' =>
                 'The recorded property accountability concern for this transaction has been reviewed and resolved in accordance with the applicable SPMU process.',
 
             'ADMINISTRATIVE_SANCTION_RECORDED' =>
-                'An administrative sanction has been recorded. Review the reason and sanction details below. If a notice applies, it is available in My Obligations.',
+                'An administrative sanction has been recorded. The reason and sanction are indicated below. Any applicable official notice is available in My Obligations.',
 
             /*
              * -----------------------------------------------------
@@ -1549,7 +1505,7 @@ HTML;
             'PAYMENT_VERIFIED',
             'RECEIPT_VERIFIED' =>
                 $isBorrower
-                    ? 'Your Cashier receipt has been confirmed. The confirmed amount and any remaining balance are shown below.'
+                    ? 'Your Cashier payment has been confirmed. Please see the payment details and remaining balance, if any, below.'
                     : 'The payment record has been confirmed. The updated details are shown below.',
 
             'REQUEST_EXPIRED' =>
@@ -1573,7 +1529,7 @@ HTML;
 
             'PROPERTY_ACCOUNTABILITY_PAYMENT_REQUIRED' =>
                 $isBorrower
-                    ? 'The official billing information for this property accountability case is now available. Check My Obligations for the amount and payment instructions.'
+                    ? 'Payment is required for this property accountability case. Please review the official Billing Statement under My Obligations.'
                     : 'Payment is now required for this property accountability case.',
 
             'BORROWING_SUSPENSION_LIFTED' =>
@@ -1624,7 +1580,7 @@ HTML;
             }
 
             if ($source->activeAccountabilityIndicator()) {
-                return 'SPMU has completed the return inspection. A property accountability concern is under review, so the transaction is not yet complete. Check My Obligations for updates.';
+                return 'SPMU has completed your return inspection. A finding remains under review, so this borrowing transaction is not yet complete.';
             }
         }
 

@@ -859,22 +859,6 @@ class BorrowingRequestController extends Controller
     }
 
 
-    public function recoverDraftDocument(
-        Request $request,
-        BorrowingRequest $borrowingRequest
-    ): RedirectResponse {
-        abort_unless(
-            $borrowingRequest->borrower_user_id === $request->user()->id,
-            403
-        );
-
-        return back()->with(
-            'status',
-            'The current workflow does not generate a Borrowing Request Letter. Upload the already approved and fully signed scanned Borrowing Request Letter instead.'
-        );
-    }
-
-
     public function cancel(
         Request $request,
         BorrowingRequest $borrowingRequest,

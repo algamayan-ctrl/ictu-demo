@@ -34,6 +34,14 @@
 .borrower-document-name { display: flex; align-items: center; gap: 11px; color: var(--heading); font-weight: 700; }
 .borrower-document-name > .ui-icon { flex-shrink: 0; color: var(--borrower-blue); }
 .borrower-document-view { white-space: nowrap; }
+/* Shared alignment for submitted documents and transaction forms. */
+.borrower-request-detail .borrower-documents-table th:first-child,
+.borrower-request-detail .borrower-documents-table td:first-child { width: 32%; }
+.borrower-request-detail .borrower-documents-table th:nth-child(3),
+.borrower-request-detail .borrower-documents-table td:nth-child(3) { width: 155px; white-space: nowrap; }
+.borrower-request-detail .borrower-documents-table th:last-child,
+.borrower-request-detail .borrower-documents-table td:last-child { width: 124px; text-align: right; }
+.borrower-document-no-action { color: var(--text-muted); }
 .borrower-documents-empty { padding: 30px 20px; color: var(--text-muted); text-align: center; }
 
 /* Request actions */

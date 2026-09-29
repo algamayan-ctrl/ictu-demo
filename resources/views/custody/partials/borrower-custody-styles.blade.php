@@ -35,7 +35,7 @@
 
 .borrower-custody-stack {
     display: grid;
-    gap: 24px;
+    gap: 20px;
 }
 
 .borrower-custody-stack .card { padding: 0; }
@@ -174,7 +174,7 @@
 
 .borrower-summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .borrower-summary-fact {
@@ -184,11 +184,13 @@
     border-bottom: 1px solid var(--border);
 }
 
-.borrower-summary-fact:nth-child(4n) { border-right: 0; }
-.borrower-summary-fact:last-child { border-right: 0; }
-
-/* The final row has no row beneath it to separate from. */
-.borrower-summary-grid > .borrower-summary-fact:nth-last-child(-n + 2):nth-child(n + 5) { border-bottom: 0; }
+/* Three evenly sized facts per row on desktop. The grid draws internal
+   separators without relying on a specific number of available facts. */
+.borrower-summary-grid { gap: 1px; background: var(--border); }
+.borrower-summary-fact { border: 0; background: var(--surface-elevated); }
+.borrower-summary-fact:nth-child(3n + 1):last-child { grid-column: span 3; }
+.borrower-summary-fact:nth-child(3n + 1):nth-last-child(2),
+.borrower-summary-fact:nth-child(3n + 2):last-child { grid-column: span 1; }
 
 .borrower-summary-fact small {
     display: block;
@@ -477,8 +479,9 @@
 
 @media (max-width: 1050px) {
     .borrower-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .borrower-summary-fact:nth-child(4n) { border-right: 1px solid var(--border); }
-    .borrower-summary-fact:nth-child(2n) { border-right: 0; }
+    .borrower-summary-fact:nth-child(3n + 1):last-child { grid-column: span 2; }
+    .borrower-summary-fact:nth-child(3n + 1):nth-last-child(2),
+    .borrower-summary-fact:nth-child(3n + 2):last-child { grid-column: auto; }
 }
 
 @media (max-width: 700px) {
@@ -501,10 +504,8 @@
     }
 
     .borrower-summary-grid { grid-template-columns: 1fr; }
-
     .borrower-summary-fact,
-    .borrower-summary-fact:nth-child(2n),
-    .borrower-summary-fact:nth-child(4n) { border-right: 0; }
+    .borrower-summary-fact:nth-child(3n + 1):last-child { grid-column: auto; }
 
     .borrower-processing-row {
         grid-template-columns: 1fr;

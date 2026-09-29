@@ -1,4 +1,9 @@
-@extends('layouts.app', ['title' => $borrowingRequest->exists ? 'Edit Request' : 'Create Request'])
+@extends('layouts.app', [
+    'title' => $borrowingRequest->exists ? 'Edit Request' : 'Create Request',
+    // The form renders its own notices only when a restriction is already shown,
+    // so the same restriction is not repeated as a generic validation error.
+    'inlinePageNotices' => !empty($borrowingBlockedReasons),
+])
 
 @section('content')
 
@@ -122,6 +127,30 @@
         default => 3,
     };
 @endphp
+
+@if(!empty($borrowingBlockedReasons))
+    {{-- Retain genuine validation errors, but display each active restriction only
+         once in the dedicated yellow banner below. --}}
+    @php
+        $otherFormErrors = collect($errors->all())->reject(function ($message) use ($borrowingBlockedReasons) {
+            return collect($borrowingBlockedReasons)->contains(function ($reason) use ($message) {
+                $reason = trim((string) $reason);
+                return $reason !== '' && str_contains(mb_strtolower((string) $message), mb_strtolower($reason));
+            });
+        });
+    @endphp
+    @if(session('status'))
+        <div class="notice success" role="status"><x-icon name="success" /><div>{{ session('status') }}</div></div>
+    @endif
+    @if($otherFormErrors->isNotEmpty())
+        <div class="notice error" role="alert">
+            <x-icon name="error" />
+            <div><strong>Please correct the following:</strong><ul>
+                @foreach($otherFormErrors as $error)<li>{{ $error }}</li>@endforeach
+            </ul></div>
+        </div>
+    @endif
+@endif
 
 <style>
     .returned-for-revision-panel {
@@ -852,6 +881,148 @@
 @include('requests.partials.create-review-styles')
 @include('requests.partials.create-validation-styles')
 
+{{-- Scoped presentation refinements; no request, validation, or stage behavior changes. --}}
+<style>
+    .create-request-heading { margin-bottom: 12px; }
+    .create-request-heading h1 { margin-bottom: 3px; font-size: clamp(24px, 2vw, 29px); line-height: 1.2; }
+    .create-request-heading .heading-copy { font-size: 13px; line-height: 1.45; }
+    /* Match the existing 1120px request-form shell so the restriction notice,
+       stepper, and form cards share the same left/right edges. */
+    .create-request-restriction {
+        width: 100%;
+        max-width: 1120px;
+        margin-bottom: 16px;
+    }
+    .create-request-restriction .request-restriction-alert {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .create-request-restriction .request-restriction-alert {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: center;
+        gap: 10px 22px;
+        padding: 14px 18px;
+        border-radius: 10px;
+    }
+    .request-restriction-alert .eyebrow { margin: 0 0 3px; font-size: 10px; letter-spacing: .045em; }
+    .request-restriction-alert h2 { margin: 0 0 3px; font-size: 15px; line-height: 1.4; }
+    .request-restriction-alert p:not(.eyebrow) { margin: 0; font-size: 12px; line-height: 1.45; }
+    .request-restriction-alert .restriction-reasons {
+        display: grid; gap: 3px; min-width: 0;
+        padding: 0 0 0 18px; margin: 0;
+        border-left: 1px solid rgba(122, 82, 15, .20);
+        font-size: 12px; line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+    .request-restriction-alert .restriction-reasons p { margin: 0; }
+    .request-restriction-alert .restriction-obligations-link { color: #075ac2; font-weight: 600; text-decoration: none; }
+    .request-restriction-alert .restriction-obligations-link:hover,
+    .request-restriction-alert .restriction-obligations-link:focus-visible { color: #06479a; text-decoration: underline; }
+    .request-restriction-alert .restriction-obligations-link:focus-visible { outline: 2px solid #075ac2; outline-offset: 2px; border-radius: 2px; }
+
+    /* Same universal interactive surface as the other borrower forms.
+       Only ENABLED controls respond to hover; disabled stages stay locked
+       until the existing client-side validation enables them. */
+    #request-form .create-request-ui .stage-actions :is(a.button, button.button):not(:disabled):is(:hover, :focus-visible),
+    #request-form .create-request-ui .request-card :is(a.button, button.button):not(:disabled):is(:hover, :focus-visible) {
+        background: #065df0;
+        border-color: #065df0;
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    /* Match the existing Borrowing Schedule heading; retain its blue exactly. */
+    #request-form .create-request-ui .request-details-card .request-card-header #request-details-heading {
+        color: #065df0;
+        font-size: 12px;
+        font-weight: 750;
+        letter-spacing: 0;
+        line-height: 1.4;
+        text-transform: uppercase;
+    }
+
+    /* Documents & Review uses request-review-actions (not stage-actions).
+       Keep default outlined buttons; apply the universal blue on enabled hover/focus. */
+    #request-form .create-request-ui .request-review-actions :is(a.button, button.button):not(:disabled):is(:hover, :focus-visible) {
+        background-color: #065df0;
+        border-color: #065df0;
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    #request-form .create-request-ui .request-review-actions :is(a.button, button.button):not(:disabled):is(:hover, :focus-visible) svg {
+        color: inherit;
+        stroke: currentColor;
+    }
+    #request-form .create-request-ui .request-review-actions :is(a.button, button.button):not(:disabled):focus-visible {
+        outline: 2px solid #065df0;
+        outline-offset: 3px;
+    }
+    #request-form .create-request-ui .stage-actions :is(a.button, button.button):not(:disabled):focus-visible,
+    #request-form .create-request-ui .request-card :is(a.button, button.button):not(:disabled):focus-visible {
+        outline: 2px solid #065df0;
+        outline-offset: 3px;
+    }
+    #request-form .create-request-ui .stage-actions button.button:disabled {
+        cursor: not-allowed;
+        opacity: .58;
+    }
+    #request-form .create-request-ui .request-step:not(:disabled):is(:hover, :focus-visible) {
+        color: #065df0;
+        cursor: pointer;
+    }
+    #request-form .create-request-ui .request-step:not(:disabled):is(:hover, :focus-visible) .request-step-number {
+        background: #065df0;
+        color: #fff;
+    }
+    #request-form .create-request-ui .request-step:not(:disabled):focus-visible {
+        outline: 2px solid #065df0; outline-offset: 4px;
+        border-radius: 4px;
+    }
+    .request-form-shell { margin-top: 0; }
+    #request-form .create-request-ui { gap: 14px; }
+    #request-form .create-request-ui .request-stepper {
+        gap: 12px;
+        padding: 11px 16px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--surface-elevated);
+    }
+    #request-form .create-request-ui .request-step { font-size: 12px; font-weight: 700; }
+    #request-form .create-request-ui .request-step-number {
+        width: 28px; height: 28px; flex-basis: 28px; font-size: 12px;
+    }
+    #request-form .create-request-ui .request-details-card .request-card-header,
+    #request-form .create-request-ui .request-picker-card .request-card-header { padding: 15px 20px 12px; }
+    #request-form .create-request-ui .request-details-card .request-information-fields { padding: 0 20px 18px; }
+    #request-form .create-request-ui .request-details-card .field-grid { gap: 15px 22px; }
+    #request-form .create-request-ui .request-details-card .field-grid > label {
+        font-size: 13px; font-weight: 650; line-height: 1.4;
+    }
+    #request-form .create-request-ui .request-details-card .field-grid input,
+    #request-form .create-request-ui .request-details-card .field-grid select,
+    #request-form .create-request-ui .request-details-card .field-grid .request-static-field {
+        height: 43px; min-height: 43px; margin-top: 6px; padding: 9px 12px;
+        font-size: 13px;
+    }
+    #request-form .create-request-ui .request-schedule-fields { padding: 17px 20px 19px; }
+    #request-form .create-request-ui .request-schedule-heading { gap: 4px; margin-bottom: 12px; }
+    #request-form .create-request-ui .request-schedule-note { font-size: 12px; line-height: 1.45; }
+    #request-form .create-request-ui .request-details-card .student-activity-panel { padding: 15px 20px; }
+    #request-form .create-request-ui .student-activity-panel .checkbox { gap: 11px; }
+    #request-form .create-request-ui .student-activity-panel .checkbox input[type="checkbox"] {
+        width: 18px; height: 18px; min-height: 18px;
+    }
+    #request-form .create-request-ui .request-details-actions { padding: 13px 20px; }
+    @media (max-width: 760px) {
+        .create-request-restriction .request-restriction-alert { grid-template-columns: 1fr; gap: 8px; }
+        .request-restriction-alert .restriction-reasons { padding: 8px 0 0; border-left: 0; border-top: 1px solid rgba(122, 82, 15, .20); }
+        #request-form .create-request-ui .request-stepper { gap: 8px; padding: 10px 12px; }
+        #request-form .create-request-ui .request-details-card .field-grid { gap: 13px; }
+    }
+</style>
+
 <section class="page-heading create-request-heading">
     <div data-esign-modal-note>
         <p class="eyebrow">Borrowing request</p>
@@ -870,19 +1041,19 @@
 </section>
 
 @if(!empty($borrowingBlockedReasons))
-<section class="content-area">
-    <div class="action-panel action-warning" role="alert">
+<section class="content-area create-request-restriction">
+    <div class="action-panel action-warning request-restriction-alert" role="alert">
         <div>
             <p class="eyebrow">Borrowing restricted</p>
             <h2>You cannot submit a new borrowing request right now</h2>
-            <p>Resolve the item(s) below with SPMU before creating or submitting another borrowing request.</p>
+            <p><a class="restriction-obligations-link" href="{{ route('accountability.index') }}">View My Obligations <span aria-hidden="true">→</span></a></p>
         </div>
 
-        <ul>
+        <div class="restriction-reasons" aria-label="Active restriction details">
             @foreach($borrowingBlockedReasons as $reason)
-                <li>{{ $reason }}</li>
+                <p>{{ $reason }}</p>
             @endforeach
-        </ul>
+        </div>
     </div>
 </section>
 @endif
@@ -956,7 +1127,7 @@
             <div class="request-card-header">
                 <div>
                     <p class="eyebrow">Select items</p>
-                    <h2 id="item-picker-heading">Search and add inventory items</h2>
+                    <h2 id="item-picker-heading">Select inventory items</h2>
                     <p class="meta" id="availability-message">
                         Select Schedule Date and Expected Return Date to load availability.
                     </p>
@@ -1109,7 +1280,7 @@
                     id="selected-empty"
                     class="selected-empty"
                 >
-                    No items added yet. Use the search field above, then select <strong>+ Add</strong>.
+                    No items selected yet.
                 </div>
 
                 <div class="table-wrap selected-items-table" @if(!$stageTwoComplete) hidden @endif>
@@ -2236,16 +2407,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-
-        if (premisesHelp) {
-            premisesHelp.textContent = offCampusMode
-                ? 'Off-campus selected. A Gate Pass is required. Search and select Barricade only; it must be the only item in this request.'
-                : 'Off-campus is available only for eligible items and automatically requires a Gate Pass after final approval.';
-        }
-
         if (searchInput) {
             searchInput.placeholder = offCampusMode
-                ? 'Search Barricade for off-campus borrowing...'
+                ? 'Search Barricade...'
                 : 'Start typing an item name, category, description, or unit...';
         }
     }

@@ -696,6 +696,39 @@
         font-size: 10.5px;
     }
     .accountability-action-panel__body textarea { min-height: 88px; resize: vertical; }
+    /* Focused Late Return billing form: compact, legible and consistent with staff forms. */
+    .accountability-action-panel__body .accountability-late-billing-form { gap: 12px; }
+    .accountability-action-panel__body .accountability-late-billing-form .accountability-dialog-note {
+        font-weight: 400;
+    }
+    .accountability-action-panel__body .accountability-late-billing-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        font-size: 12px;
+    }
+    .accountability-action-panel__body .accountability-late-billing-form .accountability-field-heading {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 6px;
+        line-height: 1.35;
+    }
+    .accountability-action-panel__body .accountability-late-billing-form .accountability-field-heading .muted {
+        font-size: 11px;
+        font-weight: 400;
+    }
+    .accountability-action-panel__body .accountability-late-billing-form textarea {
+        min-height: 84px;
+        height: 84px;
+    }
+    .accountability-action-panel__body .accountability-late-billing-form .accountability-field-help {
+        display: block;
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 400;
+        line-height: 1.4;
+    }
     .accountability-action-panel__body label.accountability-resolution-confirmation {
         display: flex;
         align-items: center;
@@ -1137,14 +1170,17 @@
                                                         </div>
                                                     </form>
                                                 @else
-                                                    <form method="post" action="{{ route('overdue.bill', $record) }}">
+                                                    <form method="post" action="{{ route('overdue.bill', $record) }}" class="accountability-late-billing-form">
                                                         @csrf
-                                                        <p class="accountability-dialog-note">Final assessment: {{ (int) $assessment['late_days'] }} late day(s), PHP {{ number_format((float) $assessment['amount'], 2) }}. Issue the Late Return Billing Statement only after review.</p>
-                                                        <label>Assessment Basis
-                                                            <textarea name="basis" required maxlength="2000" placeholder="State the basis for approving the finalized late-return assessment."></textarea>
+                                                        <p class="accountability-dialog-note">Final assessment: {{ (int) $assessment['late_days'] }} late day(s) · PHP {{ number_format((float) $assessment['amount'], 2) }}</p>
+                                                        <label>
+                                                            <span class="accountability-field-heading">Assessment Basis <span aria-hidden="true">*</span></span>
+                                                            <textarea name="basis" required maxlength="2000" rows="3" placeholder="Enter the basis for the late-return assessment."></textarea>
                                                         </label>
-                                                        <label>Payment Due Date <span class="muted">(optional)</span>
+                                                        <label>
+                                                            <span class="accountability-field-heading">Payment Due Date <span class="muted">(Optional)</span></span>
                                                             <input type="date" name="due_at" min="{{ now()->toDateString() }}">
+                                                            <span class="accountability-field-help">Leave blank if no payment deadline is specified.</span>
                                                         </label>
                                                         <div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
@@ -1448,6 +1484,7 @@
                                                         </div>
                                                         <label>Payment Due Date <span class="muted">(optional)</span>
                                                             <input type="date" name="due_at" min="{{ now()->toDateString() }}">
+                                                            <span class="meta">Enter the deadline shown on the official Accounting document, if provided. Do not assign a different deadline.</span>
                                                         </label>
                                                         <div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
@@ -1494,6 +1531,7 @@
                                                         </label>
                                                         <label>Payment Due Date <span class="muted">(optional)</span>
                                                             <input type="date" name="due_at" min="{{ now()->toDateString() }}">
+                                                            <span class="meta">Leave blank if no deadline is specified. Unpaid billing remains outstanding; linked restrictions follow existing settlement requirements.</span>
                                                         </label>
                                                         <div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>

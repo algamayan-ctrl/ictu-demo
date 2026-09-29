@@ -17,7 +17,6 @@ use App\Models\SignatureSnapshot;
 use App\Models\StoredFile;
 use App\Models\UserSignature;
 use App\Services\ProtectedFileService;
-use App\Services\RequestWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -28,25 +27,10 @@ class DocumentController extends Controller
     public function download(
         Request $request,
         GeneratedDocument $document,
-        ProtectedFileService $files,
-        RequestWorkflowService $workflow
+        ProtectedFileService $files
     ): StreamedResponse|BinaryFileResponse {
-        $borrowingRequest = $this->authorizeGeneratedDocument($request, $document);
-        $user = $request->user();
-
-        if (
-            $document->document_type === 'APPROVED_REQUEST_LETTER'
-            && $borrowingRequest
-            && (int) $borrowingRequest->borrower_user_id === (int) $user->id
-        ) {
-            $workflow->recordApprovedLetterDownload(
-                $borrowingRequest,
-                $document,
-                $user,
-                $request->ip(),
-                $request->userAgent()
-            );
-        }
+        // Historical generated documents remain downloadable, with no borrowing workflow side effects.
+        $this->authorizeGeneratedDocument($request, $document);
 
         $file = $document->file;
 

@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\AccessClassification;
 use App\Enums\RequestStatus;
-use App\Enums\UserRole;
 use App\Models\BillingStatement;
 use App\Models\BorrowerRestriction;
 use App\Models\BorrowingRequest;
@@ -19,7 +18,6 @@ use App\Models\SignatureSnapshot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -57,111 +55,6 @@ class DocumentService
         }
 
         return $this->templateRenderer->render($customTemplate, $data);
-    }
-
-    public function requestLetter(BorrowingRequest $request, bool $final = false): GeneratedDocument
-    {
-        $request->loadMissing('currentVersion');
-        $version = $request->currentVersion;
-        $type = $final ? 'APPROVED_REQUEST_LETTER' : 'REQUEST_LETTER';
-        $status = $final ? 'FINAL' : 'DRAFT';
-
-        return $this->saveHtml(
-            $type,
-            $this->requestLetterHtml($request, $final),
-            $version,
-            $request::class,
-            $request->id,
-            $status,
-            $request->request_no.'-'.$type.'.pdf',
-            true,
-        );
-    }
-
-    public function requestLetterHtml(BorrowingRequest $request, bool $final = false, ?CarbonInterface $generatedAt = null): string
-    {
-        $request->loadMissing([
-            'borrower.organizationalUnit',
-            'accountableUnit',
-            'currentVersion.items.inventoryItem.unit',
-            'currentVersion.approvalSteps.approver',
-        ]);
-        $version = $request->currentVersion;
-        if (! $version) {
-            throw ValidationException::withMessages(['document' => 'A current request version is required to render the Borrowing Request Letter.']);
-        }
-
-        $logoPath = resource_path('images/cspc-logo-print.jpg');
-        if (! is_file($logoPath)) {
-            throw ValidationException::withMessages(['document' => 'The institutional logo asset is unavailable.']);
-        }
-
-        $approvals = $final
-            ? $version->approvalSteps
-                ->filter(fn ($step) => $step->stage_code->value === 'SPMU')
-                ->sortBy('sequence_no')
-                ->map(fn ($step): array => [
-                    'stage' => 'SPMU',
-                    'name' => $step->approver?->full_name,
-                    'decided_at_formal' => $this->formalDateTime($step->decided_at),
-                    'decision' => $step->decision,
-                ])->values()
-            : collect();
-
-        $generatedAt = ($generatedAt ?? now())->setTimezone('Asia/Manila');
-        $borrowerDesignation = trim((string) $request->borrower->designation);
-        if ($borrowerDesignation === ''
-            || strcasecmp($borrowerDesignation, AccessClassification::BorrowerOnly->label()) === 0
-            || $borrowerDesignation === $request->borrower->access_classification?->label()) {
-            $borrowerDesignation = '';
-        }
-
-        return view('documents.borrowing-request-letter', [
-            'borrowingRequest' => $request,
-            'version' => $version,
-            'isFinal' => $final,
-            'documentStatus' => $final ? 'Fully Approved' : 'Draft',
-            'visibleGeneratedAt' => $this->formalDateTime($generatedAt),
-            'visibleNeededFrom' => $this->formalDateTime($version->needed_from),
-            'visibleReturnDueAt' => $this->formalDateTime($version->return_due_at),
-            'visibleSignedAt' => $this->formalDateTime($version->signed_at),
-            'visibleDownloadDeadline' => $this->formalDateTime($request->download_deadline_at),
-            'logoDataUri' => 'data:image/jpeg;base64,'.base64_encode((string) file_get_contents($logoPath)),
-            'borrowerDesignation' => $borrowerDesignation,
-            'approvals' => $approvals,
-        ])->render();
-    }
-
-    /** @return array{document: GeneratedDocument, generated: bool} */
-    public function recoverMissingDraftRequestLetter(BorrowingRequest $request): array
-    {
-        return DB::transaction(function () use ($request): array {
-            $lockedRequest = BorrowingRequest::query()->lockForUpdate()->findOrFail($request->id);
-            $lockedRequest->loadMissing('currentVersion');
-
-            if ($lockedRequest->status !== RequestStatus::Draft || ! $lockedRequest->currentVersion) {
-                throw ValidationException::withMessages([
-                    'document' => 'Only a draft request with a current version can recover a missing preview.',
-                ]);
-            }
-
-            $existing = GeneratedDocument::query()
-                ->where('request_version_id', $lockedRequest->currentVersion->id)
-                ->where('document_type', 'REQUEST_LETTER')
-                ->where('status', 'DRAFT')
-                ->lockForUpdate()
-                ->latest('id')
-                ->first();
-
-            if ($existing) {
-                return ['document' => $existing, 'generated' => false];
-            }
-
-            return [
-                'document' => $this->requestLetter($lockedRequest, false),
-                'generated' => true,
-            ];
-        }, 3);
     }
 
     public function borrowerSlip(CustodyTransaction $custody): GeneratedDocument
@@ -424,16 +317,16 @@ HTML;
         </colgroup>
         <thead>
             <tr>
-                <th>Qty.</th>
-                <th>Unit</th>
-                <th>Article/Description</th>
-                <th>Purpose</th>
-                <th>Expected Date of<br>Return</th>
-                <th class="split-gap"></th>
-                <th>Date Released</th>
-                <th>Release Time</th>
-                <th>Date Returned</th>
-                <th>Remarks</th>
+                <th style="width: 43pt;">Qty.</th>
+                <th style="width: 54pt;">Unit</th>
+                <th style="width: 146pt;">Article/Description</th>
+                <th style="width: 125pt;">Purpose</th>
+                <th style="width: 85pt;">Expected Date of<br>Return</th>
+                <th class="split-gap" style="width: 32pt;"></th>
+                <th style="width: 77pt;">Date Released</th>
+                <th style="width: 77pt;">Release Time</th>
+                <th style="width: 77pt;">Date Returned</th>
+                <th style="width: 93pt;">Remarks</th>
             </tr>
         </thead>
         <tbody>{$itemRows}</tbody>
@@ -467,15 +360,15 @@ HTML;
         </colgroup>
         <thead>
             <tr>
-                <th class="sig-row-label"></th>
-                <th>Borrowed by:</th>
-                <th>Approved by:</th>
-                <th>Issued by:</th>
-                <th>Received by:</th>
-                <th class="signature-gap"></th>
-                <th>Returned by:</th>
-                <th>Received by:</th>
-                <th>Verified by:</th>
+                <th class="sig-row-label" style="width: 89pt;"></th>
+                <th style="width: 91pt;">Borrowed by:</th>
+                <th style="width: 91pt;">Approved by:</th>
+                <th style="width: 91pt;">Issued by:</th>
+                <th style="width: 91pt;">Received by:</th>
+                <th class="signature-gap" style="width: 32pt;"></th>
+                <th style="width: 108pt;">Returned by:</th>
+                <th style="width: 108pt;">Received by:</th>
+                <th style="width: 108pt;">Verified by:</th>
             </tr>
         </thead>
         <tbody>
@@ -576,24 +469,39 @@ HTML;
     .borrower-heading-right { width: 40%; padding-left: 2pt !important; }
     .borrower-intro { padding-top: 7pt !important; font-size: 6.2pt; font-weight: normal; }
 
-    .borrower-items { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; font-size: {$tableFont}; line-height: 1.08; }
-    .borrower-items th, .borrower-items td { border: .55pt solid #777; padding: {$cellPadding}; vertical-align: middle; white-space: normal; overflow-wrap: anywhere; word-break: normal; }
+    /* A4 landscape printable width: 841.89pt - 2(16pt) = 809.89pt.
+       Reserve 809pt for BOTH grids, so the borrower-side boundary (453pt),
+       separator (32pt), and supply-side start (485pt) cannot move when a
+       long description, borrower name, or designation wraps. Dompdf may
+       independently rebalance percentage-width <col> elements otherwise. */
+    .borrower-items { width: 809pt; max-width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; font-size: {$tableFont}; line-height: 1.08; }
+    .borrower-items th, .borrower-items td { border: .55pt solid #777; padding: {$cellPadding}; vertical-align: middle; white-space: normal; word-wrap: break-word; overflow-wrap: anywhere; word-break: normal; }
     .borrower-items th { height: 20pt; text-align: center; font-weight: bold; font-size: 6.0pt; }
     .borrower-items tbody td { height: {$rowHeight}; }
-    /* Widths live on the colgroup only.  Dompdf can re-balance a table when
-       the same percentage width is repeated on both <col> and <td>; that was
-       why the Supply Staff grid and the Returned-by signature grid could look
-       horizontally offset even though their percentages added to 100. */
-    .borrower-items col.col-qty { width: 5.3%; }
-    .borrower-items col.col-unit { width: 6.7%; }
-    .borrower-items col.col-desc { width: 18.0%; }
-    .borrower-items col.col-purpose { width: 15.5%; }
-    .borrower-items col.col-expected { width: 10.5%; }
-    .borrower-items col.col-gap { width: 4%; }
-    .borrower-items col.col-release-date { width: 9.5%; }
-    .borrower-items col.col-release-time { width: 9.5%; }
-    .borrower-items col.col-return-date { width: 9.5%; }
-    .borrower-items col.col-remarks { width: 11.5%; }
+    /* Left: 453pt / gap: 32pt / right: 324pt. The signature grid below
+       uses precisely these SAME group totals, not approximate percentages. */
+    .borrower-items col.col-qty { width: 43pt; }
+    .borrower-items col.col-unit { width: 54pt; }
+    .borrower-items col.col-desc { width: 146pt; }
+    .borrower-items col.col-purpose { width: 125pt; }
+    .borrower-items col.col-expected { width: 85pt; }
+    .borrower-items col.col-gap { width: 32pt; }
+    .borrower-items col.col-release-date { width: 77pt; }
+    .borrower-items col.col-release-time { width: 77pt; }
+    .borrower-items col.col-return-date { width: 77pt; }
+    .borrower-items col.col-remarks { width: 93pt; }
+    /* Dompdf does not reliably apply <colgroup> as the table width constraint.
+       Apply widths to the header cells too; their first-row geometry controls
+       the cells beneath, even when a description or name needs wrapping. */
+    .borrower-items thead th:nth-child(1) { width: 43pt; }
+    .borrower-items thead th:nth-child(2) { width: 54pt; }
+    .borrower-items thead th:nth-child(3) { width: 146pt; }
+    .borrower-items thead th:nth-child(4) { width: 125pt; }
+    .borrower-items thead th:nth-child(5) { width: 85pt; }
+    .borrower-items thead th:nth-child(6) { width: 32pt; }
+    .borrower-items thead th:nth-child(7), .borrower-items thead th:nth-child(8),
+    .borrower-items thead th:nth-child(9) { width: 77pt; }
+    .borrower-items thead th:nth-child(10) { width: 93pt; }
     .borrower-items .c-qty, .borrower-items .c-unit,
     .borrower-items .c-expected, .borrower-items .c-release-date,
     .borrower-items .c-release-time, .borrower-items .c-return-date { text-align: center; }
@@ -618,20 +526,24 @@ HTML;
     .borrower-terms ol, .borrower-note ol { margin: 0 0 0 14pt; padding: 0; }
     .borrower-terms li, .borrower-note li { margin: 0; padding: 0; }
 
-    /* One table with a borderless separator creates the exact visual split of
-       the official left and right signature sections without a nested table
-       row that Dompdf can push wholesale onto page 2. */
-    .borrower-signatures { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8pt; font-size: {$signatureFont}; line-height: 1.12; }
-    .borrower-signatures th, .borrower-signatures td { height: 11pt; border: .55pt solid #777; padding: 1.8pt 2.8pt; text-align: center; vertical-align: middle; white-space: normal; overflow-wrap: anywhere; }
+    /* The signature table uses the same 809pt three-zone geometry as the
+       item table. Keeping it a single grid synchronizes corresponding row
+       heights if a name/designation wraps, without moving either section. */
+    .borrower-signatures { width: 809pt; max-width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8pt; font-size: {$signatureFont}; line-height: 1.12; }
+    .borrower-signatures th, .borrower-signatures td { height: 11pt; border: .55pt solid #777; padding: 1.8pt 2.8pt; text-align: center; vertical-align: middle; white-space: normal; word-wrap: break-word; overflow-wrap: anywhere; word-break: normal; }
     .borrower-signatures th { height: 9pt; font-weight: bold; }
-    /* Match the exact 56% / 4% / 40% geometry used by the item grid above.
-       Keeping the widths on <col> makes the right signature block start on
-       exactly the same vertical line as Date Released / Release Time / Date
-       Returned / Remarks, regardless of how many request rows are generated. */
-    .borrower-signatures col.sig-label-col { width: 11%; }
-    .borrower-signatures col.sig-left-col { width: 11.25%; }
-    .borrower-signatures col.sig-gap-col { width: 4%; }
-    .borrower-signatures col.sig-right-col { width: 13.333333%; }
+    /* 89 + (4 x 91) = 453pt; separator = 32pt;
+       (3 x 108) = 324pt. Total = 809pt (same as items). */
+    .borrower-signatures col.sig-label-col { width: 89pt; }
+    .borrower-signatures col.sig-left-col { width: 91pt; }
+    .borrower-signatures col.sig-gap-col { width: 32pt; }
+    .borrower-signatures col.sig-right-col { width: 108pt; }
+    .borrower-signatures thead th:nth-child(1) { width: 89pt; }
+    .borrower-signatures thead th:nth-child(2), .borrower-signatures thead th:nth-child(3),
+    .borrower-signatures thead th:nth-child(4), .borrower-signatures thead th:nth-child(5) { width: 91pt; }
+    .borrower-signatures thead th:nth-child(6) { width: 32pt; }
+    .borrower-signatures thead th:nth-child(7), .borrower-signatures thead th:nth-child(8),
+    .borrower-signatures thead th:nth-child(9) { width: 108pt; }
     .borrower-signatures .sig-row-label { text-align: left; }
     .borrower-signatures .signature-gap { border: 0 !important; background: #fff; padding: 0 !important; }
     .borrower-signatures .signature-row td { height: 22pt; }
@@ -1299,133 +1211,6 @@ CSS;
             .'</body></html>';
     }
 
-    private function officialPacketRequestHtml(CustodyTransaction $custody, int $pageNumber, int $pageCount): string
-    {
-        $request = $custody->request;
-        $version = $request->currentVersion;
-        $borrower = $request->borrower;
-
-        $logoPath = resource_path('images/cspc-logo-print.jpg');
-        $logo = is_file($logoPath)
-            ? '<img class="packet-logo" src="data:image/jpeg;base64,'.base64_encode((string) file_get_contents($logoPath)).'" alt="CSPC logo">'
-            : '<div class="seal">CSPC</div>';
-
-        /*
-         * Each cell renders the immutable snapshot captured for its own action
-         * and role. No snapshot is reused across cells: the borrower's cell is
-         * the request certification, and each SPMU cell is that approval step's
-         * own signature. Cells with no snapshot keep the previous placeholder.
-         */
-        $borrowerSnapshot = $version?->borrowerSignature;
-
-        $signatureCells = [[
-            'label' => 'Accountable Borrower',
-            'name' => $borrower->full_name,
-            'role' => 'Borrower — Request Certification',
-            'time' => $version?->submitted_at,
-            'visual' => $this->signatureImage($borrowerSnapshot, 150, 42)
-                ?: '<div class="signature-placeholder">See uploaded wet-signed request letter</div>',
-        ]];
-
-        foreach (
-            ($version?->approvalSteps ?? collect())
-                ->filter(fn ($step) => $step->stage_code->value === 'SPMU')
-                ->sortBy('sequence_no')
-            as $step
-        ) {
-            $signatureCells[] = [
-                'label' => 'SPMU Verification and Approval',
-                'name' => $step->approver?->full_name ?: 'Authorized SPMU reviewer',
-                'role' => UserRole::Spmu->label(),
-                'time' => $step->decided_at,
-                'visual' => $this->signatureImage($step->signatureSnapshot, 150, 42)
-                    ?: '<div class="signature-placeholder">System verification record</div>',
-            ];
-        }
-
-        /*
-         * The SPMU Action Officer's issuance signature only exists once the
-         * property has been physically released.
-         */
-        if ($custody->released_at && $custody->releaseSignature) {
-            $issuance = $this->issuanceSignatory($custody);
-
-            $signatureCells[] = [
-                'label' => 'Issued by (Physical Release)',
-                'name' => $issuance['name'] ?: 'SPMU Action Officer',
-                'role' => 'SPMU Action Officer — '.$issuance['designation'],
-                'time' => $issuance['signed_at'],
-                'visual' => $this->signatureImage($issuance['snapshot'], 150, 42)
-                    ?: '<div class="signature-placeholder">Physical issuance record</div>',
-            ];
-        }
-
-        $signatureRows = '';
-        foreach (array_chunk($signatureCells, 2) as $row) {
-            $signatureRows .= '<tr>';
-            foreach ($row as $signature) {
-                $signatureRows .= '<td>'
-                    .'<div class="packet-signature-label">'.e($signature['label']).'</div>'
-                    .'<div class="packet-signature-space">'.$signature['visual'].'</div>'
-                    .'<div class="packet-signature-name">'.e(strtoupper((string) $signature['name'])).'</div>'
-                    .'<div class="packet-signature-role">'.e((string) $signature['role']).'</div>'
-                    .'<div class="packet-signature-date">'.e($this->formalDateTime($signature['time']) ?? 'Date unavailable').'</div>'
-                .'</td>';
-            }
-            if (count($row) === 1) {
-                $signatureRows .= '<td></td>';
-            }
-            $signatureRows .= '</tr>';
-        }
-
-        return '<section class="official packet-request">'
-            .'<table class="packet-header" role="presentation">'
-                .'<colgroup><col style="width:62px"><col></colgroup>'
-                .'<tr>'
-                    .'<td class="packet-header-logo-cell">'.$logo.'</td>'
-                    .'<td class="packet-header-copy">'
-                        .'<strong>CAMARINES SUR POLYTECHNIC COLLEGES</strong>'
-                        .'<span>Supply and Property Management Unit</span>'
-                    .'</td>'
-                .'</tr>'
-            .'</table>'
-
-            .'<div class="packet-title-block">'
-                .'<h1>BORROWING REQUEST LETTER</h1>'
-                .'<div class="packet-meta">'
-                    .'<span><b>Request No.</b> '.e((string) $request->request_no).'</span>'
-                    .'<span class="meta-separator">|</span>'
-                    .'<span><b>Status</b> Fully Approved</span>'
-                    .'<span class="meta-separator">|</span>'
-                    .'<span><b>Custody No.</b> '.e($custody->custody_no).'</span>'
-                .'</div>'
-            .'</div>'
-
-            .'<div class="packet-section-title">Borrower / Event Information</div>'
-            .'<table class="packet-info-grid">'
-                .'<tr>'
-                    .'<td><span class="field-label">Borrower</span><span class="field-value">'.e($borrower->full_name).'</span></td>'
-                    .'<td><span class="field-label">Purpose / Event</span><span class="field-value">'.e((string) $version?->purpose_event).'</span></td>'
-                .'</tr>'
-                .'<tr>'
-                    .'<td><span class="field-label">Location</span><span class="field-value">'.e((string) $version?->location).'</span></td>'
-                    .'<td><span class="field-label">Custody No.</span><span class="field-value">'.e($custody->custody_no).'</span></td>'
-                .'</tr>'
-                .'<tr>'
-                    .'<td><span class="field-label">Needed From</span><span class="field-value">'.e($this->formalDateTime($version?->needed_from) ?? 'Not recorded').'</span></td>'
-                    .'<td><span class="field-label">Return Deadline</span><span class="field-value">'.e($this->formalDateTime($custody->due_at) ?? 'Not recorded').'</span></td>'
-                .'</tr>'
-            .'</table>'
-
-            .'<p class="packet-note">This page forms part of the official custody packet. The approved request, borrower record, and SPMU verification history are preserved in SPMU-ACPMP and summarized below for custody reference.</p>'
-
-            .'<div class="packet-section-title">Approval Record</div>'
-            .'<table class="packet-signature-grid" role="presentation">'.$signatureRows.'</table>'
-
-            .'<footer class="packet-footer"><span>Controlled document | SPMU-ACPMP | Official operational time: Asia/Manila</span><span>Page '.e((string) $pageNumber).' of '.e((string) $pageCount).'</span></footer>'
-        .'</section>';
-    }
-
     public function replaceConditionalForm(CustodyTransaction $custody, string $type): GeneratedDocument
     {
         $this->supersede($custody, $type, 'Replaced after a controlled custody or document update.');
@@ -1455,10 +1240,9 @@ CSS;
         $hasLaundry = $custody->lines->contains(fn ($line) => (bool) $line->requestItem->inventoryItem?->laundry_required);
 
         $this->supersede($custody, 'OFFICIAL_FORM_PACKET', 'Replaced by the latest approved packet.');
-        $totalPages = 2 + ($hasGatePass ? 1 : 0) + ($hasLaundry ? 1 : 0);
+        $totalPages = 1 + ($hasGatePass ? 1 : 0) + ($hasLaundry ? 1 : 0);
         $nextPageNumber = 1;
         $pages = [
-            ['__html' => $this->officialPacketRequestHtml($custody, $nextPageNumber++, $totalPages)],
             ['__html' => $this->borrowerSlipHtml($custody, false, $nextPageNumber++, $totalPages)],
         ];
         if ($hasGatePass) {

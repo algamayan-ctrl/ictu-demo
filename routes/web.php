@@ -250,11 +250,6 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::put('/requests/{borrowingRequest}', [BorrowingRequestController::class, 'update'])
             ->name('requests.update');
 
-        Route::post(
-            '/requests/{borrowingRequest}/recover-draft-document',
-            [BorrowingRequestController::class, 'recoverDraftDocument']
-        )->name('requests.recover-draft-document');
-
         Route::post('/requests/{borrowingRequest}/submit', [BorrowingRequestController::class, 'submit'])
             ->name('requests.submit');
     });

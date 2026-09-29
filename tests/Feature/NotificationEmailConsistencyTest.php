@@ -115,7 +115,7 @@ class NotificationEmailConsistencyTest extends TestCase
 
         $this->assertStringContainsString('Official Late-Return Fee Rate', $notice);
         $this->assertStringNotContainsString('Assessed Amount', $notice);
-        $this->assertStringContainsString('total amount due is intentionally not stated in this notice', $notice);
+        $this->assertStringContainsString('Separate Late Return Billing Statement', $notice);
     }
 
     #[Test]
@@ -127,7 +127,7 @@ class NotificationEmailConsistencyTest extends TestCase
         $this->assertStringContainsString("'LATE_RETURN_FOR_HEAD_APPROVAL' => 'Late Return Ready for Review'", $notifications);
         $this->assertStringContainsString("'PROPERTY_ACCOUNTABILITY_PAYMENT_REQUIRED' => 'Property Accountability Payment Required'", $notifications);
         $this->assertStringContainsString("'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED' => 'Required Action Verified'", $notifications);
-        $this->assertStringContainsString('Open in SPMU-ACPMP:', $notifications);
+        $this->assertStringContainsString('View details:', $notifications);
 
         $this->assertStringNotContainsString('Step 2 discrepancy', $notifications);
         $this->assertStringNotContainsString('wet-sign', $notifications);
@@ -138,15 +138,41 @@ class NotificationEmailConsistencyTest extends TestCase
     }
 
     #[Test]
+    public function university_style_email_does_not_repeat_reference_or_next_step(): void
+    {
+        $notifications = (string) file_get_contents(app_path('Services/NotificationService.php'));
+
+        $this->assertStringContainsString('if ($reference && trim((string) $value) === trim((string) $reference))', $notifications);
+        $this->assertStringNotContainsString('{$nextBlock}', $notifications);
+        $this->assertStringNotContainsString('What happens next?', $notifications);
+        $this->assertStringContainsString("array_slice(\$data['items'], 0, 5)", $notifications);
+        $this->assertStringContainsString('AccessClassification::SpmuHead =>', $notifications);
+        $this->assertStringContainsString('AccessClassification::SpmuOfficer =>', $notifications);
+    }
+
+    #[Test]
+    public function incident_notification_does_not_duplicate_return_inspection_email(): void
+    {
+        $custody = (string) file_get_contents(app_path('Services/CustodyService.php'));
+        $notifications = (string) file_get_contents(app_path('Services/NotificationService.php'));
+        $accountability = (string) file_get_contents(app_path('Http/Controllers/AccountabilityController.php'));
+
+        $this->assertStringContainsString("\$openedIncidents->isEmpty() ? ['SYSTEM', 'EMAIL'] : ['SYSTEM']", $custody);
+        $this->assertStringContainsString("'ACCOUNTABILITY_OPENED'", $custody);
+        $this->assertStringContainsString("'LATE_RETURN_RESOLVED_WITHOUT_CHARGE'", $notifications);
+        $this->assertStringContainsString("'LATE_RETURN_RESOLVED_WITHOUT_CHARGE'", $accountability);
+    }
+
+    #[Test]
     public function email_copy_keeps_each_transaction_update_to_summary_details_and_one_next_step(): void
     {
         $notifications = (string) file_get_contents(app_path('Services/NotificationService.php'));
 
-        $this->assertStringContainsString('Your scheduled pickup was not completed. SPMU is reviewing whether the items can still be released or whether the borrowing must be cancelled.', $notifications);
+        $this->assertStringContainsString('Your scheduled pickup was missed. SPMU will review whether the approved borrowing can proceed or must be cancelled.', $notifications);
         $this->assertStringContainsString('Your return date was adjusted because SPMU is unavailable on the original return date.', $notifications);
-        $this->assertStringContainsString('A billing statement has been recorded for this property accountability case.', $notifications);
+        $this->assertStringContainsString('A Billing Statement has been issued for this case.', $notifications);
         $this->assertStringContainsString('Your linen items have been released. On return, bring the linen and the same Laundry Form to the Laundry Area first.', $notifications);
-        $this->assertStringContainsString('An administrative sanction has been recorded. Review the reason and sanction details below.', $notifications);
+        $this->assertStringContainsString('An administrative sanction has been recorded. The reason and sanction are indicated below.', $notifications);
     }
 
 }

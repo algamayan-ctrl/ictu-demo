@@ -27,6 +27,7 @@
                 'ACCOUNTABILITY_OPENED' => 'Property Accountability Case Opened',
                 'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED' => 'Property Accountability Decision',
                 'PROPERTY_ACCOUNTABILITY_CASE_RESOLVED' => 'Property Accountability Resolved',
+                'LATE_RETURN_RESOLVED_WITHOUT_CHARGE' => 'Late Return Resolved — No Charge',
                 'PAYMENT_VERIFIED' => 'Payment Confirmed',
                 'RECEIPT_VERIFIED' => 'Payment Confirmed',
                 'EVIDENCE_VERIFIED' => 'Supporting Document Verified',

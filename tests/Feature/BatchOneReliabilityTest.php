@@ -314,9 +314,8 @@ class BatchOneReliabilityTest extends TestCase
         );
 
         /*
-         * DocumentService::requestLetter()/recoverMissingDraftRequestLetter()
-         * are dead code with no remaining caller anywhere in the app: the
-         * current workflow never auto-generates a system Draft Borrowing
+         * Obsolete request-letter generation methods have been removed.
+         * The current workflow never auto-generates a system Draft Borrowing
          * Request Letter. The borrower obtains and signs their own letter
          * externally, then uploads the scan directly as a
          * request_supporting_documents row (asserted above) - no

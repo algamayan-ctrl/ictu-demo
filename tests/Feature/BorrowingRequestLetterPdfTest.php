@@ -32,58 +32,19 @@ class BorrowingRequestLetterPdfTest extends TestCase
         );
     }
 
-    public function test_draft_recovery_directs_the_borrower_to_upload_the_accomplished_scanned_request_letter_without_generating_a_new_document(): void
+    public function test_request_letter_is_borrower_uploaded_and_legacy_generation_is_not_available(): void
     {
-        $this->assertTrue(
-            app(Router::class)->has(
-                'requests.recover-draft-document'
-            )
-        );
-
-        $borrower = User::query()
-            ->where(
-                'access_classification',
-                AccessClassification::BorrowerOnly->value
-            )
-            ->firstOrFail();
-
-        $request = BorrowingRequest::query()->create([
-            'request_no' => 'BR-DRAFT-'.uniqid(),
-            'borrower_user_id' => $borrower->id,
-            'accountable_unit_id' => $borrower->organizational_unit_id,
-            'current_version_no' => 1,
-            'status' => RequestStatus::Draft,
-        ]);
-
-        $scheduleDate = now()->addDay()->startOfDay();
-        $returnDate = now()->addDays(2)->startOfDay();
-
-        $version = $request->versions()->create([
-            'version_no' => 1,
-            'purpose_event' => 'Printable request letter test',
-            'event_details' => 'Physical GSU/VPAF signatory workflow.',
-            'location' => 'CSPC Campus',
-            'schedule_date' => $scheduleDate->toDateString(),
-            'return_date' => $returnDate->toDateString(),
-            'needed_from' => $scheduleDate,
-            'return_due_at' => $returnDate,
-        ]);
-
-        $this->withSession(['active_workspace' => 'BORROWER'])
-            ->actingAs($borrower)
-            ->post(
-                route('requests.recover-draft-document', $request)
-            )
-            ->assertRedirect()
-            ->assertSessionHasNoErrors()
-            ->assertSessionHas(
-                'status',
-                'The current workflow does not generate a Borrowing Request Letter. Upload the already approved and fully signed scanned Borrowing Request Letter instead.'
-            );
+        $this->assertFalse(app(Router::class)->has('requests.recover-draft-document'));
+        $this->assertFalse(method_exists(DocumentService::class, 'requestLetter'));
+        $this->assertFalse(method_exists(DocumentService::class, 'requestLetterHtml'));
+        $this->assertFalse(method_exists(DocumentService::class, 'recoverMissingDraftRequestLetter'));
+        $this->assertFalse(method_exists(DocumentService::class, 'officialPacketRequestHtml'));
 
         $this->assertDatabaseMissing('generated_documents', [
-            'request_version_id' => $version->id,
             'document_type' => 'REQUEST_LETTER',
+        ]);
+        $this->assertDatabaseMissing('generated_documents', [
+            'document_type' => 'APPROVED_REQUEST_LETTER',
         ]);
     }
 

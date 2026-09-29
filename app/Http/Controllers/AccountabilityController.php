@@ -629,7 +629,7 @@ class AccountabilityController extends Controller
         $overdue->refresh()->loadMissing('borrower', 'custody');
         if ($overdue->borrower) {
             $notifications->send(
-                'PROPERTY_ACCOUNTABILITY_CASE_RESOLVED',
+                'LATE_RETURN_RESOLVED_WITHOUT_CHARGE',
                 collect([$overdue->borrower]),
                 "The late-return case for {$overdue->custody?->custody_no} was resolved by the SPMU Head/Admin with no charge because no late-return fee policy applied at the time of return. Your linked borrowing restriction has been lifted.",
                 $overdue,

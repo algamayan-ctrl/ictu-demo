@@ -5,12 +5,8 @@ namespace Tests\Feature;
 use App\Enums\AccessClassification;
 use App\Enums\ApprovalStage;
 use App\Enums\RequestStatus;
-use App\Models\Allocation;
 use App\Models\ApprovalStep;
 use App\Models\BorrowingRequest;
-use App\Models\GeneratedDocument;
-use App\Models\InventoryItem;
-use App\Models\RequestItem;
 use App\Models\TemporaryDelegation;
 use App\Models\User;
 use App\Services\DocumentService;
@@ -153,32 +149,11 @@ class RevisionControlsTest extends TestCase
         ]);
     }
 
-    public function test_mixed_request_generates_only_the_applicable_conditional_forms(): void
+    public function test_retired_approved_letter_download_is_not_a_custody_creation_path(): void
     {
-        [$request, $letter] = $this->approvedRequestWithItems(true, true);
-        $borrower = $request->borrower;
-        app(RequestWorkflowService::class)->recordApprovedLetterDownload($request, $letter, $borrower, '127.0.0.1', 'test');
-        $custody = $request->fresh()->custody;
-
-        $this->assertDatabaseHas('gate_passes', [
-            'custody_transaction_id' => $custody->id,
-            'status' => 'READY_FOR_PRINTING',
-        ]);
-        $this->assertDatabaseHas('generated_documents', [
-            'subject_id' => $custody->id,
-            'document_type' => 'GATE_PASS',
-            'status' => 'FINAL',
-        ]);
-        $this->assertDatabaseHas('generated_documents', ['subject_id' => $custody->id, 'document_type' => 'LAUNDRY_FORM', 'status' => 'FINAL']);
-        $this->withSession(['active_workspace' => 'BORROWER'])->actingAs($borrower)->get(route('custody.show', $custody))->assertOk()->assertSee('Approved items for pickup');
-        $spmuOfficer = User::where('access_classification', AccessClassification::SpmuOfficer->value)->firstOrFail();
-        $this->withSession(['active_workspace' => 'SPMU'])->actingAs($spmuOfficer)->get(route('custody.release.show', $custody))->assertOk()->assertSee('Approved Items');
-
-        [$ordinaryRequest, $ordinaryLetter] = $this->approvedRequestWithItems(false, false, 'BR-ORDINARY-001');
-        app(RequestWorkflowService::class)->recordApprovedLetterDownload($ordinaryRequest, $ordinaryLetter, $ordinaryRequest->borrower, '127.0.0.1', 'test');
-        $ordinaryCustody = $ordinaryRequest->fresh()->custody;
-        $this->assertDatabaseMissing('generated_documents', ['subject_id' => $ordinaryCustody->id, 'document_type' => 'GATE_PASS']);
-        $this->assertDatabaseMissing('generated_documents', ['subject_id' => $ordinaryCustody->id, 'document_type' => 'LAUNDRY_FORM']);
+        $this->assertFalse(method_exists(DocumentService::class, 'requestLetter'));
+        $this->assertFalse(method_exists(RequestWorkflowService::class, 'recordApprovedLetterDownload'));
+        $this->assertFalse(app('router')->has('requests.recover-draft-document'));
     }
 
     /**
@@ -198,39 +173,5 @@ class RevisionControlsTest extends TestCase
         $this->assertSame($workspaces, $user->allowedWorkspaces());
     }
 
-    private function approvedRequestWithItems(bool $linen, bool $offCampusBarricade, string $requestNo = 'BR-MIXED-001'): array
-    {
-        $borrower = User::where('access_classification', AccessClassification::BorrowerOnly->value)->firstOrFail();
-        $request = BorrowingRequest::create([
-            'request_no' => $requestNo, 'borrower_user_id' => $borrower->id, 'accountable_unit_id' => $borrower->organizational_unit_id,
-            'current_version_no' => 1, 'status' => RequestStatus::FinalApprovedAwaitingDownload, 'final_approved_at' => now(), 'download_deadline_at' => now()->addHours(4),
-        ]);
-        $version = $request->versions()->create([
-            'version_no' => 1, 'purpose_event' => 'Official form routing test', 'location' => 'CSPC Campus',
-            'needed_from' => now()->addDay(), 'return_due_at' => now()->addDays(2), 'created_by_user_id' => $borrower->id,
-            'off_campus' => $offCampusBarricade,
-        ]);
-        $items = [InventoryItem::where('laundry_required', false)->where('off_campus_allowed', false)->firstOrFail()];
-        if ($linen) {
-            $items[] = InventoryItem::where('laundry_required', true)->firstOrFail();
-        }
-        if ($offCampusBarricade) {
-            $items[] = InventoryItem::where('off_campus_allowed', true)->firstOrFail();
-        }
-        foreach ($items as $item) {
-            $requestItem = RequestItem::create([
-                'request_version_id' => $version->id, 'inventory_item_id' => $item->id,
-                'description_snapshot' => $item->unique_description, 'unit_snapshot' => $item->unit->unit_name,
-                'requested_quantity' => 2, 'approved_quantity' => 2,
-                'use_location' => $item->off_campus_allowed && $offCampusBarricade ? 'OFF_CAMPUS' : 'ON_CAMPUS',
-            ]);
-            Allocation::create([
-                'request_item_id' => $requestItem->id, 'period_start' => $version->needed_from, 'period_end' => $version->return_due_at,
-                'allocated_quantity' => 2, 'status' => 'ACTIVE', 'allocated_at' => now(),
-            ]);
-        }
-        $letter = app(DocumentService::class)->requestLetter($request->fresh(), true);
 
-        return [$request->fresh(), GeneratedDocument::findOrFail($letter->id)];
-    }
 }

@@ -1428,3 +1428,113 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 
 /* MY OBLIGATIONS ALL CLEAR PANEL END */
 </style>
+
+<style>
+/* Borrower My Obligations: viewport-filling KPI row and compact record disclosures.
+   The three-card layout must override the older forced four-column KPI CSS. */
+.ob-workspace { width:100%; min-width:0; gap:14px; align-content:start; }
+.ob-workspace .ob-summary.is-three { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+.ob-workspace .ob-summary:not(.is-three) { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+.ob-workspace .ob-summary-card { width:100%; min-width:0; height:126px !important; }
+.ob-workspace .ob-focused-results { min-height:0; }
+.ob-workspace .ob-resolved-history-disclosure { width:100%; min-width:0; margin:0; padding:0; overflow:hidden; }
+.ob-workspace .ob-resolved-history-disclosure > summary { min-height:58px; padding:15px 19px; }
+.ob-workspace .ob-resolved-history-disclosure[open] > summary { margin-bottom:0; border-bottom:1px solid var(--border); }
+.ob-workspace .ob-resolved-history-body { padding:12px 16px 16px; }
+.ob-workspace .ob-resolved-history-body > .content-area { margin:0; padding:0; min-height:0; display:block; }
+.ob-workspace .ob-resolved-history-body .resolved-history-card { margin:0 0 9px; padding:12px 15px; min-height:0; }
+.ob-workspace .ob-resolved-history-body .resolved-history-card:last-of-type { margin-bottom:0; }
+.ob-workspace .ob-resolved-history-body .resolved-history-card .card-header { padding:0; min-height:0; margin:0; }
+.ob-workspace .ob-resolved-history-body .resolved-history-card .card-header h3 { margin:0; }
+.ob-workspace .ob-resolved-history-body .resolved-history-card .card-header small { display:block; margin-top:3px; }
+.ob-workspace .ob-resolved-history-body .resolved-history-summary { margin:8px 0 0; padding:7px 0 0; border-top:1px solid var(--border); }
+.ob-workspace .ob-resolved-history-body .resolved-history-card > .accountability-case-details { margin-top:8px; padding:0; }
+/* A collapsed sanctions disclosure must be only its heading, never a full-height panel. */
+.ob-sanctions-history { display:block; flex:0 0 auto; align-self:auto; height:auto; min-height:0 !important; width:100%; margin:0; padding:0; overflow:hidden; }
+.ob-sanctions-history > summary { min-height:58px; padding:15px 19px; }
+.ob-sanctions-history:not([open]) > .accountability-sanctions-section { display:none !important; }
+.ob-sanctions-history[open] > summary { margin-bottom:0; border-bottom:1px solid var(--border); }
+.ob-sanctions-history > .accountability-sanctions-section { display:block; flex:none; width:100%; min-height:0 !important; height:auto; margin:0; padding:12px 15px 15px; }
+.ob-sanctions-history .accountability-sanctions-card { margin:0; padding:0; min-height:0; height:auto; border:0; box-shadow:none; }
+.ob-sanctions-history .accountability-cases-table { margin:0; }
+@media(max-width:1000px) {
+ .ob-workspace .ob-summary.is-three, .ob-workspace .ob-summary:not(.is-three) { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+}
+@media(max-width:660px) {
+ .ob-workspace .ob-summary.is-three, .ob-workspace .ob-summary:not(.is-three) { grid-template-columns:1fr !important; }
+ .ob-workspace .ob-summary-card { height:auto !important; min-height:118px; }
+ .ob-workspace .ob-resolved-history-body { padding:10px; }
+ .ob-sanctions-history > .accountability-sanctions-section { padding:10px; }
+}
+/* Final borrower spacing rhythm: no empty grid row in the clear state. */
+.ob-workspace { gap: 16px !important; margin: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
+.ob-workspace .ob-summary { gap: 14px !important; margin: 0 !important; }
+.ob-workspace .ob-summary-card { margin: 0 !important; }
+.ob-workspace .ob-resolved-history-disclosure { margin: 0 !important; }
+.ob-workspace .ob-resolved-history-disclosure > summary,
+.ob-sanctions-history > summary { min-height: 60px !important; padding: 16px 20px !important; }
+/* Sanctions follow the self-contained borrower workspace as a separate sibling. */
+body:has(.ob-workspace) #sanction-history { margin-top: 16px !important; margin-bottom: 0 !important; }
+/* Keep the heading close to the dashboard rather than stacking large generic margins. */
+body:has(.ob-workspace) .accountability-heading { margin-bottom: 18px !important; padding-bottom: 0 !important; }
+@media (max-width: 660px) {
+  .ob-workspace { gap: 12px !important; }
+  body:has(.ob-workspace) #sanction-history { margin-top: 12px !important; }
+  body:has(.ob-workspace) .accountability-heading { margin-bottom: 14px !important; }
+}
+/* Borrower dashboard: balanced spacing for active and clear states. */
+.ob-workspace { gap: 20px !important; align-content: start !important; }
+.ob-workspace .ob-summary { gap: 14px !important; }
+.ob-workspace .ob-summary-card { height: 122px !important; min-height: 122px !important; }
+.ob-workspace .ob-focused-results {
+    display: grid;
+    gap: 12px;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+}
+.ob-workspace .ob-current-header { padding: 0 !important; margin: 0 !important; align-items: center; }
+.ob-workspace .ob-current-header h2 { font-size: 15px; line-height: 1.3; }
+.ob-workspace .ob-case-list { gap: 14px; }
+.ob-workspace .ob-case-card { padding: 15px 18px !important; }
+.ob-workspace .ob-case-identity { gap: 11px; }
+.ob-workspace .ob-case-icon { width: 38px; height: 38px; }
+.ob-workspace .ob-case-identity h3 { font-size: 15px; line-height: 1.3; }
+.ob-workspace .ob-case-summary,
+.ob-workspace .ob-linked-restriction,
+.ob-workspace .ob-next-action,
+.ob-workspace .ob-case-actions { margin-left: 49px; }
+.ob-workspace .ob-case-summary { margin-top: 7px !important; }
+.ob-workspace .ob-linked-restriction { margin-top: 8px; }
+.ob-workspace .ob-next-action {
+    margin-top: 11px !important;
+    padding: 9px 11px;
+    gap: 11px;
+    min-height: 37px;
+}
+.ob-workspace .ob-next-action > strong { font-size: 12px; font-weight: 650; }
+.ob-workspace .ob-case-actions { margin-top: 11px !important; }
+.ob-workspace .ob-resolved-history-disclosure { margin: 0 !important; }
+/* Sanction disclosure is a sibling, not a child of .ob-workspace. */
+body:has(.ob-workspace) #sanction-history { margin: 18px 0 0 !important; }
+@media(max-width:1000px) {
+ .ob-workspace .ob-summary-card { height: 122px !important; }
+}
+@media(max-width:660px) {
+ .ob-workspace { gap: 16px !important; }
+ .ob-workspace .ob-summary-card { height: auto !important; min-height: 112px !important; }
+ .ob-workspace .ob-case-card { padding: 14px !important; }
+ .ob-workspace .ob-case-summary,
+ .ob-workspace .ob-linked-restriction,
+ .ob-workspace .ob-next-action,
+ .ob-workspace .ob-case-actions { margin-left: 0; }
+ body:has(.ob-workspace) #sanction-history { margin-top: 16px !important; }
+}
+/* Only Amount Due uses blue when the outstanding balance is zero. */
+.ob-workspace .ob-summary-card.is-blue {
+    --ob-from:#38a0f2;
+    --ob-mid:#1777dc;
+    --ob-to:#0758b8;
+    --ob-shadow:rgba(23,119,220,.18);
+}
+</style>

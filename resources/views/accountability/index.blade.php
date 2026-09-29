@@ -679,11 +679,11 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 
 <section class="page-heading accountability-heading">
     <div>
-        <p class="eyebrow">Financial and property accountability</p>
+        @unless($isBorrower)<p class="eyebrow">Financial and property accountability</p>@endunless
         <h1>{{ $pageTitle }}</h1>
         <p>
             {{ $workspace === 'BORROWER'
-                ? 'View active obligations and required next steps.'
+                ? 'Current obligations and past records.'
                 : ($isHead
                     ? 'Review cases, decisions, billing, and restrictions.'
                     : 'Process property, late-return, billing, and payment follow-up.') }}
@@ -1575,8 +1575,9 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                                 <textarea name="basis" required placeholder="State the applicable late-return fee basis."></textarea>
                                             </label>
                                             <label>
-                                                Payment Due Date
+                                                Payment Due Date <span class="muted">(optional)</span>
                                                 <input type="date" name="due_at">
+                                                 <span class="meta">Leave blank if no deadline is specified. The bill remains outstanding until settled.</span>
                                             </label>
                                             <button class="button primary ui-pressable accountability-primary-action">Approve Late Return Assessment</button>
                                         </form>
@@ -1988,7 +1989,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                 @csrf
                                 <div class="form-columns">
                                     <label>Assessment Amount<input type="number" step="0.01" min="0.01" name="amount" required placeholder="0.00"></label>
-                                    <label>Payment Due Date<input type="date" name="due_at"></label>
+                                    <label>Payment Due Date <span class="muted">(optional)</span><input type="date" name="due_at"><span class="meta">Leave blank if no deadline is specified. Linked restrictions remain subject to settlement.</span></label>
                                 </div>
                                 <label>Assessment Basis<textarea name="basis" rows="3" maxlength="2000" required placeholder="State the approved assessment basis."></textarea></label>
                                 <button class="button primary">Generate & Issue Billing Statement</button>
@@ -2200,7 +2201,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                         <div class="form-columns">
                                             <label>Amount<input type="number" step="0.01" min="0.01" name="amount" required placeholder="0.00"></label>
                                             <label>Accounting Billing/SOA Reference No.<input name="billing_reference" required></label>
-                                            <label>Payment Due Date<input type="date" name="due_at"></label>
+                                            <label>Payment Due Date <span class="muted">(optional)</span><input type="date" name="due_at"><span class="meta">Use the Accounting document’s deadline, if provided; otherwise leave blank.</span></label>
                                         </div>
                                         <label>External Billing Statement (PDF/image received from Accounting)<input type="file" name="evidence" accept="application/pdf,image/png,image/jpeg,image/webp" required></label>
                                         <button class="button secondary">Attach External Billing Evidence</button>
@@ -2249,7 +2250,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                     <div class="form-columns">
                                         <label>Amount<input type="number" step="0.01" min="0.01" name="amount" required placeholder="0.00"></label>
                                         <label>Accounting Billing/SOA Reference No.<input name="billing_reference" required></label>
-                                        <label>Payment Due Date<input type="date" name="due_at"></label>
+                                        <label>Payment Due Date <span class="muted">(optional)</span><input type="date" name="due_at"><span class="meta">Use the Accounting document’s deadline, if provided; otherwise leave blank.</span></label>
                                     </div>
                                     <label>Official Billing Statement (PDF/image received from Accounting)<input type="file" name="evidence" accept="application/pdf,image/png,image/jpeg,image/webp" required></label>
                                     <button class="button primary">Record Official Billing Statement</button>
@@ -2617,14 +2618,23 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 @endunless
 
 @if(($isHead && $activeStaffTab === 'sanctions') || ($workspace === 'BORROWER' && $sanctions->isNotEmpty()))
-<section class="content-area accountability-sanctions-section">
+@if($isBorrower)
+<details class="ob-resolved-history-disclosure ob-sanctions-history" id="sanction-history">
+    <summary>
+        <span>Sanction Records</span>
+        <span class="ob-resolved-history-meta">
+            <span class="ob-badge is-neutral">{{ $sanctions->count() }} {{ $sanctions->count() === 1 ? 'record' : 'records' }}</span>
+            <x-icon name="chevron-down" size="16" class="ob-disclosure-chevron" />
+        </span>
+    </summary>
+@endif
+<section class="{{ $isBorrower ? 'accountability-sanctions-section' : 'content-area accountability-sanctions-section' }}">
     <article class="card accountability-cases-card accountability-sanctions-card">
+        @unless($isBorrower)
         <div class="accountability-cases-head">
-            <h2>
-                {{ $workspace === 'BORROWER' ? 'My Sanctions' : 'Sanction History' }}
-                <span class="accountability-count-chip">{{ $sanctions->count() }}</span>
-            </h2>
+            <h2>Sanction History <span class="accountability-count-chip">{{ $sanctions->count() }}</span></h2>
         </div>
+        @endunless
 
         @if($sanctions->isEmpty())
             <x-empty-state icon="accountability" title="No sanction records." message="There are no sanction records to display." />
@@ -2653,7 +2663,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                             <td><span class="accountability-sanction-offense">{{ $sanction->offense_no }}</span></td>
                             <td>
                                 <span class="accountability-sanction-action">{{ $sanction->sanction_label }}</span>
-                                @if($sanction->remarks)
+                                @if(! $isBorrower && $sanction->remarks)
                                     <small class="accountability-sanction-note" title="{{ $sanction->remarks }}">{{ $sanction->remarks }}</small>
                                 @endif
                             </td>
@@ -2704,7 +2714,22 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         @endif
     </article>
 </section>
+@if($isBorrower)
+</details>
 @endif
+@endif
+
+<style>
+.ob-workspace .ob-summary.is-three { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+@media(max-width: 900px) { .ob-workspace .ob-summary.is-three { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+@media(max-width: 600px) { .ob-workspace .ob-summary.is-three { grid-template-columns: 1fr !important; } }
+.ob-brief-empty { padding: 12px 16px; gap: 10px; }
+.ob-brief-empty strong { font-size: 13px; font-weight: 600; }
+.ob-sanctions-history { margin-top: 0; }
+.ob-sanctions-history > .accountability-sanctions-section { margin: 0; padding: 0; }
+.ob-sanctions-history .accountability-sanctions-card { box-shadow: none; border: 0; }
+.ob-sanctions-history .accountability-cases-table { margin: 0; }
+</style>
 
 {{-- BORROWER_ACCOUNTABILITY_CLEAN_FILTER_LAYOUT --}}
 <style>

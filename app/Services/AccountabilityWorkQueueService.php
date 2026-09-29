@@ -251,9 +251,12 @@ class AccountabilityWorkQueueService
 
         // A genuinely standalone billing has no open Incident/OverdueCase to
         // represent it, so it must still appear in the AO operational queue.
+        // Convert model collections to base collections before mapping to scalar IDs.
+        // Eloquent Collection::merge() expects models and calls getKey() on each item.
         $claimedBillingIds = $openIncidents
+            ->toBase()
             ->map(fn (Incident $incident) => $billingForIncident($incident)?->id)
-            ->merge($openOverdueCases->map(fn (OverdueCase $overdue) => $billingForOverdue($overdue)?->id))
+            ->merge($openOverdueCases->toBase()->map(fn (OverdueCase $overdue) => $billingForOverdue($overdue)?->id))
             ->filter()
             ->map(fn ($id) => (int) $id)
             ->unique();

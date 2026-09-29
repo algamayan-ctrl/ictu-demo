@@ -55,13 +55,13 @@
                 <div class="request-operational-document">
                     <div class="request-operational-document-copy">
                         <strong>{{ $doc->document_type === App\Models\RequestSupportingDocument::TYPE_REQUEST_LETTER
-                            ? 'Approved Borrowing Request Letter'
+                            ? 'Borrowing Request Letter'
                             : 'Permission to Conduct Letter' }}</strong>
                         <small>Version {{ $doc->version_no }} · {{ str($doc->verification_status)->replace('_', ' ')->title() }}</small>
                     </div>
                     <a class="button secondary small ui-pressable request-document-link"
                         href="{{ route('files.preview', $doc->file, false) }}"
-                        aria-label="Preview {{ $doc->document_type === App\Models\RequestSupportingDocument::TYPE_REQUEST_LETTER ? 'Approved Borrowing Request Letter' : 'Permission to Conduct Letter' }}">
+                        aria-label="Preview {{ $doc->document_type === App\Models\RequestSupportingDocument::TYPE_REQUEST_LETTER ? 'Borrowing Request Letter' : 'Permission to Conduct Letter' }}">
                         Preview
                     </a>
                 </div>

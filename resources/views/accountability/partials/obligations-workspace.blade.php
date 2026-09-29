@@ -64,21 +64,24 @@
         'action' => ['Needs My Action', 'No action required from you', 'No current obligation requires your response.'],
         'payment' => ['Payment Obligations', 'No payment currently due', 'There is no outstanding payment requirement on your account.'],
         'status' => ['Borrowing Restrictions', 'No active borrowing restriction', 'Your borrowing status is currently clear.'],
-        default => ['Current Obligations', 'No unresolved obligations', 'No property, payment, late-return, or borrowing restriction currently requires your action.'],
+        default => ['Current Obligations', 'No unresolved obligations', 'No active obligations.'],
     };
 
+    // A zero-action card repeats the empty state; show it only when a response is needed.
     $summaryCards = [
-        ['info', 'accountability', (string) $obligationCount, 'Active Obligations', $obligationCount ? 'Unresolved matters on your account' : 'No unresolved obligations', route('accountability.index', ['focus' => 'active']).'#current-obligations', 'active'],
-        ['warning', 'warning', (string) $needsActionCount, 'Needs My Action', $needsActionCount ? 'Requires your response' : 'No action required from you', route('accountability.index', ['focus' => 'action']).'#current-obligations', 'action'],
-        ['orange', 'coins', 'PHP '.number_format($outstandingBalance, 2), 'Amount Due', $outstandingBalance > 0 ? 'Outstanding verified balance' : 'No payment currently due', route('accountability.index', ['focus' => 'payment']).'#current-obligations', 'payment'],
-        [$activeRestrictionCount > 0 ? 'warning' : 'success', $activeRestrictionCount > 0 ? 'lock' : 'check-circle', $borrowingStatus, 'Borrowing Status', $activeRestrictionCount > 0 ? 'A borrowing restriction is active' : 'No active borrowing restriction', route('accountability.index', ['focus' => 'status']).'#current-obligations', 'status'],
+        ['info', 'accountability', (string) $obligationCount, 'Active Obligations', $obligationCount ? 'Unresolved matters' : 'None', route('accountability.index', ['focus' => 'active']).'#current-obligations', 'active'],
     ];
+    if ($needsActionCount > 0) {
+        $summaryCards[] = ['warning', 'warning', (string) $needsActionCount, 'Needs My Action', 'Your response is required', route('accountability.index', ['focus' => 'action']).'#current-obligations', 'action'];
+    }
+    $summaryCards[] = [$outstandingBalance > 0 ? 'orange' : 'blue', 'coins', 'PHP '.number_format($outstandingBalance, 2), 'Amount Due', $outstandingBalance > 0 ? 'Unpaid billing balance' : 'No payment due', route('accountability.index', ['focus' => 'payment']).'#current-obligations', 'payment'];
+    $summaryCards[] = [$activeRestrictionCount > 0 ? 'warning' : 'success', $activeRestrictionCount > 0 ? 'lock' : 'check-circle', $borrowingStatus, 'Borrowing Status', $activeRestrictionCount > 0 ? 'Restriction in effect' : 'No active restriction', route('accountability.index', ['focus' => 'status']).'#current-obligations', 'status'];
 @endphp
 
 @include('accountability.partials.obligations-styles')
 
 <section class="content-area ob-workspace" data-borrower-accountability-clean>
-    <div class="ob-summary" aria-label="My obligations overview">
+    <div class="ob-summary {{ $needsActionCount === 0 ? 'is-three' : '' }}" aria-label="My obligations overview">
         @foreach($summaryCards as [$tone, $icon, $value, $label, $note, $href, $cardFocus])
             <a
                 class="ob-summary-card is-{{ $tone }} is-clickable {{ $focus === $cardFocus ? 'is-selected' : '' }}"
@@ -95,6 +98,8 @@
         @endforeach
     </div>
 
+    {{-- Do not reserve an empty grid row between the KPI cards and history when all obligations are resolved. --}}
+    @if($obligationCount > 0 || $resolvedCount === 0)
     <div id="current-obligations" class="ob-focused-results">
     @if($focusedRows->isNotEmpty())
         <div class="ob-current-header">
@@ -149,7 +154,7 @@
 
                     <p class="ob-case-summary">{{ $row['summary'] }}</p>
 
-                    @if($row['restricted'])
+                    @if($row['restricted'] && ($row['type'] ?? '') !== 'Borrowing Restriction')
                         <div class="ob-linked-restriction">
                             <x-icon name="lock" size="15" />
                             <span>Borrowing restricted until resolved.</span>
@@ -268,40 +273,12 @@
         </div>
     @else
         @if($obligationCount === 0)
-            <article
-    class="ob-clear-card ob-all-clear-card"
-    id="obligations-empty"
-    data-ob-all-clear
->
-    <span class="ob-all-clear-icon" aria-hidden="true">
-        <x-icon name="check-circle" size="22" />
-    </span>
-
-    <div class="ob-all-clear-copy">
-        <strong>You're all clear</strong>
-
-        @if($resolvedCount > 0)
-            <p>
-                You have no unresolved obligations. Previous resolved records remain available in your history.
-            </p>
-        @else
-            <p>
-                No unresolved property, payment, late-return, or borrowing restriction currently requires your action.
-            </p>
-        @endif
-    </div>
-
-    @if($resolvedCount > 0)
-        <a
-            href="#obligation-history"
-            class="ob-all-clear-history"
-            data-ob-view-history
-        >
-            <span>View History</span>
-            <x-icon name="arrow-right" size="14" />
-        </a>
-    @endif
-</article>
+            @if($resolvedCount === 0)
+                <article class="ob-clear-card ob-brief-empty" id="obligations-empty">
+                    <span aria-hidden="true"><x-icon name="check-circle" size="20" /></span>
+                    <strong>No current obligations.</strong>
+                </article>
+            @endif
         @else
             <article class="ob-clear-card" id="obligations-empty">
                 <span aria-hidden="true"><x-icon name="check-circle" size="34" /></span>
@@ -313,18 +290,19 @@
         @endif
     @endif
     </div>
+    @endif
 
     @if($resolvedCount > 0)
         <details class="ob-resolved-history-disclosure" id="obligation-history">
             <summary>
-                <span>Resolved Obligations</span>
+                <span>Obligation History</span>
                 <span class="ob-resolved-history-meta">
                     <span class="ob-badge is-neutral">{{ $resolvedCount }} {{ $resolvedCount === 1 ? 'record' : 'records' }}</span>
                     <x-icon name="chevron-down" size="16" class="ob-disclosure-chevron" />
                 </span>
             </summary>
             <div class="ob-resolved-history-body">
-                @include('accountability.partials.resolved-history')
+                @include('accountability.partials.resolved-history', ['embeddedInBorrowerWorkspace' => true])
             </div>
         </details>
     @endif
@@ -354,45 +332,4 @@
         if (empty) empty.hidden = visible !== 0;
     });
 })();
-</script>
-
-<script>
-/* OBLIGATIONS ALL CLEAR HISTORY START */
-
-(() => {
-    const workspace =
-        document.querySelector('[data-borrower-accountability-clean]');
-
-    if (!workspace) {
-        return;
-    }
-
-    const trigger =
-        workspace.querySelector('[data-ob-view-history]');
-
-    const history =
-        document.getElementById('obligation-history');
-
-    if (!trigger || !history) {
-        return;
-    }
-
-    trigger.addEventListener('click', (event) => {
-        event.preventDefault();
-
-        if (history.tagName === 'DETAILS') {
-            history.open = true;
-        }
-
-        history.scrollIntoView({
-            behavior:
-                window.matchMedia('(prefers-reduced-motion: reduce)').matches
-                    ? 'auto'
-                    : 'smooth',
-            block: 'start',
-        });
-    });
-})();
-
-/* OBLIGATIONS ALL CLEAR HISTORY END */
 </script>

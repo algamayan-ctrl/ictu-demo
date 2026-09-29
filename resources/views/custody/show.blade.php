@@ -145,13 +145,13 @@
 
     if ($isBorrower && $gatePassOnlyPending) {
         $operationalStatusKey = 'GATE_PASS_PROCESSING';
-        $operationalLabel = 'Gate Pass Processing';
+        $operationalLabel = 'Gate Pass Pending';
     }
 
     [$borrowerStateTitle, $borrowerStateCopy, $borrowerStateTone] = match (true) {
         $isBorrower && $gatePassOnlyPending => [
-            'Gate Pass Processing',
-            'The physical return is complete. SPMU is recording the accomplished Gate Pass.',
+            'Physical Return Complete',
+            'All issued items have been returned. SPMU is completing the Gate Pass record.',
             'info',
         ],
         $transactionCancelled => [
@@ -331,6 +331,8 @@
          * the borrower does not have to read the summary grid to find it.
          */
         [$borrowerStateFactLabel, $borrowerStateFactValue] = match (true) {
+            // Do not repeat a past expected-return date once physical return is complete.
+            $gatePassOnlyPending => [null, null],
             $transactionCancelled && (bool) $custody->closed_at
                 => ['Cancelled', $custody->closed_at->format('d M Y')],
             (bool) $custody->closed_at
@@ -382,7 +384,7 @@
             $borrowerFacts[] = [
                 $borrowerCustodyLabel,
                 $outstandingTotal + 0,
-                $outstandingTotal > 0 ? 'Still to be returned' : 'Nothing outstanding',
+                $outstandingTotal > 0 ? 'Still to be returned' : null,
             ];
         }
 
@@ -478,7 +480,7 @@
             <article class="card">
                 <div class="card-header">
                     <div>
-                        <p class="eyebrow">Your items</p>
+                        <p class="eyebrow">Borrowed items</p>
                         <h2>{{ $borrowerReleased ? 'Issued and returned quantities' : ($transactionCancelled ? 'Approved items — cancelled' : 'Approved items for pickup') }}</h2>
                     </div>
                     <span class="borrower-section-note">
@@ -540,8 +542,8 @@
                             <x-icon name="requests" size="21" />
                         </span>
                         <div>
-                            <p class="eyebrow">Additional processing</p>
-                            <h2>Applicable physical records</h2>
+                            <p class="eyebrow">Document processing</p>
+                            <h2>Applicable records</h2>
                         </div>
                     </div>
 
@@ -581,8 +583,10 @@
                                         Voided because the borrowing was cancelled.
                                     @elseif($borrowerGatePassComplete)
                                         Off-campus release recorded{{ $custody->gatePass?->guard_signed_at ? ' on '.$custody->gatePass->guard_signed_at->format('d M Y, g:i A') : '' }}.
+                                    @elseif($borrowerReleased && $outstandingTotal <= 0)
+                                        SPMU is completing the Gate Pass record.
                                     @else
-                                        Required for the approved off-campus use. Handled during physical release.
+                                        Required for off-campus release.
                                     @endif
                                 </small>
                             </div>

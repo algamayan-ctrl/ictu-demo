@@ -2279,7 +2279,9 @@ class CustodyService
                         'incidents',
                         'laundryJob',
                     ]),
-                    ['SYSTEM', 'EMAIL']
+                    // The specific ACCOUNTABILITY_OPENED email below already
+                    // informs the borrower of any new property finding.
+                    $openedIncidents->isEmpty() ? ['SYSTEM', 'EMAIL'] : ['SYSTEM']
                 );
             }
 

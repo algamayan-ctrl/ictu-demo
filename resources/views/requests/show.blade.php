@@ -923,8 +923,8 @@
 
                                 <td>
                                     {{ $isRequestLetter
-                                        ? 'Official request letter for borrowing items.'
-                                        : 'Approval to conduct the activity.' }}
+                                        ? 'Signed letter uploaded with this request.'
+                                        : 'Supporting document for a student activity.' }}
                                 </td>
 
                                 <td>
@@ -953,84 +953,96 @@
             // pickup" is stale instruction - the documents remain here only
             // for reference from that point on.
             $physicalReleaseComplete = (bool) $custody?->released_at;
-            $physicalReturnComplete = $physicalReleaseComplete && ! $custody->hasOutstandingProperty();
         @endphp
         <article class="borrower-detail-card">
             <h2 class="borrower-card-title">
                 <span class="borrower-card-icon" aria-hidden="true"><x-icon name="printer" size="20" /></span>
                 {{ $physicalReleaseComplete ? 'Transaction Forms' : 'Forms for Physical Processing' }}
-                <span class="borrower-card-note">{{ $physicalReleaseComplete ? 'Reference copies of your transaction documents.' : 'Preview and print the approved forms before pickup.' }}</span>
+                <span class="borrower-card-note">{{ $physicalReleaseComplete ? 'Available for reference.' : 'Bring the applicable forms for pickup.' }}</span>
             </h2>
 
-            @if(! $physicalReleaseComplete)
-                <div class="callout info">
-                    <strong>Bring the generated documents to SPMU.</strong>
-                    <p>Proceed to SPMU on the scheduled pickup date with the Borrower Slip{{ $requestHasOffCampus ? ' and the generated Gate Pass for this off-campus request' : '' }}.</p>
-                </div>
-            @elseif(! $physicalReturnComplete)
-                <div class="callout info">
-                    <strong>Documents on file.</strong>
-                    <p>These documents were used for your physical release and remain available here for reference.</p>
-                </div>
-            @else
-                <div class="callout info">
-                    <strong>Documents on file.</strong>
-                    <p>The transaction is complete. These documents remain available here for reference.</p>
-                </div>
-            @endif
-
-            <div class="borrower-item-list">
-                <div class="borrower-item-row">
-                    <div>
-                        <strong>Borrower Slip</strong>
-                        <small>Required for physical handover.</small>
-                    </div>
-                    <div class="borrower-item-quantity">
-                        @if($borrowerSlipDocument)
-                            <a class="button secondary small ui-pressable" href="{{ route('documents.preview', $borrowerSlipDocument) }}">Preview</a>
-                        @else
-                            <span class="status-badge status-neutral">Not available</span>
-                        @endif
-                    </div>
-                </div>
-
-                @if($requestHasLaundry)
-                    <div class="borrower-item-row">
-                        <div>
-                            <strong>Laundry Form</strong>
-                            <small>Required for the laundry-handled items in this borrowing.</small>
-                        </div>
-                        <div class="borrower-item-quantity">
-                            @if($laundryFormDocument)
-                                <a class="button secondary small ui-pressable" href="{{ route('documents.preview', $laundryFormDocument) }}">Preview</a>
-                            @else
-                                <span class="status-badge status-neutral">Not available</span>
-                            @endif
-                        </div>
-                    </div>
-                @endif
-
-                @if($requestHasOffCampus)
-                    <div class="borrower-item-row">
-                        <div>
-                            <strong>Gate Pass</strong>
-                            <small>
-                                @if($gatePassFinalized)
-                                    Generated automatically after SPMU Head approval.
+            <div class="borrower-documents-scroll">
+                <table class="borrower-documents-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Document</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <span class="borrower-document-name">
+                                    <x-icon name="requests" size="18" />
+                                    Borrower Slip
+                                </span>
+                            </td>
+                            <td>{{ $physicalReleaseComplete ? 'Record of item issuance.' : 'Required for physical handover.' }}</td>
+                            <td>
+                                <span class="status-badge status-{{ $borrowerSlipDocument ? 'success' : 'neutral' }}">
+                                    {{ $borrowerSlipDocument ? 'Available' : 'Not available' }}
+                                </span>
+                            </td>
+                            <td>
+                                @if($borrowerSlipDocument)
+                                    <a class="button secondary small ui-pressable borrower-document-view" href="{{ route('documents.preview', $borrowerSlipDocument) }}">Preview</a>
                                 @else
-                                    Required, but the approved Gate Pass is not available. Contact SPMU; do not proceed with release.
+                                    <span class="borrower-document-no-action">—</span>
                                 @endif
-                            </small>
-                        </div>
-                        <div class="borrower-item-quantity">
-                            @if($gatePassFinalized)
-                                <a class="button secondary small ui-pressable" href="{{ route('documents.preview', $gatePassDocument) }}">Preview</a>
-                            @else
-                                <span class="status-badge status-danger">Not available</span>
-                            @endif
-                        </div>
-                    </div>
-                @endif
+                            </td>
+                        </tr>
+
+                        @if($requestHasLaundry)
+                            <tr>
+                                <td>
+                                    <span class="borrower-document-name">
+                                        <x-icon name="requests" size="18" />
+                                        Laundry Form
+                                    </span>
+                                </td>
+                                <td>For laundry-handled items in this borrowing.</td>
+                                <td>
+                                    <span class="status-badge status-{{ $laundryFormDocument ? 'success' : 'neutral' }}">
+                                        {{ $laundryFormDocument ? 'Available' : 'Not available' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    @if($laundryFormDocument)
+                                        <a class="button secondary small ui-pressable borrower-document-view" href="{{ route('documents.preview', $laundryFormDocument) }}">Preview</a>
+                                    @else
+                                        <span class="borrower-document-no-action">—</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endif
+
+                        @if($requestHasOffCampus)
+                            <tr>
+                                <td>
+                                    <span class="borrower-document-name">
+                                        <x-icon name="requests" size="18" />
+                                        Gate Pass
+                                    </span>
+                                </td>
+                                <td>{{ $gatePassFinalized ? 'Off-campus release document.' : 'Awaiting SPMU processing. Do not proceed with off-campus release.' }}</td>
+                                <td>
+                                    <span class="status-badge status-{{ $gatePassFinalized ? 'success' : 'neutral' }}">
+                                        {{ $gatePassFinalized ? 'Available' : 'Not available' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    @if($gatePassFinalized)
+                                        <a class="button secondary small ui-pressable borrower-document-view" href="{{ route('documents.preview', $gatePassDocument) }}">Preview</a>
+                                    @else
+                                        <span class="borrower-document-no-action">—</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endif
+                    </tbody>
+                </table>
             </div>
         </article>
     @endif

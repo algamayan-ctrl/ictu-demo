@@ -477,14 +477,14 @@
             'ICTU' => [
                 ['dashboard', 'dashboard', 'Dashboard', 'dashboard'],
                 ['administration.users.index', 'administration.users.*', 'User Accounts', 'users'],
-                ['administration.settings.index', 'administration.settings.*', 'Configuration', 'settings'],
+                ['administration.settings.index', 'administration.settings.*', 'System Configuration', 'settings'],
                 ['reports.audit', 'reports.audit', 'Audit Trail', 'reports'],
                 ['reports.notifications', 'reports.notifications', 'Delivery Records', 'notifications'],
             ],
             default => [],
         };
     @endphp
-    <div class="app-shell">
+    <div class="app-shell {{ request()->routeIs('administration.users.*') ? 'ictu-shell' : (request()->routeIs('reports.audit') ? 'ictu-audit-shell' : '') }}">
         <aside class="app-sidebar" id="primary-sidebar">
             <div class="sidebar-brand-row">
                 <a class="brand sidebar-brand sidebar-brand-logo" href="{{ route('dashboard') }}" aria-label="SPMU-ACPMP dashboard">
@@ -510,7 +510,14 @@
         <div class="app-stage">
             <header class="app-topbar">
                 <button class="icon-button menu-toggle" type="button" aria-label="Open main menu" title="Open main menu" aria-controls="primary-sidebar" aria-expanded="false" data-sidebar-toggle><x-icon name="menu" /></button>
-                <div class="topbar-title"><strong>{{ isset($topbarTitle) ? $topbarTitle : (isset($title) ? $title : 'Dashboard') }}</strong></div>
+                <div class="topbar-title">
+                    <strong>{{ isset($topbarTitle) ? $topbarTitle : (isset($title) ? $title : 'Dashboard') }}</strong>
+                    @if(request()->routeIs('administration.users.index'))
+                        <span class="ictu-topbar-subtitle">Manage user accounts, roles, organizational assignments, access, and account status.</span>
+                    @elseif(request()->routeIs('reports.audit'))
+                        <span class="ictu-topbar-subtitle">Review immutable records of account, system, and transaction activity.</span>
+                    @endif
+                </div>
                 <nav class="account-nav" aria-label="Account navigation">
                     <a class="icon-button interactive notification-control" href="{{ route('notifications.index') }}" aria-label="Notifications{{ $unread ? ': '.$unread.' unread' : '' }}" title="Notifications">
                         <x-icon name="notifications" />
@@ -519,7 +526,7 @@
                     <x-account-menu :user="auth()->user()" />
                 </nav>
             </header>
-            <main class="app-main" id="main-content" tabindex="-1">
+            <main class="app-main {{ request()->routeIs('administration.users.*') ? 'ictu-admin-main' : (request()->routeIs('reports.audit') ? 'ictu-audit-main' : '') }}" id="main-content" tabindex="-1">
                 @unless($inlinePageNotices ?? false)
                 @if(session('status'))<div class="notice success" role="status"><x-icon name="success" /><div>{{ session('status') }}</div></div>@endif
                 @if($errors->any())

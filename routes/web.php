@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountabilityController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AdministrationController;
 use App\Http\Controllers\ApprovalController;
+use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BorrowingRequestController;
@@ -32,7 +33,12 @@ Route::get('/', function () {
     }
 
     return view('welcome');
-})->name('home');
+ })->name('home');
+
+// Public: pending users cannot be required to sign in to verify a mailbox.
+Route::get('/email/verify/{user}/{hash}', [EmailVerificationController::class, 'verify'])
+    ->middleware('throttle:10,1')
+    ->name('email.verification.verify');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [LoginController::class, 'create'])
@@ -55,7 +61,7 @@ Route::middleware('guest')->group(function (): void {
         ->name('auth.google.callback');
 });
 
-Route::middleware(['auth', 'active'])->group(function (): void {
+Route::middleware(['auth', 'active', 'verified-email'])->group(function (): void {
 
     /*
     |--------------------------------------------------------------------------
@@ -646,8 +652,19 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         ->middleware('workspace:ICTU')
         ->group(function (): void {
 
+            Route::patch('/users/{user}/deactivate', [UserAdministrationController::class, 'deactivate'])
+                ->name('users.deactivate');
+
+            // Correct only unused, unverified registration mistakes; never delete operational history.
+            Route::delete('/users/{user}/pending', [UserAdministrationController::class, 'deletePendingRegistration'])
+                ->name('users.delete-pending');
+
             Route::resource('users', UserAdministrationController::class)
                 ->except(['show', 'destroy']);
+
+            Route::post('/users/{user}/resend-email-verification', [UserAdministrationController::class, 'resendEmailVerification'])
+                ->middleware('throttle:5,1')
+                ->name('users.email-verification.resend');
 
             Route::post('/backup', [TechnicalOperationController::class, 'backup'])
                 ->name('backup');

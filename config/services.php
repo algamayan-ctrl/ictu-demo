@@ -49,4 +49,13 @@ return [
         'allowed_domains' => env('GOOGLE_ALLOWED_DOMAINS', ''),
     ],
 
+    // Registration domain policy is independent of Google OAuth.
+    // Change only after CSPC confirms the approved employee email domain(s).
+    'institutional_email' => [
+        'allowed_domains' => env(
+            'INSTITUTIONAL_EMAIL_DOMAINS',
+            env('APP_ENV') === 'production' ? 'cspc.edu.ph' : 'cspc.edu.ph,spmu.test'
+        ),
+    ],
+
 ];

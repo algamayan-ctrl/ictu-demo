@@ -53,6 +53,11 @@ trait EstablishesAuthenticatedSession
             return 'This account has no valid portal assignment. Contact ICTU.';
         }
 
+        if (! $user->hasVerifiedInstitutionalEmail()) {
+            $this->abandonSession($request);
+            return 'Your institutional email is pending verification. Open the verification link sent by ICTU or ask ICTU to resend it.';
+        }
+
         $user->forceFill(['last_login_at' => now()])->save();
         $request->session()->put('active_workspace', $workspace);
 

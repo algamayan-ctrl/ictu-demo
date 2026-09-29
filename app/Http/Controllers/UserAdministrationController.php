@@ -8,12 +8,14 @@ use App\Enums\EmploymentType;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\EmailVerificationService;
 use App\Services\NotificationService;
 use App\Services\UserRoleAssignmentService;
 use App\Support\OrganizationalStructure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -74,10 +76,11 @@ class UserAdministrationController extends Controller
         Request $request,
         AuditService $audit,
         UserRoleAssignmentService $roleAssignments,
+        EmailVerificationService $emailVerification,
     ): RedirectResponse {
         $this->authorizeIctu($request);
 
-        $data = $this->validated($request);
+        $data = $this->validated($request, null, $emailVerification);
 
         $user = DB::transaction(function () use ($data, $audit, $roleAssignments, $request): User {
             $classification = AccessClassification::from($data['access_classification']);
@@ -98,7 +101,7 @@ class UserAdministrationController extends Controller
                 ],
                 'account_status' => $data['account_status'],
                 'access_classification' => $classification,
-                'email_verified_at' => now(),
+                // Email remains pending until the recipient opens the signed link.
                 'password' => $data['password'],
             ]);
 
@@ -132,9 +135,19 @@ class UserAdministrationController extends Controller
             return $user;
         });
 
+        // Mail must be sent after committing the account, not inside the transaction.
+        $sent = $emailVerification->send($user);
+        $audit->record(
+            $sent ? 'USER_EMAIL_VERIFICATION_SENT' : 'USER_EMAIL_VERIFICATION_DELIVERY_FAILED',
+            $user,
+            after: ['email' => $user->email, 'verified' => false],
+        );
+
         return redirect()
             ->route('administration.users.index')
-            ->with('status', "Account created for {$user->full_name}.");
+            ->with('status', $sent
+                ? "Account created for {$user->full_name}. A verification link was sent; sign-in remains blocked until verified."
+                : "Account created for {$user->full_name}, but email delivery failed. Open Manage to resend the verification link.");
     }
 
     public function update(
@@ -146,7 +159,8 @@ class UserAdministrationController extends Controller
     ): RedirectResponse {
         $this->authorizeIctu($request);
 
-        $data = $this->validated($request, $user);
+        $emailVerification = app(EmailVerificationService::class);
+        $data = $this->validated($request, $user, $emailVerification);
 
         /*
          * The form disables these two controls and submits hidden inputs
@@ -162,10 +176,12 @@ class UserAdministrationController extends Controller
         }
 
         $accountDisabled = false;
+        $emailChanged = false;
 
-        DB::transaction(function () use ($data, $user, $audit, $roleAssignments, $request, &$accountDisabled): void {
+        DB::transaction(function () use ($data, $user, $audit, $roleAssignments, $request, &$accountDisabled, &$emailChanged): void {
             $before = $user->load(['roles', 'organizationalUnit', 'authorizedOrganizationalUnits'])->toArray();
             $beforeAccountStatus = $user->account_status?->value;
+            $beforeEmail = strtolower(trim((string) $user->email));
             $classification = AccessClassification::from($data['access_classification']);
             $unit = $this->resolveOrganizationalUnit($data, $classification, $user);
 
@@ -185,6 +201,11 @@ class UserAdministrationController extends Controller
             }
 
             $user->update($updates);
+            $emailChanged = $beforeEmail !== strtolower(trim((string) $user->email));
+            if ($emailChanged) {
+                // Never carry the previous mailbox's verified timestamp to a new address.
+                $user->markInstitutionalEmailAsUnverified();
+            }
 
             $accountDisabled = $beforeAccountStatus === AccountStatus::Active->value
                 && in_array($user->account_status?->value, [AccountStatus::Inactive->value, AccountStatus::Suspended->value], true);
@@ -222,9 +243,196 @@ class UserAdministrationController extends Controller
             );
         }
 
+        if ($emailChanged) {
+            $user->refresh();
+            $sent = $emailVerification->send($user);
+            $audit->record(
+                $sent ? 'USER_EMAIL_REVERIFICATION_SENT' : 'USER_EMAIL_REVERIFICATION_DELIVERY_FAILED',
+                $user,
+                after: ['email' => $user->email, 'verified' => false],
+            );
+            return redirect()
+                ->route('administration.users.index')
+                ->with('status', $sent
+                    ? 'Account updated. The changed email must be verified again before sign-in.'
+                    : 'Account updated and its changed email is unverified. Email delivery failed; open Manage to resend.');
+        }
+
         return redirect()
             ->route('administration.users.index')
             ->with('status', 'Account and authorized organizational assignments updated with an audit record.');
+    }
+
+    /** Deactivate account access without deleting identities or transaction history. */
+    public function deactivate(
+        Request $request,
+        User $user,
+        AuditService $audit,
+        NotificationService $notifications,
+    ): RedirectResponse {
+        $this->authorizeIctu($request);
+        abort_unless($user->access_classification?->isPortalEnabled(), 404);
+
+        if ((int) $request->user()->getKey() === (int) $user->getKey()) {
+            return redirect()->route('administration.users.index')
+                ->withErrors(['account_status' => 'You cannot deactivate your own ICTU account.']);
+        }
+
+        // Lock the account to prevent two simultaneous deactivation requests
+        // from writing duplicate status-change audit events.
+        $changed = DB::transaction(function () use ($user, $audit): bool {
+            $account = User::query()->lockForUpdate()->findOrFail($user->getKey());
+            if ($account->account_status !== AccountStatus::Active) {
+                return false;
+            }
+
+            $before = ['account_status' => AccountStatus::Active->value];
+            $account->account_status = AccountStatus::Inactive;
+            $account->save();
+
+            $audit->record(
+                'USER_ACCOUNT_UPDATED',
+                $account,
+                before: $before,
+                after: [
+                    'account_status' => AccountStatus::Inactive->value,
+                    'change_source' => 'ICTU_DIRECTORY_DEACTIVATION',
+                ],
+            );
+
+            return true;
+        });
+
+        if (! $changed) {
+            return redirect()->route('administration.users.index')
+                ->with('status', 'This account is already inactive or suspended. No changes were made.');
+        }
+
+        $user->refresh();
+        $notifications->send(
+            'ACCOUNT_ACCESS_DISABLED',
+            collect([$user]),
+            'Your account access has been disabled. Contact ICTU for assistance.',
+            $user,
+            ['SYSTEM', 'EMAIL'],
+        );
+
+        return redirect()->route('administration.users.index')
+            ->with('status', "{$user->full_name}'s account has been deactivated. Historical records were preserved.");
+    }
+
+    /**
+     * Remove a mistaken registration only while it is unverified and has never
+     * been used. This is deliberately narrower than a general User::delete().
+     * Existing audit events remain to document the removed record and the ICTU actor.
+     */
+    public function deletePendingRegistration(Request $request, User $user, AuditService $audit): RedirectResponse
+    {
+        $this->authorizeIctu($request);
+        abort_unless($user->access_classification?->isPortalEnabled(), 404);
+
+        if ((int) $request->user()->getKey() === (int) $user->getKey()) {
+            return redirect()->route('administration.users.edit', $user)
+                ->withErrors(['account' => 'You cannot delete your own ICTU account.']);
+        }
+
+        DB::transaction(function () use ($user, $audit): void {
+            $account = User::query()->lockForUpdate()->findOrFail($user->getKey());
+
+            if ($account->hasVerifiedInstitutionalEmail() || $account->last_login_at !== null) {
+                throw ValidationException::withMessages([
+                    'account' => 'Only unverified accounts that have never signed in can be deleted. Use Deactivate for established users.',
+                ]);
+            }
+
+            if ($this->pendingAccountHasReferences((int) $account->getKey())) {
+                throw ValidationException::withMessages([
+                    'account' => 'This account has linked activity or historical records and cannot be deleted. Deactivate it instead.',
+                ]);
+            }
+
+            $audit->record('USER_PENDING_REGISTRATION_DELETED', $account,
+                reason: 'ICTU removed an unused, unverified registration.',
+                before: [
+                    'employee_no' => $account->employee_no,
+                    'email' => $account->email,
+                    'full_name' => $account->full_name,
+                    'access_classification' => $account->access_classification?->value,
+                    'email_verified_at' => null,
+                ],
+                after: ['removed' => true],
+            );
+
+            // Registration-created role/unit pivots cascade on account deletion.
+            // Clear any stale password reset token so the mistyped email can be re-used.
+            DB::table('password_reset_tokens')->where('email', $account->email)->delete();
+            $account->delete();
+        });
+
+        return redirect()->route('administration.users.index')
+            ->with('status', 'The unused pending registration was deleted. You can register the corrected institutional email.');
+    }
+
+    /**
+     * Block deletion if any operational/administrative table references this
+     * user, regardless of ON DELETE CASCADE/SET NULL. The only exceptions are
+     * the initial role and organizational-assignment pivots created at signup.
+     * Laravel schema introspection works with both MySQL and SQLite testing.
+     */
+    private function pendingAccountHasReferences(int $userId): bool
+    {
+        if (DB::table('sessions')->where('user_id', $userId)->exists()) {
+            return true;
+        }
+
+        foreach (Schema::getTableListing(schemaQualified: false) as $table) {
+            if (in_array($table, ['users', 'user_roles', 'user_organizational_units'], true)) {
+                continue;
+            }
+
+            foreach (Schema::getForeignKeys($table) as $foreignKey) {
+                if (strtolower((string) ($foreignKey['foreign_table'] ?? '')) !== 'users') {
+                    continue;
+                }
+                foreach (($foreignKey['columns'] ?? []) as $position => $column) {
+                    if (($foreignKey['foreign_columns'][$position] ?? null) === 'id'
+                        && DB::table($table)->where($column, $userId)->exists()) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /** ICTU recovery action if the first verification email expired or could not be delivered. */
+    public function resendEmailVerification(
+        Request $request,
+        User $user,
+        EmailVerificationService $emailVerification,
+        AuditService $audit,
+    ): RedirectResponse {
+        $this->authorizeIctu($request);
+        abort_unless($user->access_classification?->isPortalEnabled(), 404);
+
+        if ($user->hasVerifiedInstitutionalEmail()) {
+            return redirect()->route('administration.users.edit', $user)
+                ->with('status', 'The registered institutional email is already verified.');
+        }
+
+        $sent = $emailVerification->send($user);
+        $audit->record(
+            $sent ? 'USER_EMAIL_VERIFICATION_RESENT' : 'USER_EMAIL_VERIFICATION_DELIVERY_FAILED',
+            $user,
+            after: ['email' => $user->email, 'verified' => false],
+        );
+
+        return $sent
+            ? redirect()->route('administration.users.edit', $user)
+                ->with('status', "A new verification link was sent to {$user->email}.")
+            : redirect()->route('administration.users.edit', $user)
+                ->withErrors(['email_verification' => 'Verification email could not be sent. Check your configured mail transport and try again.']);
     }
 
     private function form(User $user): View
@@ -272,8 +480,10 @@ class UserAdministrationController extends Controller
         ]);
     }
 
-    private function validated(Request $request, ?User $user = null): array
+    private function validated(Request $request, ?User $user = null, ?EmailVerificationService $emailVerification = null): array
     {
+        $emailVerification ??= app(EmailVerificationService::class);
+        $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
         $allowedClassifications = array_map(
             fn (AccessClassification $classification) => $classification->value,
             AccessClassification::assignableCases(),
@@ -328,6 +538,14 @@ class UserAdministrationController extends Controller
                 'required',
                 'email',
                 Rule::unique('users')->ignore($user?->id),
+                function (string $attribute, mixed $value, $fail) use ($emailVerification): void {
+                    if (! $emailVerification->domainAllowed((string) $value)) {
+                        $domains = implode(', ', $emailVerification->allowedDomains());
+                        $fail($domains === ''
+                            ? 'ICTU registration email policy is not configured. Contact the system administrator.'
+                            : "Use an approved CSPC institutional email domain ({$domains}).");
+                    }
+                },
             ],
             'mobile_no' => ['nullable', 'string', 'max:30'],
             'account_status' => ['required', Rule::enum(AccountStatus::class)],

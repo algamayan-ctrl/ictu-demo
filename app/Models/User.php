@@ -54,6 +54,43 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * The institutional email is trusted only after the recipient has opened
+     * the signed verification link sent to that mailbox.
+     */
+    public function hasVerifiedInstitutionalEmail(): bool
+    {
+        return $this->email_verified_at !== null;
+    }
+
+    /**
+     * Mark the current stored email as verified after proof of mailbox access.
+     */
+    public function markInstitutionalEmailAsVerified(): bool
+    {
+        if ($this->hasVerifiedInstitutionalEmail()) {
+            return false;
+        }
+
+        return $this->forceFill([
+            'email_verified_at' => now(),
+        ])->save();
+    }
+
+    /**
+     * Changing the email invalidates the previous mailbox proof.
+     */
+    public function markInstitutionalEmailAsUnverified(): bool
+    {
+        if (! $this->hasVerifiedInstitutionalEmail()) {
+            return false;
+        }
+
+        return $this->forceFill([
+            'email_verified_at' => null,
+        ])->save();
+    }
+
     public function organizationalUnit(): BelongsTo
     {
         return $this->belongsTo(OrganizationalUnit::class);

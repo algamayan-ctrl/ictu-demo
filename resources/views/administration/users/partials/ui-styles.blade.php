@@ -295,26 +295,81 @@
 .ictu-user-form .ictu-field .field-error, .ictu-form-card > .field-error { margin: 0; color: var(--danger); font-size: 12px; font-weight: 550; }
 .ictu-new-unit-field { grid-column: 1 / -1; }
 .ictu-email-field { align-content: start; }
-.ictu-email-verification-link {
-    display: inline-flex;
-    justify-self: start;
+.ictu-identity-heading-row {
+    display: flex;
     align-items: center;
-    width: auto !important;
-    min-height: 24px;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+}
+.ictu-identity-heading-row h2 { min-width: 0; }
+.ictu-email-verification-status {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    min-height: 22px;
+    padding: 2px 9px;
+    border: 1px solid #f0bd5b;
+    border-radius: 999px;
+    background: #fff8e8;
+    color: #9a6200;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+.ictu-email-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+}
+.ictu-email-label-row > label {
     margin: 0;
-    padding: 2px 0;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-    color: var(--interactive);
+    color: var(--text-secondary);
     font-size: 12.5px;
     font-weight: 700;
+}
+.ictu-email-verification-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: none;
+    appearance: none;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #0d6efd !important;
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 1.35;
+    text-decoration: none;
+    cursor: pointer;
+    gap: 5px;
+}
+.ictu-email-verification-link:hover {
+    color: #084298 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
     text-decoration: underline;
     text-underline-offset: 3px;
-    cursor: pointer;
-    gap: 6px;
 }
-.ictu-email-verification-link:hover { color: var(--interactive-hover); }
+.ictu-email-verification-link:focus-visible {
+    outline: 2px solid var(--interactive);
+    outline-offset: 3px;
+}
+@media (max-width: 560px) {
+    .ictu-identity-heading-row, .ictu-email-label-row { align-items: flex-start; flex-wrap: wrap; }
+}
 .admin-additional-assignment-picker { display: grid; grid-template-columns: minmax(0, 85fr) minmax(145px, 15fr); align-items: end; gap: 14px; }
 .ictu-add-unit-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; width: 100%; height: 48px; min-height: 48px; padding: 0 12px; border-radius: 9px; white-space: nowrap; font-size: 13px; }
 .admin-additional-unit-list { display: grid; gap: 9px; margin-top: 14px; }
@@ -551,4 +606,228 @@ html[data-theme="dark"] .ictu-users-filter-field :is(input,select), html[data-th
 .ictu-shell .app-topbar {
     background-color: var(--surface-elevated) !important;
 }
+
+
+/* Compact institutional-account directory and expanded filter set. */
+.ictu-users-filter-grid {
+    grid-template-columns: minmax(260px, 2fr) repeat(3, minmax(145px, 1fr)) minmax(145px, 1fr) minmax(150px, 1fr) auto;
+    gap: 10px;
+    padding: 13px 16px;
+}
+.ictu-users-filter-field { gap: 5px; }
+.ictu-users-filter-field > label { font-size: 11.5px; }
+.ictu-users-filter-field :is(input, select),
+.ictu-users-filter-actions .ictu-users-reset {
+    height: 38px;
+    min-height: 38px;
+    font-size: 12px;
+    border-radius: 8px;
+}
+.ictu-users-filter-actions { display: flex; align-items: end; }
+.ictu-users-filter-actions .ictu-users-reset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 82px;
+    gap: 6px;
+    padding: 0 10px;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-strong);
+}
+.ictu-users-filter-actions .ictu-users-reset:hover { color: var(--interactive); border-color: var(--interactive); }
+.ictu-users-list-toolbar { min-height: 50px; padding: 7px 16px; }
+.ictu-users-list-title h2 { font-size: 16px; }
+.ictu-users-total-pill { padding: 2px 8px; font-size: 11px; }
+.ictu-users-table th { padding: 9px 10px; font-size: 9.5px; }
+.ictu-users-table td { height: 66px; padding: 4px 10px; font-size: 11.5px; line-height: 1.22; }
+.ictu-user-identity-wrap { grid-template-columns: 36px minmax(0,1fr); gap: 8px; }
+.ictu-user-avatar { width: 36px; height: 36px; font-size: 11.5px; }
+.ictu-user-identity-copy strong,
+.ictu-user-number-cell strong,
+.ictu-user-unit-cell strong,
+.ictu-user-access-cell strong { font-size: 11.5px; line-height: 1.2; }
+.ictu-user-identity-copy span,
+.ictu-user-identity-copy a,
+.ictu-user-unit-cell span,
+.ictu-user-access-cell span { font-size: 10.75px; line-height: 1.2; margin-top: 1px; }
+.ictu-user-status-stack { gap: 2px; }
+.ictu-user-status-stack .status-badge { min-height: 18px; padding: 1px 7px; font-size: 10.5px; }
+.ictu-user-icon-button { width: 28px !important; min-width: 28px !important; height: 28px !important; min-height: 28px !important; }
+
+@media (max-width: 1450px) {
+    .ictu-users-filter-grid { grid-template-columns: minmax(240px, 2fr) repeat(3, minmax(140px, 1fr)); }
+    .ictu-users-filter-actions { align-items: end; }
+}
+@media (max-width: 900px) {
+    .ictu-users-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ictu-users-filter-field-search { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+    .ictu-users-filter-grid { grid-template-columns: minmax(0,1fr); }
+    .ictu-users-filter-field-search { grid-column: auto; }
+    .ictu-users-filter-actions .ictu-users-reset { width: 100%; }
+}
+
+/* 2026-09-30: Keep ICTU User Administration chrome the same size as Dashboard. */
+.ictu-shell {
+    --sidebar-width: 232px;
+    --topbar-height: 64px;
+}
+.ictu-shell .sidebar-brand-row {
+    min-height: 0;
+    padding: 14px 14px 10px;
+}
+.ictu-shell .sidebar-brand.sidebar-brand-logo {
+    min-height: 58px;
+    padding: 6px 8px;
+    justify-content: center;
+}
+.ictu-shell .sidebar-brand-logo-image {
+    width: 100%;
+    max-width: 182px;
+    max-height: 50px;
+    object-position: center;
+}
+.ictu-shell .sidebar-label {
+    margin: 14px 18px 10px !important;
+    font-size: .73rem !important;
+    letter-spacing: .14em !important;
+}
+.ictu-shell .sidebar-nav {
+    gap: 8px;
+    padding: 0 10px 14px;
+}
+.ictu-shell .sidebar-nav a {
+    min-height: 48px;
+    padding: 0 14px;
+    gap: 12px;
+    border-radius: 14px;
+    font-size: inherit;
+}
+.ictu-shell .sidebar-nav a .nav-icon {
+    width: 18px;
+    min-width: 18px;
+}
+.ictu-shell .sidebar-nav a .nav-icon svg {
+    width: 18px;
+    height: 18px;
+}
+.ictu-shell .app-topbar {
+    min-height: 64px;
+    padding: 10px 20px;
+}
+.ictu-shell .topbar-title strong {
+    font-size: 14px;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+.ictu-shell .account-nav { gap: 10px; }
+.ictu-shell .account-menu-name { font-size: inherit; }
+.ictu-shell .account-menu-toggle .user-avatar {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+}
+.ictu-shell .notification-control .ui-icon {
+    width: 18px;
+    height: 18px;
+}
+
+/* Compact primary filters + popover-only secondary filters. */
+.ictu-users-filter-grid {
+    position: relative;
+    grid-template-columns: minmax(300px, 2.2fr) repeat(3, minmax(145px, 1fr)) auto;
+    gap: 10px;
+    padding: 12px 16px;
+}
+.ictu-users-filter-actions {
+    position: relative;
+    display: flex;
+    align-items: end;
+}
+.ictu-users-more {
+    height: 38px;
+    min-height: 38px;
+    width: auto;
+    min-width: 118px;
+    padding: 0 12px;
+    gap: 7px;
+    white-space: nowrap;
+    font-size: 12px;
+    border-radius: 8px;
+}
+.ictu-users-more-chevron { transition: transform .16s ease; }
+.ictu-users-more.is-active .ictu-users-more-chevron { transform: rotate(90deg); }
+.ictu-users-extra-filters {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 8px);
+    right: 0;
+    width: min(320px, calc(100vw - 40px));
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-elevated);
+    box-shadow: 0 12px 30px rgba(23, 50, 83, .14);
+}
+.ictu-users-extra-filters[hidden] { display: none !important; }
+.ictu-users-extra-heading {
+    margin: 0 0 10px;
+    color: var(--heading);
+    font-size: 12.5px;
+    font-weight: 750;
+}
+.ictu-users-extra-filters .ictu-users-filter-field + .ictu-users-filter-field { margin-top: 10px; }
+.ictu-users-extra-filters .ictu-users-reset {
+    display: inline;
+    width: auto;
+    min-width: 0;
+    height: auto;
+    min-height: 0;
+    margin: 12px 0 0;
+    padding: 0;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #1677ff !important;
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.35;
+    text-decoration: none;
+    cursor: pointer;
+}
+.ictu-users-extra-filters .ictu-users-reset:hover,
+.ictu-users-extra-filters .ictu-users-reset:focus-visible {
+    color: #0b5fd7 !important;
+    text-decoration: underline;
+}
+@media (max-width: 1100px) {
+    .ictu-users-filter-grid { grid-template-columns: minmax(240px, 1.7fr) repeat(2, minmax(140px, 1fr)); }
+    .ictu-users-filter-field-search { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+    .ictu-shell { --sidebar-width: 232px; --topbar-height: 60px; }
+    .ictu-shell .app-topbar { min-height: 60px; padding: 8px 13px; }
+    .ictu-shell .topbar-title strong { font-size: 14px; }
+}
+@media (max-width: 620px) {
+    .ictu-users-filter-grid { grid-template-columns: minmax(0, 1fr); }
+    .ictu-users-filter-field-search { grid-column: auto; }
+    .ictu-users-more { width: 100%; }
+    .ictu-users-filter-actions { width: 100%; }
+    .ictu-users-extra-filters { left: 0; right: auto; width: 100%; }
+}
+
+
+/* Preserve Edit User primary-action hover behavior. */
+.ictu-form-actions .button.primary:hover,
+.ictu-form-actions .button.primary:focus-visible {
+    color: #fff;
+    background: var(--primary-action-hover);
+    border-color: var(--primary-action-hover);
+    box-shadow: var(--shadow-sm);
+}
+
 </style>

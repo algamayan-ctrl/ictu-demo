@@ -7,6 +7,14 @@
     $addingNewUnit = filled($newUnitName) || old('organizational_unit_id') === '__NEW__';
     $historicalPrimaryUnit = $historicalPrimaryUnit ?? null;
     $historicalAdditionalUnits = $historicalAdditionalUnits ?? collect();
+    $pendingRegistrationDeletionBlocker = $pendingRegistrationDeletionBlocker ?? null;
+    $canDeletePendingRegistration = $user->exists && !$user->hasVerifiedInstitutionalEmail()
+        && $pendingRegistrationDeletionBlocker === null;
+    $isPendingUnverified = $user->exists && !$user->hasVerifiedInstitutionalEmail();
+    $isVerifiedActive = $user->exists && $user->hasVerifiedInstitutionalEmail()
+        && $user->account_status?->value === 'ACTIVE' && !$isSelfProtected;
+    $isVerifiedInactive = $user->exists && $user->hasVerifiedInstitutionalEmail()
+        && $user->account_status?->value === 'INACTIVE' && !$isSelfProtected;
     $selectedAdditionalUnitIds = collect(old('additional_organizational_unit_ids', $additionalUnitIds ?? []))
         ->map(fn ($id) => (int) $id)->unique()->values();
 @endphp
@@ -273,7 +281,7 @@
 
         <div class="ictu-form-actions">
             <div class="ictu-form-action-left">
-                @if($user->exists && !$user->hasVerifiedInstitutionalEmail() && !$isSelfProtected && !$user->last_login_at)
+                @if($canDeletePendingRegistration)
                     <button type="submit" form="ictu-delete-pending-registration-form"
                             class="button secondary ictu-delete-account-button"
                             id="ictu-delete-pending-registration-button"
@@ -281,6 +289,35 @@
                         <x-icon name="trash" size="16" /> Delete Account
                     </button>
                     <small class="field-note">For mistaken, unused registrations only. Verified accounts cannot be deleted here.</small>
+                @elseif($isPendingUnverified && $pendingRegistrationDeletionBlocker)
+                    <small class="field-note">
+                        @switch($pendingRegistrationDeletionBlocker)
+                            @case('previous_login')
+                                This account cannot be deleted because it has previously signed in.
+                                @break
+                            @case('current_user')
+                                You cannot delete the account you are currently using.
+                                @break
+                            @case('active_session')
+                                This account cannot be deleted while an active session exists.
+                                @break
+                            @case('linked_records')
+                                This account cannot be deleted because linked system records must be preserved.
+                                @break
+                        @endswitch
+                    </small>
+                @elseif($isVerifiedActive)
+                    <button type="submit" form="ictu-deactivate-account-form" class="button secondary"
+                            id="ictu-deactivate-account-button"
+                            aria-label="Deactivate account for {{ $user->full_name }}">
+                        <x-icon name="lock" size="16" /> Deactivate Account
+                    </button>
+                @elseif($isVerifiedInactive)
+                    <button type="submit" form="ictu-reactivate-account-form" class="button secondary"
+                            id="ictu-reactivate-account-button"
+                            aria-label="Reactivate account for {{ $user->full_name }}">
+                        <x-icon name="cycle" size="16" /> Reactivate Account
+                    </button>
                 @endif
             </div>
             <div class="ictu-form-action-right">
@@ -290,13 +327,31 @@
         </div>
     </form>
 
-    @if($user->exists && !$user->hasVerifiedInstitutionalEmail() && !$isSelfProtected && !$user->last_login_at)
+    @if($canDeletePendingRegistration)
         {{-- Separate form: Delete must never submit the unsaved changes in the Edit User form. --}}
         <form id="ictu-delete-pending-registration-form" method="post"
               action="{{ route('administration.users.delete-pending', $user) }}"
               data-preserve-submit-label="true" hidden>
             @csrf
             @method('DELETE')
+        </form>
+    @endif
+
+    @if($isVerifiedActive)
+        <form id="ictu-deactivate-account-form" method="post"
+              action="{{ route('administration.users.deactivate', $user) }}"
+              data-preserve-submit-label="true" hidden>
+            @csrf
+            @method('PATCH')
+        </form>
+    @endif
+
+    @if($isVerifiedInactive)
+        <form id="ictu-reactivate-account-form" method="post"
+              action="{{ route('administration.users.reactivate', $user) }}"
+              data-preserve-submit-label="true" hidden>
+            @csrf
+            @method('PATCH')
         </form>
     @endif
 
@@ -438,6 +493,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteButton = document.getElementById('ictu-delete-pending-registration-button');
     deleteButton?.addEventListener('click', event => {
         if (!window.confirm('Delete this unverified, unused account? This cannot be undone. If the mailbox is valid but mistyped, editing the email and resending verification is safer.')) {
+            event.preventDefault();
+        }
+    });
+
+    const deactivateButton = document.getElementById('ictu-deactivate-account-button');
+    deactivateButton?.addEventListener('click', event => {
+        if (!window.confirm('Deactivate this verified account? Portal access will be disabled, but borrowing history, custody transactions, penalties, and audit records will be preserved.')) {
+            event.preventDefault();
+        }
+    });
+
+    const reactivateButton = document.getElementById('ictu-reactivate-account-button');
+    reactivateButton?.addEventListener('click', event => {
+        if (!window.confirm('Reactivate this verified account? Portal access will be restored and all historical records will remain unchanged.')) {
             event.preventDefault();
         }
     });

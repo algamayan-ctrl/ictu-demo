@@ -103,6 +103,34 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
         $this->assertSame(AccountStatus::Active, $ictu->fresh()->account_status);
     }
 
+    public function test_ictu_can_reactivate_only_another_verified_inactive_account(): void
+    {
+        $ictu = $this->ictu();
+        $inactive = User::factory()->create([
+            'email' => 'reactivate.borrower@cspc.edu.ph',
+            'account_status' => AccountStatus::Inactive,
+        ]);
+        $pending = User::factory()->unverified()->create([
+            'email' => 'pending-reactivate@cspc.edu.ph',
+            'account_status' => AccountStatus::Inactive,
+        ]);
+
+        $this->actingAs($ictu)
+            ->patch(route('administration.users.reactivate', $inactive))
+            ->assertRedirect(route('administration.users.index'));
+
+        $this->assertSame(AccountStatus::Active, $inactive->fresh()->account_status);
+        $this->assertDatabaseHas('audit_events', [
+            'action_code' => 'USER_ACCOUNT_UPDATED',
+            'record_type' => User::class,
+            'record_id' => $inactive->id,
+        ]);
+
+        $this->patch(route('administration.users.reactivate', $pending))
+            ->assertSessionHasErrors('account');
+        $this->assertSame(AccountStatus::Inactive, $pending->fresh()->account_status);
+    }
+
     public function test_borrower_cannot_deactivate_another_account(): void
     {
         $borrower = User::factory()->create(['email' => 'another.borrower@cspc.edu.ph']);

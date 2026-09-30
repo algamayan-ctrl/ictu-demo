@@ -655,6 +655,9 @@ Route::middleware(['auth', 'active', 'verified-email'])->group(function (): void
             Route::patch('/users/{user}/deactivate', [UserAdministrationController::class, 'deactivate'])
                 ->name('users.deactivate');
 
+            Route::patch('/users/{user}/reactivate', [UserAdministrationController::class, 'reactivate'])
+                ->name('users.reactivate');
+
             // Correct only unused, unverified registration mistakes; never delete operational history.
             Route::delete('/users/{user}/pending', [UserAdministrationController::class, 'deletePendingRegistration'])
                 ->name('users.delete-pending');

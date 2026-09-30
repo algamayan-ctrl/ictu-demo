@@ -56,6 +56,88 @@ class IctuPendingRegistrationDeletionTest extends TestCase
             ->assertOk()->assertSee('Create Account')->assertDontSee('Delete Account');
     }
 
+    public function test_manage_form_shows_the_matching_verified_account_lifecycle_action(): void
+    {
+        $ictu = $this->ictu();
+        $active = User::factory()->create(['email' => 'active-lifecycle@cspc.edu.ph']);
+        $inactive = User::factory()->create([
+            'email' => 'inactive-lifecycle@cspc.edu.ph',
+            'account_status' => AccountStatus::Inactive,
+        ]);
+        $linkedPending = User::factory()->unverified()->create(['email' => 'linked-pending@cspc.edu.ph']);
+        DB::table('borrower_restrictions')->insert([
+            'borrower_user_id' => $linkedPending->id,
+            'restriction_type' => 'ADMIN_REVIEW',
+            'reason' => 'Preservation test',
+            'status' => 'ACTIVE',
+            'effective_from' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($ictu)->get(route('administration.users.edit', $active))
+            ->assertOk()
+            ->assertSee('Deactivate Account')
+            ->assertSee(route('administration.users.deactivate', $active), false)
+            ->assertDontSee('Delete Account')
+            ->assertDontSee('Reactivate Account');
+
+        $this->get(route('administration.users.edit', $inactive))
+            ->assertOk()
+            ->assertSee('Reactivate Account')
+            ->assertSee(route('administration.users.reactivate', $inactive), false)
+            ->assertDontSee('Delete Account')
+            ->assertDontSee('Deactivate Account');
+
+        $this->get(route('administration.users.edit', $linkedPending))
+            ->assertOk()
+            ->assertDontSee('Delete Account')
+            ->assertSee('This account cannot be deleted because linked system records must be preserved.')
+            ->assertDontSee(route('administration.users.delete-pending', $linkedPending), false);
+    }
+
+    public function test_manage_form_explains_why_an_unverified_account_cannot_be_deleted(): void
+    {
+        $ictu = $this->ictu();
+        $previouslySignedIn = User::factory()->unverified()->create([
+            'email' => 'previously-signed-in@cspc.edu.ph',
+            'last_login_at' => now(),
+        ]);
+        $activeSession = User::factory()->unverified()->create(['email' => 'active-session@cspc.edu.ph']);
+        DB::table('sessions')->insert([
+            'id' => str_repeat('s', 40),
+            'user_id' => $activeSession->id,
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'PHPUnit',
+            'payload' => 'test',
+            'last_activity' => now()->timestamp,
+        ]);
+
+        $this->actingAs($ictu)->get(route('administration.users.edit', $previouslySignedIn))
+            ->assertOk()
+            ->assertDontSee('ictu-delete-pending-registration-button')
+            ->assertSee('This account cannot be deleted because it has previously signed in.');
+
+        $this->get(route('administration.users.edit', $activeSession))
+            ->assertOk()
+            ->assertDontSee('ictu-delete-pending-registration-button')
+            ->assertSee('This account cannot be deleted while an active session exists.');
+        $this->delete(route('administration.users.delete-pending', $activeSession))
+            ->assertSessionHasErrors('account');
+        $this->assertDatabaseHas('users', ['id' => $activeSession->id]);
+
+        $pendingIctu = User::factory()->unverified()->create([
+            'email' => 'self-protected-pending@cspc.edu.ph',
+            'access_classification' => AccessClassification::IctuMaintainer,
+            'account_status' => AccountStatus::Active,
+            'organizational_unit_id' => OrganizationalUnit::where('unit_code', 'ICTU')->firstOrFail()->id,
+        ]);
+        $this->actingAs($pendingIctu)->get(route('administration.users.edit', $pendingIctu))
+            ->assertOk()
+            ->assertDontSee('ictu-delete-pending-registration-button')
+            ->assertSee('You cannot delete the account you are currently using.');
+    }
+
     public function test_ictu_deletes_only_unused_pending_registration_and_keeps_an_audit_trail(): void
     {
         $ictu = $this->ictu();

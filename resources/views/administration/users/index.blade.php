@@ -93,10 +93,10 @@
                 <span class="ictu-users-pagination-divider" aria-hidden="true"></span>
                 <span id="ictu-user-page-indicator" aria-live="polite">{{ $users->count() ? '1–'.min(7, $users->count()).' of '.$users->count() : '0–0 of 0' }}</span>
                 <div class="ictu-users-pagination-buttons">
-                    <button type="button" class="ictu-users-page-button" id="ictu-user-prev" aria-label="Previous page" disabled>
+                    <button type="button" class="ictu-users-page-button icon-button" id="ictu-user-prev" aria-label="Previous page" disabled>
                         <x-icon name="chevron-right" size="17" class="is-rotated" />
                     </button>
-                    <button type="button" class="ictu-users-page-button" id="ictu-user-next" aria-label="Next page">
+                    <button type="button" class="ictu-users-page-button icon-button" id="ictu-user-next" aria-label="Next page">
                         <x-icon name="chevron-right" size="17" />
                     </button>
                 </div>

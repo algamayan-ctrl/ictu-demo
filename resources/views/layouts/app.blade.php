@@ -432,6 +432,292 @@
         }
 </style>
     @endguest
+    @if(request()->routeIs('reports.audit'))
+        <link rel="stylesheet" href="{{ asset('css/reports-audit.css') }}?v={{ filemtime(public_path('css/reports-audit.css')) }}">
+    @elseif(request()->routeIs('reports.notifications'))
+        <link rel="stylesheet" href="{{ asset('css/reports-notifications.css') }}?v={{ filemtime(public_path('css/reports-notifications.css')) }}">
+    @endif
+    {{-- ICTU COMPACT WORKSPACE START --}}
+    <style id="ictu-compact-workspace">
+        /* One visual rhythm for the ICTU workspace. Page structures stay intact;
+           only shell sizing, spacing, and dense data presentation are normalized. */
+        .ictu-workspace-shell {
+            --sidebar-width: 232px;
+            --topbar-height: 60px;
+            --content-gutter: 22px;
+        }
+
+        .ictu-workspace-shell .app-stage { min-width: 0; }
+        .ictu-workspace-shell .app-sidebar { background: #eaf5ff !important; }
+        .ictu-workspace-shell .sidebar-brand-row {
+            min-height: 66px !important;
+            padding: 7px 12px 5px !important;
+            border-bottom: 0 !important;
+        }
+        .ictu-workspace-shell .sidebar-brand.sidebar-brand-logo {
+            min-height: 48px !important;
+            padding: 3px 6px !important;
+            justify-content: flex-start !important;
+        }
+        .ictu-workspace-shell .sidebar-brand-logo-image {
+            max-width: 176px !important;
+            max-height: 44px !important;
+            object-position: left center !important;
+        }
+        .ictu-workspace-shell .sidebar-label {
+            margin: 10px 17px 8px !important;
+            font-size: 10.5px !important;
+            letter-spacing: .14em !important;
+        }
+        .ictu-workspace-shell .sidebar-nav {
+            gap: 5px !important;
+            padding: 0 9px 12px !important;
+        }
+        .ictu-workspace-shell .sidebar-nav a {
+            min-height: 44px !important;
+            padding: 0 12px !important;
+            gap: 10px !important;
+            border-radius: 11px !important;
+            font-size: 12.5px !important;
+            font-weight: 700 !important;
+        }
+        .ictu-workspace-shell .sidebar-nav a .nav-icon {
+            width: 20px !important;
+            min-width: 20px !important;
+        }
+        .ictu-workspace-shell .sidebar-nav a .nav-icon svg {
+            width: 19px !important;
+            height: 19px !important;
+        }
+
+        .ictu-workspace-shell .app-topbar {
+            min-height: 60px !important;
+            padding: 7px 22px !important;
+            gap: 10px !important;
+            background: var(--surface-elevated) !important;
+        }
+        .ictu-workspace-shell .topbar-title {
+            display: grid !important;
+            gap: 0 !important;
+            min-width: 0;
+        }
+        .ictu-workspace-shell .topbar-title strong {
+            font-size: 15px !important;
+            font-weight: 750 !important;
+            line-height: 1.2 !important;
+            letter-spacing: -.01em !important;
+        }
+        .ictu-workspace-shell .account-nav { gap: 8px !important; }
+        .ictu-workspace-shell .account-menu-toggle { gap: 8px !important; }
+        .ictu-workspace-shell .account-menu-name {
+            max-width: 190px !important;
+            font-size: 12.5px !important;
+        }
+        .ictu-workspace-shell .account-menu-toggle .user-avatar {
+            width: 36px !important;
+            height: 36px !important;
+            flex-basis: 36px !important;
+            font-size: 11px !important;
+        }
+        .ictu-workspace-shell .notification-control .ui-icon {
+            width: 19px !important;
+            height: 19px !important;
+        }
+
+        .ictu-workspace-shell .app-main,
+        .ictu-workspace-shell .app-main.ictu-admin-main,
+        .ictu-workspace-shell .app-main.ictu-audit-main {
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 18px 22px 30px !important;
+        }
+        .ictu-workspace-shell .page-heading { margin-bottom: 12px !important; column-gap: 14px; }
+        .ictu-workspace-shell .page-heading h1 {
+            margin: 1px 0 3px !important;
+            font-size: clamp(21px, 1.65vw, 25px) !important;
+            line-height: 1.18 !important;
+        }
+        .ictu-workspace-shell .page-heading p:not(.eyebrow) {
+            font-size: 12.5px !important;
+            line-height: 1.4 !important;
+        }
+        .ictu-workspace-shell .eyebrow {
+            margin-bottom: 3px !important;
+            font-size: 9.5px !important;
+        }
+        .ictu-workspace-shell .content-area { margin-top: 12px !important; }
+
+        /* User Accounts: preserve layout, tighten controls and rows. */
+        .ictu-workspace-shell .ictu-users-heading { margin-bottom: 10px !important; }
+        .ictu-workspace-shell .ictu-users-heading .ictu-register-button {
+            height: 36px !important;
+            min-height: 36px !important;
+            padding-inline: 13px !important;
+            font-size: 12px !important;
+        }
+        .ictu-workspace-shell .ictu-users-area { gap: 10px !important; }
+        .ictu-workspace-shell .ictu-users-filter-grid {
+            gap: 10px !important;
+            padding: 12px 14px !important;
+        }
+        .ictu-workspace-shell .ictu-users-filter-field { gap: 5px !important; }
+        .ictu-workspace-shell .ictu-users-filter-field > label { font-size: 11px !important; }
+        .ictu-workspace-shell .ictu-users-filter-field :is(input, select),
+        .ictu-workspace-shell .ictu-users-borrowing-actions > button {
+            height: 38px !important;
+            min-height: 38px !important;
+            font-size: 12px !important;
+        }
+        .ictu-workspace-shell .ictu-users-list-toolbar {
+            min-height: 48px !important;
+            padding: 7px 14px !important;
+        }
+        .ictu-workspace-shell .ictu-users-list-title h2 { font-size: 16px !important; }
+        .ictu-workspace-shell .ictu-users-table th { padding: 9px 10px !important; }
+        .ictu-workspace-shell .ictu-users-table td {
+            height: 62px !important;
+            padding: 5px 10px !important;
+            font-size: 11.5px !important;
+        }
+        .ictu-workspace-shell .ictu-user-identity-wrap {
+            grid-template-columns: 36px minmax(0, 1fr) !important;
+            gap: 9px !important;
+        }
+        .ictu-workspace-shell .ictu-user-avatar {
+            width: 36px !important;
+            height: 36px !important;
+            font-size: 11.5px !important;
+        }
+        .ictu-workspace-shell .ictu-user-identity-copy strong,
+        .ictu-workspace-shell .ictu-user-number-cell strong,
+        .ictu-workspace-shell .ictu-user-unit-cell strong,
+        .ictu-workspace-shell .ictu-user-access-cell strong { font-size: 11.5px !important; }
+        .ictu-workspace-shell .ictu-user-identity-copy span,
+        .ictu-workspace-shell .ictu-user-identity-copy a,
+        .ictu-workspace-shell .ictu-user-unit-cell span,
+        .ictu-workspace-shell .ictu-user-access-cell span { font-size: 10.75px !important; }
+
+        /* Audit Trail: same hierarchy with Gmail-like compact rows. */
+        .ictu-workspace-shell .ictu-audit-area { gap: 10px !important; }
+        .ictu-workspace-shell .ictu-audit-filter-grid {
+            gap: 10px !important;
+            padding: 12px 14px !important;
+        }
+        .ictu-workspace-shell .ictu-audit-filter-field { gap: 5px !important; }
+        .ictu-workspace-shell .ictu-audit-filter-field label { font-size: 11px !important; }
+        .ictu-workspace-shell .ictu-audit-filter-field :is(input, select),
+        .ictu-workspace-shell .ictu-audit-filter-field button {
+            height: 38px !important;
+            min-height: 38px !important;
+            font-size: 12px !important;
+        }
+        .ictu-workspace-shell .ictu-audit-table-toolbar {
+            min-height: 48px !important;
+            padding: 7px 14px !important;
+        }
+        .ictu-workspace-shell .ictu-audit-table-heading h1 { font-size: 16px !important; }
+        .ictu-workspace-shell .ictu-audit-table th { padding: 9px 12px !important; }
+        .ictu-workspace-shell .ictu-audit-table td {
+            height: 58px !important;
+            padding: 6px 12px !important;
+            font-size: 11.5px !important;
+        }
+        .ictu-workspace-shell .ictu-audit-activity {
+            grid-template-columns: 34px minmax(0, 1fr) !important;
+            gap: 9px !important;
+        }
+        .ictu-workspace-shell .ictu-audit-row-icon { width: 34px !important; height: 34px !important; }
+        .ictu-workspace-shell .ictu-audit-cell-copy > strong,
+        .ictu-workspace-shell .ictu-audit-time > strong { font-size: 11.5px !important; }
+        .ictu-workspace-shell .ictu-audit-cell-copy > span,
+        .ictu-workspace-shell .ictu-audit-time > span { font-size: 10.75px !important; }
+        .ictu-workspace-shell .ictu-audit-view-button {
+            min-width: 108px !important;
+            min-height: 34px !important;
+            padding: 5px 9px !important;
+            font-size: 11.5px !important;
+        }
+        .ictu-workspace-shell .ictu-audit-expanded-row td { padding: 9px 12px !important; }
+        .ictu-workspace-shell .ictu-audit-details-panel { padding: 10px 12px !important; }
+
+        /* System Configuration: preserve cards, reduce empty space. */
+        .ictu-workspace-shell .ictu-system-config-area { gap: 10px !important; }
+        .ictu-workspace-shell .ictu-config-section-heading h2 { margin-bottom: 2px !important; }
+        .ictu-workspace-shell .ictu-config-section-heading p { font-size: 12px !important; }
+        .ictu-workspace-shell .ictu-service-status-grid,
+        .ictu-workspace-shell .ictu-technical-settings-grid { gap: 12px !important; }
+        .ictu-workspace-shell .ictu-service-status-card,
+        .ictu-workspace-shell .ictu-technical-setting-card { padding: 15px !important; }
+        .ictu-workspace-shell .ictu-service-status-card > p,
+        .ictu-workspace-shell .ictu-technical-setting-card > p {
+            margin: 8px 0 !important;
+            font-size: 12px !important;
+        }
+        .ictu-workspace-shell .ictu-readonly-value { padding: 9px 10px !important; }
+
+        /* Delivery Records: shared density with Audit Trail. */
+        .ictu-workspace-shell .notification-delivery-area { gap: 10px !important; }
+        .ictu-workspace-shell .notification-delivery-toolbar {
+            gap: 10px !important;
+            padding: 12px 14px !important;
+        }
+        .ictu-workspace-shell .notification-delivery-toolbar label {
+            margin-bottom: 5px !important;
+            font-size: 11px !important;
+        }
+        .ictu-workspace-shell .notification-delivery-toolbar input,
+        .ictu-workspace-shell .notification-delivery-toolbar select,
+        .ictu-workspace-shell .notification-delivery-reset {
+            min-height: 38px !important;
+            height: 38px !important;
+            font-size: 12px !important;
+        }
+        .ictu-workspace-shell .notification-delivery-table-toolbar {
+            min-height: 48px !important;
+            padding: 7px 14px !important;
+        }
+        .ictu-workspace-shell .notification-delivery-table th { padding: 9px 10px !important; }
+        .ictu-workspace-shell .notification-delivery-table td {
+            padding: 8px 10px !important;
+            font-size: 11.5px !important;
+        }
+        .ictu-workspace-shell .notification-delivery-view-button {
+            min-height: 34px !important;
+            padding: 5px 9px !important;
+            font-size: 11.5px !important;
+        }
+        .ictu-workspace-shell .notification-delivery-details-panel { padding: 9px 10px 10px !important; }
+
+        /* Dashboard structure remains unchanged; only the outer rhythm is tighter. */
+        .ictu-workspace-shell .dashboard-heading { margin-bottom: 12px !important; }
+        .ictu-workspace-shell .dashboard-stat-grid { margin-bottom: 12px !important; }
+        .ictu-workspace-shell .dashboard-recent-row,
+        .ictu-workspace-shell .dashboard-watch-row,
+        .ictu-workspace-shell .dashboard-primary-queue-row {
+            min-height: 52px !important;
+            padding: 8px 14px !important;
+        }
+        .ictu-workspace-shell .dashboard-recent-card > .card-header,
+        .ictu-workspace-shell .dashboard-balanced-grid > .queue-card > .card-header {
+            padding: 10px 14px !important;
+        }
+
+        html[data-theme="dark"] .ictu-workspace-shell .app-sidebar { background: #070518 !important; }
+
+        @media (max-width: 1000px) {
+            .ictu-workspace-shell { --sidebar-width: 220px; --content-gutter: 16px; }
+            .ictu-workspace-shell .app-main,
+            .ictu-workspace-shell .app-main.ictu-admin-main,
+            .ictu-workspace-shell .app-main.ictu-audit-main { padding: 16px !important; }
+        }
+        @media (max-width: 760px) {
+            .ictu-workspace-shell { --sidebar-width: 248px; --topbar-height: 58px; }
+            .ictu-workspace-shell .app-topbar { min-height: 58px !important; padding: 7px 12px !important; }
+            .ictu-workspace-shell .account-menu-name { display: none; }
+        }
+    </style>
+    {{-- ICTU COMPACT WORKSPACE END --}}
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -820,288 +1106,6 @@
     })();
     </script>
     {{-- SPMU-ACPMP NUMBER INPUT SAFETY END --}}
-
-    {{-- ICTU COMPACT WORKSPACE START --}}
-    <style id="ictu-compact-workspace">
-        /* One visual rhythm for the ICTU workspace. Page structures stay intact;
-           only shell sizing, spacing, and dense data presentation are normalized. */
-        .ictu-workspace-shell {
-            --sidebar-width: 232px;
-            --topbar-height: 60px;
-            --content-gutter: 22px;
-        }
-
-        .ictu-workspace-shell .app-stage { min-width: 0; }
-        .ictu-workspace-shell .app-sidebar { background: #eaf5ff !important; }
-        .ictu-workspace-shell .sidebar-brand-row {
-            min-height: 66px !important;
-            padding: 7px 12px 5px !important;
-            border-bottom: 0 !important;
-        }
-        .ictu-workspace-shell .sidebar-brand.sidebar-brand-logo {
-            min-height: 48px !important;
-            padding: 3px 6px !important;
-            justify-content: flex-start !important;
-        }
-        .ictu-workspace-shell .sidebar-brand-logo-image {
-            max-width: 176px !important;
-            max-height: 44px !important;
-            object-position: left center !important;
-        }
-        .ictu-workspace-shell .sidebar-label {
-            margin: 10px 17px 8px !important;
-            font-size: 10.5px !important;
-            letter-spacing: .14em !important;
-        }
-        .ictu-workspace-shell .sidebar-nav {
-            gap: 5px !important;
-            padding: 0 9px 12px !important;
-        }
-        .ictu-workspace-shell .sidebar-nav a {
-            min-height: 44px !important;
-            padding: 0 12px !important;
-            gap: 10px !important;
-            border-radius: 11px !important;
-            font-size: 12.5px !important;
-            font-weight: 700 !important;
-        }
-        .ictu-workspace-shell .sidebar-nav a .nav-icon {
-            width: 20px !important;
-            min-width: 20px !important;
-        }
-        .ictu-workspace-shell .sidebar-nav a .nav-icon svg {
-            width: 19px !important;
-            height: 19px !important;
-        }
-
-        .ictu-workspace-shell .app-topbar {
-            min-height: 60px !important;
-            padding: 7px 22px !important;
-            gap: 10px !important;
-            background: var(--surface-elevated) !important;
-        }
-        .ictu-workspace-shell .topbar-title {
-            display: grid !important;
-            gap: 0 !important;
-            min-width: 0;
-        }
-        .ictu-workspace-shell .topbar-title strong {
-            font-size: 15px !important;
-            font-weight: 750 !important;
-            line-height: 1.2 !important;
-            letter-spacing: -.01em !important;
-        }
-        .ictu-workspace-shell .account-nav { gap: 8px !important; }
-        .ictu-workspace-shell .account-menu-toggle { gap: 8px !important; }
-        .ictu-workspace-shell .account-menu-name {
-            max-width: 190px !important;
-            font-size: 12.5px !important;
-        }
-        .ictu-workspace-shell .account-menu-toggle .user-avatar {
-            width: 36px !important;
-            height: 36px !important;
-            flex-basis: 36px !important;
-            font-size: 11px !important;
-        }
-        .ictu-workspace-shell .notification-control .ui-icon {
-            width: 19px !important;
-            height: 19px !important;
-        }
-
-        .ictu-workspace-shell .app-main,
-        .ictu-workspace-shell .app-main.ictu-admin-main,
-        .ictu-workspace-shell .app-main.ictu-audit-main {
-            width: 100% !important;
-            max-width: none !important;
-            margin: 0 !important;
-            padding: 18px 22px 30px !important;
-        }
-        .ictu-workspace-shell .page-heading { margin-bottom: 12px !important; column-gap: 14px; }
-        .ictu-workspace-shell .page-heading h1 {
-            margin: 1px 0 3px !important;
-            font-size: clamp(21px, 1.65vw, 25px) !important;
-            line-height: 1.18 !important;
-        }
-        .ictu-workspace-shell .page-heading p:not(.eyebrow) {
-            font-size: 12.5px !important;
-            line-height: 1.4 !important;
-        }
-        .ictu-workspace-shell .eyebrow {
-            margin-bottom: 3px !important;
-            font-size: 9.5px !important;
-        }
-        .ictu-workspace-shell .content-area { margin-top: 12px !important; }
-
-        /* User Accounts: preserve layout, tighten controls and rows. */
-        .ictu-workspace-shell .ictu-users-heading { margin-bottom: 10px !important; }
-        .ictu-workspace-shell .ictu-users-heading .ictu-register-button {
-            height: 36px !important;
-            min-height: 36px !important;
-            padding-inline: 13px !important;
-            font-size: 12px !important;
-        }
-        .ictu-workspace-shell .ictu-users-area { gap: 10px !important; }
-        .ictu-workspace-shell .ictu-users-filter-grid {
-            gap: 10px !important;
-            padding: 12px 14px !important;
-        }
-        .ictu-workspace-shell .ictu-users-filter-field { gap: 5px !important; }
-        .ictu-workspace-shell .ictu-users-filter-field > label { font-size: 11px !important; }
-        .ictu-workspace-shell .ictu-users-filter-field :is(input, select),
-        .ictu-workspace-shell .ictu-users-borrowing-actions > button {
-            height: 38px !important;
-            min-height: 38px !important;
-            font-size: 12px !important;
-        }
-        .ictu-workspace-shell .ictu-users-list-toolbar {
-            min-height: 48px !important;
-            padding: 7px 14px !important;
-        }
-        .ictu-workspace-shell .ictu-users-list-title h2 { font-size: 16px !important; }
-        .ictu-workspace-shell .ictu-users-table th { padding: 9px 10px !important; }
-        .ictu-workspace-shell .ictu-users-table td {
-            height: 62px !important;
-            padding: 5px 10px !important;
-            font-size: 11.5px !important;
-        }
-        .ictu-workspace-shell .ictu-user-identity-wrap {
-            grid-template-columns: 36px minmax(0, 1fr) !important;
-            gap: 9px !important;
-        }
-        .ictu-workspace-shell .ictu-user-avatar {
-            width: 36px !important;
-            height: 36px !important;
-            font-size: 11.5px !important;
-        }
-        .ictu-workspace-shell .ictu-user-identity-copy strong,
-        .ictu-workspace-shell .ictu-user-number-cell strong,
-        .ictu-workspace-shell .ictu-user-unit-cell strong,
-        .ictu-workspace-shell .ictu-user-access-cell strong { font-size: 11.5px !important; }
-        .ictu-workspace-shell .ictu-user-identity-copy span,
-        .ictu-workspace-shell .ictu-user-identity-copy a,
-        .ictu-workspace-shell .ictu-user-unit-cell span,
-        .ictu-workspace-shell .ictu-user-access-cell span { font-size: 10.75px !important; }
-
-        /* Audit Trail: same hierarchy with Gmail-like compact rows. */
-        .ictu-workspace-shell .ictu-audit-area { gap: 10px !important; }
-        .ictu-workspace-shell .ictu-audit-filter-grid {
-            gap: 10px !important;
-            padding: 12px 14px !important;
-        }
-        .ictu-workspace-shell .ictu-audit-filter-field { gap: 5px !important; }
-        .ictu-workspace-shell .ictu-audit-filter-field label { font-size: 11px !important; }
-        .ictu-workspace-shell .ictu-audit-filter-field :is(input, select),
-        .ictu-workspace-shell .ictu-audit-filter-field button {
-            height: 38px !important;
-            min-height: 38px !important;
-            font-size: 12px !important;
-        }
-        .ictu-workspace-shell .ictu-audit-table-toolbar {
-            min-height: 48px !important;
-            padding: 7px 14px !important;
-        }
-        .ictu-workspace-shell .ictu-audit-table-heading h1 { font-size: 16px !important; }
-        .ictu-workspace-shell .ictu-audit-table th { padding: 9px 12px !important; }
-        .ictu-workspace-shell .ictu-audit-table td {
-            height: 58px !important;
-            padding: 6px 12px !important;
-            font-size: 11.5px !important;
-        }
-        .ictu-workspace-shell .ictu-audit-activity {
-            grid-template-columns: 34px minmax(0, 1fr) !important;
-            gap: 9px !important;
-        }
-        .ictu-workspace-shell .ictu-audit-row-icon { width: 34px !important; height: 34px !important; }
-        .ictu-workspace-shell .ictu-audit-cell-copy > strong,
-        .ictu-workspace-shell .ictu-audit-time > strong { font-size: 11.5px !important; }
-        .ictu-workspace-shell .ictu-audit-cell-copy > span,
-        .ictu-workspace-shell .ictu-audit-time > span { font-size: 10.75px !important; }
-        .ictu-workspace-shell .ictu-audit-view-button {
-            min-width: 108px !important;
-            min-height: 34px !important;
-            padding: 5px 9px !important;
-            font-size: 11.5px !important;
-        }
-        .ictu-workspace-shell .ictu-audit-expanded-row td { padding: 9px 12px !important; }
-        .ictu-workspace-shell .ictu-audit-details-panel { padding: 10px 12px !important; }
-
-        /* System Configuration: preserve cards, reduce empty space. */
-        .ictu-workspace-shell .ictu-system-config-area { gap: 10px !important; }
-        .ictu-workspace-shell .ictu-config-section-heading h2 { margin-bottom: 2px !important; }
-        .ictu-workspace-shell .ictu-config-section-heading p { font-size: 12px !important; }
-        .ictu-workspace-shell .ictu-service-status-grid,
-        .ictu-workspace-shell .ictu-technical-settings-grid { gap: 12px !important; }
-        .ictu-workspace-shell .ictu-service-status-card,
-        .ictu-workspace-shell .ictu-technical-setting-card { padding: 15px !important; }
-        .ictu-workspace-shell .ictu-service-status-card > p,
-        .ictu-workspace-shell .ictu-technical-setting-card > p {
-            margin: 8px 0 !important;
-            font-size: 12px !important;
-        }
-        .ictu-workspace-shell .ictu-readonly-value { padding: 9px 10px !important; }
-
-        /* Delivery Records: shared density with Audit Trail. */
-        .ictu-workspace-shell .notification-delivery-area { gap: 10px !important; }
-        .ictu-workspace-shell .notification-delivery-toolbar {
-            gap: 10px !important;
-            padding: 12px 14px !important;
-        }
-        .ictu-workspace-shell .notification-delivery-toolbar label {
-            margin-bottom: 5px !important;
-            font-size: 11px !important;
-        }
-        .ictu-workspace-shell .notification-delivery-toolbar input,
-        .ictu-workspace-shell .notification-delivery-toolbar select,
-        .ictu-workspace-shell .notification-delivery-reset {
-            min-height: 38px !important;
-            height: 38px !important;
-            font-size: 12px !important;
-        }
-        .ictu-workspace-shell .notification-delivery-table-toolbar {
-            min-height: 48px !important;
-            padding: 7px 14px !important;
-        }
-        .ictu-workspace-shell .notification-delivery-table th { padding: 9px 10px !important; }
-        .ictu-workspace-shell .notification-delivery-table td {
-            padding: 8px 10px !important;
-            font-size: 11.5px !important;
-        }
-        .ictu-workspace-shell .notification-delivery-view-button {
-            min-height: 34px !important;
-            padding: 5px 9px !important;
-            font-size: 11.5px !important;
-        }
-        .ictu-workspace-shell .notification-delivery-details-panel { padding: 9px 10px 10px !important; }
-
-        /* Dashboard structure remains unchanged; only the outer rhythm is tighter. */
-        .ictu-workspace-shell .dashboard-heading { margin-bottom: 12px !important; }
-        .ictu-workspace-shell .dashboard-stat-grid { margin-bottom: 12px !important; }
-        .ictu-workspace-shell .dashboard-recent-row,
-        .ictu-workspace-shell .dashboard-watch-row,
-        .ictu-workspace-shell .dashboard-primary-queue-row {
-            min-height: 52px !important;
-            padding: 8px 14px !important;
-        }
-        .ictu-workspace-shell .dashboard-recent-card > .card-header,
-        .ictu-workspace-shell .dashboard-balanced-grid > .queue-card > .card-header {
-            padding: 10px 14px !important;
-        }
-
-        html[data-theme="dark"] .ictu-workspace-shell .app-sidebar { background: #070518 !important; }
-
-        @media (max-width: 1000px) {
-            .ictu-workspace-shell { --sidebar-width: 220px; --content-gutter: 16px; }
-            .ictu-workspace-shell .app-main,
-            .ictu-workspace-shell .app-main.ictu-admin-main,
-            .ictu-workspace-shell .app-main.ictu-audit-main { padding: 16px !important; }
-        }
-        @media (max-width: 760px) {
-            .ictu-workspace-shell { --sidebar-width: 248px; --topbar-height: 58px; }
-            .ictu-workspace-shell .app-topbar { min-height: 58px !important; padding: 7px 12px !important; }
-            .ictu-workspace-shell .account-menu-name { display: none; }
-        }
-    </style>
-    {{-- ICTU COMPACT WORKSPACE END --}}
 
 </body>
 </html>

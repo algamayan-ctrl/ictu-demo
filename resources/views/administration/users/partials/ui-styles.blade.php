@@ -139,22 +139,25 @@
     font-size: 12px;
 }
 .ictu-users-pagination-divider { height: 23px; width: 1px; background: var(--border); }
-.ictu-users-pagination-buttons { display: inline-flex; gap: 7px; }
+.ictu-users-pagination-buttons { display: inline-flex; gap: 2px; }
 .ictu-users-page-button {
     display: inline-grid;
     place-items: center;
     flex: none;
-    width: 36px;
-    height: 36px;
+    width: 24px;
+    height: 24px;
     padding: 0;
-    border-radius: 9px;
-    border: 1px solid var(--border-strong);
-    background: var(--surface-elevated);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     color: var(--text-secondary);
     cursor: pointer;
 }
-.ictu-users-page-button:hover:not(:disabled) { color: var(--interactive); border-color: var(--interactive); background: var(--surface-hover); }
-.ictu-users-page-button:disabled { opacity: .4; cursor: not-allowed; }
+.ictu-users-page-button:not(:disabled) .ui-icon { color: var(--interactive); }
+.ictu-users-page-button:hover:not(:disabled) { color: var(--interactive); background: transparent; }
+.ictu-users-page-button:disabled { opacity: 1; cursor: not-allowed; }
+.ictu-users-page-button:disabled .ui-icon { color: var(--text-soft); }
 .ictu-users-page-button .is-rotated { transform: rotate(180deg); }
 .ictu-users-table-scroll { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
 .ictu-users-table { width: 100%; min-width: 950px; table-layout: fixed; border-collapse: collapse; border-spacing: 0; }
@@ -430,7 +433,7 @@
 }
 .ictu-users-heading .ictu-register-button:hover { color: #fff; background: #105bd3; border-color: #105bd3; }
 .ictu-users-heading .ictu-register-button:focus-visible { outline: 2px solid #1769e7; outline-offset: 3px; }
-.ictu-users-area { display: grid; width: 100%; min-width: 0; gap: 14px; margin: 0 !important; }
+.ictu-users-area { display: grid; width: 100%; min-width: 0; align-content: start; gap: 14px; margin: 0 !important; }
 .ictu-users-filter-card, .ictu-users-list-card {
     min-width: 0; margin: 0; padding: 0; overflow: hidden;
     background: var(--surface-elevated); border: 1px solid #d2dff0;
@@ -460,7 +463,6 @@
 .ictu-users-pagination-meta { gap: 9px; font-size: 12px; font-weight: 500; }
 .ictu-users-pagination-meta > select { width: auto; min-width: 128px; min-height: 32px; padding: 4px 27px 4px 8px; border: 0; background-color: transparent; font-size: 12px; }
 .ictu-users-pagination-divider { height: 20px; }
-.ictu-users-page-button { width: 35px; height: 35px; border-radius: 8px; border-color: #d1dff0; }
 .ictu-users-table-scroll { min-width: 0; width: 100%; max-width: 100%; overflow-x: auto; }
 .ictu-users-table { width: 100%; min-width: 875px; table-layout: fixed; border-collapse: collapse; margin: 0; }
 .ictu-col-user { width: 25%; }

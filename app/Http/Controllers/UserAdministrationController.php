@@ -328,6 +328,59 @@ class UserAdministrationController extends Controller
             ->with('status', "{$user->full_name}'s account has been deactivated. Historical records were preserved.");
     }
 
+    /** Restore portal access for a verified account without changing its history. */
+    public function reactivate(
+        Request $request,
+        User $user,
+        AuditService $audit,
+    ): RedirectResponse {
+        $this->authorizeIctu($request);
+        abort_unless($user->access_classification?->isPortalEnabled(), 404);
+
+        if ((int) $request->user()->getKey() === (int) $user->getKey()) {
+            return redirect()->route('administration.users.index')
+                ->withErrors(['account_status' => 'You cannot reactivate your own ICTU account.']);
+        }
+
+        $changed = DB::transaction(function () use ($user, $audit): bool {
+            $account = User::query()->lockForUpdate()->findOrFail($user->getKey());
+
+            if (! $account->hasVerifiedInstitutionalEmail()) {
+                throw ValidationException::withMessages([
+                    'account' => 'Only verified inactive accounts can be reactivated.',
+                ]);
+            }
+
+            if ($account->account_status !== AccountStatus::Inactive) {
+                return false;
+            }
+
+            $before = ['account_status' => AccountStatus::Inactive->value];
+            $account->account_status = AccountStatus::Active;
+            $account->save();
+
+            $audit->record(
+                'USER_ACCOUNT_UPDATED',
+                $account,
+                before: $before,
+                after: [
+                    'account_status' => AccountStatus::Active->value,
+                    'change_source' => 'ICTU_DIRECTORY_REACTIVATION',
+                ],
+            );
+
+            return true;
+        });
+
+        if (! $changed) {
+            return redirect()->route('administration.users.index')
+                ->with('status', 'This account is not an inactive verified account. No changes were made.');
+        }
+
+        return redirect()->route('administration.users.index')
+            ->with('status', "{$user->full_name}'s account has been reactivated. Historical records were preserved.");
+    }
+
     /**
      * Remove a mistaken registration only while it is unverified and has never
      * been used. This is deliberately narrower than a general User::delete().
@@ -338,23 +391,21 @@ class UserAdministrationController extends Controller
         $this->authorizeIctu($request);
         abort_unless($user->access_classification?->isPortalEnabled(), 404);
 
-        if ((int) $request->user()->getKey() === (int) $user->getKey()) {
+        $actingUserId = (int) $request->user()->getKey();
+        $blocker = $this->pendingRegistrationDeletionBlocker($user, $actingUserId);
+        if ($blocker !== null) {
             return redirect()->route('administration.users.edit', $user)
-                ->withErrors(['account' => 'You cannot delete your own ICTU account.']);
+                ->withErrors(['account' => $this->pendingRegistrationDeletionBlockerMessage($blocker)]);
         }
 
-        DB::transaction(function () use ($user, $audit): void {
+        DB::transaction(function () use ($user, $audit, $actingUserId): void {
             $account = User::query()->lockForUpdate()->findOrFail($user->getKey());
 
-            if ($account->hasVerifiedInstitutionalEmail() || $account->last_login_at !== null) {
+            // Re-evaluate after the lock so UI state can never authorize a stale deletion.
+            $blocker = $this->pendingRegistrationDeletionBlocker($account, $actingUserId);
+            if ($blocker !== null) {
                 throw ValidationException::withMessages([
-                    'account' => 'Only unverified accounts that have never signed in can be deleted. Use Deactivate for established users.',
-                ]);
-            }
-
-            if ($this->pendingAccountHasReferences((int) $account->getKey())) {
-                throw ValidationException::withMessages([
-                    'account' => 'This account has linked activity or historical records and cannot be deleted. Deactivate it instead.',
+                    'account' => $this->pendingRegistrationDeletionBlockerMessage($blocker),
                 ]);
             }
 
@@ -381,6 +432,56 @@ class UserAdministrationController extends Controller
     }
 
     /**
+     * Return the first reason an account cannot be removed as an unused pending
+     * registration. The form and deletion endpoint share this decision; the
+     * endpoint rechecks it while the account row is locked.
+     */
+    private function pendingRegistrationDeletionBlocker(User $user, ?int $actingUserId = null): ?string
+    {
+        if (! $user->exists) {
+            return 'not_persisted';
+        }
+
+        $actingUserId ??= auth()->id();
+        if ($actingUserId !== null && $actingUserId === (int) $user->getKey()) {
+            return 'current_user';
+        }
+
+        if ($user->hasVerifiedInstitutionalEmail()) {
+            return 'verified_email';
+        }
+
+        if ($user->last_login_at !== null) {
+            return 'previous_login';
+        }
+
+        if ($this->pendingAccountHasActiveSession((int) $user->getKey())) {
+            return 'active_session';
+        }
+
+        if ($this->pendingAccountHasReferences((int) $user->getKey())) {
+            return 'linked_records';
+        }
+
+        return null;
+    }
+
+    private function pendingRegistrationDeletionBlockerMessage(string $blocker): string
+    {
+        return match ($blocker) {
+            'current_user' => 'You cannot delete your own ICTU account.',
+            'verified_email', 'previous_login' => 'Only unverified accounts that have never signed in can be deleted. Use Deactivate for established users.',
+            'active_session', 'linked_records' => 'This account has linked activity or historical records and cannot be deleted. Deactivate it instead.',
+            default => 'This account is not eligible for deletion.',
+        };
+    }
+
+    private function pendingAccountHasActiveSession(int $userId): bool
+    {
+        return DB::table('sessions')->where('user_id', $userId)->exists();
+    }
+
+    /**
      * Block deletion if any operational/administrative table references this
      * user, regardless of ON DELETE CASCADE/SET NULL. The only exceptions are
      * the initial role and organizational-assignment pivots created at signup.
@@ -388,10 +489,6 @@ class UserAdministrationController extends Controller
      */
     private function pendingAccountHasReferences(int $userId): bool
     {
-        if (DB::table('sessions')->where('user_id', $userId)->exists()) {
-            return true;
-        }
-
         foreach (Schema::getTableListing(schemaQualified: false) as $table) {
             if (in_array($table, ['users', 'user_roles', 'user_organizational_units'], true)) {
                 continue;
@@ -472,6 +569,7 @@ class UserAdministrationController extends Controller
 
         return view('administration.users.form', [
             'user' => $user,
+            'pendingRegistrationDeletionBlocker' => $this->pendingRegistrationDeletionBlocker($user),
             'units' => $units,
             'additionalUnitIds' => $additionalUnitIds,
             'historicalPrimaryUnit' => $historicalPrimaryUnit,

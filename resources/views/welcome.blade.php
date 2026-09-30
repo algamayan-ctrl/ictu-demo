@@ -47,7 +47,6 @@
         position: relative;
         overflow: visible;
         padding: 0;
-        border-bottom: 1px solid var(--landing-border);
         background: transparent;
     }
 
@@ -557,6 +556,7 @@
 }
 .landing-hero .landing-hero-grid > .landing-login-slot.login-page {
     position: relative;
+    transform: translateY(24px);
     flex: 0 1 420px;
     width: min(420px, 100%) !important;
     min-width: 0;

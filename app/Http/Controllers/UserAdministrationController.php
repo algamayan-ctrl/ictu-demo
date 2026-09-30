@@ -51,9 +51,16 @@ class UserAdministrationController extends Controller
             $query->where('account_status', '!=', 'ACTIVE');
         }
 
+        $verificationFilter = null;
+        if ((string) $request->query('verification', '') === 'pending') {
+            $verificationFilter = 'pending';
+            $query->whereNull('email_verified_at');
+        }
+
         return view('administration.users.index', [
             'users' => $query->orderBy('full_name')->get(),
             'statusFilter' => $statusFilter,
+            'verificationFilter' => $verificationFilter,
         ]);
     }
 

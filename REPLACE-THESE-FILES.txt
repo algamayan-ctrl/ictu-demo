@@ -1,0 +1,20 @@
+APPROVED CHANGE: Active Delegations -> Pending Verification
+
+Replace these production files in your project:
+
+1. app/Http/Controllers/DashboardController.php
+2. app/Http/Controllers/UserAdministrationController.php
+3. resources/views/dashboard.blade.php
+4. resources/views/administration/users/index.blade.php
+
+Optional but recommended regression test replacement:
+5. tests/Feature/DashboardKpiAndGatePassStatusTest.php
+
+Behavior:
+- ICTU Dashboard third KPI is now "Pending Verification".
+- Count = institutional/assignable user accounts whose email_verified_at is NULL.
+- Clicking the KPI opens:
+  /administration/users?verification=pending
+- User Accounts shows only pending-verification users and displays a "Pending Verification" filter-context banner.
+- Clearing the banner returns to the complete User Accounts list.
+- The card uses the approved violet styling and email icon.

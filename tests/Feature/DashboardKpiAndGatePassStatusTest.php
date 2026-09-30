@@ -13,7 +13,6 @@ use App\Models\NotificationDelivery;
 use App\Models\NotificationEvent;
 use App\Models\RequestItem;
 use App\Models\RequestVersion;
-use App\Models\TemporaryDelegation;
 use App\Models\User;
 use App\Services\BorrowerObligationService;
 use Carbon\Carbon;
@@ -1121,47 +1120,39 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->assertStringContainsString('value="'.$current->id.'"', $log->getContent());
     }
 
-    public function test_ictu_active_delegations_kpi_drilldown_matches_exact_count(): void
+    public function test_ictu_pending_verification_kpi_drilldown_matches_exact_count(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-        $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
-        $officer = User::factory()->create(['access_classification' => AccessClassification::SpmuOfficer]);
-
-        TemporaryDelegation::query()->create([
-            'office_role' => 'SPMU',
-            'absent_head_user_id' => $head->id,
-            'delegate_user_id' => $officer->id,
-            'recorded_by_user_id' => $ictu->id,
-            'authority_reference' => 'Memo-1',
-            'reason' => 'Fixture',
-            'effective_from' => now()->subDay(),
-            'effective_to' => now()->addDay(),
-            'status' => 'ACTIVE',
+        $ictu = User::factory()->create([
+            'access_classification' => AccessClassification::IctuMaintainer,
+            'email_verified_at' => now(),
         ]);
 
-        TemporaryDelegation::query()->create([
-            'office_role' => 'SPMU',
-            'absent_head_user_id' => $head->id,
-            'delegate_user_id' => $officer->id,
-            'recorded_by_user_id' => $ictu->id,
-            'authority_reference' => 'Memo-2',
-            'reason' => 'Fixture, expired',
-            'effective_from' => now()->subDays(10),
-            'effective_to' => now()->subDays(5),
-            'status' => 'ACTIVE',
+        User::factory()->create([
+            'access_classification' => AccessClassification::BorrowerOnly,
+            'email_verified_at' => null,
+        ]);
+        User::factory()->create([
+            'access_classification' => AccessClassification::SpmuOfficer,
+            'email_verified_at' => null,
+        ]);
+        User::factory()->create([
+            'access_classification' => AccessClassification::BorrowerOnly,
+            'email_verified_at' => now(),
         ]);
 
         $dashboard = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('dashboard'));
         $dashboard->assertOk();
-        $expectedCount = $dashboard->viewData('statistics')['Active Delegations'];
-        $this->assertSame(1, $expectedCount);
+        $expectedCount = $dashboard->viewData('statistics')['Pending Verification'];
+        $this->assertSame(2, $expectedCount);
 
         $drilldown = $this->withSession(['active_workspace' => 'ICTU'])
             ->actingAs($ictu)
-            ->get(route('administration.delegations.index', ['status' => 'active']));
+            ->get(route('administration.users.index', ['verification' => 'pending']));
 
         $drilldown->assertOk();
-        $this->assertSame($expectedCount, $drilldown->viewData('delegations')->count());
+        $this->assertSame($expectedCount, $drilldown->viewData('users')->count());
+        $this->assertSame('pending', $drilldown->viewData('verificationFilter'));
+        $drilldown->assertSee('Pending Verification');
     }
 
     /* ================================================================== */

@@ -13,7 +13,6 @@ use App\Models\Incident;
 use App\Models\LaundryJob;
 use App\Models\NotificationDelivery;
 use App\Models\OverdueCase;
-use App\Models\TemporaryDelegation;
 use App\Models\User;
 use App\Services\AccountabilityCaseTally;
 use App\Services\BorrowerObligationService;
@@ -426,14 +425,17 @@ class DashboardController extends Controller
         } elseif ($workspace === 'ICTU') {
             $dashboardMode = 'ICTU';
 
+            $assignableClassifications = array_map(
+                fn (AccessClassification $classification) => $classification->value,
+                AccessClassification::assignableCases(),
+            );
+
             $statistics = [
                 'Active Accounts' => User::query()->where('account_status', 'ACTIVE')->count(),
                 'Failed Notifications' => NotificationDelivery::query()->actionableFailures()->count(),
-                'Active Delegations' => TemporaryDelegation::query()
-                    ->where('status', 'ACTIVE')
-                    ->whereNull('revoked_at')
-                    ->where('effective_from', '<=', now())
-                    ->where('effective_to', '>=', now())
+                'Pending Verification' => User::query()
+                    ->whereIn('access_classification', $assignableClassifications)
+                    ->whereNull('email_verified_at')
                     ->count(),
                 'Inactive Accounts' => User::query()->where('account_status', '!=', 'ACTIVE')->count(),
             ];

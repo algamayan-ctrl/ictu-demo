@@ -510,11 +510,15 @@
 .dashboard-kpi-card.kpi-accent-info,
 .dashboard-kpi-card.dashboard-kpi-for-approval,
 .dashboard-kpi-card.dashboard-kpi-for-verification,
-.dashboard-kpi-card.dashboard-kpi-active-borrowings,
-.dashboard-kpi-card.dashboard-kpi-active-delegations {
+.dashboard-kpi-card.dashboard-kpi-active-borrowings {
     --dashboard-kpi-start:#32a5f5;
     --dashboard-kpi-mid:#1479ea;
     --dashboard-kpi-end:#075fd3;
+}
+.dashboard-kpi-card.dashboard-kpi-pending-verification {
+    --dashboard-kpi-start:#5968f4;
+    --dashboard-kpi-mid:#5148e8;
+    --dashboard-kpi-end:#4032cb;
 }
 
 
@@ -847,11 +851,17 @@ a.dashboard-kpi-card:focus-visible {
 /* BLUE — normal workflow / primary pending action */
 .dashboard-kpi-card.dashboard-kpi-for-approval,
 .dashboard-kpi-card.dashboard-kpi-for-verification,
-.dashboard-kpi-card.dashboard-kpi-active-borrowings,
-.dashboard-kpi-card.dashboard-kpi-active-delegations {
+.dashboard-kpi-card.dashboard-kpi-active-borrowings {
     --dashboard-kpi-start:#32a5f5 !important;
     --dashboard-kpi-mid:#1479ea !important;
     --dashboard-kpi-end:#075fd3 !important;
+}
+
+/* VIOLET — institutional accounts awaiting email verification */
+.dashboard-kpi-card.dashboard-kpi-pending-verification {
+    --dashboard-kpi-start:#5968f4 !important;
+    --dashboard-kpi-mid:#5148e8 !important;
+    --dashboard-kpi-end:#4032cb !important;
 }
 
 /* GREEN — active / ongoing / ready */
@@ -924,7 +934,7 @@ a.dashboard-kpi-card:focus-visible {
         'ICTU' => [
             'eyebrow' => 'ICTU System Administrator Dashboard',
             'title' => 'Welcome, '.$firstName,
-            'subtitle' => 'Administer user accounts, system configuration, audit records, delegations, and notification delivery exceptions.',
+            'subtitle' => 'Administer user accounts, system configuration, audit records, and notification delivery exceptions.',
             'taskEyebrow' => 'System Administration',
             'taskTitle' => 'Recent Accounts',
             'taskDescription' => 'Recently added user accounts.',
@@ -970,7 +980,7 @@ a.dashboard-kpi-card:focus-visible {
         'ICTU' => [
             'Active Accounts' => ['users', 'success', route('administration.users.index', ['status' => 'active']), 'User accounts currently enabled'],
             'Failed Notifications' => ['notifications', 'danger', route('reports.notifications', ['status' => 'failed']), 'Current delivery failures requiring technical review'],
-            'Active Delegations' => ['delegation', 'info', route('administration.delegations.index', ['status' => 'active']), 'Temporary delegations currently in effect'],
+            'Pending Verification' => ['email', 'info', route('administration.users.index', ['verification' => 'pending']), 'Institutional accounts awaiting email verification'],
             'Inactive Accounts' => ['lock', 'neutral', route('administration.users.index', ['status' => 'inactive']), 'User accounts currently inactive'],
         ],
         default => [],

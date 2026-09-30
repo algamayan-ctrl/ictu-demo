@@ -17,7 +17,13 @@
 </section>
 
 <section class="content-area ictu-users-area" aria-label="User administration directory">
-    @if($statusFilter)
+    @if($verificationFilter ?? false)
+        <x-filter-context-banner
+            label="Pending Verification"
+            :count="$users->count()"
+            :clear-url="route('administration.users.index')"
+        />
+    @elseif($statusFilter)
         <x-filter-context-banner
             :label="$statusFilter === 'active' ? 'Active Accounts' : 'Inactive Accounts'"
             :count="$users->count()"

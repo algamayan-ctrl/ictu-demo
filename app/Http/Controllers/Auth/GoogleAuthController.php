@@ -31,8 +31,8 @@ class GoogleAuthController extends Controller
     public function redirect(): RedirectResponse
     {
         if (! $this->isConfigured()) {
-            return redirect()->route('login')->withErrors([
-                'email' => 'Google sign-in is not configured on this server. Use your CSPC email and password.',
+            return redirect()->route('home')->withErrors([
+                'google' => 'Google sign-in is not configured on this server. Use your CSPC email and password.',
             ]);
         }
 
@@ -62,15 +62,15 @@ class GoogleAuthController extends Controller
     public function callback(Request $request): RedirectResponse
     {
         if (! $this->isConfigured()) {
-            return redirect()->route('login')->withErrors([
-                'email' => 'Google sign-in is not configured on this server. Use your CSPC email and password.',
+            return redirect()->route('home')->withErrors([
+                'google' => 'Google sign-in is not configured on this server. Use your CSPC email and password.',
             ]);
         }
 
         /* The visitor dismissed Google's consent screen. */
         if ($request->filled('error')) {
-            return redirect()->route('login')->withErrors([
-                'email' => 'Google sign-in was cancelled. You can try again or use your CSPC email and password.',
+            return redirect()->route('home')->withErrors([
+                'google' => 'Google sign-in was cancelled. You can try again or use your CSPC email and password.',
             ]);
         }
 
@@ -83,14 +83,14 @@ class GoogleAuthController extends Controller
         $email = strtolower(trim((string) $googleUser->getEmail()));
 
         if ($email === '') {
-            return redirect()->route('login')->withErrors([
-                'email' => 'Google did not return an email address for this account. Use your CSPC email and password.',
+            return redirect()->route('home')->withErrors([
+                'google' => 'Google did not return an email address for this account. Use your CSPC email and password.',
             ]);
         }
 
         if (! $this->domainAllowed($email)) {
-            return redirect()->route('login')->withErrors([
-                'email' => 'This Google account is not from an allowed domain. Contact ICTU for account access assistance.',
+            return redirect()->route('home')->withErrors([
+                'google' => 'This Google account is not from an allowed domain. Contact ICTU for account access assistance.',
             ]);
         }
 
@@ -102,15 +102,15 @@ class GoogleAuthController extends Controller
         $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
 
         if (! $user) {
-            return redirect()->route('login')->withErrors([
-                'email' => 'This Google account is not registered in SPMU-ACPMP. Contact ICTU for account access assistance.',
+            return redirect()->route('home')->withErrors([
+                'google' => 'This Google account is not registered in SPMU-ACPMP. Contact ICTU for account access assistance.',
             ]);
         }
 
         /* The same account-status rule the credential login applies. */
         if ($user->account_status !== AccountStatus::Active) {
-            return redirect()->route('login')->withErrors([
-                'email' => 'This account is inactive. Contact ICTU if you believe this is an error.',
+            return redirect()->route('home')->withErrors([
+                'google' => 'This account is inactive. Contact ICTU if you believe this is an error.',
             ]);
         }
 
@@ -119,7 +119,7 @@ class GoogleAuthController extends Controller
         $error = $this->establishAuthenticatedSession($request, $user);
 
         if ($error !== null) {
-            return redirect()->route('login')->withErrors(['email' => $error]);
+            return redirect()->route('home')->withErrors(['google' => $error]);
         }
 
         return redirect()->intended(route('dashboard'));
@@ -171,6 +171,6 @@ class GoogleAuthController extends Controller
             'message' => $exception->getMessage(),
         ]);
 
-        return redirect()->route('login')->withErrors(['email' => $message]);
+        return redirect()->route('home')->withErrors(['google' => $message]);
     }
 }

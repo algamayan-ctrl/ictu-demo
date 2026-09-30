@@ -42,3 +42,9 @@ item-borrowing-history.patch
 
 return-ui-backup-*/
 return-ui-files.zip
+
+# Local development backup files
+*.backup-*
+*.backup-before-*
+*.backup-safe-*
+*.backup-bg-*

@@ -25,8 +25,13 @@
         @if($user->exists) @method('PUT') @endif
 
         <section class="ictu-form-card" aria-labelledby="ictu-identity-heading">
-            <header class="ictu-form-section-header">
-                <h2 id="ictu-identity-heading">Account Identity</h2>
+            <header class="ictu-form-section-header ictu-identity-section-header">
+                <div class="ictu-identity-heading-row">
+                    <h2 id="ictu-identity-heading">Account Identity</h2>
+                    @if($user->exists && !$user->hasVerifiedInstitutionalEmail())
+                        <span class="ictu-email-verification-status">Pending verification</span>
+                    @endif
+                </div>
                 <p>{{ $user->exists ? 'Saved official account details are loaded automatically.' : 'Enter the employee\'s official CSPC account details.' }}</p>
             </header>
             <div class="ictu-field-grid ictu-field-grid-two">
@@ -46,12 +51,15 @@
                     @error('designation') <small class="field-error">{{ $message }}</small> @enderror
                 </label>
                 <div class="ictu-field ictu-email-field">
-                    <div class="ictu-email-field-heading">
+                    <div class="ictu-email-label-row">
                         <label for="ictu-official-email">Official CSPC email</label>
                         @if($user->exists && !$user->hasVerifiedInstitutionalEmail())
-                            <button type="submit" form="ictu-resend-email-verification-form" class="ictu-email-verification-link" title="Resend a verification email to the currently saved email address: {{ $user->email }}">
-                                <span>Resend verification email</span>
-                                <x-icon name="chevron-right" size="14" />
+                            <button type="submit" form="ictu-resend-email-verification-form" class="ictu-email-verification-link" title="Send a verification link to the currently saved email address: {{ $user->email }}">
+                                <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                                    <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+                                    <path d="M3 7l9 6 9-6"></path>
+                                </svg>
+                                <span>Send verification link</span>
                             </button>
                         @endif
                     </div>
@@ -276,8 +284,8 @@
                 @endif
             </div>
             <div class="ictu-form-action-right">
-                <button class="button primary ui-pressable" type="submit"><x-icon name="save" size="17" /> {{ $user->exists ? 'Save Changes' : 'Create Account' }}</button>
                 <a class="button secondary ui-pressable" href="{{ route('administration.users.index') }}">Cancel</a>
+                <button class="button primary ui-pressable" type="submit"><x-icon name="save" size="17" /> {{ $user->exists ? 'Save Changes' : 'Create Account' }}</button>
             </div>
         </div>
     </form>

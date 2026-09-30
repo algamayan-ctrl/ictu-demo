@@ -94,29 +94,18 @@
         };
     };
 
-    // Only a prefill suggestion for the bulk-resolve note - never auto-
-    // applied, never auto-selected, never used to resolve anything by
-    // itself. The textarea stays fully editable.
-    $knownDnsErrorSignature = 'getaddrinfo for smtp.gmail.com failed';
-    $knownDnsErrorSuggestedNote = 'SMTP/DNS connectivity was verified operational. These delivery failures occurred during the same temporary DNS resolution issue and are retained for audit history.';
+    $deliveryColumnCount = 7;
 @endphp
 
-<section class="page-heading notification-delivery-heading">
+
+<section class="page-heading notification-delivery-heading" aria-labelledby="notification-delivery-page-title">
     <div>
         <p class="eyebrow">ICTU notification administration</p>
-        <h1>{{ $legacyView ? 'Notification Delivery — Legacy SMS Records' : 'Notification Delivery' }}</h1>
-        <p>
-            @if($legacyView)
-                Historical SMS delivery records, retained for audit only. SMS is not a supported channel.
-            @else
-                Review system and email delivery attempts and provider responses.
-            @endif
-        </p>
+        <h1 id="notification-delivery-page-title">{{ $legacyView ? 'Notification Delivery — Legacy SMS Records' : 'Notification Delivery' }}</h1>
+        <p>{{ $legacyView ? 'Historical SMS delivery records retained for audit only.' : 'Review system and email delivery attempts and provider responses.' }}</p>
     </div>
     @if($legacyView)
         <a class="button secondary ui-pressable" href="{{ route('reports.notifications') }}">Back to current records</a>
-    @else
-        <a class="button secondary ui-pressable" href="{{ route('reports.notifications', ['legacy' => 1]) }}">Show legacy SMS records</a>
     @endif
 </section>
 
@@ -136,12 +125,15 @@
     <div class="card notification-delivery-toolbar" aria-label="Notification delivery filters">
         <div class="notification-delivery-search">
             <label for="delivery-search">Search</label>
-            <input
-                id="delivery-search"
-                type="search"
-                placeholder="Search recipient, event, channel, status..."
-                autocomplete="off"
-            >
+            <div class="notification-delivery-search-control">
+                <x-icon name="search" size="18" />
+                <input
+                    id="delivery-search"
+                    type="search"
+                    placeholder="Search recipient, event, channel, status..."
+                    autocomplete="off"
+                >
+            </div>
         </div>
 
         <div>
@@ -190,12 +182,6 @@
         </button>
     </div>
 
-    <div class="notification-delivery-summary">
-        <span id="delivery-result-count">
-            {{ $deliveries->count() }} delivery attempt{{ $deliveries->count() === 1 ? '' : 's' }}
-        </span>
-    </div>
-
     @if($deliveries->isEmpty())
         <div class="card">
             <x-empty-state
@@ -205,51 +191,48 @@
             />
         </div>
     @else
-        @if($canResolveFailures ?? false)
-            {{--
-                Explicit bulk resolution only: ICTU checks the specific
-                Current Failure rows it wants (never pre-selected, never
-                automatic), types one required note, and submits. Checkboxes
-                live inside the table body but are associated with this form
-                via the `form` attribute since they aren't its descendants.
-            --}}
-            <form
-                id="bulk-resolve-form"
-                method="post"
-                action="{{ route('reports.notifications.resolveBulk') }}"
-                class="notification-delivery-bulk-bar"
-                hidden
-            >
-                @csrf
-                <span id="bulk-selected-count">0 selected</span>
-                <label for="bulk-resolution-note">Resolution note for selected failures</label>
-                <textarea
-                    id="bulk-resolution-note"
-                    name="resolution_note"
-                    required
-                    minlength="5"
-                    maxlength="1000"
-                    placeholder="One resolution note applied to every selected failure..."
-                ></textarea>
-                <button type="submit" class="button primary">Resolve Selected</button>
-            </form>
-        @endif
-
-        <div class="table-wrap notification-delivery-table-wrap">
-            <table class="notification-delivery-table">
-                <thead>
-                    <tr>
-                        @if($canResolveFailures ?? false)
-                            <th class="notification-delivery-select-col">Select</th>
-                        @endif
-                        <th>Time</th>
-                        <th>Event</th>
-                        <th>Recipient</th>
-                        <th>Channel</th>
-                        <th>Status</th>
-                        <th>Delivery Details</th>
-                    </tr>
-                </thead>
+        <section class="card notification-delivery-table-card" aria-labelledby="notification-delivery-table-title">
+            <header class="notification-delivery-table-toolbar">
+                <div class="notification-delivery-table-heading">
+                    <h2 id="notification-delivery-table-title">Delivery Records</h2>
+                    <span class="notification-delivery-count" id="delivery-result-count" aria-live="polite">
+                        {{ $deliveries->count() }} total record{{ $deliveries->count() === 1 ? '' : 's' }}
+                    </span>
+                </div>
+                <div class="notification-delivery-pagination" aria-label="Delivery records pagination">
+                    <label class="visually-hidden" for="delivery-page-size">Records per page</label>
+                    <select id="delivery-page-size" aria-label="Records per page">
+                        <option value="7" selected>7 records per page</option>
+                        <option value="14">14 records per page</option>
+                        <option value="28">28 records per page</option>
+                    </select>
+                    <span class="notification-delivery-page-divider" aria-hidden="true"></span>
+                    <span id="delivery-page-indicator" aria-live="polite">
+                        {{ $deliveries->isEmpty() ? '0–0 of 0' : '1–'.min(7, $deliveries->count()).' of '.$deliveries->count() }}
+                    </span>
+                    <div class="notification-delivery-page-buttons">
+                        <button class="notification-delivery-page-button" id="delivery-prev" type="button" aria-label="Previous page" disabled>
+                            <x-icon name="chevron-right" size="16" class="notification-delivery-chevron-left" />
+                        </button>
+                        <button class="notification-delivery-page-button" id="delivery-next" type="button" aria-label="Next page" @disabled($deliveries->count() <= 7)>
+                            <x-icon name="chevron-right" size="16" />
+                        </button>
+                    </div>
+                </div>
+            </header>
+            <div class="notification-delivery-table-scroll" role="region" aria-label="Notification delivery records" tabindex="0">
+                <table class="notification-delivery-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Event</th>
+                            <th>Recipient</th>
+                            <th>Channel</th>
+                            <th>Status</th>
+                            <th>Delivery Details</th>
+                            <th class="notification-delivery-action-heading">Action</th>
+                        </tr>
+                    </thead>
                 <tbody>
                     @foreach($deliveries as $delivery)
                         @php
@@ -271,8 +254,6 @@
                             $isHistoricalFailure = $category === 'HISTORICAL_FAILURE';
                             $isSmsNotConfigured = $category === 'SMS_NOT_CONFIGURED';
                             $canResolveThisRow = ($canResolveFailures ?? false) && $isCurrentFailure;
-
-                            $isKnownDnsError = str_contains(strtolower($providerResponse), $knownDnsErrorSignature);
 
                             $shortResponse = match (true) {
                                 $isSmsNotConfigured => 'SMS had no configured provider when this was attempted; no delivery was ever contacted.',
@@ -307,21 +288,6 @@
                             data-delivery-status="{{ $category }}"
                             data-delivery-event="{{ $eventCode }}"
                         >
-                            @if($canResolveFailures ?? false)
-                                <td class="notification-delivery-select-col">
-                                    @if($canResolveThisRow)
-                                        <input
-                                            type="checkbox"
-                                            name="delivery_ids[]"
-                                            value="{{ $delivery->id }}"
-                                            form="bulk-resolve-form"
-                                            class="notification-delivery-select-checkbox"
-                                            data-dns-error="{{ $isKnownDnsError ? '1' : '0' }}"
-                                            aria-label="Select this failure for bulk resolution"
-                                        >
-                                    @endif
-                                </td>
-                            @endif
                             <td class="notification-delivery-time">
                                 @if($attemptedAt)
                                     <strong>{{ $attemptedAt->format('g:i A') }}</strong>
@@ -365,7 +331,8 @@
 
                             <td class="notification-delivery-details-cell">
                                 <p>{{ $shortResponse }}</p>
-
+                            </td>
+                            <td class="notification-delivery-action-cell">
                                 <button
                                     type="button"
                                     class="notification-delivery-view-button button secondary small ui-pressable disclosure-trigger"
@@ -385,112 +352,75 @@
                             data-delivery-details-row
                             hidden
                         >
-                            <td colspan="{{ ($canResolveFailures ?? false) ? 7 : 6 }}">
+                            <td colspan="{{ $deliveryColumnCount }}">
                                 <div class="notification-delivery-details-panel">
-                                    <div class="notification-delivery-details-header">
-                                        <div>
-                                            <p class="eyebrow">Delivery details</p>
-                                            <h3>{{ $eventDisplay }}</h3>
-                                        </div>
+                                    <div class="notification-delivery-detail-compact-grid">
+                                        <section class="notification-delivery-detail-group" aria-label="Delivery information">
+                                            <h3>Delivery Information</h3>
+                                            <dl>
+                                                <div><dt>Event</dt><dd>{{ $eventDisplay }}</dd></div>
+                                                <div><dt>Recipient</dt><dd>{{ $recipientName }}</dd></div>
+                                                <div>
+                                                    <dt>Destination</dt>
+                                                    <dd>
+                                                        @if($channelCode === 'SYSTEM')
+                                                            In-system user #{{ $delivery->recipient_user_id ?: 'Not recorded' }}
+                                                        @else
+                                                            {{ $destination !== '' ? $destination : 'Not recorded' }}
+                                                        @endif
+                                                    </dd>
+                                                </div>
+                                                <div><dt>Channel</dt><dd>{{ $channelDisplay }}</dd></div>
+                                                <div><dt>Requested At</dt><dd>{{ $attemptedAt ? $attemptedAt->format('M j, Y • g:i A') : 'Not recorded' }}</dd></div>
+                                            </dl>
+                                        </section>
+
+                                        <section class="notification-delivery-detail-group" aria-label="Delivery status">
+                                            <h3>Delivery Status</h3>
+                                            <dl>
+                                                <div>
+                                                    <dt>Status</dt>
+                                                    <dd>
+                                                        @if($isSmsNotConfigured)
+                                                            <x-status-badge status="NOT_CONFIGURED" label="SMS Not Configured" />
+                                                        @elseif($isHistoricalFailure)
+                                                            <x-status-badge status="HISTORICAL_FAILURE" label="Historical Delivery Failed" />
+                                                        @elseif($isCurrentFailure)
+                                                            <x-status-badge :status="$delivery->delivery_status" label="Delivery Failed" />
+                                                        @else
+                                                            <x-status-badge :status="$delivery->delivery_status" />
+                                                        @endif
+                                                    </dd>
+                                                </div>
+                                                <div><dt>Provider</dt><dd>{{ filled($delivery->provider) ? $delivery->provider : 'Not recorded' }}</dd></div>
+                                                <div><dt>Attempt</dt><dd>#{{ $delivery->attempt_no ?: 1 }}</dd></div>
+                                                <div class="notification-delivery-detail-response"><dt>Provider Response</dt><dd>{{ $providerResponse !== '' ? $providerResponse : 'No provider response recorded.' }}</dd></div>
+                                            </dl>
+                                        </section>
+
+                                        <section class="notification-delivery-detail-group" aria-label="Source details">
+                                            <h3>Source Details</h3>
+                                            <dl>
+                                                <div>
+                                                    <dt>Source Record</dt>
+                                                    <dd>
+                                                        @if($delivery->event)
+                                                            {{ class_basename((string) $delivery->event->source_type) }} #{{ $delivery->event->source_id }}
+                                                        @else
+                                                            Not recorded
+                                                        @endif
+                                                    </dd>
+                                                </div>
+                                                <div><dt>Event Recorded</dt><dd>{{ optional($delivery->event?->occurred_at)->format('M j, Y • g:i A') ?: 'Not recorded' }}</dd></div>
+                                                <div><dt>Event</dt><dd>{{ $eventDisplay }}</dd></div>
+                                                @if($isHistoricalFailure)
+                                                    <div><dt>Resolved By</dt><dd>{{ $delivery->resolvedBy?->full_name ?? 'Not recorded' }}</dd></div>
+                                                    <div><dt>Resolved On</dt><dd>{{ $delivery->resolved_at?->format('M j, Y • g:i A') ?? 'Not recorded' }}</dd></div>
+                                                    <div class="notification-delivery-detail-response"><dt>Resolution Note</dt><dd>{{ $delivery->resolution_note }}</dd></div>
+                                                @endif
+                                            </dl>
+                                        </section>
                                     </div>
-
-                                    <dl class="notification-delivery-detail-grid">
-                                        <div>
-                                            <dt>Recipient</dt>
-                                            <dd>{{ $recipientName }}</dd>
-                                        </div>
-
-                                        <div>
-                                            <dt>Channel</dt>
-                                            <dd>{{ $channelDisplay }}</dd>
-                                        </div>
-
-                                        <div>
-                                            <dt>Destination</dt>
-                                            <dd>
-                                                @if($channelCode === 'SYSTEM')
-                                                    In-system user #{{ $delivery->recipient_user_id ?: 'Not recorded' }}
-                                                @else
-                                                    {{ $destination !== '' ? $destination : 'Not recorded' }}
-                                                @endif
-                                            </dd>
-                                        </div>
-
-                                        <div>
-                                            <dt>Status</dt>
-                                            <dd>
-                                                @if($isSmsNotConfigured) SMS Not Configured
-                                                @elseif($isHistoricalFailure) Historical Delivery Failed
-                                                @elseif($isCurrentFailure) Delivery Failed
-                                                @else {{ ucwords(strtolower(str_replace('_', ' ', $statusCode))) }}
-                                                @endif
-                                            </dd>
-                                        </div>
-
-                                        @if($isSmsNotConfigured)
-                                            <div>
-                                                <dt>Raw Status</dt>
-                                                <dd>{{ ucwords(strtolower(str_replace('_', ' ', $statusCode))) }}</dd>
-                                            </div>
-                                        @endif
-
-                                        <div>
-                                            <dt>Date &amp; Time</dt>
-                                            <dd>{{ $attemptedAt ? $attemptedAt->format('F j, Y • g:i:s A') : 'Not recorded' }}</dd>
-                                        </div>
-
-                                        <div>
-                                            <dt>Attempt</dt>
-                                            <dd>#{{ $delivery->attempt_no ?: 1 }}</dd>
-                                        </div>
-
-                                        <div>
-                                            <dt>Provider</dt>
-                                            <dd>{{ filled($delivery->provider) ? $delivery->provider : 'Not recorded' }}</dd>
-                                        </div>
-
-                                        <div>
-                                            <dt>Event Code</dt>
-                                            <dd><code>{{ $eventCode !== '' ? $eventCode : 'Not recorded' }}</code></dd>
-                                        </div>
-
-                                        <div class="notification-delivery-detail-wide">
-                                            <dt>Provider Response</dt>
-                                            <dd>{{ $providerResponse !== '' ? $providerResponse : 'No provider response recorded.' }}</dd>
-                                        </div>
-
-                                        @if($delivery->event)
-                                            <div>
-                                                <dt>Source Record</dt>
-                                                <dd>
-                                                    {{ class_basename((string) $delivery->event->source_type) }}
-                                                    #{{ $delivery->event->source_id }}
-                                                </dd>
-                                            </div>
-
-                                            <div>
-                                                <dt>Event Recorded</dt>
-                                                <dd>{{ optional($delivery->event->occurred_at)->format('F j, Y • g:i:s A') ?: 'Not recorded' }}</dd>
-                                            </div>
-                                        @endif
-
-                                        @if($isHistoricalFailure)
-                                            <div>
-                                                <dt>Resolved by</dt>
-                                                <dd>{{ $delivery->resolvedBy?->full_name ?? 'Not recorded' }}</dd>
-                                            </div>
-
-                                            <div>
-                                                <dt>Resolved on</dt>
-                                                <dd>{{ $delivery->resolved_at?->format('F j, Y • g:i:s A') ?? 'Not recorded' }}</dd>
-                                            </div>
-
-                                            <div class="notification-delivery-detail-wide">
-                                                <dt>Resolution note</dt>
-                                                <dd>{{ $delivery->resolution_note }}</dd>
-                                            </div>
-                                        @endif
-                                    </dl>
 
                                     @if($canResolveThisRow)
                                         <form
@@ -515,299 +445,344 @@
                             </td>
                         </tr>
                     @endforeach
+                    <tr class="notification-delivery-no-results" id="delivery-no-results" hidden>
+                        <td colspan="{{ $deliveryColumnCount }}">No delivery attempts match the selected filters.</td>
+                    </tr>
                 </tbody>
             </table>
-        </div>
-
-        <div class="card empty-state notification-delivery-no-results" id="delivery-no-results" hidden>
-            No delivery attempts match the selected filters.
-        </div>
+            </div>
+        </section>
     @endif
 </section>
 
 <style>
-.notification-delivery-heading {
-    padding-bottom: 10px;
-}
-
 .notification-delivery-area {
     display: grid;
-    gap: 16px;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+.notification-delivery-toolbar,
+.notification-delivery-table-card {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
 }
 
 .notification-delivery-toolbar {
     display: grid;
-    grid-template-columns: minmax(280px, 1.6fr) repeat(4, minmax(135px, .7fr)) auto;
-    gap: 12px;
+    grid-template-columns: minmax(260px, 1.8fr) repeat(4, minmax(120px, .82fr)) 86px;
+    gap: 10px;
     align-items: end;
-    padding: 16px;
+    padding: 12px 14px;
 }
 
+.notification-delivery-toolbar > div { min-width: 0; }
+.notification-delivery-search-control { position: relative; min-width: 0; }
+.notification-delivery-search-control > .ui-icon {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    z-index: 1;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+.notification-delivery-search-control input { padding-left: 38px; }
 .notification-delivery-toolbar label {
     display: block;
-    margin-bottom: 6px;
-    color: var(--text-muted, #5c7088);
-    font-size: .78rem;
-    font-weight: 800;
+    margin: 0 0 5px;
+    color: var(--heading);
+    font-size: 11px;
+    font-weight: 750;
 }
-
 .notification-delivery-toolbar input,
-.notification-delivery-toolbar select {
-    width: 100%;
-    min-height: 44px;
-}
-
+.notification-delivery-toolbar select,
 .notification-delivery-reset {
-    min-height: 44px;
+    width: 100%;
+    min-width: 0;
+    height: 38px;
+    min-height: 38px;
+    margin: 0;
+    font-size: 12px;
+}
+.notification-delivery-reset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     white-space: nowrap;
 }
 
-.notification-delivery-summary {
-    color: var(--text-muted, #60738a);
-    font-size: .86rem;
+.notification-delivery-table-toolbar {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 7px 14px;
+    border-bottom: 1px solid var(--border);
 }
+.notification-delivery-table-heading {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-width: 0;
+}
+.notification-delivery-table-heading h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 760;
+}
+.notification-delivery-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-muted);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+.notification-delivery-pagination {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 9px;
+    color: var(--text-secondary);
+    font-size: 11.5px;
+}
+.notification-delivery-pagination > select {
+    width: auto;
+    min-width: 132px;
+    height: 32px;
+    min-height: 32px;
+    padding: 4px 26px 4px 7px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background-color: transparent;
+    color: var(--text-secondary);
+    font-size: 11.5px;
+}
+.notification-delivery-page-divider { width: 1px; height: 19px; background: var(--border); }
+.notification-delivery-page-buttons { display: inline-flex; gap: 6px; }
+.notification-delivery-page-button {
+    display: inline-grid;
+    place-items: center;
+    width: 33px;
+    height: 33px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-elevated);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.notification-delivery-page-button:disabled { opacity: .4; cursor: not-allowed; }
+.notification-delivery-page-button:hover:not(:disabled) { color: var(--interactive); border-color: var(--interactive); }
+.notification-delivery-chevron-left { transform: rotate(180deg); }
 
+.notification-delivery-table-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+}
 .notification-delivery-table {
-    /* Lowered from 1040px so this fits within the usable content width on
-       common desktop viewports (~1280px+) without forcing horizontal
-       scroll; still scrolls normally on genuinely narrow screens. */
-    min-width: 960px;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    table-layout: fixed;
+    border-collapse: collapse;
 }
-
 .notification-delivery-table th {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--table-heading-bg);
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 780;
+    letter-spacing: .05em;
+    text-align: left;
+    text-transform: uppercase;
     white-space: nowrap;
 }
-
 .notification-delivery-table td {
-    vertical-align: top;
+    height: 58px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--row-border);
+    color: var(--text-secondary);
+    font-size: 11.5px;
+    line-height: 1.35;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
 }
-
-.notification-delivery-time {
-    width: 120px;
-    white-space: nowrap;
-}
-
+.notification-delivery-table tbody tr[data-delivery-row]:hover td { background: var(--row-hover); }
+.notification-delivery-table tr[hidden] { display: none !important; }
+.notification-delivery-time { width: 12%; white-space: nowrap; }
 .notification-delivery-time strong,
 .notification-delivery-time span,
 .notification-delivery-recipient strong,
-.notification-delivery-recipient span {
-    display: block;
-}
-
+.notification-delivery-recipient span { display: block; }
+.notification-delivery-time strong,
+.notification-delivery-recipient strong,
+.notification-delivery-event { color: var(--heading); font-size: 11.5px; font-weight: 700; }
 .notification-delivery-time span,
 .notification-delivery-recipient span {
-    margin-top: 3px;
-    color: var(--text-muted, #60738a);
-    font-size: .8rem;
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 10.5px;
 }
-
-.notification-delivery-event {
-    display: block;
-    min-width: 150px;
-    text-transform: none;
-}
-
-.notification-delivery-channel {
-    white-space: nowrap;
-}
-
-.notification-delivery-details-cell {
-    min-width: 260px;
-}
-
+.notification-delivery-event { display: block; min-width: 0; text-transform: none; }
+.notification-delivery-channel { white-space: nowrap; }
+.notification-delivery-details-cell { width: 18%; min-width: 0; }
+.notification-delivery-table th:nth-child(2),
+.notification-delivery-table td:nth-child(2) { width: 16%; }
+.notification-delivery-table th:nth-child(3),
+.notification-delivery-table td:nth-child(3) { width: 16%; }
+.notification-delivery-table th:nth-child(4),
+.notification-delivery-table td:nth-child(4) { width: 10%; }
+.notification-delivery-table th:nth-child(5),
+.notification-delivery-table td:nth-child(5) { width: 9%; }
 .notification-delivery-details-cell > p {
+    display: -webkit-box;
     margin: 0;
-    color: var(--text-muted, #5f738b);
-    line-height: 1.45;
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: 10.75px;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
-
+.notification-delivery-action-heading,
+.notification-delivery-action-cell { width: 13%; text-align: center !important; }
 .notification-delivery-view-button {
-    margin-top: 7px;
+    min-width: 108px !important;
+    min-height: 34px !important;
+    margin: 0 !important;
+    padding: 5px 9px !important;
+    font-size: 11.5px !important;
 }
 
 .notification-delivery-detail-row > td {
-    padding: 0 !important;
+    height: auto !important;
+    padding: 8px 10px !important;
     border-top: 0 !important;
-    background: var(--surface-subtle, #f7f9fc);
+    background: var(--surface-subtle);
 }
-
 .notification-delivery-details-panel {
     width: 100%;
     box-sizing: border-box;
-    padding: 18px 22px 20px;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    background: var(--surface-subtle, #f7f9fc);
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-elevated);
 }
-
-.notification-delivery-details-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 14px;
-}
-
-.notification-delivery-details-header h3 {
-    margin: 2px 0 0;
-    font-size: 1rem;
-}
-
-.notification-delivery-detail-grid {
+.notification-delivery-detail-compact-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px 22px;
-    margin: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
 }
-
-.notification-delivery-detail-grid > div {
+.notification-delivery-detail-group {
     min-width: 0;
+    padding: 2px 14px 3px;
 }
-
-.notification-delivery-detail-grid dt {
-    margin-bottom: 4px;
-    color: var(--text-muted, #60738a);
-    font-size: .7rem;
+.notification-delivery-detail-group:first-child { padding-left: 4px; }
+.notification-delivery-detail-group:last-child { padding-right: 4px; }
+.notification-delivery-detail-group + .notification-delivery-detail-group { border-left: 1px solid var(--border); }
+.notification-delivery-detail-group h3 {
+    margin: 0 0 7px;
+    color: var(--text-secondary);
+    font-size: 10px;
     font-weight: 800;
-    letter-spacing: .035em;
+    letter-spacing: .055em;
     text-transform: uppercase;
 }
-
-.notification-delivery-detail-grid dd {
+.notification-delivery-detail-group dl { display: grid; gap: 4px; margin: 0; }
+.notification-delivery-detail-group dl > div {
+    display: grid;
+    grid-template-columns: minmax(82px, .75fr) minmax(0, 1.25fr);
+    gap: 8px;
+    min-width: 0;
+}
+.notification-delivery-detail-group dt {
+    color: var(--text-muted);
+    font-size: 10.5px;
+    font-weight: 700;
+}
+.notification-delivery-detail-group dd {
+    min-width: 0;
     margin: 0;
+    color: var(--text-secondary);
+    font-size: 10.75px;
     overflow-wrap: anywhere;
-    word-break: break-word;
 }
-
-.notification-delivery-detail-grid code {
-    white-space: normal;
-    overflow-wrap: anywhere;
-    font-size: .8rem;
-}
-
-.notification-delivery-detail-wide {
-    grid-column: 1 / -1;
-}
+.notification-delivery-detail-response { align-items: start; }
 
 .notification-delivery-resolve-form {
     display: grid;
-    gap: 8px;
-    max-width: 480px;
-    margin-top: 16px;
-    padding-top: 16px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 10px;
+    margin-top: 8px;
+    padding: 8px 4px 2px;
     border-top: 1px solid var(--border);
 }
-
 .notification-delivery-resolve-form label {
-    color: var(--text-muted, #5c7088);
-    font-size: .78rem;
-    font-weight: 800;
+    grid-column: 1 / -1;
+    color: var(--text-muted);
+    font-size: 10.5px;
+    font-weight: 750;
 }
-
-.notification-delivery-resolve-form textarea {
-    min-height: 64px;
-    resize: vertical;
-}
-
-.notification-delivery-resolve-form button {
-    justify-self: start;
-}
+.notification-delivery-resolve-form textarea { min-height: 44px; resize: vertical; }
+.notification-delivery-resolve-form button { align-self: stretch; }
 
 .notification-delivery-bulk-bar {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: auto auto minmax(220px, 1fr) auto;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-    padding: 12px 16px;
-    background: var(--info-bg);
+    gap: 8px 10px;
+    margin: 0;
+    padding: 9px 12px;
     border: 1px solid var(--info-border);
     border-radius: 8px;
+    background: var(--info-bg);
 }
-
-.notification-delivery-bulk-bar[hidden] {
-    display: none;
-}
-
-.notification-delivery-bulk-bar #bulk-selected-count {
-    font-weight: 800;
-    font-size: .84rem;
-    white-space: nowrap;
-}
-
-.notification-delivery-bulk-bar label {
-    margin: 0;
-    color: var(--text-muted, #5c7088);
-    font-size: .78rem;
-    font-weight: 800;
-    white-space: nowrap;
-}
-
-.notification-delivery-bulk-bar textarea {
-    flex: 1 1 320px;
-    min-height: 40px;
-    resize: vertical;
-}
-
-.notification-delivery-select-col {
-    width: 36px;
+.notification-delivery-bulk-bar[hidden] { display: none; }
+.notification-delivery-bulk-bar #bulk-selected-count { font-size: 11px; font-weight: 800; white-space: nowrap; }
+.notification-delivery-bulk-bar label { margin: 0; font-size: 10.5px; font-weight: 750; white-space: nowrap; }
+.notification-delivery-bulk-bar textarea { min-height: 38px; resize: vertical; }
+.notification-delivery-no-results td {
+    height: auto !important;
+    padding: 24px !important;
+    color: var(--text-muted);
     text-align: center;
 }
 
-@media (max-width: 1050px) {
-    .notification-delivery-detail-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+@media (max-width: 1180px) {
+    .notification-delivery-toolbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .notification-delivery-search { grid-column: 1 / -1; }
+    .notification-delivery-reset { width: 100%; }
+    .notification-delivery-detail-compact-grid { grid-template-columns: 1fr; gap: 8px; }
+    .notification-delivery-detail-group { padding: 5px 4px; }
+    .notification-delivery-detail-group + .notification-delivery-detail-group { border-left: 0; border-top: 1px solid var(--border); padding-top: 9px; }
 }
-
 @media (max-width: 700px) {
-    .notification-delivery-details-panel {
-        padding: 16px;
-    }
-
-    .notification-delivery-detail-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .notification-delivery-detail-wide {
-        grid-column: auto;
-    }
-}
-
-.notification-delivery-no-results {
-    text-align: center;
-}
-
-@media (max-width: 1200px) {
-    .notification-delivery-toolbar {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .notification-delivery-search {
-        grid-column: 1 / -1;
-    }
-
-    .notification-delivery-reset {
-        width: 100%;
-    }
-}
-
-@media (max-width: 700px) {
-    .notification-delivery-toolbar {
-        grid-template-columns: 1fr;
-    }
-
-    .notification-delivery-search {
-        grid-column: auto;
-    }
-
-    .notification-delivery-detail-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .notification-delivery-detail-wide {
-        grid-column: auto;
-    }
+    .notification-delivery-toolbar { grid-template-columns: 1fr; }
+    .notification-delivery-search { grid-column: auto; }
+    .notification-delivery-table-toolbar { align-items: flex-start; }
+    .notification-delivery-pagination { width: 100%; justify-content: space-between; }
+    .notification-delivery-details-panel,
+    .notification-delivery-resolve-form,
+    .notification-delivery-bulk-bar { grid-template-columns: 1fr; }
+    .notification-delivery-bulk-bar label { white-space: normal; }
 }
 </style>
 
@@ -821,35 +796,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const reset = document.getElementById('delivery-reset');
     const resultCount = document.getElementById('delivery-result-count');
     const noResults = document.getElementById('delivery-no-results');
+    const pageSizeControl = document.getElementById('delivery-page-size');
+    const pageIndicator = document.getElementById('delivery-page-indicator');
+    const prev = document.getElementById('delivery-prev');
+    const next = document.getElementById('delivery-next');
 
     const rows = Array.from(document.querySelectorAll('[data-delivery-row]'));
     const detailRows = Array.from(document.querySelectorAll('[data-delivery-details-row]'));
     const detailToggles = Array.from(document.querySelectorAll('[data-delivery-details-toggle]'));
+    let filteredRows = [...rows];
+    let pageSize = Number(pageSizeControl?.value || 7);
+    let currentPage = 1;
+
+    const setExpanded = (row, open) => {
+        const detail = row?.nextElementSibling;
+        const toggle = row?.querySelector('[data-delivery-details-toggle]');
+        if (!detail?.matches('[data-delivery-details-row]')) return;
+        detail.hidden = !open;
+        toggle?.setAttribute('aria-expanded', String(open));
+    };
 
     detailToggles.forEach((button) => {
         button.addEventListener('click', () => {
-            const targetId = button.getAttribute('aria-controls');
-            const target = targetId ? document.getElementById(targetId) : null;
-            if (!target) return;
+            const row = button.closest('[data-delivery-row]');
+            const detail = row?.nextElementSibling;
+            if (!row || !detail?.matches('[data-delivery-details-row]')) return;
 
-            const willOpen = target.hidden;
-
-            detailRows.forEach((row) => {
-                row.hidden = true;
-            });
-
-            detailToggles.forEach((toggle) => {
-                toggle.setAttribute('aria-expanded', 'false');
-            });
-
-            if (willOpen) {
-                target.hidden = false;
-                button.setAttribute('aria-expanded', 'true');
-            }
+            const willOpen = detail.hidden;
+            rows.forEach((item) => setExpanded(item, false));
+            if (willOpen && !row.hidden) setExpanded(row, true);
         });
     });
 
-    const today = () => {
+    const startOfToday = () => {
         const value = new Date();
         value.setHours(0, 0, 0, 0);
         return value;
@@ -857,18 +836,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const dateMatches = (value, selected) => {
         if (selected === 'ALL') return true;
-        if (!value) return false;
-
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
         const rowDate = new Date(`${value}T00:00:00`);
-        const current = today();
-        const diffDays = Math.floor((current - rowDate) / 86400000);
-
+        const diffDays = Math.round((startOfToday() - rowDate) / 86400000);
         if (selected === 'TODAY') return diffDays === 0;
         if (selected === 'YESTERDAY') return diffDays === 1;
-        if (selected === '7_DAYS') return diffDays >= 0 && diffDays <= 6;
-        if (selected === '30_DAYS') return diffDays >= 0 && diffDays <= 29;
-
+        if (selected === '7_DAYS') return diffDays >= 0 && diffDays < 7;
+        if (selected === '30_DAYS') return diffDays >= 0 && diffDays < 30;
         return true;
+    };
+
+    const renderPage = () => {
+        const total = filteredRows.length;
+        const totalPages = Math.max(1, Math.ceil(total / pageSize));
+        currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+        const start = total ? (currentPage - 1) * pageSize : 0;
+        const end = Math.min(start + pageSize, total);
+
+        rows.forEach((row) => {
+            row.hidden = true;
+            setExpanded(row, false);
+        });
+        filteredRows.slice(start, end).forEach((row) => { row.hidden = false; });
+
+        if (resultCount) resultCount.textContent = `${total} total record${total === 1 ? '' : 's'}`;
+        if (pageIndicator) pageIndicator.textContent = total ? `${start + 1}–${end} of ${total}` : '0–0 of 0';
+        if (prev) prev.disabled = currentPage <= 1 || !total;
+        if (next) next.disabled = currentPage >= totalPages || !total;
+        if (noResults) noResults.hidden = total !== 0 || rows.length === 0;
     };
 
     const applyFilters = () => {
@@ -878,66 +873,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedStatus = statusFilter?.value || 'ALL';
         const selectedEvent = eventFilter?.value || 'ALL';
 
-        let visible = 0;
-
-        rows.forEach((row) => {
-            const matchesSearch =
-                !query || (row.dataset.deliverySearch || '').includes(query);
-
-            const matchesChannel =
-                selectedChannel === 'ALL'
-                || row.dataset.deliveryChannel === selectedChannel;
-
-            const matchesStatus =
-                selectedStatus === 'ALL'
-                || row.dataset.deliveryStatus === selectedStatus;
-
-            const matchesEvent =
-                selectedEvent === 'ALL'
-                || row.dataset.deliveryEvent === selectedEvent;
-
-            const matchesDate = dateMatches(
-                row.dataset.deliveryDate || '',
-                selectedDate
-            );
-
-            const show =
-                matchesSearch
-                && matchesChannel
-                && matchesStatus
-                && matchesEvent
-                && matchesDate;
-
-            row.hidden = !show;
-
-            if (!show) {
-                const nextRow = row.nextElementSibling;
-                if (nextRow?.matches('[data-delivery-details-row]')) {
-                    nextRow.hidden = true;
-                }
-
-                const toggle = row.querySelector('[data-delivery-details-toggle]');
-                toggle?.setAttribute('aria-expanded', 'false');
-            }
-
-            if (show) visible += 1;
-        });
-
-        if (resultCount) {
-            resultCount.textContent =
-                `${visible} delivery attempt${visible === 1 ? '' : 's'}`;
-        }
-
-        if (noResults) {
-            noResults.hidden = visible !== 0;
-        }
+        filteredRows = rows.filter((row) =>
+            (!query || (row.dataset.deliverySearch || '').includes(query)) &&
+            (selectedChannel === 'ALL' || row.dataset.deliveryChannel === selectedChannel) &&
+            (selectedStatus === 'ALL' || row.dataset.deliveryStatus === selectedStatus) &&
+            (selectedEvent === 'ALL' || row.dataset.deliveryEvent === selectedEvent) &&
+            dateMatches(row.dataset.deliveryDate || '', selectedDate)
+        );
+        currentPage = 1;
+        renderPage();
     };
 
     [search, dateFilter, channelFilter, statusFilter, eventFilter].forEach((control) => {
-        control?.addEventListener(
-            control === search ? 'input' : 'change',
-            applyFilters
-        );
+        control?.addEventListener(control === search ? 'input' : 'change', applyFilters);
     });
 
     reset?.addEventListener('click', () => {
@@ -946,43 +894,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (channelFilter) channelFilter.value = 'ALL';
         if (statusFilter) statusFilter.value = 'ALL';
         if (eventFilter) eventFilter.value = 'ALL';
-
         applyFilters();
         search?.focus();
     });
 
-    // Bulk resolution: purely a selection + prefill convenience. Nothing
-    // here resolves anything automatically - the form only submits when
-    // ICTU explicitly clicks "Resolve Selected" with a note filled in.
-    const bulkForm = document.getElementById('bulk-resolve-form');
-    const bulkCount = document.getElementById('bulk-selected-count');
-    const bulkNote = document.getElementById('bulk-resolution-note');
-    const selectCheckboxes = Array.from(document.querySelectorAll('.notification-delivery-select-checkbox'));
-
-    const updateBulkBar = () => {
-        if (!bulkForm) return;
-
-        const checked = selectCheckboxes.filter((checkbox) => checkbox.checked);
-
-        bulkForm.hidden = checked.length === 0;
-
-        if (bulkCount) {
-            bulkCount.textContent = `${checked.length} selected`;
-        }
-
-        const allKnownDnsError = checked.length > 0
-            && checked.every((checkbox) => checkbox.dataset.dnsError === '1');
-
-        if (allKnownDnsError && bulkNote && bulkNote.value.trim() === '') {
-            bulkNote.value = {{ \Illuminate\Support\Js::from($knownDnsErrorSuggestedNote) }};
-        }
-    };
-
-    selectCheckboxes.forEach((checkbox) => {
-        checkbox.addEventListener('change', updateBulkBar);
+    pageSizeControl?.addEventListener('change', () => {
+        pageSize = Math.max(1, Number(pageSizeControl.value || 7));
+        currentPage = 1;
+        renderPage();
     });
-
-    updateBulkBar();
+    prev?.addEventListener('click', () => {
+        if (currentPage <= 1) return;
+        currentPage -= 1;
+        renderPage();
+    });
+    next?.addEventListener('click', () => {
+        const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+        if (currentPage >= totalPages) return;
+        currentPage += 1;
+        renderPage();
+    });
 
     applyFilters();
 });

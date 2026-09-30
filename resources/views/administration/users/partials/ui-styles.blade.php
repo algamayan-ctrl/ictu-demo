@@ -458,7 +458,18 @@
     padding: 8px 12px; border-radius: 8px; font-size: 12.5px;
 }
 .ictu-user-form .ictu-field select { padding-right: 30px; }
-.ictu-email-verification-link { margin-top: 0; padding: 0; min-height: 19px; font-size: 11.5px; justify-self: start; }
+.ictu-email-field-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; }
+.ictu-email-field-heading > label { margin:0; min-width:0; }
+.ictu-email-verification-link {
+    display:inline-flex; align-items:center; justify-content:flex-end; gap:3px;
+    flex:0 0 auto; min-height:20px; margin:0; padding:0;
+    border:0; background:transparent; color:var(--interactive);
+    font:inherit; font-size:11px; font-weight:700; line-height:1.2;
+    white-space:nowrap; cursor:pointer;
+}
+.ictu-email-verification-link:hover { text-decoration:underline; }
+.ictu-email-verification-link .ui-icon { width:13px; height:13px; }
+.ictu-email-verification-link:focus-visible { outline:2px solid var(--interactive); outline-offset:3px; border-radius:3px; }
 .admin-additional-assignment-picker { grid-template-columns: minmax(0,85fr) minmax(132px,15fr); gap: 12px; }
 .ictu-add-unit-button { height: 43px; min-height: 43px; border-radius: 8px; font-size: 12px; }
 .ictu-form-actions { gap: 12px; }
@@ -479,6 +490,10 @@ html[data-theme="dark"] .ictu-users-filter-field :is(input,select), html[data-th
     .ictu-users-filter-grid { grid-template-columns: minmax(0,1.45fr) minmax(0,1fr); }
     .ictu-field-grid-three { grid-template-columns: repeat(2,minmax(0,1fr)); }
     .ictu-field-grid-three > :last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+    .ictu-email-field-heading { align-items:flex-start; flex-direction:column; gap:4px; }
+    .ictu-email-verification-link { align-self:flex-start; }
 }
 @media (max-width: 760px) {
     .ictu-shell { --sidebar-width: 270px; --topbar-height: 66px; }

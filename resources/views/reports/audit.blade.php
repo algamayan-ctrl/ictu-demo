@@ -19,7 +19,201 @@
         'SECURITY_SYSTEM' => 'Security / System',
         'OTHER' => 'Other',
     ];
+
+    $preferredAuditLabels = [
+        'employee_no' => 'Employee No.',
+        'full_name' => 'Full Name',
+        'designation' => 'Designation',
+        'employment_type' => 'Employment Type',
+        'employment_status' => 'Employment Status',
+        'email' => 'Email Address',
+        'mobile_no' => 'Mobile No.',
+        'account_status' => 'Account Status',
+        'access_classification' => 'Access Classification',
+        'portal' => 'Portal',
+        'division_code' => 'Division',
+        'organizational_unit' => 'Office / Unit',
+        'organizational_unit.unit_name' => 'Office / Unit',
+        'organizationalUnit' => 'Office / Unit',
+        'organizationalUnit.unit_name' => 'Office / Unit',
+        'roles' => 'Roles',
+        'roles.name' => 'Roles',
+        'roles.role_name' => 'Roles',
+        'authorizedOrganizationalUnits' => 'Authorized Units',
+        'authorizedOrganizationalUnits.unit_name' => 'Authorized Units',
+        'authorized_organizational_units' => 'Authorized Units',
+        'authorized_organizational_units.unit_name' => 'Authorized Units',
+        'reason' => 'Reason',
+        'status' => 'Status',
+        'name' => 'Name',
+        'description' => 'Description',
+        'value' => 'Value',
+        'start_date' => 'Start Date',
+        'end_date' => 'End Date',
+        'due_at' => 'Due Date',
+        'released_at' => 'Released At',
+        'returned_at' => 'Returned At',
+        'quantity' => 'Quantity',
+        'actual_quantity' => 'Actual Quantity',
+        'condition' => 'Condition',
+        'remarks' => 'Remarks',
+    ];
+
+    $technicalSegments = [
+        'id', 'pivot', 'password', 'remember_token', 'created_at', 'updated_at', 'deleted_at',
+        'correlation_id', 'action_code', 'origin_ip', 'record_type', 'record_id', 'actor_user_id',
+        'organizational_unit_id', 'profile_picture_path', 'email_verified_at', 'last_login_at',
+        'failed_login_attempts', 'two_factor_secret', 'two_factor_recovery_codes', 'notification_preferences',
+    ];
+
+    $extractSummaryValue = function (array $value): ?string {
+        foreach (['unit_name', 'full_name', 'name', 'role_name', 'label', 'title', 'code', 'value', 'description'] as $candidate) {
+            $summary = $value[$candidate] ?? null;
+            if (is_scalar($summary) && trim((string) $summary) !== '') {
+                return (string) $summary;
+            }
+        }
+
+        return null;
+    };
+
+    $displayAuditValue = function ($value) use (&$displayAuditValue, $extractSummaryValue): string {
+        if ($value instanceof \BackedEnum) {
+            $value = $value->value;
+        }
+
+        if ($value === null) {
+            return 'Not set';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'Yes' : 'No';
+        }
+
+        if (is_numeric($value)) {
+            return (string) $value;
+        }
+
+        if (is_string($value)) {
+            $trimmed = trim($value);
+            if ($trimmed === '') {
+                return 'Not set';
+            }
+
+            if (preg_match('/^[A-Z0-9_]+$/', $trimmed) && ! str_contains($trimmed, '@')) {
+                return (string) \Illuminate\Support\Str::of(strtolower($trimmed))->replace('_', ' ')->title();
+            }
+
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed)) {
+                try {
+                    return \Illuminate\Support\Carbon::parse($trimmed)->format('F j, Y');
+                } catch (\Throwable $e) {
+                    return $trimmed;
+                }
+            }
+
+            return $trimmed;
+        }
+
+        if (is_array($value)) {
+            if ($value === []) {
+                return 'Not set';
+            }
+
+            $isSequential = array_keys($value) === range(0, count($value) - 1);
+            if ($isSequential) {
+                $items = collect($value)
+                    ->map(function ($item) use ($displayAuditValue, $extractSummaryValue) {
+                        if (is_array($item)) {
+                            $summary = $extractSummaryValue($item);
+                            return $summary !== null ? $displayAuditValue($summary) : null;
+                        }
+
+                        if (is_scalar($item) || $item === null) {
+                            return $displayAuditValue($item);
+                        }
+
+                        return null;
+                    })
+                    ->filter(fn ($item) => filled($item) && $item !== 'Not set')
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                return $items !== [] ? implode(', ', $items) : 'Not set';
+            }
+
+            $summary = $extractSummaryValue($value);
+            if ($summary !== null) {
+                return $displayAuditValue($summary);
+            }
+        }
+
+        return 'Not set';
+    };
+
+    $flattenAuditSnapshot = function (array $source, string $prefix = '') use (&$flattenAuditSnapshot, $technicalSegments, $displayAuditValue, $extractSummaryValue): array {
+        $rows = [];
+
+        foreach ($source as $key => $value) {
+            $key = (string) $key;
+            $path = $prefix === '' ? $key : "{$prefix}.{$key}";
+            $segments = array_filter(explode('.', $path), fn ($segment) => $segment !== '');
+
+            if (collect($segments)->contains(fn ($segment) => in_array($segment, $technicalSegments, true))) {
+                continue;
+            }
+
+            if (is_array($value)) {
+                if ($value === []) {
+                    $rows[$path] = 'Not set';
+                    continue;
+                }
+
+                $isSequential = array_keys($value) === range(0, count($value) - 1);
+                if ($isSequential) {
+                    $rows[$path] = $displayAuditValue($value);
+                    continue;
+                }
+
+                $summary = $extractSummaryValue($value);
+                if ($summary !== null) {
+                    $rows[$path] = $displayAuditValue($summary);
+                    continue;
+                }
+
+                $rows = array_merge($rows, $flattenAuditSnapshot($value, $path));
+                continue;
+            }
+
+            if (is_scalar($value) || $value === null) {
+                $rows[$path] = $displayAuditValue($value);
+            }
+        }
+
+        return $rows;
+    };
+
+    $auditFieldLabel = function (string $path) use ($preferredAuditLabels): string {
+        if (isset($preferredAuditLabels[$path])) {
+            return $preferredAuditLabels[$path];
+        }
+
+        $lastSegment = \Illuminate\Support\Str::afterLast($path, '.');
+
+        return (string) \Illuminate\Support\Str::of($lastSegment)
+            ->replace('_', ' ')
+            ->headline();
+    };
 @endphp
+
+<section class="page-heading ictu-audit-page-heading" aria-labelledby="ictu-audit-page-title">
+    <div>
+        <p class="eyebrow">ICTU audit administration</p>
+        <h1 id="ictu-audit-page-title">Audit Trail</h1>
+        <p>Review system activities and changes for security and compliance.</p>
+    </div>
+</section>
 
 <section class="content-area ictu-audit-area" aria-label="ICTU audit trail">
     <span class="visually-hidden">System administration</span>
@@ -138,7 +332,8 @@
                             };
 
                             $actorName = $event->actor?->full_name ?: 'System';
-                            $recordName = trim(class_basename((string) $event->record_type).' #'.$event->record_id);
+                            $recordLabel = trim(preg_replace('/(?<!^)[A-Z]/', ' $0', class_basename((string) $event->record_type)) ?: 'Record');
+                            $recordName = trim($recordLabel.' #'.$event->record_id);
                             $category = match (true) {
                                 str_contains($actionCode, 'approval'),
                                 str_contains($actionCode, 'approve'),
@@ -215,7 +410,7 @@
                                 default => 'blue',
                             };
                             $searchText = mb_strtolower(implode(' ', array_filter([
-                                $actionLabel, $activitySubtitle, $event->action_code,
+                                $actionLabel, $activitySubtitle,
                                 $actorName, $recordName, $event->reason, $categoryLabel,
                             ])));
                         @endphp
@@ -262,31 +457,78 @@
                         <tr class="ictu-audit-expanded-row" id="audit-detail-{{ $event->id }}"
                             data-audit-detail-row hidden>
                             <td colspan="5">
+                                @php
+                                    $beforeSnapshot = is_array($event->before_json) ? $flattenAuditSnapshot($event->before_json) : [];
+                                    $afterSnapshot = is_array($event->after_json) ? $flattenAuditSnapshot($event->after_json) : [];
+                                    $changeRows = collect(array_values(array_unique(array_merge(array_keys($beforeSnapshot), array_keys($afterSnapshot)))))
+                                        ->map(function (string $path) use ($beforeSnapshot, $afterSnapshot, $auditFieldLabel) {
+                                            $beforeValue = $beforeSnapshot[$path] ?? 'Not set';
+                                            $afterValue = $afterSnapshot[$path] ?? 'Not set';
+
+                                            if ($beforeValue === $afterValue) {
+                                                return null;
+                                            }
+
+                                            return [
+                                                'label' => $auditFieldLabel($path),
+                                                'before' => $beforeValue,
+                                                'after' => $afterValue,
+                                            ];
+                                        })
+                                        ->filter()
+                                        ->sortBy('label', SORT_NATURAL | SORT_FLAG_CASE)
+                                        ->values();
+                                    $detailDescription = filled($event->reason) ? $event->reason : $activitySubtitle;
+                                @endphp
                                 <div class="ictu-audit-details-panel">
                                     <dl class="ictu-audit-detail-grid">
                                         <div><dt>Activity</dt><dd>{{ $actionLabel }}</dd></div>
-                                        <div><dt>Action Code</dt><dd><code>{{ $event->action_code }}</code></dd></div>
                                         <div><dt>Actor</dt><dd>{{ $actorName }}</dd></div>
                                         <div><dt>Record</dt><dd>{{ $recordName }}</dd></div>
                                         <div><dt>Date &amp; Time</dt><dd>{{ $event->occurred_at->format('F j, Y • g:i:s A') }}</dd></div>
                                         <div><dt>Origin</dt><dd>{{ filled($event->origin_ip) ? $event->origin_ip : 'System / application' }}</dd></div>
-                                        @if(filled($event->reason))
-                                            <div class="ictu-audit-detail-wide"><dt>Reason</dt><dd>{{ $event->reason }}</dd></div>
-                                        @endif
-                                        @if(filled($event->correlation_id))
-                                            <div class="ictu-audit-detail-wide"><dt>Technical Reference</dt><dd><code>{{ $event->correlation_id }}</code></dd></div>
-                                        @endif
+                                        <div><dt>Category</dt><dd>{{ $categoryLabel }}</dd></div>
                                     </dl>
-                                    @if(!empty($event->before_json) || !empty($event->after_json))
-                                        <div class="ictu-audit-change-grid">
-                                            @if(!empty($event->before_json))
-                                                <section><h2>Before</h2><pre>{{ json_encode($event->before_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre></section>
-                                            @endif
-                                            @if(!empty($event->after_json))
-                                                <section><h2>After</h2><pre>{{ json_encode($event->after_json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre></section>
-                                            @endif
-                                        </div>
-                                    @endif
+
+                                    <section class="ictu-audit-info-section" aria-label="Audit event description">
+                                        <h2 class="ictu-audit-section-title">Description</h2>
+                                        <div class="ictu-audit-description-box">{{ $detailDescription }}</div>
+                                    </section>
+
+                                    <section class="ictu-audit-info-section" aria-label="Audit event changes">
+                                        <h2 class="ictu-audit-section-title">Changes</h2>
+                                        @if($changeRows->isNotEmpty())
+                                            <div class="ictu-audit-change-table-wrap">
+                                                <table class="ictu-audit-change-table">
+                                                    <colgroup>
+                                                        <col class="ictu-audit-change-field-col">
+                                                        <col class="ictu-audit-change-before-col">
+                                                        <col class="ictu-audit-change-after-col">
+                                                    </colgroup>
+                                                    <thead>
+                                                        <tr>
+                                                            <th scope="col">Field</th>
+                                                            <th scope="col">Previous Value</th>
+                                                            <th scope="col">New Value</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($changeRows as $change)
+                                                            <tr>
+                                                                <td><strong>{{ $change['label'] }}</strong></td>
+                                                                <td>{{ $change['before'] }}</td>
+                                                                <td>{{ $change['after'] }}</td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        @else
+                                            <div class="ictu-audit-empty-state">
+                                                No user-facing field changes are available for this audit entry.
+                                            </div>
+                                        @endif
+                                    </section>
                                 </div>
                             </td>
                         </tr>
@@ -372,8 +614,8 @@ html:not([data-theme="dark"]) .ictu-audit-shell .app-sidebar { background: #eaf6
 .ictu-audit-page-button:disabled { opacity: .42; cursor: not-allowed; }
 .ictu-audit-chevron-left { transform: rotate(180deg); }
 .ictu-audit-table-scroll { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
-.ictu-audit-table { width: 100%; min-width: 880px; table-layout: fixed; border-collapse: collapse; border-spacing: 0; }
-.ictu-audit-col-activity { width: 32%; }.ictu-audit-col-type { width: 14%; }.ictu-audit-col-account { width: 24%; }.ictu-audit-col-time { width: 14%; }.ictu-audit-col-action { width: 16%; }
+.ictu-audit-table { width: 100%; min-width: 900px; table-layout: fixed; border-collapse: collapse; border-spacing: 0; }
+.ictu-audit-col-activity { width: 31%; }.ictu-audit-col-type { width: 13%; }.ictu-audit-col-account { width: 24%; }.ictu-audit-col-time { width: 15%; }.ictu-audit-col-action { width: 17%; }
 .ictu-audit-table th { padding: 12px 16px; background: var(--table-heading-bg); border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 11px; line-height: 1.25; font-weight: 780; letter-spacing: .045em; text-transform: uppercase; text-align: left; }
 .ictu-audit-table td { height: 72px; padding: 8px 16px; vertical-align: middle; border-bottom: 1px solid var(--row-border); color: var(--text-secondary); font-size: 12.5px; line-height: 1.36; overflow-wrap: anywhere; }
 .ictu-audit-table tbody tr:last-child td { border-bottom: 0; }
@@ -400,17 +642,22 @@ html:not([data-theme="dark"]) .ictu-audit-shell .app-sidebar { background: #eaf6
 .ictu-audit-view-button:hover { background: var(--surface-hover); }
 .ictu-audit-view-button[aria-expanded="true"] > .ui-icon { transform: rotate(180deg); }
 .ictu-audit-expanded-row td { height: auto; padding: 14px 18px !important; background: var(--surface-subtle); }
-.ictu-audit-details-panel { padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-elevated); }
-.ictu-audit-detail-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px 20px; margin: 0; }
+.ictu-audit-details-panel { padding: 16px 18px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-elevated); }
+.ictu-audit-detail-grid { display: grid; grid-template-columns: repeat(3,minmax(180px,1fr)); gap: 14px 22px; margin: 0; }
 .ictu-audit-detail-grid > div { min-width: 0; }
 .ictu-audit-detail-grid dt { margin-bottom: 3px; color: var(--text-muted); font-size: 10.5px; font-weight: 750; text-transform: uppercase; letter-spacing: .045em; }
 .ictu-audit-detail-grid dd { margin: 0; font-size: 12.5px; overflow-wrap: anywhere; }
-.ictu-audit-detail-grid code, .ictu-audit-details-panel pre { color: var(--text-secondary); }
-.ictu-audit-detail-wide { grid-column: 1 / -1; }
-.ictu-audit-change-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; margin-top: 14px; }
-.ictu-audit-change-grid section { min-width: 0; }
-.ictu-audit-change-grid h2 { margin: 0 0 7px; font-size: 11px; font-weight: 750; text-transform: uppercase; color: var(--text-secondary); }
-.ictu-audit-change-grid pre { max-height: 280px; margin: 0; padding: 11px 13px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-subtle); white-space: pre-wrap; word-break: break-word; font-size: 11.5px; line-height: 1.4; }
+.ictu-audit-info-section { margin-top: 16px; }
+.ictu-audit-section-title { margin: 0 0 8px; font-size: 11px; font-weight: 760; text-transform: uppercase; letter-spacing: .045em; color: var(--text-secondary); }
+.ictu-audit-description-box { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-subtle); color: var(--text-secondary); font-size: 12.5px; line-height: 1.45; }
+.ictu-audit-change-table-wrap { overflow-x: auto; }
+.ictu-audit-change-table { width: 100%; min-width: 640px; table-layout: fixed; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface-elevated); }
+.ictu-audit-change-field-col { width: 26%; }
+.ictu-audit-change-before-col, .ictu-audit-change-after-col { width: 37%; }
+.ictu-audit-change-table th, .ictu-audit-change-table td { padding: 10px 12px; border-bottom: 1px solid var(--row-border); text-align: left; vertical-align: top; font-size: 12.5px; line-height: 1.45; overflow-wrap: anywhere; }
+.ictu-audit-change-table th { background: var(--table-heading-bg); color: var(--text-secondary); font-size: 11px; font-weight: 760; letter-spacing: .045em; text-transform: uppercase; }
+.ictu-audit-change-table tbody tr:last-child td { border-bottom: 0; }
+.ictu-audit-empty-state { padding: 14px 16px; border: 1px dashed var(--border); border-radius: 8px; background: var(--surface-subtle); color: var(--text-muted); font-size: 12.5px; line-height: 1.45; }
 .ictu-audit-empty-directory td, .ictu-audit-no-results td { height: auto; padding: 30px !important; text-align: center; color: var(--text-muted); font-size: 13px; }
 .ictu-audit-limit-note { margin: -4px 1px 0; color: var(--text-muted); font-size: 12px; }
 html[data-theme="dark"] .ictu-audit-table th { background: var(--table-heading-bg); }
@@ -446,12 +693,109 @@ html[data-theme="dark"] .ictu-audit-type-badge { background: var(--surface-muted
     .ictu-audit-pagination { gap: 7px; }
     .ictu-audit-pagination > select { min-width: 126px; font-size: 12px; }
     .ictu-audit-page-divider { display: none; }
-    .ictu-audit-detail-grid, .ictu-audit-change-grid { grid-template-columns: minmax(0,1fr); }
-    .ictu-audit-detail-wide { grid-column: auto; }
+    .ictu-audit-detail-grid { grid-template-columns: minmax(0,1fr); }
+    .ictu-audit-change-table { min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
     .ictu-audit-area * { transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Match the standard Dashboard application shell scale. */
+.ictu-audit-shell {
+    --sidebar-width: 232px;
+    --topbar-height: 64px;
+}
+.ictu-audit-shell .sidebar-brand-row {
+    min-height: 0;
+    padding: 14px 14px 10px;
+    border-bottom: 1px solid #e6eff8;
+}
+.ictu-audit-shell .sidebar-brand.sidebar-brand-logo {
+    min-height: 58px;
+    padding: 6px 8px;
+    justify-content: center;
+}
+.ictu-audit-shell .sidebar-brand-logo-image {
+    max-width: 182px;
+    max-height: 50px;
+    object-position: center;
+}
+.ictu-audit-shell .sidebar-label {
+    margin: 14px 18px 10px !important;
+    font-size: .73rem !important;
+    letter-spacing: .14em !important;
+}
+.ictu-audit-shell .sidebar-nav {
+    gap: 8px;
+    padding: 0 10px 14px;
+}
+.ictu-audit-shell .sidebar-nav a {
+    min-height: 48px;
+    padding: 0 14px;
+    gap: 12px;
+    border-radius: 14px;
+    font-size: 14px;
+}
+.ictu-audit-shell .sidebar-nav a .nav-icon {
+    width: 18px;
+    min-width: 18px;
+}
+.ictu-audit-shell .sidebar-nav a .nav-icon svg {
+    width: auto;
+    height: auto;
+}
+.ictu-audit-shell .app-topbar {
+    min-height: 64px;
+    padding: 8px var(--content-gutter);
+}
+.ictu-audit-shell .topbar-title {
+    display: grid;
+    gap: 0;
+    line-height: 1.2;
+}
+.ictu-audit-shell .topbar-title strong {
+    font-size: 14px;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+.ictu-audit-shell .ictu-topbar-subtitle {
+    display: none;
+}
+.ictu-audit-shell .account-nav {
+    gap: 14px;
+}
+.ictu-audit-shell .account-menu-name {
+    font-size: 14px;
+}
+.ictu-audit-shell .account-menu-toggle .user-avatar {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+}
+.app-main.ictu-audit-main {
+    width: 100%;
+    max-width: var(--content-max);
+    margin: 0 auto;
+    padding: 26px var(--content-gutter) 46px;
+}
+.ictu-audit-area {
+    gap: 16px;
+}
+@media (max-width: 760px) {
+    .ictu-audit-shell {
+        --sidebar-width: 232px;
+        --topbar-height: 60px;
+    }
+    .ictu-audit-shell .app-topbar {
+        min-height: 60px;
+        padding: 6px 13px;
+    }
+    .app-main.ictu-audit-main {
+        padding: 20px var(--content-gutter) 34px;
+    }
+}
+
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', () => {

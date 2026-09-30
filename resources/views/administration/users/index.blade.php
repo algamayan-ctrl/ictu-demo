@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'User Administration'])
+@extends('layouts.app', ['title' => 'User Accounts'])
 @section('content')
 @php
     $classificationOptions = $users->map(fn ($user) => $user->access_classification?->label())->filter()->unique()->sort()->values();

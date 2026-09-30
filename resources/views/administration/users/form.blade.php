@@ -46,7 +46,15 @@
                     @error('designation') <small class="field-error">{{ $message }}</small> @enderror
                 </label>
                 <div class="ictu-field ictu-email-field">
-                    <label for="ictu-official-email">Official CSPC email</label>
+                    <div class="ictu-email-field-heading">
+                        <label for="ictu-official-email">Official CSPC email</label>
+                        @if($user->exists && !$user->hasVerifiedInstitutionalEmail())
+                            <button type="submit" form="ictu-resend-email-verification-form" class="ictu-email-verification-link" title="Resend a verification email to the currently saved email address: {{ $user->email }}">
+                                <span>Resend verification email</span>
+                                <x-icon name="chevron-right" size="14" />
+                            </button>
+                        @endif
+                    </div>
                     <input id="ictu-official-email" type="email" name="email" value="{{ old('email', $user->exists ? $user->email : '') }}"
                            placeholder="Enter official CSPC email" autocomplete="off" autocapitalize="none" spellcheck="false"
                            data-lpignore="true" data-1p-ignore="true"
@@ -56,11 +64,6 @@
                         <small class="field-note">A verification link is sent automatically after saving. Sign-in remains blocked until verification.</small>
                     @elseif($user->hasVerifiedInstitutionalEmail())
                         <small class="field-note">Email verified {{ $user->email_verified_at?->format('M j, Y g:i A') }}. Changing the email requires verification again.</small>
-                    @else
-                        <button type="submit" form="ictu-resend-email-verification-form" class="ictu-email-verification-link" title="Send a verification link to the currently saved email address: {{ $user->email }}">
-                            <x-icon name="email" size="15" /> Send verification link
-                        </button>
-                        <small class="field-note">Sent to the saved email address. Save any email changes first.</small>
                     @endif
                 </div>
             </div>

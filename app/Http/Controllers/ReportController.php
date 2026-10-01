@@ -94,7 +94,22 @@ class ReportController extends Controller
             );
         }
 
+        $reportingPeriods = [];
+        foreach (ReportingPeriodService::REPORT_PERIODS as $value => $label) {
+            $range = $value === 'custom' ? null : $this->resolveReportingPeriod(
+                Request::create('/reports', 'GET', ['academic_period' => $value]),
+                $scope['academicPeriods'],
+                $scope['activeAcademicPeriod']
+            );
+            $reportingPeriods[$value] = [
+                'label' => $label,
+                'start_date' => $range ? $range[0]->toDateString() : null,
+                'end_date' => $range ? $range[1]->toDateString() : null,
+            ];
+        }
+
         return view('reports.detailed', [
+            'reportingPeriods' => $reportingPeriods,
             'activeTab' => 'reports',
             'reportGroups' => ReportCatalogue::grouped(),
             'selectedReport' => $scope['report'],
@@ -335,7 +350,7 @@ class ReportController extends Controller
         $academicPeriods,
         ?AcademicPeriod $activeAcademicPeriod
     ): array {
-        return app(ReportingPeriodService::class)->resolve(
+        return app(ReportingPeriodService::class)->resolveForReport(
             $request,
             $academicPeriods,
             $activeAcademicPeriod

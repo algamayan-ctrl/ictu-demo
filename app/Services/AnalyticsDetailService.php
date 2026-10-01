@@ -80,7 +80,8 @@ class AnalyticsDetailService
         ?string $division,
         ?string $unit,
         string $periodSelection,
-        ?int $borrower = null
+        ?int $borrower = null,
+        ?int $recordLimit = null
     ): ?array {
         if (! in_array($type, self::TYPES, true)) {
             return null;
@@ -93,6 +94,7 @@ class AnalyticsDetailService
             'unit' => $unit,
             'period' => $periodSelection,
             'borrower' => $borrower,
+            'record_limit' => $recordLimit ?? self::RECORD_LIMIT,
         ];
 
         $detail = match ($type) {
@@ -184,6 +186,19 @@ class AnalyticsDetailService
             $scope['from'], $scope['to'], $scope['division'], $scope['unit']
         );
 
+        /*
+         * Records drilldown uses the exact same filed-request population as
+         * the KPI. Select the request model explicitly because requestScope()
+         * joins the current version table for filtering.
+         */
+        $requestRows = $this->analytics
+            ->requestScope($scope['from'], $scope['to'], $scope['division'], $scope['unit'], $scope['borrower'])
+            ->select('borrowing_requests.*')
+            ->with(['borrower', 'currentVersion'])
+            ->orderByRaw('COALESCE(request_versions.submitted_at, borrowing_requests.created_at) DESC')
+            ->limit((int) $scope['record_limit'])
+            ->get();
+
         /* Same filing-date scope and filters, over the equal-length period before. */
         $comparison = $this->analytics->demandComparison(
             $scope['from'], $scope['to'], $scope['division'], $scope['unit'], $scope['borrower']
@@ -206,6 +221,28 @@ class AnalyticsDetailService
                 ])->all()
                 : null,
             'bars_title' => 'By division',
+            'table' => $requestRows->isEmpty() ? null : [
+                'columns' => ['Request No.', 'Borrower', 'Office / College / Unit', 'Filed', 'Schedule', 'Return', 'Status'],
+                'rows' => $requestRows->map(function (BorrowingRequest $request): array {
+                    $version = $request->currentVersion;
+                    $status = $request->status instanceof RequestStatus
+                        ? $request->status->label()
+                        : (RequestStatus::tryFrom((string) $request->status)?->label()
+                            ?? str((string) $request->status)->replace('_', ' ')->title()->toString());
+
+                    return [
+                        (string) $request->request_no,
+                        (string) ($request->borrower?->full_name ?? ''),
+                        trim((string) ($version?->office_unit ?? '')) !== ''
+                            ? (string) $version->office_unit
+                            : OrganizationalStructure::label($version?->division_code),
+                        $this->date($version?->submitted_at ?? $request->created_at),
+                        $this->date($version?->schedule_date ?? $version?->needed_from),
+                        $this->date($version?->return_date ?? $version?->return_due_at),
+                        $status,
+                    ];
+                })->all(),
+            ],
             'empty' => $overview['total'] === 0
                 ? 'No borrowing requests were filed during this reporting period.'
                 : null,
@@ -232,7 +269,7 @@ class AnalyticsDetailService
     private function currentlyOut(array $scope): array
     {
         $records = $this->analytics->currentlyOutRecords(
-            $scope['division'], $scope['unit'], $scope['borrower'], self::RECORD_LIMIT
+            $scope['division'], $scope['unit'], $scope['borrower'], (int) $scope['record_limit']
         );
 
         $rows = $records['rows'];
@@ -275,7 +312,7 @@ class AnalyticsDetailService
     private function followUp(array $scope): array
     {
         $records = $this->analytics->currentlyOverdueRecords(
-            $scope['division'], $scope['unit'], $scope['borrower'], self::RECORD_LIMIT
+            $scope['division'], $scope['unit'], $scope['borrower'], (int) $scope['record_limit']
         );
 
         $rows = $records['rows'];
@@ -314,7 +351,7 @@ class AnalyticsDetailService
     /** @param array<string, mixed> $scope */
     private function lowAvailability(array $scope): array
     {
-        $low = $this->analytics->lowAvailability($this->inventory, self::RECORD_LIMIT);
+        $low = $this->analytics->lowAvailability($this->inventory, (int) $scope['record_limit']);
 
         return [
             'title' => 'Low Availability',
@@ -553,7 +590,7 @@ class AnalyticsDetailService
             ->where('users.full_name', $name)
             ->with(['currentVersion'])
             ->orderByDesc('borrowing_requests.created_at')
-            ->limit(self::RECORD_LIMIT)
+            ->limit((int) $scope['record_limit'])
             ->get(['borrowing_requests.*']);
 
         return [
@@ -647,7 +684,7 @@ class AnalyticsDetailService
             ->sortByDesc(fn (CustodyTransaction $custody) =>
                 $this->returnMetrics->completionMoment($custody)?->timestamp ?? 0
             )
-            ->take(self::RECORD_LIMIT)
+            ->take((int) $scope['record_limit'])
             ->values();
 
         return [
@@ -704,7 +741,7 @@ class AnalyticsDetailService
             $scope['borrower']
         );
 
-        $listed = $records->take(self::RECORD_LIMIT);
+        $listed = $records->take((int) $scope['record_limit']);
         $hasStandaloneLegacy = $records->contains(
             fn (array $row): bool => in_array($row['kind'], ['billing', 'restriction'], true)
         );
@@ -934,7 +971,7 @@ class AnalyticsDetailService
             ))
             ->with(['borrower', 'currentVersion'])
             ->orderByRaw('COALESCE(request_versions.submitted_at, borrowing_requests.created_at) DESC')
-            ->limit(self::RECORD_LIMIT)
+            ->limit((int) $scope['record_limit'])
             ->get(['borrowing_requests.*']);
 
         $stats = [['label' => 'Filed requests', 'value' => $outcomes['total']]];
@@ -1050,7 +1087,7 @@ class AnalyticsDetailService
         $selected = $bucket === '' ? null : collect($aging['groups'])->firstWhere('key', $bucket);
 
         $records = $this->analytics->overdueAgingRecords(
-            $scope['division'], $scope['unit'], $scope['borrower'], $bucket === '' ? null : $bucket, self::RECORD_LIMIT
+            $scope['division'], $scope['unit'], $scope['borrower'], $bucket === '' ? null : $bucket, (int) $scope['record_limit']
         );
 
         $stats = [['label' => 'Currently overdue', 'value' => $aging['total']]];
@@ -1163,7 +1200,7 @@ class AnalyticsDetailService
             $scope['from'], $scope['to'], $scope['division'], $scope['unit'], $scope['borrower'],
             $selected !== null ? ($selected['code'] ?? 'unspecified') : null,
             $selected !== null && $level === 'unit' ? $selected['unit'] : null,
-            self::RECORD_LIMIT
+            (int) $scope['record_limit']
         );
 
         $noun = $level === 'unit' ? 'unit' : 'division';

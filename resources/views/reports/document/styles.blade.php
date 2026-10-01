@@ -104,3 +104,173 @@
     .doc-summary, .doc-footer { break-inside: avoid; }
 }
 </style>
+
+<style>
+/* REMOVE GENERATED REPORT SUMMARY FINAL */
+
+/*
+|--------------------------------------------------------------------------
+| Generated formal reports
+|--------------------------------------------------------------------------
+| Formal reports should present institutional metadata + actual records.
+| Summary/KPI-style counts belong to Analytics, not the printed record.
+|--------------------------------------------------------------------------
+*/
+
+.doc-sheet .doc-summary,
+.doc-sheet .report-summary,
+.doc-sheet [data-report-summary],
+.doc-sheet [class*="report-summary"],
+.doc-sheet [class*="doc-summary"] {
+    display: none !important;
+}
+
+/*
+ * Hide a standalone Report Summary heading when it is part of
+ * the shared generated document summary section.
+ */
+.doc-sheet .doc-summary-title,
+.doc-sheet .report-summary-title,
+.doc-sheet [data-report-summary-title] {
+    display: none !important;
+}
+
+/*
+ * Prevent residual spacing from a hidden summary section.
+ */
+.doc-sheet .doc-summary + *,
+.doc-sheet .report-summary + *,
+.doc-sheet [data-report-summary] + * {
+    margin-top: 0 !important;
+}
+
+@media print {
+    .doc-sheet .doc-summary,
+    .doc-sheet .report-summary,
+    .doc-sheet [data-report-summary],
+    .doc-sheet [class*="report-summary"],
+    .doc-sheet [class*="doc-summary"],
+    .doc-sheet .doc-summary-title,
+    .doc-sheet .report-summary-title,
+    .doc-sheet [data-report-summary-title] {
+        display: none !important;
+    }
+}
+
+</style>
+
+<style>
+/* FORMAL REPORT FOOTER RENDERER FINAL */
+
+/*
+ * IMPORTANT:
+ * This positioning is intentionally NOT limited to @media print.
+ * The PDF renderer may render the document using screen media.
+ */
+.doc-footer {
+    position: fixed !important;
+
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 6mm !important;
+
+    box-sizing: border-box !important;
+
+    width: auto !important;
+
+    margin: 0 !important;
+
+    padding:
+        6px
+        34mm
+        0
+        0 !important;
+
+    border-top:
+        1px
+        solid
+        #9aa5b1 !important;
+
+    background: #fff !important;
+
+    color: #42566d !important;
+
+    font-size: 7.5pt !important;
+    line-height: 1.35 !important;
+
+    z-index: 50 !important;
+}
+
+.doc-footer-copy {
+    display: block !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.doc-footer p {
+    margin: 0 !important;
+    padding: 0 !important;
+
+    color: #42566d !important;
+
+    font-size: 7.5pt !important;
+    line-height: 1.35 !important;
+}
+
+/*
+ * Reserve the bottom portion of the paper so the records table
+ * cannot collide with the fixed institutional footer.
+ */
+.doc-sheet {
+    box-sizing: border-box !important;
+
+    padding-bottom: 24mm !important;
+}
+
+
+/* ============================================================
+   NORMAL APP SCREEN
+   ============================================================ */
+
+/*
+ * The formal print source is already hidden in the system preview.
+ * If a document sheet is displayed directly, keep its footer
+ * attached to the bottom of the sheet rather than the viewport.
+ */
+@media screen {
+
+    .report-preview-sheet .doc-footer {
+        position: absolute !important;
+
+        left: 14mm !important;
+        right: 14mm !important;
+        bottom: 10mm !important;
+    }
+
+    .report-preview-sheet .doc-sheet {
+        position: relative !important;
+    }
+}
+
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    .doc-footer {
+        position: fixed !important;
+
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 6mm !important;
+    }
+
+    .doc-sheet {
+        padding-bottom: 24mm !important;
+    }
+}
+
+</style>

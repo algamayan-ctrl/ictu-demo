@@ -1018,7 +1018,7 @@ class AnalyticsCardDetailService
     /** @return array<string, mixed> */
     private function overdueFollowUp(array $scope): array
     {
-        $overdue = $this->analytics->currentOverdue($scope['division'], $scope['unit'], 25, $scope['borrower'] ?? null);
+        $overdue = $this->analytics->currentOverdue($scope['division'], $scope['unit'], (int) ($scope['record_limit'] ?? 25), $scope['borrower'] ?? null);
 
         return [
             'title' => 'Current Overdue Follow-up',

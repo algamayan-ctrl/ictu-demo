@@ -15,7 +15,6 @@ use App\Support\OrganizationalStructure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -459,10 +458,6 @@ class UserAdministrationController extends Controller
             return 'active_session';
         }
 
-        if ($this->pendingAccountHasReferences((int) $user->getKey())) {
-            return 'linked_records';
-        }
-
         return null;
     }
 
@@ -471,7 +466,7 @@ class UserAdministrationController extends Controller
         return match ($blocker) {
             'current_user' => 'You cannot delete your own ICTU account.',
             'verified_email', 'previous_login' => 'Only unverified accounts that have never signed in can be deleted. Use Deactivate for established users.',
-            'active_session', 'linked_records' => 'This account has linked activity or historical records and cannot be deleted. Deactivate it instead.',
+            'active_session' => 'This pending account currently has an active session and cannot be deleted yet.',
             default => 'This account is not eligible for deletion.',
         };
     }
@@ -481,34 +476,14 @@ class UserAdministrationController extends Controller
         return DB::table('sessions')->where('user_id', $userId)->exists();
     }
 
-    /**
-     * Block deletion if any operational/administrative table references this
-     * user, regardless of ON DELETE CASCADE/SET NULL. The only exceptions are
-     * the initial role and organizational-assignment pivots created at signup.
-     * Laravel schema introspection works with both MySQL and SQLite testing.
+    /*
+     * Do not block a never-signed-in, unverified registration merely because
+     * other system rows reference it. Pending registrations can accumulate
+     * administrative/supporting rows before verification, and their foreign-key
+     * delete rules (CASCADE / SET NULL) are responsible for cleanup or history
+     * preservation. Established users are still protected by verification and
+     * last_login_at checks above.
      */
-    private function pendingAccountHasReferences(int $userId): bool
-    {
-        foreach (Schema::getTableListing(schemaQualified: false) as $table) {
-            if (in_array($table, ['users', 'user_roles', 'user_organizational_units'], true)) {
-                continue;
-            }
-
-            foreach (Schema::getForeignKeys($table) as $foreignKey) {
-                if (strtolower((string) ($foreignKey['foreign_table'] ?? '')) !== 'users') {
-                    continue;
-                }
-                foreach (($foreignKey['columns'] ?? []) as $position => $column) {
-                    if (($foreignKey['foreign_columns'][$position] ?? null) === 'id'
-                        && DB::table($table)->where($column, $userId)->exists()) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
 
     /** ICTU recovery action if the first verification email expired or could not be delivered. */
     public function resendEmailVerification(

@@ -56,7 +56,7 @@ class IctuPendingRegistrationDeletionTest extends TestCase
             ->assertOk()->assertSee('Create Account')->assertDontSee('Delete Account');
     }
 
-    public function test_manage_form_shows_the_matching_verified_account_lifecycle_action(): void
+    public function test_manage_form_keeps_verified_lifecycle_actions_in_the_user_accounts_list(): void
     {
         $ictu = $this->ictu();
         $active = User::factory()->create(['email' => 'active-lifecycle@cspc.edu.ph']);
@@ -77,17 +77,21 @@ class IctuPendingRegistrationDeletionTest extends TestCase
 
         $this->actingAs($ictu)->get(route('administration.users.edit', $active))
             ->assertOk()
-            ->assertSee('Deactivate Account')
-            ->assertSee(route('administration.users.deactivate', $active), false)
+            ->assertSee('Account deactivation is handled in the User Accounts list.')
+            ->assertDontSee('Deactivate Account')
+            ->assertDontSee('Reactivate Account')
             ->assertDontSee('Delete Account')
-            ->assertDontSee('Reactivate Account');
+            ->assertDontSee(route('administration.users.deactivate', $active), false)
+            ->assertDontSee(route('administration.users.reactivate', $active), false);
 
         $this->get(route('administration.users.edit', $inactive))
             ->assertOk()
-            ->assertSee('Reactivate Account')
-            ->assertSee(route('administration.users.reactivate', $inactive), false)
+            ->assertSee('Account deactivation is handled in the User Accounts list.')
+            ->assertDontSee('Deactivate Account')
+            ->assertDontSee('Reactivate Account')
             ->assertDontSee('Delete Account')
-            ->assertDontSee('Deactivate Account');
+            ->assertDontSee(route('administration.users.deactivate', $inactive), false)
+            ->assertDontSee(route('administration.users.reactivate', $inactive), false);
 
         $this->get(route('administration.users.edit', $linkedPending))
             ->assertOk()

@@ -104,22 +104,25 @@
     <td>
         <span class="spmu-inventory-actions">
             <a
-                class="table-action ui-pressable"
+                class="table-action ui-pressable {{ $isInventoryAdmin ? 'spmu-inventory-icon-action' : '' }}"
                 href="{{ route('inventory.show', $item) }}"
                 aria-label="View {{ $item->unique_description }}"
+                @if($isInventoryAdmin) title="View" @endif
             >
                 <x-icon name="eye" size="16" />
-                View
+                @unless($isInventoryAdmin)
+                    View
+                @endunless
             </a>
 
             @if($isInventoryAdmin)
                 <a
-                    class="table-action ui-pressable"
+                    class="table-action ui-pressable spmu-inventory-icon-action"
                     href="{{ route('inventory.edit', $item) }}"
                     aria-label="Edit details for {{ $item->unique_description }}"
+                    title="Edit Details"
                 >
                     <x-icon name="edit" size="16" />
-                    Edit Details
                 </a>
             @endif
         </span>

@@ -591,12 +591,16 @@ html[data-theme="dark"] .ictu-users-filter-field :is(input,select), html[data-th
 .ictu-additional-picker-actions .ictu-add-unit-button { width:auto; min-width:122px; padding-inline:15px; }
 .ictu-additional-picker-actions .ictu-add-unit-button:disabled { opacity:.48; cursor:not-allowed; }
 .ictu-form-actions { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
-.ictu-form-action-left { display:flex; align-items:center; flex-wrap:wrap; gap:10px; min-width:0; }
-.ictu-form-action-left .field-note { font-size:11px; font-weight:400; color:var(--text-muted); }
+.ictu-administrative-actions-row { margin-top:12px; padding:0; align-items:center; }
+.ictu-form-action-left { display:flex; align-items:center; flex-direction:row; gap:8px; min-width:0; }
+.ictu-account-action-note { display:inline-flex; align-items:center; gap:5px; max-width:100%; font-size:11px; font-weight:400; line-height:1.35; color:var(--text-muted); }
+.ictu-account-action-note .ui-icon { flex:0 0 auto; }
+.ictu-account-action-note.is-danger { color:#d92d20; }
 .ictu-form-action-right { display:flex; align-items:center; justify-content:flex-end; gap:12px; margin-left:auto; }
-.ictu-form-actions .ictu-delete-account-button { display:inline-flex; align-items:center; gap:8px; min-width:0; width:auto; color:#b42318; border:1px solid #eab4b1; background:transparent; }
-.ictu-form-actions .ictu-delete-account-button:hover { color:#912018; border-color:#bc4b42; background:#fff5f4; }
-.ictu-form-actions .ictu-delete-account-button:focus-visible { outline:2px solid #b42318; outline-offset:2px; }
+.ictu-form-actions .ictu-delete-account-button { display:inline-flex; align-items:center; gap:8px; min-width:0; width:auto; color:#d92d20; border:1px solid #f0a4a0; background:#fff8f7; }
+.ictu-form-actions .ictu-delete-account-button:hover { color:#b42318; border-color:#d92d20; background:#fff1f0; }
+.ictu-form-actions .ictu-delete-account-button:focus-visible { outline:2px solid #d92d20; outline-offset:2px; }
+html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { background:rgba(217,45,32,.08); }
 @media (max-width:760px) {
   .ictu-additional-selection-grid { grid-template-columns:minmax(0,1fr); }
   .ictu-form-action-left { width:100%; }
@@ -847,4 +851,56 @@ html[data-theme="dark"] .ictu-users-filter-field :is(input,select), html[data-th
     box-shadow: var(--shadow-sm);
 }
 
+
+/* Edit institutional account: compact borderless password reveal control. */
+.ictu-password-input-wrap {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+.ictu-password-input-wrap > input {
+    width: 100%;
+    padding-right: 52px !important;
+}
+.ictu-password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    padding: 0;
+    margin: 0;
+    border: 0 !important;
+    border-radius: 50%;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #405674;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+}
+.ictu-password-toggle svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+}
+.ictu-password-toggle svg[hidden] { display: none !important; }
+.ictu-password-toggle:hover {
+    color: #173a67;
+    background: transparent !important;
+}
+.ictu-password-toggle:focus-visible {
+    outline: 2px solid var(--primary, #1f6feb);
+    outline-offset: 1px;
+}
+html[data-theme="dark"] .ictu-password-toggle { color: #a9bad0; }
+
 </style>
+

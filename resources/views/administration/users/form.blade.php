@@ -7,14 +7,9 @@
     $addingNewUnit = filled($newUnitName) || old('organizational_unit_id') === '__NEW__';
     $historicalPrimaryUnit = $historicalPrimaryUnit ?? null;
     $historicalAdditionalUnits = $historicalAdditionalUnits ?? collect();
-    $pendingRegistrationDeletionBlocker = $pendingRegistrationDeletionBlocker ?? null;
-    $canDeletePendingRegistration = $user->exists && !$user->hasVerifiedInstitutionalEmail()
-        && $pendingRegistrationDeletionBlocker === null;
+    // UI rule: every existing unverified account gets the pending-account delete action.
+    // The DELETE endpoint still performs the final server-side safety checks.
     $isPendingUnverified = $user->exists && !$user->hasVerifiedInstitutionalEmail();
-    $isVerifiedActive = $user->exists && $user->hasVerifiedInstitutionalEmail()
-        && $user->account_status?->value === 'ACTIVE' && !$isSelfProtected;
-    $isVerifiedInactive = $user->exists && $user->hasVerifiedInstitutionalEmail()
-        && $user->account_status?->value === 'INACTIVE' && !$isSelfProtected;
     $selectedAdditionalUnitIds = collect(old('additional_organizational_unit_ids', $additionalUnitIds ?? []))
         ->map(fn ($id) => (int) $id)->unique()->values();
 @endphp
@@ -268,66 +263,72 @@
             <div class="ictu-field-grid ictu-field-grid-two">
                 <label class="ictu-field" for="ictu-new-password">
                     <span>{{ $user->exists ? 'New password (leave blank to retain)' : 'Password' }}</span>
-                    <input type="password" name="password" id="ictu-new-password" autocomplete="new-password" @required(!$user->exists)>
+                    <span class="ictu-password-input-wrap">
+                        <input type="password" name="password" id="ictu-new-password" autocomplete="new-password" @required(!$user->exists)>
+                        <button type="button" class="ictu-password-toggle" data-password-toggle data-password-target="ictu-new-password" aria-label="Show new password" title="Show password">
+                            <svg class="ictu-password-eye" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"></path><circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="ictu-password-eye-off" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" hidden>
+                                <path d="M3 3l18 18"></path><path d="M10.6 10.7a2 2 0 0 0 2.7 2.7"></path><path d="M9.9 4.2A10.7 10.7 0 0 1 12 4c7 0 11 8 11 8a18.4 18.4 0 0 1-3 4.2"></path><path d="M6.6 6.6C3.2 8.8 1 12 1 12s4 8 11 8a10.8 10.8 0 0 0 5.4-1.4"></path>
+                            </svg>
+                        </button>
+                    </span>
                     @error('password') <small class="field-error">{{ $message }}</small> @enderror
                 </label>
                 <label class="ictu-field" for="ictu-confirm-password">
                     <span>Confirm password</span>
-                    <input type="password" name="password_confirmation" id="ictu-confirm-password" autocomplete="new-password" @required(!$user->exists)>
+                    <span class="ictu-password-input-wrap">
+                        <input type="password" name="password_confirmation" id="ictu-confirm-password" autocomplete="new-password" @required(!$user->exists)>
+                        <button type="button" class="ictu-password-toggle" data-password-toggle data-password-target="ictu-confirm-password" aria-label="Show confirm password" title="Show password">
+                            <svg class="ictu-password-eye" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"></path><circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="ictu-password-eye-off" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" hidden>
+                                <path d="M3 3l18 18"></path><path d="M10.6 10.7a2 2 0 0 0 2.7 2.7"></path><path d="M9.9 4.2A10.7 10.7 0 0 1 12 4c7 0 11 8 11 8a18.4 18.4 0 0 1-3 4.2"></path><path d="M6.6 6.6C3.2 8.8 1 12 1 12s4 8 11 8a10.8 10.8 0 0 0 5.4-1.4"></path>
+                            </svg>
+                        </button>
+                    </span>
                     @error('password_confirmation') <small class="field-error">{{ $message }}</small> @enderror
                 </label>
             </div>
+
+            @if($user->exists)
+                <div class="ictu-form-actions ictu-administrative-actions-row">
+                    <div class="ictu-form-action-left">
+                        @if($isPendingUnverified)
+                            <button type="submit" form="ictu-delete-pending-registration-form"
+                                    class="button secondary ictu-delete-account-button"
+                                    id="ictu-delete-pending-registration-button"
+                                    aria-label="Delete unverified account for {{ $user->full_name }}">
+                                <x-icon name="trash" size="16" /> Delete Account
+                            </button>
+                        @else
+                            <small class="ictu-account-action-note is-danger">
+                                <x-icon name="information" size="13" />
+                                <span>This account cannot be deleted because linked system records must be preserved.</span>
+                            </small>
+                        @endif
+                    </div>
+                    <div class="ictu-form-action-right">
+                        <a class="button secondary ui-pressable" href="{{ route('administration.users.index') }}">Cancel</a>
+                        <button class="button primary ui-pressable" type="submit"><x-icon name="save" size="17" /> Save Changes</button>
+                    </div>
+                </div>
+            @endif
         </section>
 
-        <div class="ictu-form-actions">
-            <div class="ictu-form-action-left">
-                @if($canDeletePendingRegistration)
-                    <button type="submit" form="ictu-delete-pending-registration-form"
-                            class="button secondary ictu-delete-account-button"
-                            id="ictu-delete-pending-registration-button"
-                            aria-label="Delete unverified account for {{ $user->full_name }}">
-                        <x-icon name="trash" size="16" /> Delete Account
-                    </button>
-                    <small class="field-note">For mistaken, unused registrations only. Verified accounts cannot be deleted here.</small>
-                @elseif($isPendingUnverified && $pendingRegistrationDeletionBlocker)
-                    <small class="field-note">
-                        @switch($pendingRegistrationDeletionBlocker)
-                            @case('previous_login')
-                                This account cannot be deleted because it has previously signed in.
-                                @break
-                            @case('current_user')
-                                You cannot delete the account you are currently using.
-                                @break
-                            @case('active_session')
-                                This account cannot be deleted while an active session exists.
-                                @break
-                            @case('linked_records')
-                                This account cannot be deleted because linked system records must be preserved.
-                                @break
-                        @endswitch
-                    </small>
-                @elseif($isVerifiedActive)
-                    <button type="submit" form="ictu-deactivate-account-form" class="button secondary"
-                            id="ictu-deactivate-account-button"
-                            aria-label="Deactivate account for {{ $user->full_name }}">
-                        <x-icon name="lock" size="16" /> Deactivate Account
-                    </button>
-                @elseif($isVerifiedInactive)
-                    <button type="submit" form="ictu-reactivate-account-form" class="button secondary"
-                            id="ictu-reactivate-account-button"
-                            aria-label="Reactivate account for {{ $user->full_name }}">
-                        <x-icon name="cycle" size="16" /> Reactivate Account
-                    </button>
-                @endif
+        @unless($user->exists)
+            <div class="ictu-form-actions">
+                <div class="ictu-form-action-right">
+                    <a class="button secondary ui-pressable" href="{{ route('administration.users.index') }}">Cancel</a>
+                    <button class="button primary ui-pressable" type="submit"><x-icon name="save" size="17" /> Create Account</button>
+                </div>
             </div>
-            <div class="ictu-form-action-right">
-                <a class="button secondary ui-pressable" href="{{ route('administration.users.index') }}">Cancel</a>
-                <button class="button primary ui-pressable" type="submit"><x-icon name="save" size="17" /> {{ $user->exists ? 'Save Changes' : 'Create Account' }}</button>
-            </div>
-        </div>
+        @endunless
     </form>
 
-    @if($canDeletePendingRegistration)
+    @if($isPendingUnverified)
         {{-- Separate form: Delete must never submit the unsaved changes in the Edit User form. --}}
         <form id="ictu-delete-pending-registration-form" method="post"
               action="{{ route('administration.users.delete-pending', $user) }}"
@@ -337,23 +338,6 @@
         </form>
     @endif
 
-    @if($isVerifiedActive)
-        <form id="ictu-deactivate-account-form" method="post"
-              action="{{ route('administration.users.deactivate', $user) }}"
-              data-preserve-submit-label="true" hidden>
-            @csrf
-            @method('PATCH')
-        </form>
-    @endif
-
-    @if($isVerifiedInactive)
-        <form id="ictu-reactivate-account-form" method="post"
-              action="{{ route('administration.users.reactivate', $user) }}"
-              data-preserve-submit-label="true" hidden>
-            @csrf
-            @method('PATCH')
-        </form>
-    @endif
 
     @if($user->exists && !$user->hasVerifiedInstitutionalEmail())
         <form id="ictu-resend-email-verification-form" method="post" action="{{ route('administration.users.email-verification.resend', $user) }}" data-preserve-submit-label="true" hidden>@csrf</form>
@@ -490,26 +474,30 @@ document.addEventListener('DOMContentLoaded', () => {
     addAdditionalButton?.addEventListener('click', addAdditionalUnit);
     syncUnits();
 
+    document.querySelectorAll('[data-password-toggle]').forEach(toggle => {
+        const input = document.getElementById(toggle.dataset.passwordTarget || '');
+        if (!input) return;
+
+        const eye = toggle.querySelector('.ictu-password-eye');
+        const eyeOff = toggle.querySelector('.ictu-password-eye-off');
+        toggle.addEventListener('click', () => {
+            const willShow = input.type === 'password';
+            input.type = willShow ? 'text' : 'password';
+            toggle.classList.toggle('is-revealing', willShow);
+            toggle.setAttribute('aria-label', willShow ? 'Hide password' : 'Show password');
+            toggle.setAttribute('title', willShow ? 'Hide password' : 'Show password');
+            if (eye) eye.hidden = willShow;
+            if (eyeOff) eyeOff.hidden = !willShow;
+        });
+    });
+
     const deleteButton = document.getElementById('ictu-delete-pending-registration-button');
     deleteButton?.addEventListener('click', event => {
-        if (!window.confirm('Delete this unverified, unused account? This cannot be undone. If the mailbox is valid but mistyped, editing the email and resending verification is safer.')) {
+        if (!window.confirm('Delete this pending or unverified account? This cannot be undone. If the mailbox is valid but mistyped, editing the email and resending verification is safer.')) {
             event.preventDefault();
         }
     });
 
-    const deactivateButton = document.getElementById('ictu-deactivate-account-button');
-    deactivateButton?.addEventListener('click', event => {
-        if (!window.confirm('Deactivate this verified account? Portal access will be disabled, but borrowing history, custody transactions, penalties, and audit records will be preserved.')) {
-            event.preventDefault();
-        }
-    });
-
-    const reactivateButton = document.getElementById('ictu-reactivate-account-button');
-    reactivateButton?.addEventListener('click', event => {
-        if (!window.confirm('Reactivate this verified account? Portal access will be restored and all historical records will remain unchanged.')) {
-            event.preventDefault();
-        }
-    });
 });
 </script>
 @endsection

@@ -47,7 +47,25 @@
 .spmu-inventory-use small { display: block; margin-top: 3px; color: var(--text-muted); }
 .spmu-inventory-actions { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; white-space: nowrap; }
 .spmu-inventory .spmu-inventory-actions .table-action { gap: 6px; }
-.spmu-inventory.is-inventory-head .spmu-inventory-actions { flex-direction: column; align-items: flex-start; gap: 6px; }
+.spmu-inventory.is-inventory-head .spmu-inventory-table td { padding-top: 7px; padding-bottom: 7px; }
+.spmu-inventory.is-inventory-head .spmu-inventory-actions { flex-direction: row; align-items: center; gap: 8px; }
+.spmu-inventory.is-inventory-head .spmu-inventory-actions .spmu-inventory-icon-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 4px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    box-shadow: none;
+}
+.spmu-inventory.is-inventory-head .spmu-inventory-actions .spmu-inventory-icon-action:hover,
+.spmu-inventory.is-inventory-head .spmu-inventory-actions .spmu-inventory-icon-action:focus-visible {
+    border: 0;
+    background: var(--surface-subtle);
+}
 .spmu-inventory-static-empty { padding: 34px 16px !important; color: var(--text-muted); text-align: center; }
 
 /* Footer / pagination */

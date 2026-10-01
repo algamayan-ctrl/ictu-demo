@@ -72,10 +72,36 @@ class SettingController extends Controller
         $this->authorizeConfiguration($request);
         $this->authorizeSettingOwnership($request, $setting);
 
-        $data = $request->validate([
-            'value' => ['nullable', 'string', 'max:2000'],
-            'reason' => ['nullable', 'string', 'max:1000'],
-        ]);
+        if ($setting->setting_key === 'backup_schedule') {
+            $data = $request->validate([
+                'backup_time' => ['required', 'date_format:H:i'],
+                'backup_recurrence' => ['required', 'in:daily,weekly,monthly'],
+                'reason' => ['nullable', 'string', 'max:1000'],
+            ]);
+
+            $after = [
+                'time' => $data['backup_time'],
+                'recurrence' => $data['backup_recurrence'],
+            ];
+        } elseif ($setting->setting_key === 'max_upload_mb') {
+            $data = $request->validate([
+                'value' => ['required', 'integer', 'min:1'],
+                'reason' => ['nullable', 'string', 'max:1000'],
+            ]);
+
+            $after = (int) $data['value'];
+        } else {
+            $data = $request->validate([
+                'value' => ['nullable', 'string', 'max:2000'],
+                'reason' => ['nullable', 'string', 'max:1000'],
+            ]);
+
+            $after = match ($setting->data_type) {
+                'INTEGER' => filled($data['value']) ? (int) $data['value'] : null,
+                'MONEY' => filled($data['value']) ? round((float) $data['value'], 2) : null,
+                default => filled($data['value']) ? $data['value'] : null,
+            };
+        }
 
         /*
          * The change log column is not nullable, so an omitted reason is
@@ -86,12 +112,6 @@ class SettingController extends Controller
             : 'No reason provided.';
 
         $before = $setting->value_json;
-
-        $after = match ($setting->data_type) {
-            'INTEGER' => filled($data['value']) ? (int) $data['value'] : null,
-            'MONEY' => filled($data['value']) ? round((float) $data['value'], 2) : null,
-            default => filled($data['value']) ? $data['value'] : null,
-        };
 
         DB::transaction(function () use (
             $setting,

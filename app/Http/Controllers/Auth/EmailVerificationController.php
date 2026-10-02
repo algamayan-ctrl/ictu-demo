@@ -24,7 +24,11 @@ class EmailVerificationController extends Controller
         EmailVerificationService $verification,
         AuditService $audit,
     ): RedirectResponse {
-        if (! $request->hasValidSignature()) {
+        // New links use a host-independent signature so a verification
+        // email may be opened from any device through the shared application
+        // address. Keep the old absolute-signature check for links sent before
+        // this update.
+        if (! $request->hasValidRelativeSignature() && ! $request->hasValidSignature()) {
             return redirect()->route('login')->withErrors([
                 'email' => 'This email verification link is invalid or has expired. Contact ICTU to resend a new verification email.',
             ]);

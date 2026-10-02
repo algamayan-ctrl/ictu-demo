@@ -1,0 +1,69 @@
+SPMU-ACPMP — AUTOMATIC CROSS-DEVICE EMAIL VERIFICATION FIX
+==========================================================
+
+WHAT CHANGED
+------------
+The normal ICTU workflow is now automatic:
+
+1. ICTU clicks Create Account.
+2. The account is committed to the database.
+3. The system automatically sends the CSPC verification email.
+4. The recipient opens that email from a phone, laptop, tablet, or another device.
+5. The Verify CSPC Email link returns to the same shared SPMU-ACPMP application.
+6. The account is marked verified and the user may sign in.
+
+NO .CMD OR POWERSHELL HELPER IS PART OF REGISTRATION.
+There is no extra command to run after creating each account.
+
+TECHNICAL FIX
+-------------
+- The signed verification token is now host-independent.
+- A real/shared APP_URL is preferred automatically.
+- If APP_URL is still localhost/127.0.0.1, the application automatically uses
+  the non-loopback host/domain from the ICTU browser request when available.
+- Previously sent absolute-signed links remain accepted for compatibility.
+- The existing automatic send-after-registration behavior is retained.
+- The ICTU success message now clearly says the verification email was sent
+  automatically.
+
+IMPORTANT DEPLOYMENT FACT
+-------------------------
+"Any device" requires those devices to be able to reach the SPMU-ACPMP server.
+
+For a real deployed system, APP_URL should already be the shared HTTPS domain,
+for example:
+
+    APP_URL=https://<your-real-spmu-domain>
+
+Then registration and verification are fully automatic.
+
+For a LAN/demo setup, ICTU should open the SPMU-ACPMP application using the
+server's shared LAN hostname/IP rather than 127.0.0.1/localhost. Example:
+
+    http://192.168.x.x:8080
+
+The application will automatically use that shared request host in the email.
+
+A localhost/127.0.0.1 address cannot work from another physical device because
+localhost always refers to the device that clicked the email.
+
+AFTER COPYING THE FILES
+-----------------------
+Rebuild/recreate the running application so Laravel reloads cached code/config:
+
+    docker compose up -d --build --force-recreate app scheduler queue
+
+Then create a NEW test account. The verification email should be sent
+automatically. Use a newly sent email; an old email containing localhost or
+127.0.0.1 still contains the old destination and cannot be rewritten.
+
+VALIDATION PERFORMED
+--------------------
+- PHP syntax checks passed on all modified PHP files.
+- git diff --check passed.
+- A regression test was added for:
+  * automatic shared-host selection when APP_URL is loopback
+  * host-independent signed verification opened through another host
+
+The uploaded ZIP does not contain vendor/, so the full PHPUnit suite could not
+be executed from this archive in the current environment.

@@ -21,6 +21,7 @@ Copy `.env.docker.example` to the protected, untracked `.env.docker` file. Do no
 |---|---|---|
 | `APP_KEY` | Required | Generate with `php artisan key:generate --show`; preserve it securely because replacing it invalidates encrypted application state. |
 | `APP_ENV`, `APP_DEBUG`, `APP_URL`, timezone | Required/environment-specific | Use `production`, `false`, the approved HTTPS URL, and `Asia/Manila`. |
+| `EMAIL_VERIFICATION_BASE_URL` | Required for cross-device verification | Use the same approved HTTPS SPMU-ACPMP origin that recipient phones/laptops/tablets can reach. A private LAN URL is suitable only for same-network testing. |
 | `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `MARIADB_*` | Required | Use the internal MariaDB service and ICTU-managed credentials. Database access must not be public. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | Required only when enabling Google sign-in | Register the exact HTTPS callback `${APP_URL}/auth/google/callback` in Google Cloud Console. Missing values keep Google sign-in unavailable; local account authorization remains unchanged. |
 | `GOOGLE_ALLOWED_DOMAINS` | Required deployment policy when Google sign-in is enabled | Set to `cspc.edu.ph` for CSPC production. The variable supports a comma-separated list only when ICTU has an approved institutional exception. |
@@ -62,6 +63,8 @@ The command securely prompts for a 12+ character password with uppercase, lowerc
 Google OAuth is optional. When enabled, use only the environment variables above; never hardcode a client secret in PHP or configuration files. The Google Cloud Console redirect must exactly match `GOOGLE_REDIRECT_URI`, and production CSPC accounts must be limited with `GOOGLE_ALLOWED_DOMAINS=cspc.edu.ph`.
 
 Laravel uses the configured SMTP transport for email. Delivery attempts and responses appear in the notification report.
+
+Verification links are host-independent and are prefixed with `EMAIL_VERIFICATION_BASE_URL`. This means ICTU may register an account from one computer and the recipient may verify from another device. For access from any network, the base URL must be the institution-approved public HTTPS SPMU-ACPMP address. For a same-LAN demo on Windows, `tools\configure-verification-url.cmd` can detect the server laptop's LAN address; it does not require changing PowerShell's permanent execution policy.
 
 ## Scheduled operations
 

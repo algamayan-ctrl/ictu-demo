@@ -152,8 +152,8 @@ class UserAdministrationController extends Controller
         return redirect()
             ->route('administration.users.index')
             ->with('status', $sent
-                ? "Account created for {$user->full_name}. A verification link was sent; sign-in remains blocked until verified."
-                : "Account created for {$user->full_name}, but email delivery failed. Open Manage to resend the verification link.");
+                ? "Account created for {$user->full_name}. The verification email was sent automatically to {$user->email}; sign-in remains blocked until verified."
+                : "Account created for {$user->full_name}, but automatic verification email delivery failed. Open Manage to resend the verification link.");
     }
 
     public function update(
@@ -260,8 +260,8 @@ class UserAdministrationController extends Controller
             return redirect()
                 ->route('administration.users.index')
                 ->with('status', $sent
-                    ? 'Account updated. The changed email must be verified again before sign-in.'
-                    : 'Account updated and its changed email is unverified. Email delivery failed; open Manage to resend.');
+                    ? 'Account updated. A verification email was sent automatically to the changed address; it must be verified before sign-in.'
+                    : 'Account updated and its changed email is unverified. Automatic email delivery failed; open Manage to resend.');
         }
 
         return redirect()

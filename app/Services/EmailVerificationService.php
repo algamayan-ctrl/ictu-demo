@@ -33,16 +33,7 @@ class EmailVerificationService
             return true;
         }
 
-        $verificationUrl = URL::temporarySignedRoute(
-            'email.verification.verify',
-            now()->addHours(self::VERIFICATION_LINK_HOURS),
-            [
-                'user' => $user->getKey(),
-                // Binding the current email to the link automatically makes an
-                // older link unusable after ICTU changes the account email.
-                'hash' => $this->emailHash((string) $user->email),
-            ],
-        );
+        $verificationUrl = $this->verificationUrl($user);
 
         $recipientName = e($user->full_name ?: 'CSPC User');
         $safeUrl = e($verificationUrl);
@@ -116,6 +107,65 @@ HTML;
 
             return false;
         }
+    }
+
+    /**
+     * Build the verification URL without tying the signature to a hostname.
+     *
+     * ICTU may register the account from one computer while the recipient
+     * opens the email on a phone, tablet, or another computer. Signing only
+     * the route path/query keeps the security token valid regardless of the
+     * device used to open the shared SPMU-ACPMP address.
+     */
+    public function verificationUrl(User $user): string
+    {
+        $relativeUrl = URL::temporarySignedRoute(
+            'email.verification.verify',
+            now()->addHours(self::VERIFICATION_LINK_HOURS),
+            [
+                'user' => $user->getKey(),
+                // Binding the current email to the link automatically makes an
+                // older link unusable after ICTU changes the account email.
+                'hash' => $this->emailHash((string) $user->email),
+            ],
+            absolute: false,
+        );
+
+        return $this->verificationBaseUrl().'/'.ltrim($relativeUrl, '/');
+    }
+
+    /**
+     * Resolve the shared address placed in verification emails automatically.
+     *
+     * No per-account setup is required. A real APP_URL is preferred, and
+     * when local APP_URL still points to localhost the current non-loopback
+     * host/domain used by ICTU is picked up automatically.
+     */
+    public function verificationBaseUrl(): string
+    {
+        $appUrl = trim((string) config('app.url'));
+        if ($appUrl !== '' && ! $this->isLoopbackUrl($appUrl)) {
+            return rtrim($appUrl, '/');
+        }
+
+        if (app()->bound('request')) {
+            $requestRoot = trim((string) request()->root());
+            if ($requestRoot !== '' && ! $this->isLoopbackUrl($requestRoot)) {
+                return rtrim($requestRoot, '/');
+            }
+        }
+
+        // Development fallback only. A localhost URL can never be opened from
+        // another physical device, so deployed installations should expose the
+        // application through one shared LAN hostname/IP or HTTPS domain.
+        return rtrim($appUrl !== '' ? $appUrl : 'http://localhost', '/');
+    }
+
+    private function isLoopbackUrl(string $url): bool
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+
+        return in_array($host, ['localhost', '127.0.0.1', '::1'], true);
     }
 
     /**

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\EmailVerificationService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
@@ -159,6 +160,40 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
         auth()->logout();
         $this->get($url)->assertRedirect(route('login'));
         $this->assertTrue($newUser->fresh()->hasVerifiedInstitutionalEmail());
+    }
+
+    public function test_verification_base_url_automatically_uses_shared_request_host_when_app_url_is_loopback(): void
+    {
+        config(['app.url' => 'http://127.0.0.1:8080']);
+
+        $request = Request::create('http://spmu-campus.local:8080/administration/users', 'POST');
+        app()->instance('request', $request);
+
+        $this->assertSame(
+            'http://spmu-campus.local:8080',
+            app(EmailVerificationService::class)->verificationBaseUrl()
+        );
+    }
+
+    public function test_host_independent_verification_link_can_be_opened_through_another_shared_host(): void
+    {
+        config(['app.url' => 'https://spmu.cspc.edu.ph']);
+
+        $pending = User::factory()->unverified()->create([
+            'email' => 'cross.device@cspc.edu.ph',
+        ]);
+
+        $url = app(EmailVerificationService::class)->verificationUrl($pending);
+        $this->assertStringStartsWith('https://spmu.cspc.edu.ph/email/verify/', $url);
+
+        $parts = parse_url($url);
+        $pathAndQuery = ($parts['path'] ?? '/').(isset($parts['query']) ? '?'.$parts['query'] : '');
+
+        auth()->logout();
+        $this->get('https://another-shared-host.example'.$pathAndQuery)
+            ->assertRedirect(route('login'));
+
+        $this->assertTrue($pending->fresh()->hasVerifiedInstitutionalEmail());
     }
 
     public function test_registration_refuses_unapproved_email_domain(): void

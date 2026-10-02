@@ -56,6 +56,10 @@ return [
             'INSTITUTIONAL_EMAIL_DOMAINS',
             env('APP_ENV') === 'production' ? 'cspc.edu.ph' : 'cspc.edu.ph,spmu.test'
         ),
+
+        // Shared origin used in verification emails. Set this to a URL that
+        // recipients can reach from their own devices.
+        'verification_base_url' => env('EMAIL_VERIFICATION_BASE_URL', ''),
     ],
 
 ];

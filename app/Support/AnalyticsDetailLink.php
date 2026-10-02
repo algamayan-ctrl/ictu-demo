@@ -3,16 +3,15 @@
 namespace App\Support;
 
 /**
- * Links from an Analytics figure to its own internal detail.
+ * Links from an Analytics figure to the Records drilldown inside Reports.
  *
- * This is the primary click. Clicking a number in Analytics is a question
- * about that number, so it opens a detail inside Analytics rather than
- * navigating to the record module; AnalyticsDrilldown handles the secondary
- * step out to Reports once the reader has understood the figure.
+ * The primary click opens the exact Analytics-backed detail dataset without
+ * forcing that dataset through a formal Report Type. This keeps Analytics
+ * figures auditable even when no catalogue report can represent the same
+ * population exactly.
  *
- * The current section, reporting period, division and unit are always carried
- * forward, so closing the detail returns the reader to exactly the state they
- * opened it from.
+ * The current section, reporting period, division, unit and borrower are
+ * carried forward so Back to Analytics returns to the same dashboard state.
  */
 final class AnalyticsDetailLink
 {
@@ -51,7 +50,7 @@ final class AnalyticsDetailLink
             static fn ($value): bool => $value !== null && $value !== '' && $value !== 'all'
         );
 
-        return route('analytics.index', $query);
+        return route('reports.analytics-records', $query);
     }
 
     private static function scalar(?string $value): ?string

@@ -16,6 +16,51 @@ use Illuminate\Http\Request;
  */
 class ReportingPeriodService
 {
+    public const REPORT_PERIODS = [
+        'week' => 'This Week',
+        'month' => 'This Month',
+        'semester' => 'Current Semester',
+        'academic_year' => 'Current Academic Year',
+        'last_month' => 'Last Month',
+        'quarter' => 'This Quarter',
+        'year' => 'This Year',
+        'custom' => 'Custom Range',
+    ];
+
+    /** Report-only ranges; the shared Analytics resolver keeps its existing behavior. */
+    public function resolveForReport(Request $request, $academicPeriods, ?AcademicPeriod $activeAcademicPeriod): array
+    {
+        $selection = strtolower(trim((string) $request->input('academic_period', '')));
+        $required = $selection === 'custom' ? ['required'] : [];
+        $dates = $request->validate([
+            'start_date' => [...$required, 'required_with:end_date', 'date_format:Y-m-d'],
+            'end_date' => [...$required, 'required_with:start_date', 'date_format:Y-m-d'],
+        ]);
+        // Validate both date values before Laravel compares them (including malformed arrays).
+        $request->validate(['end_date' => ['after_or_equal:start_date']]);
+
+        if ($selection === 'custom') {
+            return [
+                Carbon::parse($dates['start_date'])->startOfDay(),
+                Carbon::parse($dates['end_date'])->endOfDay(),
+                null,
+                'custom',
+            ];
+        }
+
+        $today = now();
+        $range = match ($selection) {
+            'last_month' => [$today->copy()->startOfMonth()->subMonth(), $today->copy()->startOfMonth()->subDay()->endOfDay()],
+            'quarter' => [$today->copy()->startOfQuarter(), $today->copy()->endOfQuarter()],
+            'year' => [$today->copy()->startOfYear(), $today->copy()->endOfYear()],
+            default => null,
+        };
+
+        return $range
+            ? [$range[0], $range[1], null, $selection]
+            : $this->resolve($request, $academicPeriods, $activeAcademicPeriod);
+    }
+
     /**
      * @param  \Illuminate\Support\Collection<int, AcademicPeriod>  $academicPeriods
      * @return array{0:Carbon,1:Carbon,2:?AcademicPeriod,3:string}

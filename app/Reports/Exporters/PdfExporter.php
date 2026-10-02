@@ -19,9 +19,18 @@ class PdfExporter
 {
     public function render(ReportDataset $dataset, ReportExportOptions $options): string
     {
+        $contentOptions = $options->contentToggles();
+
+        /*
+         * The PDF footer is drawn directly on the DomPDF canvas below.
+         * Do not render the normal HTML footer as part of the document
+         * body, otherwise it appears immediately after the records.
+         */
+        $contentOptions['footer'] = false;
+
         $html = view('reports.pdf', [
             'dataset' => $dataset,
-            'options' => $options->contentToggles(),
+            'options' => $contentOptions,
             'exportOptions' => $options,
             /*
              * dompdf resolves no remote assets, so the seal travels with the
@@ -49,21 +58,104 @@ class PdfExporter
      * "Page X of Y" written once the layout is known, so the total is the
      * real one.
      */
+    /**
+     * Draw the formal institutional footer directly on every PDF page.
+     *
+     * DomPDF owns the real page count, so the institutional note and
+     * "Page X of Y" are stamped together after layout is complete.
+     */
     private function stampPageNumbers(Dompdf $pdf): void
     {
         $canvas = $pdf->getCanvas();
-        $font = $pdf->getFontMetrics()->getFont('Helvetica');
+        $fontMetrics = $pdf->getFontMetrics();
 
-        $canvas->page_text(
-            $canvas->get_width() - 110,
-            $canvas->get_height() - 26,
-            'Page {PAGE_NUM} of {PAGE_COUNT}',
-            $font,
-            7.5,
-            [0.28, 0.28, 0.28],
+        $regular = $fontMetrics->getFont('Helvetica');
+        $fontSize = 7.5;
+
+        $canvas->page_script(
+            function (
+                int $pageNumber,
+                int $pageCount,
+                $canvas,
+                $fontMetrics
+            ) use ($regular, $fontSize): void {
+
+                $width = $canvas->get_width();
+                $height = $canvas->get_height();
+
+                /*
+                 * Keep the footer inside the physical page edge while
+                 * leaving a clean institutional margin.
+                 */
+                $left = 36;
+                $right = $width - 36;
+
+                $ruleY = $height - 42;
+                $firstLineY = $height - 32;
+                $secondLineY = $height - 22;
+
+                $textColor = [0.28, 0.32, 0.37];
+                $ruleColor = [0.62, 0.66, 0.70];
+
+                /*
+                 * Institutional separator.
+                 */
+                $canvas->line(
+                    $left,
+                    $ruleY,
+                    $right,
+                    $ruleY,
+                    $ruleColor,
+                    0.55
+                );
+
+                /*
+                 * Left-side institutional note.
+                 */
+                $canvas->text(
+                    $left,
+                    $firstLineY,
+                    'Prepared from official SPMU-ACPMP operational records.',
+                    $regular,
+                    $fontSize,
+                    $textColor
+                );
+
+                $canvas->text(
+                    $left,
+                    $secondLineY,
+                    'This is a system-generated report. No signature is required.',
+                    $regular,
+                    $fontSize,
+                    $textColor
+                );
+
+                /*
+                 * Real page numbering.
+                 * Calculate the text width so Page X of Y is truly
+                 * right-aligned with the page margin.
+                 */
+                $pageLabel =
+                    'Page '.$pageNumber.' of '.$pageCount;
+
+                $pageWidth =
+                    $fontMetrics->getTextWidth(
+                        $pageLabel,
+                        $regular,
+                        $fontSize
+                    );
+
+                $canvas->text(
+                    $right - $pageWidth,
+                    $firstLineY,
+                    $pageLabel,
+                    $regular,
+                    $fontSize,
+                    $textColor
+                );
+            }
         );
     }
-
     private function paper(string $pageSize): string
     {
         return match ($pageSize) {

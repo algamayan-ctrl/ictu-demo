@@ -29,8 +29,6 @@
     </div>
 
     @if($options['footer'] ?? true)
-        @if($options['footer'] ?? true)
-    @include('reports.document.footer')
-@endif
+        @include('reports.document.footer')
     @endif
 </article>

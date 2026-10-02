@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountabilityController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\AnalyticsRecordsController;
 use App\Http\Controllers\AdministrationController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\Auth\EmailVerificationController;
@@ -587,6 +588,9 @@ Route::middleware(['auth', 'active', 'verified-email'])->group(function (): void
          */
         Route::get('/analytics', AnalyticsController::class)
             ->name('analytics.index');
+
+        Route::get('/reports/analytics-records', AnalyticsRecordsController::class)
+            ->name('reports.analytics-records');
 
         Route::get('/reports', [ReportController::class, 'index'])
             ->name('reports.index');

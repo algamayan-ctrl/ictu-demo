@@ -188,6 +188,10 @@ final class ReportFilters
                 'report' => $this->reportKey,
                 'academic_period' => $this->periodSelection,
             ],
+            $this->periodSelection === 'custom' ? [
+                'start_date' => $this->from->toDateString(),
+                'end_date' => $this->to->toDateString(),
+            ] : [],
             $this->values
         );
     }

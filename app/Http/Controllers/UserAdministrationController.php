@@ -152,8 +152,8 @@ class UserAdministrationController extends Controller
         return redirect()
             ->route('administration.users.index')
             ->with('status', $sent
-                ? "Account created for {$user->full_name}. The verification email was sent automatically to {$user->email}; sign-in remains blocked until verified."
-                : "Account created for {$user->full_name}, but automatic verification email delivery failed. Open Manage to resend the verification link.");
+                ? "Account created for {$user->full_name}. A verification link was sent; sign-in remains blocked until verified."
+                : "Account created for {$user->full_name}, but the verification email could not be sent. In ICTU System Configuration, confirm the Verification Address and mail settings, then resend.");
     }
 
     public function update(
@@ -260,8 +260,8 @@ class UserAdministrationController extends Controller
             return redirect()
                 ->route('administration.users.index')
                 ->with('status', $sent
-                    ? 'Account updated. A verification email was sent automatically to the changed address; it must be verified before sign-in.'
-                    : 'Account updated and its changed email is unverified. Automatic email delivery failed; open Manage to resend.');
+                    ? 'Account updated. The changed email must be verified again before sign-in.'
+                    : 'Account updated and its changed email is unverified. Email delivery failed; open Manage to resend.');
         }
 
         return redirect()
@@ -511,7 +511,7 @@ class UserAdministrationController extends Controller
             ? redirect()->route('administration.users.edit', $user)
                 ->with('status', "A new verification link was sent to {$user->email}.")
             : redirect()->route('administration.users.edit', $user)
-                ->withErrors(['email_verification' => 'Verification email could not be sent. Check your configured mail transport and try again.']);
+                ->withErrors(['email_verification' => 'Verification email could not be sent. Confirm the shared Verification Address and mail transport in ICTU System Configuration, then try again.']);
     }
 
     private function form(User $user): View

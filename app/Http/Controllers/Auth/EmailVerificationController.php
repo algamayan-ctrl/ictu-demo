@@ -19,40 +19,46 @@ class EmailVerificationController extends Controller
 {
     public function verify(
         Request $request,
-        User $user,
+        string $user,
         string $hash,
         EmailVerificationService $verification,
         AuditService $audit,
     ): RedirectResponse {
-        // New links use a host-independent signature so a verification
-        // email may be opened from any device through the shared application
-        // address. Keep the old absolute-signature check for links sent before
-        // this update.
+        // New links use host-independent signatures so a recipient may open the
+        // email on another device. Keep accepting legacy absolute signatures.
         if (! $request->hasValidRelativeSignature() && ! $request->hasValidSignature()) {
             return redirect()->route('login')->withErrors([
                 'email' => 'This email verification link is invalid or has expired. Contact ICTU to resend a new verification email.',
             ]);
         }
 
-        if (! hash_equals($verification->emailHash((string) $user->email), $hash)) {
+        $account = User::query()->find($user);
+
+        if (! $account) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'This verification link points to an account that is not available on this SPMU-ACPMP server. Use the latest verification email or contact ICTU.',
+            ]);
+        }
+
+        if (! hash_equals($verification->emailHash((string) $account->email), $hash)) {
             return redirect()->route('login')->withErrors([
                 'email' => 'This verification link no longer matches the email currently registered for the account. Contact ICTU to resend verification.',
             ]);
         }
 
-        if ($user->hasVerifiedInstitutionalEmail()) {
+        if ($account->hasVerifiedInstitutionalEmail()) {
             return redirect()
                 ->route('login')
                 ->with('status', 'Your CSPC email address is already verified. You may sign in.');
         }
 
-        $user->markInstitutionalEmailAsVerified();
+        $account->markInstitutionalEmailAsVerified();
 
         // Audit only the successful proof-of-mailbox event. A generated or
         // delivered email alone never marks an account as verified.
-        $audit->record('USER_EMAIL_VERIFIED', $user, after: [
-            'email' => $user->email,
-            'email_verified_at' => $user->email_verified_at?->toIso8601String(),
+        $audit->record('USER_EMAIL_VERIFIED', $account, after: [
+            'email' => $account->email,
+            'email_verified_at' => $account->email_verified_at?->toIso8601String(),
         ]);
 
         return redirect()

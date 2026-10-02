@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -33,7 +35,18 @@ class EmailVerificationService
             return true;
         }
 
-        $verificationUrl = $this->verificationUrl($user);
+        try {
+            $verificationUrl = $this->verificationUrl($user);
+        } catch (Throwable $exception) {
+            Log::warning('SPMU-ACPMP institutional email verification link could not be generated.', [
+                'user_id' => $user->getKey(),
+                'email' => $user->email,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
 
         $recipientName = e($user->full_name ?: 'CSPC User');
         $safeUrl = e($verificationUrl);
@@ -110,12 +123,12 @@ HTML;
     }
 
     /**
-     * Build the verification URL without tying the signature to a hostname.
+     * Build a verification URL that is safe to open from another device.
      *
-     * ICTU may register the account from one computer while the recipient
-     * opens the email on a phone, tablet, or another computer. Signing only
-     * the route path/query keeps the security token valid regardless of the
-     * device used to open the shared SPMU-ACPMP address.
+     * The signature deliberately covers only the path/query. The host is
+     * supplied separately by the shared SPMU-ACPMP address, so the token does
+     * not become invalid merely because the recipient opens the message on a
+     * different laptop, phone, tablet, or browser.
      */
     public function verificationUrl(User $user): string
     {
@@ -135,37 +148,81 @@ HTML;
     }
 
     /**
-     * Resolve the shared address placed in verification emails automatically.
-     *
-     * No per-account setup is required. A real APP_URL is preferred, and
-     * when local APP_URL still points to localhost the current non-loopback
-     * host/domain used by ICTU is picked up automatically.
+     * Resolve the one shared SPMU-ACPMP address used in outgoing verification
+     * emails. Loopback hosts are intentionally rejected because localhost and
+     * 127.0.0.1 always point to the device that clicked the email, not to the
+     * central SPMU-ACPMP server.
      */
     public function verificationBaseUrl(): string
     {
-        $appUrl = trim((string) config('app.url'));
-        if ($appUrl !== '' && ! $this->isLoopbackUrl($appUrl)) {
-            return rtrim($appUrl, '/');
+        $candidates = [];
+
+        // ICTU may configure the shared address once in System Configuration.
+        try {
+            $candidates[] = SystemSetting::value('email_verification_public_url');
+        } catch (Throwable) {
+            // Installation/migration may not have created system_settings yet.
         }
 
+        // Deployment-level override remains available for managed hosting.
+        $candidates[] = config('services.institutional_email.verification_base_url');
+
+        // A proper canonical APP_URL is preferred in production deployments.
+        $appUrl = config('app.url');
+        if (app()->environment('production')) {
+            $candidates[] = $appUrl;
+        }
+
+        // For LAN/demo use, opening SPMU through its shared IP/domain is enough;
+        // the current non-loopback request root becomes the outgoing email host.
         if (app()->bound('request')) {
-            $requestRoot = trim((string) request()->root());
-            if ($requestRoot !== '' && ! $this->isLoopbackUrl($requestRoot)) {
-                return rtrim($requestRoot, '/');
+            try {
+                $candidates[] = request()->root();
+            } catch (Throwable) {
+                // No active HTTP request (for example, a console process).
             }
         }
 
-        // Development fallback only. A localhost URL can never be opened from
-        // another physical device, so deployed installations should expose the
-        // application through one shared LAN hostname/IP or HTTPS domain.
-        return rtrim($appUrl !== '' ? $appUrl : 'http://localhost', '/');
+        // Local installations with an explicitly non-loopback APP_URL can use it.
+        if (! app()->environment('production')) {
+            $candidates[] = $appUrl;
+        }
+
+        foreach ($candidates as $candidate) {
+            $normalized = $this->normalizeReachableBaseUrl($candidate);
+            if ($normalized !== null) {
+                return $normalized;
+            }
+        }
+
+        throw new RuntimeException(
+            'A shared SPMU-ACPMP verification address is not configured. Set Email Verification Address in ICTU System Configuration or use a non-loopback APP_URL.'
+        );
     }
 
-    private function isLoopbackUrl(string $url): bool
+    private function normalizeReachableBaseUrl(mixed $value): ?string
     {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $url = trim($value);
+        if ($url === '') {
+            return null;
+        }
+
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
         $host = strtolower((string) parse_url($url, PHP_URL_HOST));
 
-        return in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+        if (! in_array($scheme, ['http', 'https'], true) || $host === '') {
+            return null;
+        }
+
+        if (in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+            return null;
+        }
+
+        return rtrim($url, '/');
     }
 
     /**

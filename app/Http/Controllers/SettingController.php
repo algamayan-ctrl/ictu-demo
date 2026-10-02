@@ -8,6 +8,7 @@ use App\Services\AuditService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class SettingController extends Controller
@@ -15,6 +16,7 @@ class SettingController extends Controller
     private const ICTU_SETTING_KEYS = [
         'max_upload_mb',
         'backup_schedule',
+        'email_verification_public_url',
     ];
 
     private const PROTECTED_DIRECT_SETTING_KEYS = [
@@ -72,7 +74,26 @@ class SettingController extends Controller
         $this->authorizeConfiguration($request);
         $this->authorizeSettingOwnership($request, $setting);
 
-        if ($setting->setting_key === 'backup_schedule') {
+        if ($setting->setting_key === 'email_verification_public_url') {
+            $data = $request->validate([
+                'value' => ['required', 'url', 'max:500'],
+                'reason' => ['nullable', 'string', 'max:1000'],
+            ]);
+
+            $after = rtrim(trim((string) $data['value']), '/');
+            $host = strtolower((string) parse_url($after, PHP_URL_HOST));
+            $scheme = strtolower((string) parse_url($after, PHP_URL_SCHEME));
+            $path = (string) (parse_url($after, PHP_URL_PATH) ?? '');
+
+            if (! in_array($scheme, ['http', 'https'], true)
+                || $host === ''
+                || in_array($host, ['localhost', '127.0.0.1', '::1'], true)
+                || ! in_array($path, ['', '/'], true)) {
+                throw ValidationException::withMessages([
+                    'value' => 'Enter the shared SPMU-ACPMP origin only (for example, https://spmu.cspc.edu.ph or http://192.168.1.50:8080). localhost and 127.0.0.1 cannot be used for cross-device verification.',
+                ]);
+            }
+        } elseif ($setting->setting_key === 'backup_schedule') {
             $data = $request->validate([
                 'backup_time' => ['required', 'date_format:H:i'],
                 'backup_recurrence' => ['required', 'in:daily,weekly,monthly'],

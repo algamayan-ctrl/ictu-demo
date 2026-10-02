@@ -5,11 +5,11 @@ namespace Tests\Feature;
 use App\Enums\AccessClassification;
 use App\Enums\AccountStatus;
 use App\Models\OrganizationalUnit;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\EmailVerificationService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
@@ -162,38 +162,60 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
         $this->assertTrue($newUser->fresh()->hasVerifiedInstitutionalEmail());
     }
 
-    public function test_verification_base_url_automatically_uses_shared_request_host_when_app_url_is_loopback(): void
+    public function test_shared_verification_link_works_when_opened_through_another_host(): void
     {
-        config(['app.url' => 'http://127.0.0.1:8080']);
-
-        $request = Request::create('http://spmu-campus.local:8080/administration/users', 'POST');
-        app()->instance('request', $request);
-
-        $this->assertSame(
-            'http://spmu-campus.local:8080',
-            app(EmailVerificationService::class)->verificationBaseUrl()
+        SystemSetting::query()->updateOrCreate(
+            ['setting_key' => 'email_verification_public_url'],
+            [
+                'value_json' => 'http://192.168.50.25:8080',
+                'data_type' => 'STRING',
+                'group_code' => 'ICTU',
+                'description' => 'Test shared verification address.',
+                'status' => 'ACTIVE',
+            ]
         );
-    }
-
-    public function test_host_independent_verification_link_can_be_opened_through_another_shared_host(): void
-    {
-        config(['app.url' => 'https://spmu.cspc.edu.ph']);
 
         $pending = User::factory()->unverified()->create([
             'email' => 'cross.device@cspc.edu.ph',
         ]);
 
         $url = app(EmailVerificationService::class)->verificationUrl($pending);
-        $this->assertStringStartsWith('https://spmu.cspc.edu.ph/email/verify/', $url);
+        $this->assertStringStartsWith('http://192.168.50.25:8080/email/verify/', $url);
 
         $parts = parse_url($url);
         $pathAndQuery = ($parts['path'] ?? '/').(isset($parts['query']) ? '?'.$parts['query'] : '');
 
-        auth()->logout();
-        $this->get('https://another-shared-host.example'.$pathAndQuery)
+        // Simulate the exact same signed verification path being opened through
+        // another valid host. Relative signatures intentionally ignore the host.
+        $this->get('http://spmu-campus.example:8080'.$pathAndQuery)
             ->assertRedirect(route('login'));
 
         $this->assertTrue($pending->fresh()->hasVerifiedInstitutionalEmail());
+    }
+
+    public function test_missing_verification_account_redirects_instead_of_raw_404(): void
+    {
+        SystemSetting::query()->updateOrCreate(
+            ['setting_key' => 'email_verification_public_url'],
+            [
+                'value_json' => 'https://spmu.example.test',
+                'data_type' => 'STRING',
+                'group_code' => 'ICTU',
+                'description' => 'Test shared verification address.',
+                'status' => 'ACTIVE',
+            ]
+        );
+
+        $relative = URL::temporarySignedRoute(
+            'email.verification.verify',
+            now()->addHour(),
+            ['user' => 999999, 'hash' => hash('sha256', 'missing@cspc.edu.ph')],
+            absolute: false,
+        );
+
+        $this->get($relative)
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('email');
     }
 
     public function test_registration_refuses_unapproved_email_domain(): void

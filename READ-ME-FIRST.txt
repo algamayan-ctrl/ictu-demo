@@ -1,69 +1,114 @@
-SPMU-ACPMP — AUTOMATIC CROSS-DEVICE EMAIL VERIFICATION FIX
-==========================================================
+SPMU-ACPMP — FINAL CROSS-DEVICE EMAIL VERIFICATION FIX
+========================================================
 
-WHAT CHANGED
-------------
-The normal ICTU workflow is now automatic:
+WHAT THIS FIX SOLVES
+--------------------
+The old verification email could contain:
 
-1. ICTU clicks Create Account.
-2. The account is committed to the database.
-3. The system automatically sends the CSPC verification email.
-4. The recipient opens that email from a phone, laptop, tablet, or another device.
-5. The Verify CSPC Email link returns to the same shared SPMU-ACPMP application.
-6. The account is marked verified and the user may sign in.
+    http://127.0.0.1:8080/email/verify/...
 
-NO .CMD OR POWERSHELL HELPER IS PART OF REGISTRATION.
-There is no extra command to run after creating each account.
+That address can never work correctly from another physical device because
+127.0.0.1/localhost always means "this device".
 
-TECHNICAL FIX
--------------
-- The signed verification token is now host-independent.
-- A real/shared APP_URL is preferred automatically.
-- If APP_URL is still localhost/127.0.0.1, the application automatically uses
-  the non-loopback host/domain from the ICTU browser request when available.
-- Previously sent absolute-signed links remain accepted for compatibility.
-- The existing automatic send-after-registration behavior is retained.
-- The ICTU success message now clearly says the verification email was sent
-  automatically.
+The fixed flow is:
 
-IMPORTANT DEPLOYMENT FACT
--------------------------
-"Any device" requires those devices to be able to reach the SPMU-ACPMP server.
+    ICTU creates account
+       -> account is saved
+       -> verification email is sent automatically
+       -> recipient opens email on phone/laptop/tablet
+       -> Verify CSPC Email goes to ONE shared SPMU-ACPMP server
+       -> account is verified
 
-For a real deployed system, APP_URL should already be the shared HTTPS domain,
-for example:
+No command is run after each registration.
 
-    APP_URL=https://<your-real-spmu-domain>
+CHANGES INCLUDED
+----------------
+1. Verification links use host-independent Laravel signatures.
+2. localhost / 127.0.0.1 are rejected for cross-device email links.
+3. ICTU System Configuration now has a one-time "Verification Address" field.
+4. If SPMU is already opened through a reachable LAN IP/domain, that shared
+   request address may be used automatically.
+5. The raw Laravel 404 caused by missing implicit User route binding is removed.
+   A stale/wrong-server verification link now redirects to Login with a proper
+   verification error message instead of showing "404 Not Found".
+6. Old absolute-signed links remain accepted when they still point to the
+   correct server.
+7. Registration and Resend Verification remain automatic.
 
-Then registration and verification are fully automatic.
+INSTALL
+-------
+Copy/replace all files from this ZIP using the same folder paths.
 
-For a LAN/demo setup, ICTU should open the SPMU-ACPMP application using the
-server's shared LAN hostname/IP rather than 127.0.0.1/localhost. Example:
-
-    http://192.168.x.x:8080
-
-The application will automatically use that shared request host in the email.
-
-A localhost/127.0.0.1 address cannot work from another physical device because
-localhost always refers to the device that clicked the email.
-
-AFTER COPYING THE FILES
------------------------
-Rebuild/recreate the running application so Laravel reloads cached code/config:
+Then rebuild/recreate the Laravel containers:
 
     docker compose up -d --build --force-recreate app scheduler queue
 
-Then create a NEW test account. The verification email should be sent
-automatically. Use a newly sent email; an old email containing localhost or
-127.0.0.1 still contains the old destination and cannot be rewritten.
+The included migration is applied automatically in this project's current
+Docker setup because RUN_MIGRATIONS=true.
+
+ONE-TIME SYSTEM SETUP
+---------------------
+Login as ICTU and open:
+
+    System Configuration
+      -> Verification Address
+
+Set ONE shared SPMU-ACPMP URL.
+
+For an actual deployed system accessible from any network:
+
+    https://<your-real-spmu-domain>
+
+For a capstone demo where all devices are on the same Wi-Fi/LAN:
+
+    http://<SERVER-LAPTOP-IP>:8080
+
+Example only:
+
+    http://192.168.1.50:8080
+
+Do NOT enter localhost or 127.0.0.1. The application now rejects them.
+
+This is a ONE-TIME server configuration, not a step performed for every user.
+
+AUTOMATIC BEHAVIOR AFTER THAT
+-----------------------------
+For every new ICTU registration:
+
+    Create Account
+      -> automatic verification email
+      -> recipient opens email from any reachable device
+      -> clicks Verify CSPC Email
+      -> account verified
+
+No .cmd, PowerShell, or manual per-account URL setup is required.
+
+IMPORTANT ABOUT "ANY DEVICE"
+----------------------------
+The recipient device must be able to reach the configured SPMU-ACPMP address.
+
+A 192.168.x.x / 10.x.x.x LAN address normally works only on the same local
+network. If verification must work from mobile data, home Wi-Fi, or any outside
+network, deploy SPMU-ACPMP on its approved HTTPS domain/server and enter that
+HTTPS URL once in Verification Address.
+
+TEST WITH A NEW EMAIL
+---------------------
+Previously sent messages still contain their old URL. After installing this
+fix, create a new test account or use Resend Verification so a NEW email is
+generated.
 
 VALIDATION PERFORMED
 --------------------
-- PHP syntax checks passed on all modified PHP files.
-- git diff --check passed.
-- A regression test was added for:
-  * automatic shared-host selection when APP_URL is loopback
-  * host-independent signed verification opened through another host
-
-The uploaded ZIP does not contain vendor/, so the full PHPUnit suite could not
-be executed from this archive in the current environment.
+- PHP syntax checks passed for all modified PHP/Blade files.
+- Laravel 13.25 route registration was verified.
+- Runtime test confirmed a relative signed verification URL remains valid when
+  opened under a different hostname.
+- Runtime test confirmed a shared base URL is used instead of APP_URL=127.0.0.1.
+- Runtime test confirmed loopback-only configuration is rejected rather than
+  generating a broken email link.
+- Regression tests were added for cross-host verification and graceful handling
+  of a missing/stale verification account.
+- Full PHPUnit execution was blocked in this environment only because its host
+  PHP runtime lacks dom/mbstring/xmlwriter; this is unrelated to the project
+  code and Docker image dependencies.

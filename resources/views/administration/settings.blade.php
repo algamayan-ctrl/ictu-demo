@@ -32,6 +32,14 @@
 
     $emailConfigured = $isIctu && $mailTransport !== '';
 
+    $verificationUrlSetting = $isIctu
+        ? $ictuSettings->get('email_verification_public_url')
+        : null;
+
+    $verificationPublicUrl = $verificationUrlSetting
+        ? trim((string) ($verificationUrlSetting->value_json ?? ''))
+        : '';
+
     $maxUploadSetting = $isIctu
         ? $ictuSettings->get('max_upload_mb')
         : null;
@@ -183,6 +191,60 @@
     </div>
 
     <div class="ictu-technical-settings-grid">
+        @if($verificationUrlSetting)
+            <form
+                id="setting-{{ $verificationUrlSetting->setting_key }}"
+                method="post"
+                action="{{ route('administration.settings.update', $verificationUrlSetting) }}"
+                class="card form-grid ictu-technical-setting-card"
+                data-settings-form
+            >
+                @csrf
+                @method('PUT')
+
+                <div class="ictu-setting-card-heading">
+                    <div>
+                        <span class="ictu-setting-kicker">EMAIL VERIFICATION</span>
+                        <h3>Verification Address</h3>
+                    </div>
+                    <span class="ictu-config-state {{ $verificationPublicUrl !== '' ? 'is-ready' : 'is-pending' }}">
+                        {{ $verificationPublicUrl !== '' ? 'Configured' : 'Needs setup' }}
+                    </span>
+                </div>
+
+                <p class="ictu-setting-description">
+                    One shared SPMU-ACPMP address used automatically in every CSPC email verification link. Set this once; ICTU account registration continues to send verification emails automatically.
+                </p>
+
+                <label class="ictu-field">
+                    <span>Shared SPMU-ACPMP URL</span>
+                    <input
+                        type="url"
+                        name="value"
+                        required
+                        maxlength="500"
+                        placeholder="https://spmu.cspc.edu.ph"
+                        value="{{ old('value', $verificationPublicUrl) }}"
+                        autocomplete="url"
+                    >
+                </label>
+
+                <p class="meta">
+                    Use the actual HTTPS domain for production. For a same-network demo, use the server computer's reachable LAN address such as http://192.168.1.50:8080. Do not use localhost or 127.0.0.1.
+                </p>
+
+                <label class="ictu-field ictu-reason-field">
+                    <span>Reason for change</span>
+                    <textarea name="reason" required maxlength="1000" placeholder="Describe the configuration change...">{{ old('reason') }}</textarea>
+                </label>
+
+                <div class="settings-actions ictu-settings-actions">
+                    <button class="button primary ui-pressable" type="submit">Save change</button>
+                    <button class="button secondary ui-pressable" type="reset" data-reset-button>Reset</button>
+                </div>
+            </form>
+        @endif
+
         @if($maxUploadSetting)
             <form
                 id="setting-{{ $maxUploadSetting->setting_key }}"

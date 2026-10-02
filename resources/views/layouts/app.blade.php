@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" @auth data-theme-storage-key="spmu-acpmp.appearance.{{ hash('sha256', (string) auth()->id()) }}" @endauth>
+<html lang="en" @auth data-theme-storage-key="spmu-acpmp.appearance.{{ hash('sha256', (string) auth()->id()) }}" data-sidebar-storage-key="spmu-acpmp.sidebar.{{ hash('sha256', (string) auth()->id()) }}" @endauth>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,6 +26,24 @@
             root.style.colorScheme = resolved;
         })();
     </script>
+    @auth
+    <script>
+        (() => {
+            const root = document.documentElement;
+            const storageKey = root.dataset.sidebarStorageKey;
+            let state = 'collapsed';
+
+            if (storageKey) {
+                try {
+                    const stored = localStorage.getItem(storageKey);
+                    if (stored === 'expanded' || stored === 'collapsed') state = stored;
+                } catch (_) {}
+            }
+
+            root.dataset.sidebarState = state;
+        })();
+    </script>
+    @endauth
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ filemtime(public_path('css/app.css')) }}">
 
@@ -718,6 +736,150 @@
         }
     </style>
     {{-- ICTU COMPACT WORKSPACE END --}}
+
+    {{-- UNIVERSAL COLLAPSIBLE SIDEBAR START --}}
+    <style id="universal-collapsible-sidebar">
+        :root {
+            --sidebar-collapsed-width: 82px;
+        }
+
+        .sidebar-desktop-toggle {
+            display: none;
+        }
+
+        .sidebar-nav .nav-label {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        @media (min-width: 1050px) {
+            .app-shell {
+                transition: grid-template-columns var(--motion) ease;
+            }
+
+            html[data-sidebar-state="collapsed"] .app-shell {
+                grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr);
+            }
+
+            html[data-sidebar-state="expanded"] .app-shell {
+                grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+            }
+
+            .app-sidebar {
+                overflow-x: hidden !important;
+                transition: width var(--motion) ease, box-shadow var(--motion) ease;
+            }
+
+            .sidebar-brand-row {
+                min-height: 72px;
+                padding: 10px 10px 8px !important;
+            }
+
+            .sidebar-desktop-toggle {
+                display: inline-grid !important;
+                width: 36px;
+                height: 36px;
+                flex: 0 0 36px;
+                place-items: center;
+                color: #526b84;
+                background: rgba(255, 255, 255, .36);
+                border-color: rgba(112, 143, 174, .16);
+            }
+
+            .sidebar-desktop-toggle:hover {
+                color: #0d63d8;
+                background: rgba(255, 255, 255, .78);
+                border-color: #cfe1f4;
+            }
+
+            html[data-theme="dark"] .sidebar-desktop-toggle {
+                color: #b6c8db;
+                background: rgba(255, 255, 255, .04);
+                border-color: rgba(255, 255, 255, .08);
+            }
+
+            html[data-theme="dark"] .sidebar-desktop-toggle:hover {
+                color: #ffffff;
+                background: #102a45;
+                border-color: #294966;
+            }
+
+            html[data-sidebar-state="expanded"] .sidebar-brand-row {
+                gap: 8px !important;
+            }
+
+            html[data-sidebar-state="expanded"] .sidebar-brand.sidebar-brand-logo {
+                min-width: 0;
+                flex: 1 1 auto;
+                justify-content: flex-start !important;
+                min-height: 46px !important;
+                padding: 2px 0 !important;
+            }
+
+            html[data-sidebar-state="expanded"] .sidebar-brand-logo-image {
+                width: 100% !important;
+                max-width: 158px !important;
+                max-height: 43px !important;
+                object-position: left center !important;
+            }
+
+            html[data-sidebar-state="collapsed"] .sidebar-brand-row {
+                justify-content: center;
+                gap: 0 !important;
+                padding-inline: 8px !important;
+            }
+
+            html[data-sidebar-state="collapsed"] .sidebar-brand.sidebar-brand-logo,
+            html[data-sidebar-state="collapsed"] .sidebar-label {
+                display: none !important;
+            }
+
+            html[data-sidebar-state="collapsed"] .sidebar-nav {
+                gap: 8px !important;
+                padding: 8px 10px 16px !important;
+            }
+
+            html[data-sidebar-state="collapsed"] .sidebar-nav a {
+                min-height: 52px !important;
+                justify-content: center;
+                gap: 0 !important;
+                padding: 0 !important;
+                border-radius: 14px !important;
+            }
+
+            html[data-sidebar-state="collapsed"] .sidebar-nav a .nav-icon {
+                width: 24px !important;
+                min-width: 24px !important;
+            }
+
+            html[data-sidebar-state="collapsed"] .sidebar-nav a .nav-icon svg {
+                width: 22px !important;
+                height: 22px !important;
+            }
+
+            html[data-sidebar-state="collapsed"] .sidebar-nav a .nav-label {
+                display: none;
+            }
+
+            html[data-sidebar-state="collapsed"] .sidebar-nav a.active,
+            html[data-sidebar-state="collapsed"] .sidebar-nav a[aria-current="page"] {
+                box-shadow: 0 8px 20px rgba(13, 99, 216, .2) !important;
+            }
+
+            .sidebar-close {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 1049px) {
+            .sidebar-desktop-toggle {
+                display: none !important;
+            }
+        }
+    </style>
+    {{-- UNIVERSAL COLLAPSIBLE SIDEBAR END --}}
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -773,6 +935,7 @@
     <div class="app-shell {{ $activeWorkspace === 'ICTU' ? 'ictu-workspace-shell' : '' }} {{ request()->routeIs('administration.users.*') ? 'ictu-shell' : (request()->routeIs('reports.audit') ? 'ictu-audit-shell' : '') }}">
         <aside class="app-sidebar" id="primary-sidebar">
             <div class="sidebar-brand-row">
+                <button class="icon-button sidebar-desktop-toggle" type="button" aria-label="Expand main menu" title="Expand main menu" aria-controls="primary-sidebar" aria-expanded="false" data-sidebar-desktop-toggle><x-icon name="menu" /></button>
                 <a class="brand sidebar-brand sidebar-brand-logo" href="{{ route('dashboard') }}" aria-label="SPMU-ACPMP dashboard">
                     <img
                         class="sidebar-brand-logo-image"
@@ -785,8 +948,8 @@
             <p class="sidebar-label">Main menu</p>
             <nav class="sidebar-nav" aria-label="Primary navigation">
                 @foreach($navigation as [$routeName, $routePattern, $label, $icon])
-                    <a class="interactive {{ request()->routeIs($routePattern) ? 'active' : '' }}" href="{{ route($routeName) }}" @if(request()->routeIs($routePattern)) aria-current="page" @endif>
-                        <span class="nav-icon nav-icon-{{ $icon }}"><x-icon :name="$icon" /></span><span>{{ $label }}</span>
+                    <a class="interactive {{ request()->routeIs($routePattern) ? 'active' : '' }}" href="{{ route($routeName) }}" aria-label="{{ $label }}" data-sidebar-tooltip="{{ $label }}" @if(request()->routeIs($routePattern)) aria-current="page" @endif>
+                        <span class="nav-icon nav-icon-{{ $icon }}"><x-icon :name="$icon" /></span><span class="nav-label">{{ $label }}</span>
                     </a>
                 @endforeach
             </nav>

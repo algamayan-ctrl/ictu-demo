@@ -827,8 +827,9 @@
 
             html[data-sidebar-state="collapsed"] .sidebar-brand-row {
                 justify-content: center;
+                min-height: 58px;
                 gap: 0 !important;
-                padding-inline: 8px !important;
+                padding: 10px 8px 6px !important;
             }
 
             html[data-sidebar-state="collapsed"] .sidebar-brand.sidebar-brand-logo,
@@ -837,26 +838,26 @@
             }
 
             html[data-sidebar-state="collapsed"] .sidebar-nav {
-                gap: 8px !important;
-                padding: 8px 10px 16px !important;
+                gap: 5px !important;
+                padding: 6px 8px 12px !important;
             }
 
             html[data-sidebar-state="collapsed"] .sidebar-nav a {
-                min-height: 52px !important;
+                min-height: 44px !important;
                 justify-content: center;
                 gap: 0 !important;
                 padding: 0 !important;
-                border-radius: 14px !important;
+                border-radius: 12px !important;
             }
 
             html[data-sidebar-state="collapsed"] .sidebar-nav a .nav-icon {
-                width: 24px !important;
-                min-width: 24px !important;
+                width: 22px !important;
+                min-width: 22px !important;
             }
 
             html[data-sidebar-state="collapsed"] .sidebar-nav a .nav-icon svg {
-                width: 22px !important;
-                height: 22px !important;
+                width: 20px !important;
+                height: 20px !important;
             }
 
             html[data-sidebar-state="collapsed"] .sidebar-nav a .nav-label {

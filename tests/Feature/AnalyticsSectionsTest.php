@@ -150,10 +150,17 @@ class AnalyticsSectionsTest extends TestCase
         $this->actingAs($this->spmuHead())
             ->get(route('analytics.index', ['section' => 'equipment', 'academic_period' => 'month']))
             ->assertOk()
-            ->assertSee('Most Requested Items')
-            ->assertSee('Top Released Items')
+            ->assertSee('Equipment Demand & Actual Usage')
+            ->assertSee('Requested items with release and fulfillment context.')
             ->assertSee('No requested items were recorded during this period.')
-            ->assertSee('No equipment was physically released during this period.');
+            ->assertSeeInOrder([
+                '<span class="analytics-kpi-card-label">Requested Quantity</span>',
+                '<strong class="analytics-kpi-card-value">0</strong>',
+                'Total quantity requested',
+                '<span class="analytics-kpi-card-label">Released Quantity</span>',
+                '<strong class="analytics-kpi-card-value">0</strong>',
+                'Quantity physically released',
+            ], false);
     }
 
     public function test_returns_shows_its_four_figures_and_a_zero_state(): void

@@ -1,478 +1,795 @@
 @php
-    /*
-    | Inventory Health: the present physical position of the catalogue.
-    |
-    | Everything on this tab is current-state. It deliberately does not follow
-    | the reporting period, because stock is where it is today regardless of
-    | which month is being reviewed; the two exceptions are Utilization and
-    | Stock Coverage, which need a usage window and say so.
-    |
-    | Every figure comes from InventoryService through AnalyticsService, the
-    | same authoritative availability rule the Inventory module and Reports
-    | use. Nothing is computed from records here.
-    |
-    | CURRENT STOCK PARTITION
-    | -----------------------
-    | Available means available to allocate: approved reservations are already
-    | removed from that figure. The serviceable stock partition is therefore:
-    |
-    |   Available + Reserved + On Custody + In Laundry + Incident
-    |
-    | Maintenance sits outside this partition because an item whose catalogue
-    | condition is DAMAGED_MAINTENANCE carries no serviceable total until it is
-    | restored. This keeps the same physical unit from appearing in two KPI
-    | states at once.
-    */
-    use App\Support\AnalyticsDetailLink;
+ /*
+ | Inventory Health: the present physical position of the catalogue.
+ |
+ | Everything on this tab is current-state. It deliberately does not follow
+ | the reporting period, because stock is where it is today regardless of
+ | which month is being reviewed; the two exceptions are Utilization and
+ | Stock Coverage, which need a usage window and say so.
+ |
+ | Every figure comes from InventoryService through AnalyticsService, the
+ | same authoritative availability rule the Inventory module and Reports
+ | use. Nothing is computed from records here.
+ |
+ | CURRENT STOCK PARTITION
+ | -----------------------
+ | Available means available to allocate: approved reservations are already
+ | removed from that figure. The serviceable stock partition is therefore:
+ |
+ | Available + Reserved + On Custody + In Laundry + Incident
+ |
+ | Maintenance sits outside this partition because an item whose catalogue
+ | condition is DAMAGED_MAINTENANCE carries no serviceable total until it is
+ | restored. This keeps the same physical unit from appearing in two KPI
+ | states at once.
+ */
+ use App\Support\AnalyticsDetailLink;
 
-    $totals = $inventory['totals'];
-    $serviceable = (float) ($totals['serviceable'] ?? 0);
+ $totals = $inventory['totals'];
+ $serviceable = (float) ($totals['serviceable'] ?? 0);
 
-    /*
-     | Maintenance and open incidents are the states the service's own summary
-     | sentence already calls unavailable. Laundry is a normal step in the linen
-     | cycle, not a fault, so it is reported separately and never added here.
-     */
-    $attention = (float) ($totals['attention'] ?? $totals['problem'] ?? 0);
+ /*
+ | Maintenance and open incidents are the states the service's own summary
+ | sentence already calls unavailable. Laundry is a normal step in the linen
+ | cycle, not a fault, so it is reported separately and never added here.
+ */
+ $attention = (float) ($totals['attention'] ?? $totals['problem'] ?? 0);
 
-    $thresholdPercent = (int) round(($inventory['threshold'] ?? 0.25) * 100);
+ $thresholdPercent = (int) round(($inventory['threshold'] ?? 0.25) * 100);
 
-    $num = static fn (float $value): string => rtrim(rtrim(number_format($value, 2), '0'), '.');
+ $num = static fn (float $value): string => rtrim(rtrim(number_format($value, 2), '0'), '.');
 
-    /* The five non-overlapping states that partition serviceable stock. */
-    $composition = [
-        ['key' => 'available', 'label' => 'Available', 'value' => (float) $totals['available']],
-        ['key' => 'reserved', 'label' => 'Reserved', 'value' => (float) $totals['allocated']],
-        ['key' => 'custody', 'label' => 'On Custody', 'value' => (float) $totals['on_custody']],
-        ['key' => 'laundry', 'label' => 'In Laundry', 'value' => (float) $totals['laundry']],
-        ['key' => 'incident', 'label' => 'Incident / Unavailable', 'value' => (float) $totals['incident']],
-    ];
+ /* The five non-overlapping states that partition serviceable stock. */
+ $composition = [
+ ['key' => 'available', 'label' => 'Available', 'value' => (float) $totals['available']],
+ ['key' => 'reserved', 'label' => 'Reserved', 'value' => (float) $totals['allocated']],
+ ['key' => 'custody', 'label' => 'On Custody', 'value' => (float) $totals['on_custody']],
+ ['key' => 'laundry', 'label' => 'In Laundry', 'value' => (float) $totals['laundry']],
+ ['key' => 'incident', 'label' => 'Incident / Unavailable', 'value' => (float) $totals['incident']],
+ ];
 
-    $composition = array_map(function (array $row) use ($serviceable): array {
-        /* Guarded: an empty catalogue must never produce a percentage. */
-        $row['percent'] = $serviceable > 0 ? round($row['value'] / $serviceable * 100, 1) : 0;
+ $composition = array_map(function (array $row) use ($serviceable): array {
+ /* Guarded: an empty catalogue must never produce a percentage. */
+ $row['percent'] = $serviceable > 0 ? round($row['value'] / $serviceable * 100, 1) : 0;
 
-        return $row;
-    }, $composition);
+ return $row;
+ }, $composition);
 
-    /*
-     | Health-first ordering is already applied in the service. Six rows keeps
-     | this card close to the natural height of the composition beside it;
-     | eight left the shorter card with a long blank tail.
-     */
-    $availabilityRows = array_slice($inventory['availability'], 0, 6);
+ /*
+ | Health-first ordering is already applied in the service. Six rows keeps
+ | this card close to the natural height of the composition beside it;
+ | eight left the shorter card with a long blank tail.
+ */
+ $availabilityRows = array_slice($inventory['availability'], 0, 6);
 
-    $operational = [
-        ['key' => 'laundry', 'icon' => 'linen', 'label' => 'In Laundry', 'value' => (float) $totals['laundry'], 'note' => 'Units in the laundry cycle'],
-        ['key' => 'maintenance', 'icon' => 'settings', 'label' => 'Damaged / Maintenance', 'value' => (float) $totals['maintenance'], 'note' => 'Units held for repair'],
-        ['key' => 'incident', 'icon' => 'warning', 'label' => 'Incident / Unavailable', 'value' => (float) $totals['problem'], 'note' => 'Units held by an open case'],
-    ];
+ $operational = [
+ ['key' => 'laundry', 'icon' => 'linen', 'label' => 'In Laundry', 'value' => (float) $totals['laundry'], 'note' => 'Units in the laundry cycle'],
+ ['key' => 'maintenance', 'icon' => 'settings', 'label' => 'Damaged / Maintenance', 'value' => (float) $totals['maintenance'], 'note' => 'Units held for repair'],
+ ['key' => 'incident', 'icon' => 'warning', 'label' => 'Incident / Unavailable', 'value' => (float) $totals['problem'], 'note' => 'Units held by an open case'],
+ ];
 
-    $coverageRows = array_slice($coverage['items'], 0, 5);
+ $coverageRows = array_slice($coverage['items'], 0, 5);
+ $coverageByItem = collect($coverage['items'] ?? [])->keyBy('item_id');
 @endphp
 
 {{-- Current position ---------------------------------------------------- --}}
 <div class="analytics-kpis analytics-kpis-inventory">
-    {{--
-        Current-state readings. Each card opens its own Analytics detail, which
-        restates the snapshot and offers the Inventory Status Report where one
-        matches; the rows further down link to per-item details.
-    --}}
-    <a
-        class="analytics-kpi-card tone-attention"
-        href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.available']) }}"
-    >
-        <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="check-circle" size="19" /></span>
-        <span class="analytics-kpi-card-label">Available Units</span>
-        <strong class="analytics-kpi-card-value">{{ $num((float) $totals['available']) }}</strong>
-        <span class="analytics-kpi-card-note">Usable units not already reserved</span>
-    </a>
+ {{--
+ Current-state readings. Each card opens its own Analytics detail, which
+ restates the snapshot and offers the Inventory Status Report where one
+ matches; the rows further down link to per-item details.
+ --}}
+ <a
+ class="analytics-kpi-card tone-attention"
+ href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.available']) }}"
+ >
+ <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="check-circle" size="19" /></span>
+ <span class="analytics-kpi-card-label">Available Units</span>
+ <strong class="analytics-kpi-card-value">{{ $num((float) $totals['available']) }}</strong>
+ <span class="analytics-kpi-card-note">Usable units not already reserved</span>
+ </a>
 
-    <a
-        class="analytics-kpi-card tone-quantity"
-        href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.reserved']) }}"
-    >
-        <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="bookmark" size="19" /></span>
-        <span class="analytics-kpi-card-label">Reserved / Allocated</span>
-        <strong class="analytics-kpi-card-value">{{ $num((float) $totals['allocated']) }}</strong>
-        <span class="analytics-kpi-card-note">Committed to approved requests and not available to allocate</span>
-    </a>
+ <a
+ class="analytics-kpi-card tone-quantity"
+ href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.reserved']) }}"
+ >
+ <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="bookmark" size="19" /></span>
+ <span class="analytics-kpi-card-label">Reserved / Allocated</span>
+ <strong class="analytics-kpi-card-value">{{ $num((float) $totals['allocated']) }}</strong>
+ <span class="analytics-kpi-card-note">Committed to approved requests and not available to allocate</span>
+ </a>
 
-    <a
-        class="analytics-kpi-card tone-custody"
-        href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.custody']) }}"
-    >
-        <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="custody" size="19" /></span>
-        <span class="analytics-kpi-card-label">On Custody</span>
-        <strong class="analytics-kpi-card-value">{{ $num((float) $totals['on_custody']) }}</strong>
-        <span class="analytics-kpi-card-note">Units currently released to borrowers</span>
-    </a>
+ <a
+ class="analytics-kpi-card tone-custody"
+ href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.custody']) }}"
+ >
+ <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="custody" size="19" /></span>
+ <span class="analytics-kpi-card-label">On Custody</span>
+ <strong class="analytics-kpi-card-value">{{ $num((float) $totals['on_custody']) }}</strong>
+ <span class="analytics-kpi-card-note">Units currently released to borrowers</span>
+ </a>
 
-    <a
-        class="analytics-kpi-card tone-attention"
-        href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.attention']) }}"
-    >
-        <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="warning" size="19" /></span>
-        <span class="analytics-kpi-card-label">Attention Needed</span>
-        <strong class="analytics-kpi-card-value">{{ $num($attention) }}</strong>
-        <span class="analytics-kpi-card-note">Maintenance or incident follow-up, not laundry</span>
-    </a>
+ <a
+ class="analytics-kpi-card tone-attention"
+ href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.attention']) }}"
+ >
+ <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="warning" size="19" /></span>
+ <span class="analytics-kpi-card-label">Attention Needed</span>
+ <strong class="analytics-kpi-card-value">{{ $num($attention) }}</strong>
+ <span class="analytics-kpi-card-note">Maintenance or incident follow-up, not laundry</span>
+ </a>
 </div>
 
 @if($detail)
-    @include('analytics.partials.detail-panel')
+ @include('analytics.partials.detail-panel')
 @endif
 
 <p class="analytics-inventory-scope-note" role="note">
-    <x-icon name="information" size="14" aria-hidden="true" />
-    <span><strong>Current stock scope:</strong> inventory totals are institution-wide and do not change with Division, Office / College / Unit, or Borrower. Utilization and Stock Coverage below still use the selected reporting period.</span>
+ <x-icon name="information" size="14" aria-hidden="true" />
+ <span><strong>Current stock scope:</strong> inventory totals are institution-wide and do not change with Division, Office / College / Unit, or Borrower. Utilization and Stock Coverage below still use the selected reporting period.</span>
 </p>
 
 {{-- Availability and composition ---------------------------------------- --}}
 <div class="analytics-inventory-main">
-    <section
-        data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.availability']) }}"
-        class="analytics-card">
-        <header class="analytics-card-head">
-            <span class="analytics-card-mark" aria-hidden="true"><x-icon name="inventory" size="15" /></span>
-            <div>
-                <h2>Inventory Availability</h2>
-                <p>Usable share of each item's serviceable stock, tightest first.</p>
-            </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.availability']) }}" aria-label="View Inventory Availability details"><x-icon name="chevron-right" size="15" /></a>
-        </header>
+ <section
+ data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.availability']) }}"
+ class="analytics-card">
+ <header class="analytics-card-head">
+ <span class="analytics-card-mark" aria-hidden="true"><x-icon name="inventory" size="15" /></span>
+ <div>
+ <h2>Inventory Availability</h2>
+ <p>Usable share of each item's serviceable stock, tightest first.</p>
+ </div>
+ <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.availability']) }}" aria-label="View Inventory Availability details"><x-icon name="chevron-right" size="15" /></a>
+ </header>
 
-        <div class="analytics-card-body">
-            @if($availabilityRows === [])
-                <p class="analytics-blank">
-                    <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="inventory" size="19" /></span>
-                    No borrowable equipment with serviceable stock is recorded yet.
-                </p>
-            @else
-                <ul class="analytics-avail">
-                    @foreach($availabilityRows as $row)
-                        <li>
-                            <a
-                                href="{{ AnalyticsDetailLink::to('equipment', 'inventory', $periodSelection, null, null, ['item' => $row['item_id']]) }}"
-                                data-chart-tip
-                                data-tip-title="{{ $row['name'] }}"
-                                data-tip-rows="{{ json_encode([
-                                    ['Available', $num($row['available']).' / '.$num($row['stock'])],
-                                    ['Availability', $row['share'].'%'],
-                                    ['Status', $row['status']],
-                                ]) }}"
-                                aria-label="View Details for {{ $row['name'] }}: {{ $num($row['available']) }} of {{ $num($row['stock']) }} units available, {{ $row['share'] }} percent, {{ $row['status'] }}"
-                            >
-                                <span class="analytics-avail-name">{{ $row['name'] }}</span>
+ <div class="analytics-card-body">
+ @if($availabilityRows === [])
+ <p class="analytics-blank">
+ <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="inventory" size="19" /></span>
+ No borrowable equipment with serviceable stock is recorded yet.
+ </p>
+ @else
+ <ul class="analytics-avail">
+ @foreach($availabilityRows as $row)
+ <li>
+ <a
+ href="{{ AnalyticsDetailLink::to('equipment', 'inventory', $periodSelection, null, null, ['item' => $row['item_id']]) }}"
+ data-chart-tip
+ data-tip-title="{{ $row['name'] }}"
+ data-tip-rows="{{ json_encode([
+ ['Available', $num($row['available']).' / '.$num($row['stock'])],
+ ['Availability', $row['share'].'%'],
+ ['Status', $row['status']],
+ ]) }}"
+ aria-label="View Details for {{ $row['name'] }}: {{ $num($row['available']) }} of {{ $num($row['stock']) }} units available, {{ $row['share'] }} percent, {{ $row['status'] }}"
+ >
+ <span class="analytics-avail-name">{{ $row['name'] }}</span>
 
-                                {{--
-                                    One bar, one reading: the fill is the usable
-                                    share of serviceable stock and the rail
-                                    behind it is simply what is not usable. The
-                                    earlier four-state split put a second strong
-                                    colour beside the first, which read as a
-                                    competing measure rather than a remainder.
+ {{--
+ One bar, one reading: the fill is the usable
+ share of serviceable stock and the rail
+ behind it is simply what is not usable. The
+ earlier four-state split put a second strong
+ colour beside the first, which read as a
+ competing measure rather than a remainder.
 
-                                    Status and threshold both come from the
-                                    service; nothing is decided here.
-                                --}}
-                                <span class="analytics-avail-meter">
-                                    <span class="analytics-avail-bar" aria-hidden="true">
-                                        <span
-                                            class="analytics-avail-fill @if($row['low']) is-low @endif"
-                                            style="width: {{ $row['share'] }}%"
-                                        ></span>
-                                    </span>
+ Status and threshold both come from the
+ service; nothing is decided here.
+ --}}
+ <span class="analytics-avail-meter">
+ <span class="analytics-avail-bar" aria-hidden="true">
+ <span
+ class="analytics-avail-fill @if($row['low']) is-low @endif"
+ style="width: {{ $row['share'] }}%"
+ ></span>
+ </span>
 
-                                    <span class="analytics-avail-figure">
-                                        <span>{{ $num($row['available']) }} / {{ $num($row['stock']) }}</span>
-                                        <strong class="{{ $row['low'] ? 'is-low' : '' }}">{{ $row['share'] }}%</strong>
-                                        <small class="analytics-avail-tag @if($row['low']) is-low @endif">{{ $row['status'] }}</small>
-                                    </span>
-                                </span>
-                            </a>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
-        </div>
+ <span class="analytics-avail-figure">
+ <span>{{ $num($row['available']) }} / {{ $num($row['stock']) }}</span>
+ <strong class="{{ $row['low'] ? 'is-low' : '' }}">{{ $row['share'] }}%</strong>
+ <small class="analytics-avail-tag @if($row['low']) is-low @endif">{{ $row['status'] }}</small>
+ </span>
+ </span>
+ </a>
+ </li>
+ @endforeach
+ </ul>
+ @endif
+ </div>
 
-        <footer class="analytics-card-foot">
-            Serviceable stock only. An item is Limited at or below {{ $thresholdPercent }}% usable.
-        </footer>
-    </section>
+ <footer class="analytics-card-foot">
+ Serviceable stock only. An item is Limited at or below {{ $thresholdPercent }}% usable.
+ </footer>
+ </section>
 
-    <section
-        data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.distribution']) }}"
-        class="analytics-card">
-        <header class="analytics-card-head">
-            <span class="analytics-card-mark" aria-hidden="true"><x-icon name="box" size="15" /></span>
-            <div>
-                <h2>Current Inventory Distribution</h2>
-            </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.distribution']) }}" aria-label="View Current Inventory Distribution details"><x-icon name="chevron-right" size="15" /></a>
-        </header>
+ <section
+ data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.distribution']) }}"
+ class="analytics-card">
+ <header class="analytics-card-head">
+ <span class="analytics-card-mark" aria-hidden="true"><x-icon name="box" size="15" /></span>
+ <div>
+ <h2>Current Inventory Distribution</h2>
+ </div>
+ <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.distribution']) }}" aria-label="View Current Inventory Distribution details"><x-icon name="chevron-right" size="15" /></a>
+ </header>
 
-        @if($serviceable <= 0)
-            <div class="analytics-card-body">
-                <p class="analytics-blank">
-                    <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="box" size="19" /></span>
-                    No serviceable inventory is recorded yet.
-                </p>
-            </div>
-        @else
-            <div class="analytics-card-body">
-                <p class="analytics-dist-total">
-                    <strong>{{ $num($serviceable) }}</strong>
-                    <span>serviceable units across {{ $inventory['item_count'] }} active items</span>
-                </p>
+ @if($serviceable <= 0)
+ <div class="analytics-card-body">
+ <p class="analytics-blank">
+ <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="box" size="19" /></span>
+ No serviceable inventory is recorded yet.
+ </p>
+ </div>
+ @else
+ <div class="analytics-card-body">
+ <p class="analytics-dist-total">
+ <strong>{{ $num($serviceable) }}</strong>
+ <span>serviceable units across {{ $inventory['item_count'] }} active items</span>
+ </p>
 
-                <span class="analytics-dist-bar" aria-hidden="true">
-                    @foreach($composition as $slice)
-                        @if($slice['value'] > 0)
-                            <span
-                                class="analytics-dist-seg is-{{ $slice['key'] }}"
-                                style="width: {{ $slice['percent'] }}%"
-                                tabindex="0"
-                                role="img"
-                                data-chart-tip
-                                data-tip-title="{{ $slice['label'] }}"
-                                data-tip-rows="{{ json_encode([
-                                    ['Units', $num($slice['value'])],
-                                    ['Share of serviceable stock', $slice['percent'].'%'],
-                                ]) }}"
-                                aria-label="{{ $slice['label'] }}: {{ $num($slice['value']) }} units, {{ $slice['percent'] }} percent of serviceable stock"
-                            ></span>
-                        @endif
-                    @endforeach
-                </span>
+ <span class="analytics-dist-bar" aria-hidden="true">
+ @foreach($composition as $slice)
+ @if($slice['value'] > 0)
+ <span
+ class="analytics-dist-seg is-{{ $slice['key'] }}"
+ style="width: {{ $slice['percent'] }}%"
+ tabindex="0"
+ role="img"
+ data-chart-tip
+ data-tip-title="{{ $slice['label'] }}"
+ data-tip-rows="{{ json_encode([
+ ['Units', $num($slice['value'])],
+ ['Share of serviceable stock', $slice['percent'].'%'],
+ ]) }}"
+ aria-label="{{ $slice['label'] }}: {{ $num($slice['value']) }} units, {{ $slice['percent'] }} percent of serviceable stock"
+ ></span>
+ @endif
+ @endforeach
+ </span>
 
-                <ul class="analytics-dist-legend">
-                    @foreach($composition as $slice)
-                        <li>
-                            <span class="analytics-dist-key is-{{ $slice['key'] }}" aria-hidden="true"></span>
-                            <span class="analytics-dist-name">{{ $slice['label'] }}</span>
-                            <span class="analytics-dist-figure">{{ $num($slice['value']) }} <small>· {{ $slice['percent'] }}%</small></span>
-                        </li>
-                    @endforeach
-                </ul>
+ <ul class="analytics-dist-legend">
+ @foreach($composition as $slice)
+ <li>
+ <span class="analytics-dist-key is-{{ $slice['key'] }}" aria-hidden="true"></span>
+ <span class="analytics-dist-name">{{ $slice['label'] }}</span>
+ <span class="analytics-dist-figure">{{ $num($slice['value']) }} <small> - {{ $slice['percent'] }}%</small></span>
+ </li>
+ @endforeach
+ </ul>
 
-                {{-- Maintenance is the one condition bucket outside serviceable stock. --}}
-                <dl class="analytics-dist-aside">
-                    @if($totals['maintenance'] > 0)
-                        <div>
-                            <dt>Outside serviceable stock</dt>
-                            <dd>{{ $num((float) $totals['maintenance']) }} units are damaged or under maintenance and carry no serviceable total.</dd>
-                        </div>
-                    @endif
-                </dl>
-            </div>
-        @endif
-    </section>
+ {{-- Maintenance is the one condition bucket outside serviceable stock. --}}
+ <dl class="analytics-dist-aside">
+ @if($totals['maintenance'] > 0)
+ <div>
+ <dt>Outside serviceable stock</dt>
+ <dd>{{ $num((float) $totals['maintenance']) }} units are damaged or under maintenance and carry no serviceable total.</dd>
+ </div>
+ @endif
+ </dl>
+ </div>
+ @endif
+ </section>
 </div>
 
 {{-- Watchlist and usage -------------------------------------------------- --}}
 <div class="analytics-inventory-pair">
-    <section
-        data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.low-availability']) }}"
-        class="analytics-card">
-        <header class="analytics-card-head">
-            <span class="analytics-card-mark" aria-hidden="true"><x-icon name="warning" size="15" /></span>
-            <div>
-                <h2>Low Availability Watch</h2>
-            </div>
-            @if($lowAvailability['count'] > 0)
-                <span class="analytics-count-pill">{{ $lowAvailability['count'] }}</span>
-            @endif
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.low-availability']) }}" aria-label="View Low Availability Watch details"><x-icon name="chevron-right" size="15" /></a>
-        </header>
+ <section
+ data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.low-availability']) }}"
+ class="analytics-card">
+ <header class="analytics-card-head">
+ <span class="analytics-card-mark" aria-hidden="true"><x-icon name="warning" size="15" /></span>
+ <div>
+ <h2>Inventory Risk Watch</h2>
+ <p>Current low availability with period-based stock coverage context.</p>
+ </div>
+ @if($lowAvailability['count'] > 0)
+ <span class="analytics-count-pill">{{ $lowAvailability['count'] }}</span>
+ @endif
+ <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.low-availability']) }}" aria-label="View Inventory Risk Watch details"><x-icon name="chevron-right" size="15" /></a>
+ </header>
 
-        <div class="analytics-card-body">
-            @if($lowAvailability['items'] === [])
-                <p class="analytics-blank is-positive">
-                    <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="check-circle" size="19" /></span>
-                    No equipment currently requires availability attention.
-                </p>
-            @else
-                <ul class="analytics-watch">
-                    @foreach($lowAvailability['items'] as $row)
-                        <li>
-                            <a
-                                href="{{ AnalyticsDetailLink::to('equipment', 'inventory', $periodSelection, null, null, ['item' => $row['item_id']]) }}"
-                                aria-label="View Details for {{ $row['name'] }}"
-                            >
-                                <span class="analytics-watch-main">
-                                    <span class="analytics-watch-name">{{ $row['name'] }}</span>
-                                    <span class="analytics-watch-sub">{{ $num($row['available']) }} of {{ $num($row['stock']) }} units available</span>
-                                </span>
-                                <span class="analytics-watch-figure">
-                                    <strong>{{ $row['share'] }}%</strong>
-                                    <small class="analytics-tag {{ $row['status'] === 'Unavailable' ? 'is-critical' : 'is-attention' }}">{{ $row['status'] }}</small>
-                                </span>
-                            </a>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
-        </div>
-    </section>
+ <div class="analytics-card-body">
+ @if($lowAvailability['items'] === [])
+ <p class="analytics-blank is-positive">
+ <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="check-circle" size="19" /></span>
+ No equipment currently requires availability attention.
+ </p>
+ @else
+ <ul class="analytics-watch">
+ @foreach($lowAvailability['items'] as $row)
+ <li>
+ <a
+ href="{{ AnalyticsDetailLink::to('equipment', 'inventory', $periodSelection, null, null, ['item' => $row['item_id']]) }}"
+ aria-label="View Details for {{ $row['name'] }}"
+ >
+ <span class="analytics-watch-main">
+ <span class="analytics-watch-name">{{ $row['name'] }}</span>
+ @php $coverageRow = $coverageByItem->get($row['item_id']); @endphp
+ <span class="analytics-watch-sub">
+ {{ $num($row['available']) }} of {{ $num($row['stock']) }} units available
+ @if($coverageRow)
+ @if(! $coverageRow['sufficient'])
+ - coverage: insufficient history
+ @elseif($coverageRow['coverage_days'] !== null)
+ - {{ $coverageRow['coverage_days'] }} days coverage
+ @endif
+ @endif
+ </span>
+ </span>
+ <span class="analytics-watch-figure">
+ <strong>{{ $row['share'] }}%</strong>
+ <small class="analytics-tag {{ $row['status'] === 'Unavailable' ? 'is-critical' : 'is-attention' }}">{{ $row['status'] }}</small>
+ </span>
+ </a>
+ </li>
+ @endforeach
+ </ul>
+ @endif
+ </div>
+ </section>
 
-    <section
-        data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.utilization']) }}"
-        class="analytics-card">
-        <header class="analytics-card-head">
-            <span class="analytics-card-mark" aria-hidden="true"><x-icon name="custody" size="15" /></span>
-            <div>
-                <h2>Utilization</h2>
-                <p>Quantity of equipment physically released during this period.</p>
-            </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.utilization']) }}" aria-label="View Utilization details"><x-icon name="chevron-right" size="15" /></a>
-        </header>
+ <section
+ data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.utilization']) }}"
+ class="analytics-card">
+ <header class="analytics-card-head">
+ <span class="analytics-card-mark" aria-hidden="true"><x-icon name="custody" size="15" /></span>
+ <div>
+ <h2>Utilization</h2>
+ <p>Quantity of equipment physically released during this period.</p>
+ </div>
+ <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.utilization']) }}" aria-label="View Utilization details"><x-icon name="chevron-right" size="15" /></a>
+ </header>
 
-        <div class="analytics-card-body">
-            @if($released['items'] === [])
-                <p class="analytics-blank">
-                    <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="box" size="19" /></span>
-                    <span>
-                        <strong>No equipment was physically released during this period.</strong>
-                        Utilization becomes available once release activity occurs within the selected period.
-                    </span>
-                </p>
-            @else
-                <ol class="analytics-rank">
-                    @foreach(array_slice($released['items'], 0, 5) as $index => $row)
-                        <li>
-                            <a
-                                class="analytics-rank-row"
-                                href="{{ AnalyticsDetailLink::to('equipment', 'inventory', $periodSelection, null, null, ['item' => $row['item_id']]) }}"
-                                data-chart-tip
-                                data-tip-title="{{ $row['name'] }}"
-                                data-tip-rows="{{ json_encode([
-                                    ['Physically released', $num($row['released'])],
-                                ]) }}"
-                                aria-label="View Details for {{ $row['name'] }}: {{ $num($row['released']) }} released"
-                            >
-                                <span class="analytics-rank-no">{{ $index + 1 }}</span>
-                                <span class="analytics-rank-main">
-                                    <span class="analytics-rank-name">{{ $row['name'] }}</span>
-                                    <span class="analytics-rank-track">
-                                        <span class="analytics-rank-fill is-released" style="width: {{ max(3, $row['share']) }}%"></span>
-                                    </span>
-                                </span>
-                                <span class="analytics-rank-value">
-                                    {{ $num($row['released']) }}
-                                    <small>released</small>
-                                </span>
-                            </a>
-                        </li>
-                    @endforeach
-                </ol>
-            @endif
-        </div>
-    </section>
+ <div class="analytics-card-body">
+ @if($released['items'] === [])
+ <p class="analytics-blank">
+ <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="box" size="19" /></span>
+ <span>
+ <strong>No equipment was physically released during this period.</strong>
+ Utilization becomes available once release activity occurs within the selected period.
+ </span>
+ </p>
+ @else
+ <ol class="analytics-rank">
+ @foreach(array_slice($released['items'], 0, 5) as $index => $row)
+ <li>
+ <a
+ class="analytics-rank-row"
+ href="{{ AnalyticsDetailLink::to('equipment', 'inventory', $periodSelection, null, null, ['item' => $row['item_id']]) }}"
+ data-chart-tip
+ data-tip-title="{{ $row['name'] }}"
+ data-tip-rows="{{ json_encode([
+ ['Physically released', $num($row['released'])],
+ ]) }}"
+ aria-label="View Details for {{ $row['name'] }}: {{ $num($row['released']) }} released"
+ >
+ <span class="analytics-rank-no">{{ $index + 1 }}</span>
+ <span class="analytics-rank-main">
+ <span class="analytics-rank-name">{{ $row['name'] }}</span>
+ <span class="analytics-rank-track">
+ <span class="analytics-rank-fill is-released" style="width: {{ max(3, $row['share']) }}%"></span>
+ </span>
+ </span>
+ <span class="analytics-rank-value">
+ {{ $num($row['released']) }}
+ <small>released</small>
+ </span>
+ </a>
+ </li>
+ @endforeach
+ </ol>
+ @endif
+ </div>
+ </section>
 </div>
 
 {{-- Secondary states and coverage ---------------------------------------- --}}
 <div class="analytics-inventory-pair">
-    <section
-        data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.operational']) }}"
-        class="analytics-card">
-        <header class="analytics-card-head">
-            <span class="analytics-card-mark" aria-hidden="true"><x-icon name="settings" size="15" /></span>
-            <div>
-                <h2>Operational Inventory Status</h2>
-            </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.operational']) }}" aria-label="View Operational Inventory Status details"><x-icon name="chevron-right" size="15" /></a>
-        </header>
+ <section
+ data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.operational']) }}"
+ class="analytics-card">
+ <header class="analytics-card-head">
+ <span class="analytics-card-mark" aria-hidden="true"><x-icon name="settings" size="15" /></span>
+ <div>
+ <h2>Operational Inventory Status</h2>
+ </div>
+ <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.operational']) }}" aria-label="View Operational Inventory Status details"><x-icon name="chevron-right" size="15" /></a>
+ </header>
 
-        <div class="analytics-card-body">
-            <div class="analytics-tiles">
-                @foreach($operational as $tile)
-                    <div class="analytics-tile is-{{ $tile['key'] }}{{ $tile['value'] > 0 ? ' is-flagged' : '' }}">
-                        <span class="analytics-tile-icon" aria-hidden="true"><x-icon :name="$tile['icon']" size="15" /></span>
-                        <span class="analytics-tile-label">{{ $tile['label'] }}</span>
-                        <strong class="analytics-tile-value">{{ $num($tile['value']) }}</strong>
-                        <span class="analytics-tile-note">{{ $tile['note'] }}</span>
-                    </div>
-                @endforeach
-            </div>
-        </div>
+ <div class="analytics-card-body">
+ <div class="analytics-tiles">
+ @foreach($operational as $tile)
+ <div class="analytics-tile is-{{ $tile['key'] }}{{ $tile['value'] > 0 ? ' is-flagged' : '' }}">
+ <span class="analytics-tile-icon" aria-hidden="true"><x-icon :name="$tile['icon']" size="15" /></span>
+ <span class="analytics-tile-label">{{ $tile['label'] }}</span>
+ <strong class="analytics-tile-value">{{ $num($tile['value']) }}</strong>
+ <span class="analytics-tile-note">{{ $tile['note'] }}</span>
+ </div>
+ @endforeach
+ </div>
+ </div>
 
-        <p class="analytics-insight-strip">
-            <x-icon name="information" size="14" aria-hidden="true" />
-            <span>{{ $inventory['summary'] }}</span>
-        </p>
-    </section>
+ <p class="analytics-insight-strip">
+ <x-icon name="information" size="14" aria-hidden="true" />
+ <span>{{ $inventory['summary'] }}</span>
+ </p>
+ </section>
 
-    <section
-        data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.coverage']) }}"
-        class="analytics-card">
-        <header class="analytics-card-head">
-            <span class="analytics-card-mark" aria-hidden="true"><x-icon name="clock" size="15" /></span>
-            <div>
-                <h2>Stock Coverage &amp; Risk</h2>
-                <p>Estimated coverage from current stock and release history in this period.</p>
-            </div>
-            <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.coverage']) }}" aria-label="View Stock Coverage and Risk details"><x-icon name="chevron-right" size="15" /></a>
-        </header>
+ <section
+ data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.coverage']) }}"
+ class="analytics-card">
+ <header class="analytics-card-head">
+ <span class="analytics-card-mark" aria-hidden="true"><x-icon name="clock" size="15" /></span>
+ <div>
+ <h2>Coverage Detail</h2>
+ <p>Supporting release-history detail for Inventory Risk Watch.</p>
+ </div>
+ <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.coverage']) }}" aria-label="View Stock Coverage and Risk details"><x-icon name="chevron-right" size="15" /></a>
+ </header>
 
-        <div class="analytics-card-body">
-            @if($coverageRows === [])
-                <p class="analytics-blank">
-                    <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="clock" size="19" /></span>
-                    <span>
-                        <strong>Insufficient release history.</strong>
-                        {{ $coverage['summary'] }}
-                    </span>
-                </p>
-            @else
-                <ul class="analytics-coverage">
-                    @foreach($coverageRows as $row)
-                        <li>
-                            <a
-                                href="{{ AnalyticsDetailLink::to('coverage', 'inventory', $periodSelection, null, null, ['item' => $row['item_id']]) }}"
-                                aria-label="View coverage details for {{ $row['name'] }}"
-                            >
-                                <span class="analytics-coverage-main">
-                                    <span class="analytics-coverage-name">{{ $row['name'] }}</span>
-                                    <span class="analytics-coverage-sub">
-                                        {{ $num($row['available']) }} available
-                                        @if($row['sufficient'])
-                                            · {{ $row['per_day'] }} per day
-                                        @endif
-                                    </span>
-                                </span>
+ <div class="analytics-card-body">
+ @if($coverageRows === [])
+ <p class="analytics-blank">
+ <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="clock" size="19" /></span>
+ <span>
+ <strong>Insufficient release history.</strong>
+ {{ $coverage['summary'] }}
+ </span>
+ </p>
+ @else
+ <ul class="analytics-coverage">
+ @foreach($coverageRows as $row)
+ <li>
+ <a
+ href="{{ AnalyticsDetailLink::to('coverage', 'inventory', $periodSelection, null, null, ['item' => $row['item_id']]) }}"
+ aria-label="View coverage details for {{ $row['name'] }}"
+ >
+ <span class="analytics-coverage-main">
+ <span class="analytics-coverage-name">{{ $row['name'] }}</span>
+ <span class="analytics-coverage-sub">
+ {{ $num($row['available']) }} available
+ @if($row['sufficient'])
+ - {{ $row['per_day'] }} per day
+ @endif
+ </span>
+ </span>
 
-                                <span class="analytics-coverage-figure">
-                                    {{--
-                                        Rate, coverage and risk stand or fall
-                                        together: a number beside "insufficient
-                                        history" would invite the reader to do
-                                        the division themselves.
-                                    --}}
-                                    @if(! $row['sufficient'])
-                                        <small class="analytics-tag">Insufficient history</small>
-                                    @elseif($row['risk'] === null)
-                                        <small class="analytics-tag">No recent consumption</small>
-                                    @else
-                                        <strong>{{ $row['days_cover'] }}<small>d</small></strong>
-                                        <small class="analytics-tag {{ $row['risk'] === 'High' ? 'is-critical' : ($row['risk'] === 'Medium' ? 'is-attention' : 'is-positive') }}">
-                                            {{ $row['risk'] }}
-                                        </small>
-                                    @endif
-                                </span>
-                            </a>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
-        </div>
+ <span class="analytics-coverage-figure">
+ {{--
+ Rate, coverage and risk stand or fall
+ together: a number beside "insufficient
+ history" would invite the reader to do
+ the division themselves.
+ --}}
+ @if(! $row['sufficient'])
+ <small class="analytics-tag">Insufficient history</small>
+ @elseif($row['risk'] === null)
+ <small class="analytics-tag">No recent consumption</small>
+ @else
+ <strong>{{ $row['days_cover'] }}<small>d</small></strong>
+ <small class="analytics-tag {{ $row['risk'] === 'High' ? 'is-critical' : ($row['risk'] === 'Medium' ? 'is-attention' : 'is-positive') }}">
+ {{ $row['risk'] }}
+ </small>
+ @endif
+ </span>
+ </a>
+ </li>
+ @endforeach
+ </ul>
+ @endif
+ </div>
 
-        @if($coverageRows !== [])
-            <footer class="analytics-card-foot">
-                An estimate, not a probability. High is under {{ $coverage['thresholds']['high'] }} days,
-                Medium up to {{ $coverage['thresholds']['medium'] }}.
-            </footer>
-        @endif
-    </section>
+ @if($coverageRows !== [])
+ <footer class="analytics-card-foot">
+ An estimate, not a probability. High is under {{ $coverage['thresholds']['high'] }} days,
+ Medium up to {{ $coverage['thresholds']['medium'] }}.
+ </footer>
+ @endif
+ </section>
 </div>
+
+
+{{-- INVENTORY HEALTH EQUAL CARD HEIGHTS START --}}
+
+<style>
+/*
+|--------------------------------------------------------------------------
+| Inventory Health paired card heights
+|--------------------------------------------------------------------------
+*/
+
+.analytics-inventory-equal-row {
+    align-items: stretch !important;
+}
+
+.analytics-inventory-equal-row
+> .analytics-inventory-equal-card {
+    align-self: stretch !important;
+    height: 100% !important;
+}
+
+
+/*
+ * Keep empty / short content visually balanced when its paired card
+ * contains more information.
+ */
+.analytics-inventory-equal-card
+.analytics-inventory-equal-body {
+    flex: 1 1 auto !important;
+}
+
+
+/*
+ * On stacked layouts, allow every card to return to natural height.
+ */
+@media (max-width: 900px) {
+    .analytics-inventory-equal-row
+    > .analytics-inventory-equal-card {
+        height: auto !important;
+        min-height: 0 !important;
+    }
+}
+</style>
+
+
+<script>
+(() => {
+
+    const CARD_PAIRS = [
+        [
+            'Inventory Risk Watch',
+            'Utilization'
+        ],
+        [
+            'Operational Inventory Status',
+            'Coverage Detail'
+        ]
+    ];
+
+
+    const normalize = (value) =>
+        String(value || '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+
+    const findHeading = (title) =>
+        Array.from(
+            document.querySelectorAll(
+                'h1, h2, h3, h4, h5, h6'
+            )
+        ).find(
+            (heading) =>
+                normalize(heading.textContent) === title
+        );
+
+
+    const findCard = (heading) => {
+        if (!heading) {
+            return null;
+        }
+
+        return heading.closest(
+            [
+                'section',
+                'article',
+                '.analytics-card',
+                '.analytics-panel',
+                '.school-panel'
+            ].join(',')
+        );
+    };
+
+
+    const getCommonParent = (
+        firstCard,
+        secondCard
+    ) => {
+        if (!firstCard || !secondCard) {
+            return null;
+        }
+
+        let current =
+            firstCard.parentElement;
+
+        while (current) {
+
+            if (
+                current.contains(secondCard)
+            ) {
+                return current;
+            }
+
+            current =
+                current.parentElement;
+        }
+
+        return null;
+    };
+
+
+    const clearInlineHeight = (card) => {
+        if (!card) {
+            return;
+        }
+
+        card.style.removeProperty(
+            'min-height'
+        );
+
+        card.style.removeProperty(
+            'height'
+        );
+    };
+
+
+    const syncPair = (
+        firstTitle,
+        secondTitle
+    ) => {
+
+        const firstHeading =
+            findHeading(firstTitle);
+
+        const secondHeading =
+            findHeading(secondTitle);
+
+        const firstCard =
+            findCard(firstHeading);
+
+        const secondCard =
+            findCard(secondHeading);
+
+        if (
+            !firstCard
+            ||
+            !secondCard
+        ) {
+            return;
+        }
+
+
+        firstCard.classList.add(
+            'analytics-inventory-equal-card'
+        );
+
+        secondCard.classList.add(
+            'analytics-inventory-equal-card'
+        );
+
+
+        const row =
+            getCommonParent(
+                firstCard,
+                secondCard
+            );
+
+        if (row) {
+            row.classList.add(
+                'analytics-inventory-equal-row'
+            );
+        }
+
+
+        clearInlineHeight(firstCard);
+        clearInlineHeight(secondCard);
+
+
+        const desktop =
+            window.matchMedia(
+                '(min-width: 901px)'
+            ).matches;
+
+        if (!desktop) {
+            return;
+        }
+
+
+        requestAnimationFrame(() => {
+
+            const firstHeight =
+                firstCard
+                    .getBoundingClientRect()
+                    .height;
+
+            const secondHeight =
+                secondCard
+                    .getBoundingClientRect()
+                    .height;
+
+            const target =
+                Math.ceil(
+                    Math.max(
+                        firstHeight,
+                        secondHeight
+                    )
+                );
+
+
+            /*
+             * CSS Grid/Flex normally stretches these already.
+             * min-height is only the fallback to guarantee identical
+             * bottom edges when an older card style overrides stretch.
+             */
+            firstCard.style.setProperty(
+                'min-height',
+                `${target}px`,
+                'important'
+            );
+
+            secondCard.style.setProperty(
+                'min-height',
+                `${target}px`,
+                'important'
+            );
+        });
+    };
+
+
+    const apply = () => {
+
+        CARD_PAIRS.forEach(
+            ([first, second]) => {
+                syncPair(
+                    first,
+                    second
+                );
+            }
+        );
+    };
+
+
+    if (
+        document.readyState === 'loading'
+    ) {
+
+        document.addEventListener(
+            'DOMContentLoaded',
+            apply,
+            { once: true }
+        );
+
+    } else {
+
+        apply();
+    }
+
+
+    requestAnimationFrame(apply);
+
+    setTimeout(
+        apply,
+        150
+    );
+
+    setTimeout(
+        apply,
+        400
+    );
+
+
+    let resizeFrame = null;
+
+    window.addEventListener(
+        'resize',
+        () => {
+
+            if (resizeFrame) {
+                cancelAnimationFrame(
+                    resizeFrame
+                );
+            }
+
+            resizeFrame =
+                requestAnimationFrame(
+                    apply
+                );
+        },
+        { passive: true }
+    );
+
+})();
+</script>
+
+{{-- INVENTORY HEALTH EQUAL CARD HEIGHTS END --}}

@@ -339,7 +339,7 @@
                                     ])->filter()->join(', ') ?: 'Open day with no enabled physical transaction');
 
                                 $hoursSummary = $exception->open_time && $exception->close_time
-                                    ? substr((string) $exception->open_time, 0, 5).' – '.substr((string) $exception->close_time, 0, 5)
+                                    ? substr((string) $exception->open_time, 0, 5).' ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ '.substr((string) $exception->close_time, 0, 5)
                                     : 'Date-based';
 
                                 $statusLabel = $exception->status === 'OPEN' ? 'Open' : 'Closed';
@@ -396,47 +396,103 @@
 <div class="academic-period-config" id="academic-periods">
 
     <section class="content-area">
-        <article class="card current-period-card">
-            <span class="current-period-icon" aria-hidden="true">
-                <x-icon name="calendar" size="34" />
-            </span>
+        <article class="card current-period-card {{ $activePeriod ? '' : 'is-empty' }}">
+    @if($activePeriod)
+        <span class="current-period-icon" aria-hidden="true">
+            <x-icon name="calendar" size="34" />
+        </span>
 
-            <div class="current-period-main">
-                <p class="eyebrow">
-                    Current academic period
-                </p>
+        <div class="current-period-main">
+            <p class="eyebrow">
+                Current academic period
+            </p>
 
-                @if($activePeriod)
-                    <div class="current-period-value">
-                        {{ $activePeriod->academic_year }}
-                        ·
-                        {{ $activePeriod->term_name }}
-                    </div>
-
-                    <div class="current-period-dates">
-                        {{ $activePeriod->start_date->format('d F Y') }}
-                        –
-                        {{ $activePeriod->end_date->format('d F Y') }}
-                    </div>
-                @else
-                    <div class="current-period-value">
-                        No active academic period
-                    </div>
-
-                    <p class="current-period-empty">
-                        Add an academic period below, then activate the one
-                        currently in effect.
-                    </p>
-                @endif
+            <div class="current-period-value">
+                {{ $activePeriod->academic_year }}
+                ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â·
+                {{ $activePeriod->term_name }}
             </div>
 
-            @if($activePeriod)
-                <x-status-badge
-                    status="ACTIVE"
-                    label="Active"
+            <div class="current-period-dates">
+                {{ $activePeriod->start_date->format('d F Y') }}
+                &ndash;
+                {{ $activePeriod->end_date->format('d F Y') }}
+            </div>
+        </div>
+
+        <x-status-badge
+            status="ACTIVE"
+            label="Active"
+        />
+    @else
+        <div class="current-period-empty-content">
+<span class="current-period-icon current-period-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 72 72">
+                <rect
+                    x="14"
+                    y="17"
+                    width="44"
+                    height="40"
+                    rx="5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
                 />
-            @endif
-        </article>
+
+                <path
+                    d="M14 29h44"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                />
+
+                <path
+                    d="M24 12v10M48 12v10"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                />
+
+                <path
+                    d="M25 38h5M35 38h5M45 38h5M25 47h5M35 47h5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                />
+
+                <circle
+                    cx="51"
+                    cy="51"
+                    r="9"
+                    fill="var(--surface-elevated)"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                />
+
+                <path
+                    d="M47.5 51h7"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                />
+            </svg>
+        </span>
+
+        <div class="current-period-main">
+            <div class="current-period-value">
+                No active academic period
+            </div>
+
+            <p class="current-period-empty">
+                Add an academic period below, then activate the one currently in effect.
+            </p>
+        </div>
+        </div>
+    @endif
+</article>
     </section>
 
     <section class="content-area">
@@ -650,7 +706,7 @@
 
                                 <td>
                                     {{ $period->start_date->format('d M Y') }}
-                                    –
+                                    &ndash;
                                     {{ $period->end_date->format('d M Y') }}
                                 </td>
 
@@ -707,7 +763,7 @@
                                                     class="button secondary small ui-pressable"
                                                     type="submit"
                                                     onclick="return confirm(
-                                                        'Activate {{ $period->academic_year }} · {{ $period->term_name }}? The current active period will be moved to Completed.'
+                                                        'Activate {{ $period->academic_year }} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {{ $period->term_name }}? The current active period will be moved to Completed.'
                                                     )"
                                                 >
                                                     Activate
@@ -825,7 +881,7 @@
                 </h3>
 
                 @if(! $rule)
-                    <p class="sanction-policy-required">NEEDS POLICY VALUE FROM SPMU — no official default is configured for this offense level.</p>
+                    <p class="sanction-policy-required">NEEDS POLICY VALUE FROM SPMU ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â no official default is configured for this offense level.</p>
                 @endif
 
                 <label>Default action

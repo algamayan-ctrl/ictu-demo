@@ -16,97 +16,97 @@ namespace App\Support;
  */
 final class AnalyticsDrilldown
 {
-    /**
-     * A Reports URL carrying the current analytics scope.
-     *
-     * @param  array<string, string|null>  $extra  report-specific filters
-     */
-    public static function report(
-        string $report,
-        string $periodSelection,
-        ?string $division = null,
-        ?string $unit = null,
-        array $extra = []
-    ): string {
-        $parameters = array_filter(
-            array_merge(
-                [
-                    'report' => $report,
-                    'academic_period' => $periodSelection,
-                    'division' => self::scalar($division),
-                    'unit' => self::scalar($unit),
-                    /*
-                     * Carried forward from the current Analytics request so
-                     * "View source records" always reconciles with the
-                     * borrower currently selected there. Reports validates
-                     * every filter against the destination report's own
-                     * catalogue entry, so this is silently ignored by a
-                     * report (inventory, utilization) that does not declare
-                     * a borrower filter.
-                     */
-                    'borrower' => self::scalar((string) request()->query('borrower', '')),
-                    /* Open the exact source dataset immediately; no second Preview click. */
-                    'generated' => 1,
-                ],
-                $extra
-            ),
-            static fn ($value): bool => $value !== null && $value !== '' && $value !== 'all'
-        );
+ /**
+ * A Reports URL carrying the current analytics scope.
+ *
+ * @param array<string, string|null> $extra report-specific filters
+ */
+ public static function report(
+ string $report,
+ string $periodSelection,
+ ?string $division = null,
+ ?string $unit = null,
+ array $extra = []
+ ): string {
+ $parameters = array_filter(
+ array_merge(
+ [
+ 'report' => $report,
+ 'academic_period' => $periodSelection,
+ 'division' => self::scalar($division),
+ 'unit' => self::scalar($unit),
+ /*
+ * Carried forward from the current Analytics request so
+ * "View source records" always reconciles with the
+ * borrower currently selected there. Reports validates
+ * every filter against the destination report's own
+ * catalogue entry, so this is silently ignored by a
+ * report (inventory, utilization) that does not declare
+ * a borrower filter.
+ */
+ 'borrower' => self::scalar((string) request()->query('borrower', '')),
+ /* Open the exact source dataset immediately; no second Preview click. */
+ 'generated' => 1,
+ ],
+ $extra
+ ),
+ static fn ($value): bool => $value !== null && $value !== '' && $value !== 'all'
+ );
 
-        return route('reports.index', $parameters);
-    }
+ return route('reports.index', $parameters);
+ }
 
-    /** Borrowing Activity, the record list behind a request count. */
-    public static function borrowing(
-        string $periodSelection,
-        ?string $division = null,
-        ?string $unit = null,
-        array $extra = []
-    ): string {
-        return self::report('borrowing', $periodSelection, $division, $unit, $extra);
-    }
+ /** Borrowing Activity, the record list behind a request count. */
+ public static function borrowing(
+ string $periodSelection,
+ ?string $division = null,
+ ?string $unit = null,
+ array $extra = []
+ ): string {
+ return self::report('borrowing', $periodSelection, $division, $unit, $extra);
+ }
 
-    /** Release & Custody, the record list behind an on-custody figure. */
-    public static function custody(
-        string $periodSelection,
-        ?string $division = null,
-        ?string $unit = null,
-        array $extra = []
-    ): string {
-        return self::report('custody', $periodSelection, $division, $unit, $extra);
-    }
+ /** Release & Custody, the record list behind an on-custody figure. */
+ public static function custody(
+ string $periodSelection,
+ ?string $division = null,
+ ?string $unit = null,
+ array $extra = []
+ ): string {
+ return self::report('custody', $periodSelection, $division, $unit, $extra);
+ }
 
-    /** Return & Accountability, the record list behind a return figure. */
-    public static function returns(
-        string $periodSelection,
-        ?string $division = null,
-        ?string $unit = null,
-        array $extra = []
-    ): string {
-        return self::report('returns', $periodSelection, $division, $unit, $extra);
-    }
+ /** Return & Accountability, the record list behind a return figure. */
+ public static function returns(
+ string $periodSelection,
+ ?string $division = null,
+ ?string $unit = null,
+ array $extra = []
+ ): string {
+ return self::report('returns', $periodSelection, $division, $unit, $extra);
+ }
 
-    /**
-     * Inventory Status. Division and unit are deliberately not passed: an
-     * inventory snapshot is not owned by a borrowing unit.
-     */
-    public static function inventory(string $periodSelection, array $extra = []): string
-    {
-        return self::report('inventory', $periodSelection, null, null, $extra);
-    }
+ /**
+ * Inventory Status. Division and unit are deliberately not passed: an
+ * inventory snapshot is not owned by a borrowing unit.
+ */
+ public static function inventory(string $periodSelection, array $extra = []): string
+ {
+ return self::report('inventory', $periodSelection, null, null, $extra);
+ }
 
-    /** Equipment Utilization, the releases behind a usage figure. */
-    public static function utilization(
-        string $periodSelection,
-        ?string $division = null,
-        ?string $unit = null,
-        array $extra = []
-    ): string {
-        return self::report('utilization', $periodSelection, $division, $unit, $extra);
-    }
+ /** Equipment Utilization, the releases behind a usage figure. */
+ public static function utilization(
+ string $periodSelection,
+ ?string $division = null,
+ ?string $unit = null,
+ array $extra = []
+ ): string {
+ return self::report('utilization', $periodSelection, $division, $unit, $extra);
+ }
 
-    private static function scalar(?string $value): ?string
-    {
-        return $value === null || $value === '' || $value === 'all' ? null : $value;
-    }
+ private static function scalar(?string $value): ?string
+ {
+ return $value === null || $value === '' || $value === 'all' ? null : $value;
+ }
 }

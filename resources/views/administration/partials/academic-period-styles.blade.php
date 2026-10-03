@@ -1,4 +1,4 @@
-<style>
+﻿<style>
 .academic-period-config { --period-blue: #0f62d6; width: 100%; min-width: 0; font-size: 13px; }
 .academic-period-config [hidden] { display: none !important; }
 
@@ -73,5 +73,265 @@ html[data-theme="dark"] .academic-period-config .button.academic-period-save:hov
     .periods-toolbar { width: 100%; }
     .academic-period-config .periods-search { flex: 1 1 200px; }
     .academic-period-config .periods-search input { min-width: 0; }
+}
+
+/* REPORTS-ALIGNED ACADEMIC PERIOD EMPTY STATE */
+.academic-period-config .current-period-card.is-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0;
+
+    min-height: 275px;
+    padding: 38px 24px;
+
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-elevated);
+    box-shadow: none;
+
+    text-align: center;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-main {
+    display: block;
+    min-width: 0;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-empty-icon {
+    display: grid;
+    place-items: center;
+
+    width: 70px;
+    height: 70px;
+    flex: 0 0 70px;
+
+    margin: 0 0 5px;
+
+    border-radius: 0;
+    background: transparent;
+
+    color: color-mix(
+        in srgb,
+        var(--primary-action) 48%,
+        var(--text-muted)
+    );
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-empty-icon svg {
+    width: 62px;
+    height: 62px;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-value {
+    margin: 4px 0 5px;
+
+    color: var(--heading);
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-empty {
+    margin: 0;
+
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+@media (max-width: 620px) {
+    .academic-period-config .current-period-card.is-empty {
+        min-height: 230px;
+        padding: 30px 18px;
+    }
+
+    .academic-period-config
+    .current-period-card.is-empty
+    .current-period-empty-icon {
+        width: 60px;
+        height: 60px;
+        flex-basis: 60px;
+    }
+
+    .academic-period-config
+    .current-period-card.is-empty
+    .current-period-empty-icon svg {
+        width: 56px;
+        height: 56px;
+    }
+}
+
+/* FORCE ACADEMIC PERIOD EMPTY STATE CENTER */
+.academic-period-config .current-period-card.is-empty {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-main {
+    width: 100%;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center !important;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-empty-icon {
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-value,
+.academic-period-config
+.current-period-card.is-empty
+.current-period-empty {
+    width: 100%;
+    text-align: center !important;
+}
+
+
+/* COMPACT CENTERED ACADEMIC PERIOD EMPTY STATE */
+.academic-period-config .current-period-card.is-empty {
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 0 !important;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-empty-icon {
+    margin: 0 0 8px !important;
+    padding: 0 !important;
+    line-height: 0;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-main {
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-value {
+    margin: 0 0 6px !important;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-empty {
+    margin: 0 !important;
+}
+
+/* FINAL COMPACT ACADEMIC PERIOD EMPTY CONTENT */
+.academic-period-config
+.current-period-card.is-empty
+.current-period-empty-content {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    row-gap: 6px;
+
+    width: 100%;
+    margin: 0;
+    padding: 0;
+
+    text-align: center;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-empty-content
+.current-period-empty-icon {
+    width: 62px !important;
+    height: 62px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    flex: none !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    display: grid !important;
+    place-items: center !important;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-empty-content
+.current-period-empty-icon svg {
+    display: block;
+    width: 62px;
+    height: 62px;
+    margin: 0;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-empty-content
+.current-period-main {
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    display: grid !important;
+    justify-items: center;
+    gap: 5px !important;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-empty-content
+.current-period-value {
+    margin: 0 !important;
+}
+
+.academic-period-config
+.current-period-card.is-empty
+.current-period-empty-content
+.current-period-empty {
+    margin: 0 !important;
+}
+
+/* ALIGN ACADEMIC PERIOD ACTION COLUMN */
+.academic-period-config .periods-table th:last-child,
+.academic-period-config .periods-table td:last-child {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.academic-period-config .period-actions {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.academic-period-config .periods-table td:last-child .button {
+    margin-left: auto;
+    margin-right: auto;
 }
 </style>

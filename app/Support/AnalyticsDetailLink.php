@@ -15,46 +15,46 @@ namespace App\Support;
  */
 final class AnalyticsDetailLink
 {
-    /**
-     * @param  array<string, string|int|null>  $parameters  detail-specific keys
-     */
-    public static function to(
-        string $detail,
-        string $section,
-        string $periodSelection,
-        ?string $division = null,
-        ?string $unit = null,
-        array $parameters = []
-    ): string {
-        $query = array_filter(
-            array_merge(
-                [
-                    'section' => $section,
-                    'academic_period' => $periodSelection,
-                    'group' => self::scalar($division),
-                    'unit' => self::scalar($unit),
-                    /*
-                     * The global Borrower filter is not one of this link's
-                     * explicit parameters: every caller already reflects the
-                     * currently selected division/unit for its own row, and
-                     * borrower is never a per-row dimension the way those two
-                     * are. It is carried forward from the current request
-                     * instead, so opening a card or bucket detail can never
-                     * silently drop the reader's borrower selection.
-                     */
-                    'borrower' => self::scalar((string) request()->query('borrower', '')),
-                    'detail' => $detail,
-                ],
-                $parameters
-            ),
-            static fn ($value): bool => $value !== null && $value !== '' && $value !== 'all'
-        );
+ /**
+ * @param array<string, string|int|null> $parameters detail-specific keys
+ */
+ public static function to(
+ string $detail,
+ string $section,
+ string $periodSelection,
+ ?string $division = null,
+ ?string $unit = null,
+ array $parameters = []
+ ): string {
+ $query = array_filter(
+ array_merge(
+ [
+ 'section' => $section,
+ 'academic_period' => $periodSelection,
+ 'group' => self::scalar($division),
+ 'unit' => self::scalar($unit),
+ /*
+ * The global Borrower filter is not one of this link's
+ * explicit parameters: every caller already reflects the
+ * currently selected division/unit for its own row, and
+ * borrower is never a per-row dimension the way those two
+ * are. It is carried forward from the current request
+ * instead, so opening a card or bucket detail can never
+ * silently drop the reader's borrower selection.
+ */
+ 'borrower' => self::scalar((string) request()->query('borrower', '')),
+ 'detail' => $detail,
+ ],
+ $parameters
+ ),
+ static fn ($value): bool => $value !== null && $value !== '' && $value !== 'all'
+ );
 
-        return route('reports.analytics-records', $query);
-    }
+ return route('reports.analytics-records', $query);
+ }
 
-    private static function scalar(?string $value): ?string
-    {
-        return $value === null || $value === '' || $value === 'all' ? null : $value;
-    }
+ private static function scalar(?string $value): ?string
+ {
+ return $value === null || $value === '' || $value === 'all' ? null : $value;
+ }
 }

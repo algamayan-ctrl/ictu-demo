@@ -440,7 +440,7 @@
                         <p class="report-filters-title" id="report-filters-heading">
                             <x-icon name="settings" size="15" />
                             <span>Filters</span>
-                            <span class="report-filter-optional">Optional</span>
+                            
                         </p>
                         <p class="report-filters-help">Narrow the report when needed. Leave a filter blank to include all matching records.</p>
                     </div>
@@ -2513,12 +2513,7 @@ document.addEventListener('click', (event) => {
                 Filters
             </span>
 
-            <span
-                class="report-filter-toggle-badge"
-                data-report-filter-badge
-            >
-                Optional
-            </span>
+            <span class="report-filter-toggle-badge" data-report-filter-badge hidden></span>
 
             <span
                 class="report-filter-toggle-chevron"
@@ -2682,6 +2677,7 @@ document.addEventListener('click', (event) => {
                     }`;
 
                 badge.classList.add('is-active');
+                badge.hidden = false;
 
                 clear.hidden = false;
 
@@ -2695,8 +2691,9 @@ document.addEventListener('click', (event) => {
             }
 
 
-            badge.textContent = 'Optional';
+            badge.textContent = '';
             badge.classList.remove('is-active');
+            badge.hidden = true;
 
             clear.hidden = true;
 

@@ -866,14 +866,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     @endforeach
 </section>
 
-<nav id="accountability-workspace" class="accountability-staff-tabs {{ $isHead ? 'is-head' : '' }}" aria-label="Accountability workspace sections">
-    <a class="accountability-staff-tab {{ $activeStaffTab === 'work' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">{{ $isHead ? 'Needs My Decision' : 'Needs My Action' }}</a>
-    <a class="accountability-staff-tab {{ $activeStaffTab === 'all' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'all']) }}#accountability-workspace">All Active Cases</a>
-    @if($isHead)
-        <a class="accountability-staff-tab {{ $activeStaffTab === 'sanctions' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'sanctions']) }}#accountability-workspace">Sanctions</a>
-    @endif
-    <a class="accountability-staff-tab {{ $activeStaffTab === 'history' ? 'is-active' : '' }}" href="{{ route('accountability.index', ['queue' => 'history']) }}#accountability-workspace">History</a>
-</nav>
+<span id="accountability-workspace" class="accountability-workspace-anchor" aria-hidden="true"></span>
 
 @if($activeStaffTab === 'work')
     @php
@@ -2560,6 +2553,34 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                     : 'There are no active borrower accountability cases to display.'"
             />
         @else
+            {{-- ALL ACTIVE CASES FILTERS START --}}
+            <div class="accountability-browser-toolbar" aria-label="Search and filter borrowers with active accountability">
+                <label class="accountability-browser-search">
+                    <span>Search</span>
+                    <span class="search-input-shell">
+                        <span class="search-input-icon" aria-hidden="true">
+                            <x-icon name="search" size="16" />
+                        </span>
+                        <input
+                            id="accountability-borrower-search"
+                            type="search"
+                            autocomplete="off"
+                            placeholder="Search borrower or current attention"
+                        >
+                    </span>
+                </label>
+
+                <label class="accountability-browser-filter">
+                    <span>Borrowing Status</span>
+                    <select id="accountability-borrower-status">
+                        <option value="all">All statuses</option>
+                        <option value="restricted">Restricted</option>
+                        <option value="clear">Clear</option>
+                    </select>
+                </label>
+            </div>
+            {{-- ALL ACTIVE CASES FILTERS END --}}
+
             <div class="table-wrap accountability-cases-table">
                 <table>
                     <thead>
@@ -2571,9 +2592,13 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                             <th scope="col"><span class="sr-only">Actions</span></th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="accountability-borrower-body">
                         @foreach($borrowerRollups as $row)
-                            <tr class="accountability-borrower-row">
+                            <tr
+                                class="accountability-borrower-row"
+                                data-borrower-row
+                                data-borrowing-status="{{ $row['restricted'] ? 'restricted' : 'clear' }}"
+                            >
                                 <td><span class="accountability-case-borrower">{{ $row['borrower']?->full_name ?: '—' }}</span></td>
                                 <td class="is-numeric">{{ $selectedMetric === 'balance' ? 'PHP '.number_format($row['outstanding_amount'], 2) : $row['case_count'] }}</td>
                                 <td>
@@ -2598,6 +2623,37 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                     </tbody>
                 </table>
             </div>
+
+            <p
+                id="accountability-borrower-none"
+                class="accountability-cases-none"
+                hidden
+            >
+                No borrowers match the current search or filter.
+            </p>
+
+            <div
+                class="accountability-table-browser-footer"
+                id="accountability-borrower-pager"
+            >
+                <label class="accountability-page-size-control">
+                    <span>Show</span>
+
+                    <select id="accountability-borrower-page-size">
+                        <option value="10" selected>10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+
+                    <span>per page</span>
+                </label>
+
+                <nav
+                    class="accountability-pagination"
+                    id="accountability-borrower-pages"
+                    aria-label="All active cases pages"
+                ></nav>
+            </div>
         @endif
     </article>
 @endif
@@ -2616,6 +2672,724 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     @endif
     @include('accountability.partials.cases-interactions')
 @endunless
+{{-- ACCOUNTABILITY TABLE BROWSER + PAGINATION START --}}
+
+<style>
+/* ACCOUNTABILITY FILTER ALIGNMENT START */
+
+/*
+ * Compact filter layout.
+ * Search stays wider while dropdown filters remain beside it.
+ */
+.accountability-browser-toolbar:has(#accountability-borrower-search) {
+    display: grid !important;
+    grid-template-columns:
+        minmax(360px, 520px)
+        minmax(220px, 260px) !important;
+    justify-content: start !important;
+    align-items: end !important;
+    gap: 12px !important;
+}
+
+.accountability-browser-toolbar:has(#resolved-history-search) {
+    display: grid !important;
+    grid-template-columns:
+        minmax(360px, 520px)
+        minmax(180px, 220px)
+        minmax(180px, 220px) !important;
+    justify-content: start !important;
+    align-items: end !important;
+    gap: 12px !important;
+}
+
+.accountability-sanctions-toolbar {
+    display: grid !important;
+    grid-template-columns:
+        minmax(360px, 520px)
+        minmax(220px, 260px) !important;
+    justify-content: start !important;
+    align-items: end !important;
+    gap: 12px !important;
+}
+
+/* Remove inherited width limits inside these compact toolbars. */
+.accountability-browser-toolbar:has(#accountability-borrower-search)
+:is(.accountability-browser-search, .accountability-browser-filter),
+.accountability-browser-toolbar:has(#resolved-history-search)
+:is(.accountability-browser-search, .accountability-browser-filter),
+.accountability-sanctions-toolbar
+:is(.accountability-browser-search, .accountability-browser-filter) {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+}
+
+.accountability-browser-toolbar:has(#accountability-borrower-search)
+.search-input-shell,
+.accountability-browser-toolbar:has(#resolved-history-search)
+.search-input-shell,
+.accountability-sanctions-toolbar
+.search-input-shell {
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+}
+
+.accountability-browser-toolbar:has(#accountability-borrower-search)
+:is(input, select),
+.accountability-browser-toolbar:has(#resolved-history-search)
+:is(input, select),
+.accountability-sanctions-toolbar
+:is(input, select) {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    box-sizing: border-box !important;
+}
+
+/* Uniform label spacing. */
+.accountability-browser-toolbar:has(#accountability-borrower-search)
+:is(.accountability-browser-search, .accountability-browser-filter) > span:first-child,
+.accountability-browser-toolbar:has(#resolved-history-search)
+:is(.accountability-browser-search, .accountability-browser-filter) > span:first-child,
+.accountability-sanctions-toolbar
+:is(.accountability-browser-search, .accountability-browser-filter) > span:first-child {
+    display: block;
+    min-height: 17px;
+    margin-bottom: 6px;
+}
+
+/* Tablet */
+@media (max-width: 980px) {
+    .accountability-browser-toolbar:has(#accountability-borrower-search),
+    .accountability-sanctions-toolbar {
+        grid-template-columns:
+            minmax(280px, 1fr)
+            minmax(190px, 240px) !important;
+    }
+
+    .accountability-browser-toolbar:has(#resolved-history-search) {
+        grid-template-columns:
+            minmax(280px, 1fr)
+            repeat(2, minmax(160px, 210px)) !important;
+    }
+}
+
+/* Mobile */
+@media (max-width: 760px) {
+    .accountability-browser-toolbar:has(#accountability-borrower-search),
+    .accountability-browser-toolbar:has(#resolved-history-search),
+    .accountability-sanctions-toolbar {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
+
+/* ACCOUNTABILITY FILTER ALIGNMENT END */
+</style>
+<style>
+.accountability-table-browser-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 16px 18px;
+    border-top: 1px solid var(--border);
+    background: var(--surface-subtle);
+}
+
+.accountability-page-size-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    font-weight: 700;
+}
+
+.accountability-page-size-control select {
+    width: 72px;
+    min-width: 72px;
+    height: 42px;
+    padding: 0 28px 0 12px;
+    color: var(--heading);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 9px;
+    font: inherit;
+    cursor: pointer;
+}
+
+.accountability-page-size-control select:focus {
+    outline: 2px solid color-mix(in srgb, var(--interactive) 25%, transparent);
+    outline-offset: 1px;
+    border-color: var(--interactive);
+}
+
+.accountability-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+}
+
+.accountability-page-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 42px;
+    padding: 0 11px;
+    color: var(--heading);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 750;
+    cursor: pointer;
+    transition:
+        background-color .16s ease,
+        color .16s ease,
+        border-color .16s ease,
+        box-shadow .16s ease;
+}
+
+.accountability-page-button:hover:not(:disabled),
+.accountability-page-button:focus-visible:not(:disabled) {
+    color: var(--interactive);
+    border-color: var(--interactive);
+    background: var(--surface-hover);
+    box-shadow: var(--shadow-sm);
+}
+
+.accountability-page-button.is-active {
+    color: var(--interactive);
+    border-color: var(--interactive);
+    box-shadow: inset 0 0 0 1px var(--interactive);
+}
+
+.accountability-page-button:disabled {
+    color: var(--text-muted);
+    background: var(--surface-subtle);
+    cursor: default;
+    opacity: .65;
+}
+
+.accountability-page-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 42px;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.accountability-cases-none {
+    margin: 0;
+    padding: 20px;
+    color: var(--text-muted);
+    text-align: center;
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 720px) {
+    .accountability-table-browser-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .accountability-pagination {
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 2px;
+    }
+}
+</style>
+
+<script>
+(() => {
+    if (window.__accountabilityTableBrowserInstalled) return;
+    window.__accountabilityTableBrowserInstalled = true;
+
+    function buildPager(container, currentPage, totalPages, onChange) {
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        const makeButton = (label, page, options = {}) => {
+            const button = document.createElement('button');
+
+            button.type = 'button';
+            button.className = 'accountability-page-button';
+            button.textContent = label;
+
+            if (options.active) {
+                button.classList.add('is-active');
+                button.setAttribute('aria-current', 'page');
+            }
+
+            if (options.label) {
+                button.setAttribute('aria-label', options.label);
+            }
+
+            button.disabled = Boolean(options.disabled);
+
+            button.addEventListener('click', () => {
+                onChange(page);
+            });
+
+            return button;
+        };
+
+        container.append(
+            makeButton('‹', Math.max(1, currentPage - 1), {
+                disabled: currentPage <= 1,
+                label: 'Previous page',
+            })
+        );
+
+        const pageItems = [];
+
+        if (totalPages <= 5) {
+            for (let page = 1; page <= totalPages; page++) {
+                pageItems.push(page);
+            }
+        } else {
+            pageItems.push(1);
+
+            const start = Math.max(2, currentPage - 1);
+            const end = Math.min(totalPages - 1, currentPage + 1);
+
+            if (start > 2) {
+                pageItems.push('ellipsis-left');
+            }
+
+            for (let page = start; page <= end; page++) {
+                pageItems.push(page);
+            }
+
+            if (end < totalPages - 1) {
+                pageItems.push('ellipsis-right');
+            }
+
+            pageItems.push(totalPages);
+        }
+
+        pageItems.forEach(item => {
+            if (typeof item === 'string') {
+                const ellipsis = document.createElement('span');
+
+                ellipsis.className = 'accountability-page-ellipsis';
+                ellipsis.textContent = '…';
+
+                container.append(ellipsis);
+                return;
+            }
+
+            container.append(
+                makeButton(String(item), item, {
+                    active: item === currentPage,
+                })
+            );
+        });
+
+        container.append(
+            makeButton('›', Math.min(totalPages, currentPage + 1), {
+                disabled: currentPage >= totalPages,
+                label: 'Next page',
+            })
+        );
+    }
+
+
+    /* ======================================================
+       ALL ACTIVE CASES
+       ====================================================== */
+
+    const borrowerBody =
+        document.getElementById('accountability-borrower-body');
+
+    if (borrowerBody) {
+        const rows = [
+            ...borrowerBody.querySelectorAll('[data-borrower-row]')
+        ];
+
+        const search =
+            document.getElementById('accountability-borrower-search');
+
+        const status =
+            document.getElementById('accountability-borrower-status');
+
+        const pageSize =
+            document.getElementById('accountability-borrower-page-size');
+
+        const pages =
+            document.getElementById('accountability-borrower-pages');
+
+        const count =
+            document.getElementById('accountability-borrower-count');
+
+        const empty =
+            document.getElementById('accountability-borrower-none');
+
+        let currentPage = 1;
+
+        const renderBorrowers = () => {
+            const query =
+                search?.value.trim().toLocaleLowerCase() || '';
+
+            const selectedStatus =
+                status?.value || 'all';
+
+            const size =
+                Number(pageSize?.value || 10);
+
+            const matched = rows.filter(row => {
+                const matchesSearch =
+                    !query ||
+                    row.textContent
+                        .toLocaleLowerCase()
+                        .includes(query);
+
+                const matchesStatus =
+                    selectedStatus === 'all' ||
+                    row.dataset.borrowingStatus === selectedStatus;
+
+                return matchesSearch && matchesStatus;
+            });
+
+            const totalPages =
+                Math.max(1, Math.ceil(matched.length / size));
+
+            currentPage =
+                Math.min(currentPage, totalPages);
+
+            const start =
+                (currentPage - 1) * size;
+
+            const visible =
+                new Set(matched.slice(start, start + size));
+
+            rows.forEach(row => {
+                row.hidden = !visible.has(row);
+            });
+
+            if (count) {
+                count.textContent = String(matched.length);
+            }
+
+            if (empty) {
+                empty.hidden = matched.length > 0;
+            }
+
+            buildPager(
+                pages,
+                currentPage,
+                totalPages,
+                page => {
+                    currentPage = page;
+                    renderBorrowers();
+                }
+            );
+        };
+
+        search?.addEventListener('input', () => {
+            currentPage = 1;
+            renderBorrowers();
+        });
+
+        status?.addEventListener('change', () => {
+            currentPage = 1;
+            renderBorrowers();
+        });
+
+        pageSize?.addEventListener('change', () => {
+            currentPage = 1;
+            renderBorrowers();
+        });
+
+        renderBorrowers();
+    }
+
+
+    /* ======================================================
+       RESOLVED HISTORY
+       ====================================================== */
+
+    const history =
+        document.getElementById('resolved-history');
+
+    if (history) {
+        const rows = [
+            ...history.querySelectorAll('[data-resolved-history-row]')
+        ];
+
+        const search =
+            history.querySelector('#resolved-history-search');
+
+        const type =
+            history.querySelector('#resolved-history-case-type');
+
+        const outcome =
+            history.querySelector('#resolved-history-outcome');
+
+        const pageSize =
+            history.querySelector('#resolved-history-page-size');
+
+        const pages =
+            history.querySelector('#resolved-history-pages');
+
+        const count =
+            history.querySelector('#resolved-history-count');
+
+        const empty =
+            history.querySelector('#resolved-history-none');
+
+        let currentPage = 1;
+
+        const renderHistory = () => {
+            const query =
+                search?.value.trim().toLocaleLowerCase() || '';
+
+            const selectedType =
+                type?.value || 'all';
+
+            const selectedOutcome =
+                outcome?.value || 'all';
+
+            const size =
+                Number(pageSize?.value || 10);
+
+            const matched = rows.filter(row => {
+                const matchesSearch =
+                    !query ||
+                    (row.dataset.search || '')
+                        .toLocaleLowerCase()
+                        .includes(query);
+
+                const matchesType =
+                    selectedType === 'all' ||
+                    row.dataset.caseType === selectedType;
+
+                const matchesOutcome =
+                    selectedOutcome === 'all' ||
+                    row.dataset.outcome === selectedOutcome;
+
+                return (
+                    matchesSearch &&
+                    matchesType &&
+                    matchesOutcome
+                );
+            });
+
+            const totalPages =
+                Math.max(1, Math.ceil(matched.length / size));
+
+            currentPage =
+                Math.min(currentPage, totalPages);
+
+            const start =
+                (currentPage - 1) * size;
+
+            const visible =
+                new Set(matched.slice(start, start + size));
+
+            rows.forEach(row => {
+                const isVisible =
+                    visible.has(row);
+
+                row.hidden =
+                    !isVisible;
+
+                const detail =
+                    row.nextElementSibling;
+
+                if (
+                    detail?.classList.contains(
+                        'accountability-case-detail-row'
+                    )
+                ) {
+                    detail.hidden =
+                        !isVisible ||
+                        detail.dataset.expanded !== 'true';
+                }
+            });
+
+            if (count) {
+                count.textContent = String(matched.length);
+            }
+
+            if (empty) {
+                empty.hidden = matched.length > 0;
+            }
+
+            buildPager(
+                pages,
+                currentPage,
+                totalPages,
+                page => {
+                    currentPage = page;
+                    renderHistory();
+                }
+            );
+        };
+
+        /*
+         * Existing History filtering executes first.
+         * queueMicrotask lets pagination apply after that filter
+         * without changing its existing behavior.
+         */
+        search?.addEventListener('input', () => {
+            currentPage = 1;
+            queueMicrotask(renderHistory);
+        });
+
+        type?.addEventListener('change', () => {
+            currentPage = 1;
+            queueMicrotask(renderHistory);
+        });
+
+        outcome?.addEventListener('change', () => {
+            currentPage = 1;
+            queueMicrotask(renderHistory);
+        });
+
+        pageSize?.addEventListener('change', () => {
+            currentPage = 1;
+            renderHistory();
+        });
+
+        queueMicrotask(renderHistory);
+    }
+})();
+</script>
+
+<script>
+/* SANCTIONS CLIENT FILTER START */
+(() => {
+    const search = document.querySelector('#accountability-sanction-search');
+    const status = document.querySelector('#accountability-sanction-status');
+    const tableWrap = document.querySelector('.accountability-sanctions-table');
+
+    if (!search || !status || !tableWrap) {
+        return;
+    }
+
+    const table = tableWrap.querySelector('table');
+
+    if (!table) {
+        return;
+    }
+
+    const rows = [
+        ...table.querySelectorAll('tbody .accountability-sanction-row')
+    ];
+
+    const headers = [
+        ...table.querySelectorAll('thead th')
+    ];
+
+    const statusColumn = headers.findIndex(
+        header => header.textContent.trim().toLocaleLowerCase() === 'status'
+    );
+
+    /*
+     * Build Status options from the statuses actually rendered
+     * by the system. No sanction status is invented here.
+     */
+    const renderedStatuses = new Map();
+
+    rows.forEach(row => {
+        if (statusColumn < 0 || !row.cells[statusColumn]) {
+            return;
+        }
+
+        const label = row.cells[statusColumn].textContent
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        if (!label) {
+            return;
+        }
+
+        renderedStatuses.set(
+            label.toLocaleLowerCase(),
+            label
+        );
+    });
+
+    [...renderedStatuses.entries()]
+        .sort((a, b) => a[1].localeCompare(b[1]))
+        .forEach(([value, label]) => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            status.appendChild(option);
+        });
+
+    const empty = document.createElement('div');
+    empty.className = 'accountability-filter-empty';
+    empty.textContent = 'No sanction records match the current search or filter.';
+    empty.hidden = true;
+
+    tableWrap.insertAdjacentElement('afterend', empty);
+
+    const applyFilters = () => {
+        const query = search.value
+            .trim()
+            .toLocaleLowerCase();
+
+        const selectedStatus = status.value;
+
+        let visible = 0;
+
+        rows.forEach(row => {
+            const searchableText = row.textContent
+                .replace(/\s+/g, ' ')
+                .trim()
+                .toLocaleLowerCase();
+
+            const rowStatus =
+                statusColumn >= 0 && row.cells[statusColumn]
+                    ? row.cells[statusColumn].textContent
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                        .toLocaleLowerCase()
+                    : '';
+
+            const matchesSearch =
+                !query || searchableText.includes(query);
+
+            const matchesStatus =
+                selectedStatus === 'all' ||
+                rowStatus === selectedStatus;
+
+            const matches =
+                matchesSearch && matchesStatus;
+
+            row.hidden = !matches;
+
+            if (matches) {
+                visible++;
+            }
+        });
+
+        empty.hidden = visible !== 0;
+    };
+
+    search.addEventListener('input', applyFilters);
+    status.addEventListener('change', applyFilters);
+
+    applyFilters();
+})();
+/* SANCTIONS CLIENT FILTER END */
+</script>
+{{-- ACCOUNTABILITY TABLE BROWSER + PAGINATION END --}}
 
 @if(($isHead && $activeStaffTab === 'sanctions') || ($workspace === 'BORROWER' && $sanctions->isNotEmpty()))
 @if($isBorrower)
@@ -2639,6 +3413,41 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         @if($sanctions->isEmpty())
             <x-empty-state icon="accountability" title="No sanction records." message="There are no sanction records to display." />
         @else
+
+        @unless($isBorrower)
+        {{-- SANCTIONS FILTERS START --}}
+        <div
+            class="accountability-browser-toolbar accountability-sanctions-toolbar"
+            aria-label="Search and filter sanction records"
+        >
+            <label class="accountability-browser-search">
+                <span>Search</span>
+
+                <span class="search-input-shell">
+                    <span class="search-input-icon" aria-hidden="true">
+                        <x-icon name="search" size="16" />
+                    </span>
+
+                    <input
+                        id="accountability-sanction-search"
+                        type="search"
+                        autocomplete="off"
+                        placeholder="Search borrower, offense, or action"
+                    >
+                </span>
+            </label>
+
+            <label class="accountability-browser-filter">
+                <span>Status</span>
+
+                <select id="accountability-sanction-status">
+                    <option value="all">All statuses</option>
+                </select>
+            </label>
+        </div>
+        {{-- SANCTIONS FILTERS END --}}
+        @endunless
+
         <div class="table-wrap accountability-cases-table accountability-sanctions-table">
             <table>
                 <thead>

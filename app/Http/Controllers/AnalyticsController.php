@@ -347,11 +347,6 @@ class AnalyticsController extends Controller
  $units = $analytics->unitRankings($from, $to, $division, $unit);
  $equipment = $analytics->equipment($from, $to, $division, $unit, 5, $borrower);
 
- /*
- * Granularity follows the selected period rather than a fixed
- * value, so a semester view is not bucketed as if it were a month.
- */
- $trend = $analytics->trend($from, $to, $division, $unit, $periodSelection, $borrower);
  $returns = $analytics->returns($from, $to, $division, $unit, $borrower);
 
  /*
@@ -363,17 +358,17 @@ class AnalyticsController extends Controller
  $peakSummary = $analytics->peakBorrowing($from, $to, $division, $unit);
  $inventorySummary = $analytics->inventory($inventory);
  $processingSummary = $analytics->processingPerformance($from, $to, $division, $unit, $borrower);
+            $forecastSummary = $forecasts->demand($analytics, $from, $to, $division, $unit);
 
  return [
  'overview' => $overview,
  'groups' => $groups,
  'units' => $units,
  'equipment' => $equipment,
- 'trend' => $trend,
  /*
  * Period-over-period context for the period-scoped readings
- * only. Currently Out, Currently Overdue and Low Availability
- * describe today and are never compared with a past window.
+ * only. On Custody, Overdue and current inventory stock describe today
+ * and are never compared with a past window.
  */
  'demandComparison' => $analytics->demandComparison($from, $to, $division, $unit, $borrower),
  'returnComparison' => $analytics->returnComparison($from, $to, $division, $unit, $borrower),
@@ -383,6 +378,8 @@ class AnalyticsController extends Controller
  'peakSummary' => $peakSummary,
  'inventorySummary' => $inventorySummary,
  'processingSummary' => $processingSummary,
+ 'overviewTrend' => $analytics->trend($from, $to, $division, $unit, $periodSelection, $borrower),
+                'forecastSummary' => $forecastSummary,
  ];
  }
 

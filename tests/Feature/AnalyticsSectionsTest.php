@@ -116,11 +116,11 @@ class AnalyticsSectionsTest extends TestCase
         $this->actingAs($this->spmuHead())
             ->get(route('analytics.index', ['section' => 'overview', 'academic_period' => 'month']))
             ->assertOk()
-            ->assertSee('Requests')
-            ->assertSee('Currently Out')
-            ->assertSee('Currently Overdue')
-            ->assertSee('Low Availability')
-            ->assertSee('Borrowing Demand Trend')
+            ->assertSee('Total Requests')
+            ->assertSee('On Custody')
+            ->assertSee('Overdue')
+            ->assertSee('Available Stock')
+            ->assertDontSee('Borrowing Demand Trend')
             ->assertSee('Priority Insights');
     }
 
@@ -189,7 +189,7 @@ class AnalyticsSectionsTest extends TestCase
         $this->request('ACADEMIC', 'College of Computer Studies', Carbon::create(2026, 4, 5, 10));
 
         $html = $this->actingAs($this->spmuHead())
-            ->get(route('analytics.index', ['section' => 'overview', 'academic_period' => 'month']))
+            ->get(route('analytics.index', ['section' => 'demand', 'academic_period' => 'month']))
             ->assertOk()
             ->getContent();
 

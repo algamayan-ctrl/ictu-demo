@@ -67,7 +67,9 @@ class ForecastService
  /* ------------------------------------------------------------------ */
 
  /**
- * The period immediately after the selected one, of the same length.
+ * The period immediately after the selected one. A complete calendar-month
+ * selection forecasts the next complete calendar month; other ranges retain
+ * the existing same-length behavior.
  *
  * Working in whole days keeps a calendar month forecasting a calendar
  * month rather than drifting by a few hours each time.
@@ -76,9 +78,23 @@ class ForecastService
  */
  public function forecastWindow(CarbonInterface $from, CarbonInterface $to): array
  {
+ $selectedFrom = Carbon::parse($from)->startOfDay();
+ $selectedTo = Carbon::parse($to)->endOfDay();
+
+ if (
+ $selectedFrom->year === $selectedTo->year
+ && $selectedFrom->month === $selectedTo->month
+ && $selectedFrom->isSameDay($selectedFrom->copy()->startOfMonth())
+ && $selectedTo->isSameDay($selectedTo->copy()->endOfMonth())
+ ) {
+ $start = $selectedFrom->copy()->addMonth()->startOfMonth();
+
+ return [$start, $start->copy()->endOfMonth()->endOfDay()];
+ }
+
  $days = $this->lengthInDays($from, $to);
 
- $start = Carbon::parse($to)->addDay()->startOfDay();
+ $start = $selectedTo->copy()->addDay()->startOfDay();
 
  return [$start, $start->copy()->addDays($days - 1)->endOfDay()];
  }
@@ -331,53 +347,226 @@ class ForecastService
  * @return array<string, mixed>
  */
  public function divisionDemand(
- AnalyticsService $analytics,
- CarbonInterface $from,
- CarbonInterface $to,
- ?string $division = null,
- ?string $unit = null
- ): array {
- $windows = $this->historyWindows($from, $to);
- $history = $this->groupedHistory($windows, 'request_versions.division_code', $division, $unit);
+        AnalyticsService $analytics,
+        CarbonInterface $from,
+        CarbonInterface $to,
+        ?string $division = null,
+        ?string $unit = null
+    ): array {
+        $windows = $this->historyWindows($from, $to);
+        $history = $this->groupedHistory(
+            $windows,
+            'request_versions.division_code',
+            $division,
+            $unit
+        );
 
- if (! $this->hasEnoughHistory($windows, $this->periodTotals($history, count($windows)))) {
- return ['available' => false, 'groups' => []];
- }
+        $masterCounts = array_map(
+            fn (array $window): int => $analytics
+                ->requestScope($window[0], $window[1], $division, $unit)
+                ->count('borrowing_requests.id'),
+            $windows
+        );
 
- $groups = [];
+        if (! $this->hasEnoughHistory($windows, $masterCounts)) {
+            return ['available' => false, 'groups' => []];
+        }
 
- foreach (OrganizationalStructure::divisions() as $code => $label) {
- if ($division !== null && $code !== $division) {
- continue;
- }
+        /*
+         * The overall demand forecast is the source of truth.
+         * Division forecasts are a breakdown of this total, so independently
+         * rounded division values must never create or lose a request.
+         */
+        $masterDemand = $this->demand(
+            $analytics,
+            $from,
+            $to,
+            $division,
+            $unit
+        );
 
- $counts = $this->seriesFor($history, $code, count($windows));
+        if (! ($masterDemand['available'] ?? false)) {
+            return ['available' => false, 'groups' => []];
+        }
 
- $groups[] = [
- 'code' => $code,
- 'label' => $label,
- 'short_label' => OrganizationalStructure::shortLabel($code),
- 'current' => $analytics->requestScope($from, $to, $code, $unit)
- ->count('borrowing_requests.id'),
- 'forecast' => $this->round($this->weightedAverage($counts)),
- ];
- }
+        $targetForecast = max(
+            0,
+            (int) ($masterDemand['forecast'] ?? 0)
+        );
 
- $leader = collect($groups)->sortByDesc('forecast')->first();
- $hasSignal = collect($groups)->sum('forecast') > 0;
+        $groups = [];
+        $knownCurrent = 0;
+        $knownRawForecast = 0.0;
 
- return [
- 'available' => true,
- 'groups' => $groups,
- 'leader' => $hasSignal ? $leader : null,
- 'summary' => $hasSignal && $leader
- ? $leader['label'].' units are expected to remain the primary borrowing group, with about '
- .$this->requestCount($leader['forecast']).'.'
- : 'No division is expected to record borrowing activity next period.',
- ];
- }
+        foreach (OrganizationalStructure::divisions() as $code => $label) {
+            if ($division !== null && $code !== $division) {
+                continue;
+            }
 
- /**
+            $counts = $this->seriesFor(
+                $history,
+                $code,
+                count($windows)
+            );
+
+            $current = $analytics
+                ->requestScope($from, $to, $code, $unit)
+                ->count('borrowing_requests.id');
+
+            $rawForecast = max(
+                0.0,
+                $this->weightedAverage($counts)
+            );
+
+            $knownCurrent += $current;
+            $knownRawForecast += $rawForecast;
+
+            $groups[] = [
+                'code' => $code,
+                'label' => $label,
+                'short_label' => OrganizationalStructure::shortLabel($code),
+                'current' => $current,
+                'forecast' => 0,
+                '_raw_forecast' => $rawForecast,
+            ];
+        }
+
+        /*
+         * Do not hide demand whose historical records have no recognized
+         * division classification. The master WMA includes all requests in
+         * scope, while the named groups above contain canonical divisions.
+         */
+        $masterRawForecast = max(
+            0.0,
+            $this->weightedAverage($masterCounts)
+        );
+
+        $unclassifiedRaw = max(
+            0.0,
+            $masterRawForecast - $knownRawForecast
+        );
+
+        $masterCurrent = (int) ($masterDemand['current'] ?? 0);
+        $unclassifiedCurrent = max(
+            0,
+            $masterCurrent - $knownCurrent
+        );
+
+        if (
+            $division === null
+            && (
+                $unclassifiedRaw > 0.000001
+                || $unclassifiedCurrent > 0
+            )
+        ) {
+            $groups[] = [
+                'code' => 'UNCLASSIFIED',
+                'label' => 'Unclassified',
+                'short_label' => 'Unclassified',
+                'current' => $unclassifiedCurrent,
+                'forecast' => 0,
+                '_raw_forecast' => $unclassifiedRaw,
+            ];
+        }
+
+        /*
+         * Largest-remainder apportionment.
+         *
+         * The raw WMA proportions are preserved, but the final whole-number
+         * division values must add up exactly to the authoritative overall
+         * forecast.
+         */
+        $rawTotal = array_sum(
+            array_column($groups, '_raw_forecast')
+        );
+
+        if ($groups !== [] && $targetForecast > 0 && $rawTotal > 0) {
+            $allocated = 0;
+            $remainders = [];
+
+            foreach ($groups as $index => &$group) {
+                $exactShare = $targetForecast
+                    * ((float) $group['_raw_forecast'] / $rawTotal);
+
+                $base = (int) floor($exactShare);
+
+                $group['forecast'] = $base;
+                $allocated += $base;
+
+                $remainders[] = [
+                    'index' => $index,
+                    'fraction' => $exactShare - $base,
+                ];
+            }
+
+            unset($group);
+
+            usort(
+                $remainders,
+                static function (array $a, array $b): int {
+                    $fractionCompare = $b['fraction'] <=> $a['fraction'];
+
+                    if ($fractionCompare !== 0) {
+                        return $fractionCompare;
+                    }
+
+                    return $a['index'] <=> $b['index'];
+                }
+            );
+
+            $remaining = max(
+                0,
+                $targetForecast - $allocated
+            );
+
+            for (
+                $position = 0;
+                $position < $remaining && $position < count($remainders);
+                $position++
+            ) {
+                $index = $remainders[$position]['index'];
+                $groups[$index]['forecast']++;
+            }
+        }
+
+        /*
+         * Internal working precision must not leak into the view or drilldown.
+         */
+        foreach ($groups as &$group) {
+            unset($group['_raw_forecast']);
+        }
+
+        unset($group);
+
+        $allocatedTotal = array_sum(
+            array_column($groups, 'forecast')
+        );
+
+        if ($allocatedTotal !== $targetForecast) {
+            throw new \LogicException(
+                'Division forecast allocation does not match the master forecast.'
+            );
+        }
+
+        $leader = collect($groups)
+            ->sortByDesc('forecast')
+            ->first();
+
+        $hasSignal = $allocatedTotal > 0;
+
+        return [
+            'available' => true,
+            'groups' => $groups,
+            'leader' => $hasSignal ? $leader : null,
+            'summary' => $hasSignal && $leader
+                ? $leader['label']
+                    .' units are expected to remain the primary borrowing group, with about '
+                    .$this->requestCount($leader['forecast']).'.'
+                : 'No division is expected to record borrowing activity next period.',
+        ];
+    }
+
+    /**
  * The unit expected to borrow most, within the active Analytics scope.
  *
  * @return array<string, mixed>
@@ -705,7 +894,9 @@ class ForecastService
  $windows = $this->historyWindows($from, $to);
  $days = $this->lengthInDays($from, $to);
  $sliceDays = $days > 10 ? 7 : 1;
- $slices = (int) ceil($days / $sliceDays);
+ [$forecastFrom, $forecastTo] = $this->forecastWindow($from, $to);
+ $forecastBuckets = $this->forecastBuckets($forecastFrom, $forecastTo, $sliceDays);
+ $slices = count($forecastBuckets);
 
  if ($slices < 2) {
  return ['available' => false];
@@ -714,16 +905,24 @@ class ForecastService
  $shape = array_fill(0, $slices, 0.0);
 
  foreach ($windows as [$start, $end]) {
- $rows = $analytics->requestScope($start, $end, $division, $unit)
- ->selectRaw('COALESCE(request_versions.submitted_at, borrowing_requests.created_at) AS filed_at')
- ->get();
+ foreach ($forecastBuckets as $index => $bucket) {
+ [$bucketStart, $bucketEnd] = $this->correspondingHistoryBucket(
+ $start,
+ $end,
+ $forecastFrom,
+ $bucket['start'],
+ $bucket['end']
+ );
 
- foreach ($rows as $row) {
- $offset = Carbon::parse($start)->startOfDay()
- ->diffInDays(Carbon::parse($row->filed_at)->startOfDay());
-
- $slice = min($slices - 1, max(0, (int) floor($offset / $sliceDays)));
- $shape[$slice]++;
+ /*
+ * The final partial forecast week is matched with the same number of
+ * days in every history window. This is deliberately a scoped query,
+ * rather than a label-only clip, so its projected count cannot include
+ * a day from the following forecast period.
+ */
+ $shape[$index] += $analytics
+ ->requestScope($bucketStart, $bucketEnd, $division, $unit)
+ ->count('borrowing_requests.id');
  }
  }
 
@@ -733,17 +932,19 @@ class ForecastService
  return ['available' => false];
  }
 
- [$forecastFrom] = $this->forecastWindow($from, $to);
+ $allocations = $this->apportionForecast($demand['forecast'], $shape);
  $buckets = [];
 
- foreach ($shape as $index => $observed) {
- $start = $forecastFrom->copy()->addDays($index * $sliceDays);
- $end = $start->copy()->addDays($sliceDays - 1);
+ foreach ($forecastBuckets as $index => $bucket) {
+ $start = $bucket['start'];
+ $end = $bucket['end'];
 
  $buckets[] = [
  'label' => $sliceDays === 7 ? 'Week '.($index + 1) : $start->format('D d M'),
  'range' => $start->format('d M').' – '.$end->format('d M'),
- 'expected' => $this->round($demand['forecast'] * ($observed / $shapeTotal)),
+ 'from' => $start->copy(),
+ 'to' => $end->copy(),
+ 'expected' => $allocations[$index],
  ];
  }
 
@@ -759,12 +960,120 @@ class ForecastService
 
  return [
  'available' => true,
+ 'window' => [$forecastFrom, $forecastTo],
+ 'master_forecast' => $demand['forecast'],
  'buckets' => $buckets,
  'busiest' => $peak > 0 ? $busiest : null,
  'summary' => $peak > 0 && $busiest
  ? 'Higher borrowing activity is expected during '.$busiest['label'].' ('.$busiest['range'].').'
  : 'Borrowing activity is expected to stay even across the next period.',
  ];
+ }
+
+ /**
+ * Allocate the already-rounded master forecast over the observed shape
+ * without changing the weighted moving-average result. Largest remainders
+ * receive the remaining units; ties remain stable by earlier bucket index.
+ *
+ * @param list<float|int> $shape
+ * @return list<int>
+ */
+ private function apportionForecast(int $masterForecast, array $shape): array
+ {
+ $masterForecast = max(0, $masterForecast);
+ $total = array_sum($shape);
+
+ if ($masterForecast === 0 || $total <= 0) {
+ return array_fill(0, count($shape), 0);
+ }
+
+ $allocations = [];
+
+ foreach ($shape as $index => $observed) {
+ $raw = $masterForecast * ((float) $observed / $total);
+ $floor = (int) floor($raw);
+
+ $allocations[] = [
+ 'index' => $index,
+ 'value' => max(0, $floor),
+ 'remainder' => $raw - $floor,
+ ];
+ }
+
+ $remaining = $masterForecast - array_sum(array_column($allocations, 'value'));
+
+ usort($allocations, static function (array $left, array $right): int {
+ $remainder = $right['remainder'] <=> $left['remainder'];
+
+ return $remainder !== 0 ? $remainder : $left['index'] <=> $right['index'];
+ });
+
+ for ($index = 0; $index < $remaining; $index++) {
+ $allocations[$index % count($allocations)]['value']++;
+ }
+
+ usort($allocations, static fn (array $left, array $right): int => $left['index'] <=> $right['index']);
+
+ return array_map(static fn (array $allocation): int => $allocation['value'], $allocations);
+ }
+
+ /**
+ * Sequential forecast slices, always contained in the inclusive forecast
+ * window. A final bucket shorter than the normal slice is intentional.
+ *
+ * @return list<array{start: Carbon, end: Carbon}>
+ */
+ private function forecastBuckets(
+ CarbonInterface $forecastFrom,
+ CarbonInterface $forecastTo,
+ int $sliceDays
+ ): array {
+ $end = Carbon::parse($forecastTo)->endOfDay();
+ $cursor = Carbon::parse($forecastFrom)->startOfDay();
+ $buckets = [];
+
+ while ($cursor->lte($end)) {
+ $bucketEnd = $cursor->copy()->addDays($sliceDays - 1)->endOfDay();
+
+ if ($bucketEnd->gt($end)) {
+ $bucketEnd = $end->copy();
+ }
+
+ $buckets[] = [
+ 'start' => $cursor->copy(),
+ 'end' => $bucketEnd,
+ ];
+
+ $cursor = $bucketEnd->copy()->addDay()->startOfDay();
+ }
+
+ return $buckets;
+ }
+
+ /**
+ * Translate a forecast bucket's day offsets to the matching history window.
+ * The history window can be longer when a complete calendar month forecasts
+ * a shorter next month, so its end remains defensively clipped.
+ *
+ * @return array{0: Carbon, 1: Carbon}
+ */
+ private function correspondingHistoryBucket(
+ CarbonInterface $historyFrom,
+ CarbonInterface $historyTo,
+ CarbonInterface $forecastFrom,
+ CarbonInterface $forecastBucketFrom,
+ CarbonInterface $forecastBucketTo
+ ): array {
+ $historyEnd = Carbon::parse($historyTo)->endOfDay();
+ $offset = Carbon::parse($forecastFrom)->startOfDay()
+ ->diffInDays(Carbon::parse($forecastBucketFrom)->startOfDay());
+ $days = Carbon::parse($forecastBucketFrom)->startOfDay()
+ ->diffInDays(Carbon::parse($forecastBucketTo)->startOfDay()) + 1;
+
+ $start = Carbon::parse($historyFrom)->startOfDay()->addDays($offset);
+ $end = $start->copy()->addDays($days - 1)->endOfDay();
+
+ return [$start, $end->gt($historyEnd) ? $historyEnd : $end];
  }
 
  /** Normal | Moderate | High */

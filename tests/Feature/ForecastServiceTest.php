@@ -199,12 +199,12 @@ class ForecastServiceTest extends TestCase
     /* Period arithmetic                                                   */
     /* ------------------------------------------------------------------ */
 
-    public function test_forecast_window_is_the_next_period_of_the_same_length(): void
+    public function test_complete_calendar_month_forecasts_the_next_calendar_month(): void
     {
         [$start, $end] = $this->forecast->forecastWindow($this->from, $this->to);
 
         $this->assertSame('2026-05-01', $start->toDateString());
-        $this->assertSame('2026-05-30', $end->toDateString());
+        $this->assertSame('2026-05-31', $end->toDateString());
     }
 
     public function test_history_windows_are_the_three_preceding_periods_most_recent_first(): void
@@ -229,6 +229,28 @@ class ForecastServiceTest extends TestCase
 
         $this->assertSame('2026-04-13', $start->toDateString());
         $this->assertSame('2026-04-19', $end->toDateString());
+    }
+
+    public function test_forecast_window_keeps_inclusive_day_boundaries_for_30_31_and_february_periods(): void
+    {
+        $cases = [
+            /* Complete months advance to the next calendar-month boundary. */
+            [Carbon::create(2026, 10, 1, 15), Carbon::create(2026, 10, 31, 8), '2026-11-01', '2026-11-30'],
+            [Carbon::create(2026, 4, 1, 15), Carbon::create(2026, 4, 30, 8), '2026-05-01', '2026-05-31'],
+            [Carbon::create(2026, 1, 1, 15), Carbon::create(2026, 1, 31, 8), '2026-02-01', '2026-02-28'],
+            [Carbon::create(2028, 1, 1, 15), Carbon::create(2028, 1, 31, 8), '2028-02-01', '2028-02-29'],
+            /* A non-month custom range retains the same-length behavior. */
+            [Carbon::create(2026, 10, 2, 15), Carbon::create(2026, 10, 31, 8), '2026-11-01', '2026-11-30'],
+        ];
+
+        foreach ($cases as [$from, $to, $expectedFrom, $expectedTo]) {
+            [$forecastFrom, $forecastTo] = $this->forecast->forecastWindow($from, $to);
+
+            $this->assertSame($expectedFrom, $forecastFrom->toDateString());
+            $this->assertTrue($forecastFrom->isStartOfDay());
+            $this->assertSame($expectedTo, $forecastTo->toDateString());
+            $this->assertTrue($forecastTo->isEndOfDay());
+        }
     }
 
     /* ------------------------------------------------------------------ */
@@ -664,6 +686,152 @@ class ForecastServiceTest extends TestCase
         $busy = $this->forecast->busyPeriod($this->analytics, $this->from, $this->to);
 
         $this->assertFalse($busy['available']);
+    }
+
+    public function test_busy_period_uses_clipped_weekly_boundaries_for_30_31_and_february_forecasts(): void
+    {
+        $cases = [
+            /* Nov 30, 2026 is a Monday: the final bucket ends mid-week. */
+            [Carbon::create(2026, 10, 1)->startOfDay(), Carbon::create(2026, 10, 31)->endOfDay(), '2026-11-01', '2026-11-30', 'Week 5', '29 Nov – 30 Nov'],
+            [Carbon::create(2026, 3, 1)->startOfDay(), Carbon::create(2026, 3, 31)->endOfDay(), '2026-04-01', '2026-04-30', 'Week 5', '29 Apr – 30 Apr'],
+            [Carbon::create(2026, 1, 4)->startOfDay(), Carbon::create(2026, 1, 31)->endOfDay(), '2026-02-01', '2026-02-28', 'Week 4', '22 Feb – 28 Feb'],
+        ];
+
+        foreach ($cases as [$from, $to, $expectedFrom, $expectedTo, $label, $range]) {
+            $busy = $this->busyPeriodWithActivityInTheFinalBucket($from, $to);
+            $lastBucket = $busy['buckets'][array_key_last($busy['buckets'])];
+
+            $this->assertTrue($busy['available']);
+            $this->assertSame($expectedFrom, $busy['window'][0]->toDateString());
+            $this->assertSame($expectedTo, $busy['window'][1]->toDateString());
+            $this->assertSame($label, $lastBucket['label']);
+            $this->assertSame($range, $lastBucket['range']);
+            $this->assertSame($expectedFrom, $busy['buckets'][0]['from']->toDateString());
+            $this->assertSame($expectedTo, $lastBucket['to']->toDateString());
+
+            foreach ($busy['buckets'] as $bucket) {
+                $this->assertTrue($bucket['from']->gte($busy['window'][0]));
+                $this->assertTrue($bucket['to']->lte($busy['window'][1]));
+            }
+        }
+    }
+
+    public function test_busy_period_detail_uses_the_same_clipped_bucket_as_the_projection(): void
+    {
+        $from = Carbon::create(2026, 10, 1)->startOfDay();
+        $to = Carbon::create(2026, 10, 31)->endOfDay();
+        $busy = $this->busyPeriodWithActivityInTheFinalBucket($from, $to);
+
+        $detail = app(\App\Services\AnalyticsCardDetailService::class)->resolve([
+            'from' => $from,
+            'to' => $to,
+            'division' => null,
+            'unit' => null,
+            'period' => 'month',
+            'borrower' => null,
+        ], 'forecast.busy');
+
+        $weekFive = $busy['buckets'][4];
+        $demand = $this->forecast->demand($this->analytics, $from, $to);
+        $stats = collect($detail['stats'])->pluck('value', 'label');
+
+        $this->assertSame('Week 5', $busy['busiest']['label']);
+        $this->assertSame('29 Nov – 30 Nov', $weekFive['range']);
+        $this->assertSame('01 Nov 2026 - 30 Nov 2026', $detail['display_period']);
+        $this->assertSame($demand['forecast'], $busy['master_forecast']);
+        $this->assertSame($demand['forecast'], array_sum(array_column($busy['buckets'], 'expected')));
+        $this->assertSame($demand['forecast'].' requests', $stats['Total Forecast Demand']);
+        $this->assertSame($weekFive['range'], $detail['series'][4]['range']);
+        $this->assertSame($weekFive['expected'], $detail['series'][4]['value']);
+        $this->assertStringContainsString('Week 5 (29 Nov – 30 Nov)', $detail['insight_text']);
+    }
+
+    /** @return array<string, mixed> */
+    private function busyPeriodWithActivityInTheFinalBucket(Carbon $from, Carbon $to): array
+    {
+        Carbon::setTestNow($to->copy()->addYear());
+
+        [$forecastFrom, $forecastTo] = $this->forecast->forecastWindow($from, $to);
+        $forecastDays = $forecastFrom->diffInDays($forecastTo->copy()->startOfDay()) + 1;
+        $finalBucketOffset = intdiv($forecastDays - 1, 7) * 7;
+        $finalBucketDays = $forecastDays - $finalBucketOffset;
+
+        foreach ($this->forecast->historyWindows($from, $to) as [$historyFrom]) {
+            for ($index = 0; $index < 3; $index++) {
+                $this->request(
+                    'ACADEMIC',
+                    $this->ccs(),
+                    $historyFrom->copy()
+                        ->addDays($finalBucketOffset + ($index % $finalBucketDays))
+                        ->addHours($index)
+                );
+            }
+        }
+
+        return $this->forecast->busyPeriod($this->analytics, $from, $to);
+    }
+
+    public function test_busy_period_apportionment_preserves_the_master_forecast_total(): void
+    {
+        $scenarios = [
+            /* Independent rounding would give 3 for a master forecast of 2. */
+            [Carbon::create(2026, 10, 2)->startOfDay(), Carbon::create(2026, 10, 31)->endOfDay(), [[1, 1, 0, 0, 0], [1, 0, 1, 0, 0], [0, 1, 1, 0, 0]], 3, [1, 1, 0]],
+            /* Independent rounding would give 2 for a master forecast of 3. */
+            [Carbon::create(2025, 10, 2)->startOfDay(), Carbon::create(2025, 10, 31)->endOfDay(), [[3, 0, 0, 0, 0], [3, 0, 0, 0, 0], [2, 1, 1, 0, 0]], 2, [3, 0, 0]],
+            /* An exact proportional split remains unchanged. */
+            [Carbon::create(2024, 10, 2)->startOfDay(), Carbon::create(2024, 10, 31)->endOfDay(), [[1, 1, 1, 0, 0], [1, 1, 1, 0, 0], [1, 1, 1, 0, 0]], 3, [1, 1, 1]],
+        ];
+
+        foreach ($scenarios as [$from, $to, $historyShape, $independentlyRoundedTotal, $expectedLeadingBuckets]) {
+            $busy = $this->busyPeriodForHistoryShape($from, $to, $historyShape);
+
+            $this->assertTrue($busy['available']);
+            $this->assertSame($independentlyRoundedTotal, $this->independentlyRoundedBucketTotal($busy['master_forecast'], $historyShape));
+            $this->assertSame($busy['master_forecast'], array_sum(array_column($busy['buckets'], 'expected')));
+            $this->assertSame($expectedLeadingBuckets, array_slice(array_column($busy['buckets'], 'expected'), 0, 3));
+        }
+    }
+
+    /**
+     * @param list<list<int>> $historyShape
+     * @return array<string, mixed>
+     */
+    private function busyPeriodForHistoryShape(Carbon $from, Carbon $to, array $historyShape): array
+    {
+        Carbon::setTestNow($to->copy()->addYear());
+
+        foreach ($this->forecast->historyWindows($from, $to) as $windowIndex => [$historyFrom]) {
+            foreach ($historyShape[$windowIndex] as $bucketIndex => $count) {
+                for ($requestIndex = 0; $requestIndex < $count; $requestIndex++) {
+                    $this->request(
+                        'ACADEMIC',
+                        $this->ccs(),
+                        $historyFrom->copy()->addDays($bucketIndex * 7)->addHours($requestIndex)
+                    );
+                }
+            }
+        }
+
+        return $this->forecast->busyPeriod($this->analytics, $from, $to);
+    }
+
+    /** @param list<list<int>> $historyShape */
+    private function independentlyRoundedBucketTotal(int $masterForecast, array $historyShape): int
+    {
+        $totals = array_fill(0, count($historyShape[0]), 0);
+
+        foreach ($historyShape as $shape) {
+            foreach ($shape as $index => $count) {
+                $totals[$index] += $count;
+            }
+        }
+
+        $total = array_sum($totals);
+
+        return array_sum(array_map(
+            fn (int $count): int => $this->forecast->round($masterForecast * ($count / $total)),
+            $totals
+        ));
     }
 
     /* ------------------------------------------------------------------ */

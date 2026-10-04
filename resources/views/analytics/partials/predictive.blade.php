@@ -35,20 +35,10 @@
  $ready = ($readiness['periods_met'] ?? false) && ($readiness['observations_met'] ?? false);
 
  $scheduledTotal = (int) ($scheduled['requests'] ?? 0);
-    /*
-     * Human-readable forecast window.
-     *
-     * ForecastService keeps the original range used by the system.
-     * The ending boundary is shown to users as the preceding calendar
-     * day so a November forecast reads 01 Nov - 30 Nov rather than
-     * 01 Nov - 01 Dec.
-     */
-    $forecastDisplayTo = $forecastTo->copy()->subDay();
-
     $windowLabel =
         $forecastFrom->format('d M')
         .' - '.
-        $forecastDisplayTo->format('d M Y');
+        $forecastTo->format('d M Y');
 
  $num = static fn (float $value): string => rtrim(rtrim(number_format($value, 2), '0'), '.');
 
@@ -712,7 +702,7 @@ $notes = array_slice($notes, 0, 4);
 
  <div class="analytics-card-body">
  @if($divisionRows->isEmpty() || $divisionMax <= 0)
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="users" size="19" /></span>
  {{ $hasDivision
  ? 'No division is expected to record borrowing activity next period.'
@@ -768,7 +758,7 @@ $notes = array_slice($notes, 0, 4);
 
  <div class="analytics-card-body">
  @if($unitRows->isEmpty() || $unitMax <= 0)
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="id-badge" size="19" /></span>
  {{ $hasUnit
  ? 'No unit is expected to record borrowing activity next period.'
@@ -827,7 +817,7 @@ $notes = array_slice($notes, 0, 4);
 
  <div class="analytics-card-body">
  @if(! $hasEquipment)
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="box" size="19" /></span>
  Equipment demand cannot be projected yet.
  </p>
@@ -900,7 +890,7 @@ $notes = array_slice($notes, 0, 4);
 
  <div class="analytics-card-body">
  @if(! $hasBusy)
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="calendar-clock" size="19" /></span>
  Insufficient history for busy-period forecasting.
  </p>
@@ -954,7 +944,7 @@ $notes = array_slice($notes, 0, 4);
 
  <div class="analytics-card-body is-flush">
  @if($notes === [])
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="lightbulb" size="19" /></span>
  No planning signals are available for this period yet.
  </p>

@@ -652,9 +652,9 @@ class AnalyticsRestructureTest extends TestCase
          * The primary click is a question about the figure, so it stays
          * inside Analytics carrying the same period and division.
          */
-        foreach (['requests', 'currently-out', 'follow-up', 'low-availability'] as $detail) {
+        foreach (['requests', 'currently-out', 'follow-up'] as $detail) {
             $response->assertSee(
-                e(route('analytics.index', [
+                e(route('reports.analytics-records', [
                     'section' => 'overview',
                     'academic_period' => 'month',
                     'group' => 'ACADEMIC',
@@ -663,6 +663,17 @@ class AnalyticsRestructureTest extends TestCase
                 false
             );
         }
+
+        $response->assertSee(
+            e(route('reports.analytics-records', [
+                'section' => 'overview',
+                'academic_period' => 'month',
+                'group' => 'ACADEMIC',
+                'detail' => 'card',
+                'for' => 'inventory.available',
+            ])),
+            false
+        );
 
         /* And no card jumps straight to the record module. */
         $response->assertDontSee(e(route('reports.index', [
@@ -770,7 +781,7 @@ class AnalyticsRestructureTest extends TestCase
         $response->assertOk();
         $response->assertSee('Current inventory status, as of today', false);
         /*
-         * The Overview "Low Availability" figure counts every borrowable item
+         * The Overview low-availability insight counts every borrowable item
          * at or below the availability threshold (AnalyticsService::
          * lowAvailability()), not only items at zero stock, so its source
          * link must carry the same LOW_AVAILABILITY status the Inventory

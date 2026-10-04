@@ -879,6 +879,111 @@
                 display: none !important;
             }
         }
+        /* SIDEBAR SECTION NAVIGATION START */
+        .sidebar-subnav {
+            display: grid;
+            gap: 2px;
+            margin: -2px 8px 4px 34px;
+            padding: 2px 0 2px 10px;
+            border-left: 1px solid #d9e6f3;
+        }
+
+        .sidebar-nav .sidebar-subnav a {
+            min-height: 32px !important;
+            padding: 6px 9px !important;
+            border-radius: 9px !important;
+            font-size: 11.5px !important;
+            font-weight: 650 !important;
+            line-height: 1.25;
+            color: #60758c !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            white-space: normal;
+        }
+
+        .sidebar-nav .sidebar-subnav a:hover {
+            color: #0d63d8 !important;
+            background: #edf5ff !important;
+            border-color: #cfe1f4 !important;
+            transform: none;
+        }
+
+        .sidebar-nav .sidebar-subnav a.active,
+        .sidebar-nav .sidebar-subnav a[aria-current="page"] {
+            color: #0d63d8 !important;
+            background: #e8f2ff !important;
+            border-color: #bfd8f4 !important;
+            box-shadow: inset 2px 0 #0d63d8 !important;
+            transform: none;
+        }
+
+        html[data-theme="dark"] .sidebar-subnav {
+            border-left-color: #294966;
+        }
+
+        html[data-theme="dark"] .sidebar-nav .sidebar-subnav a {
+            color: #b8cbe0 !important;
+            background: transparent !important;
+        }
+
+        html[data-theme="dark"] .sidebar-nav .sidebar-subnav a:hover {
+            color: #ffffff !important;
+            background: #102a45 !important;
+            border-color: #294966 !important;
+        }
+
+        html[data-theme="dark"] .sidebar-nav .sidebar-subnav a.active,
+        html[data-theme="dark"] .sidebar-nav .sidebar-subnav a[aria-current="page"] {
+            color: #ffffff !important;
+            background: #12385d !important;
+            border-color: #2c7bed !important;
+            box-shadow: inset 2px 0 #4c91f0 !important;
+        }
+
+        @media (min-width: 1050px) {
+            html[data-sidebar-state="collapsed"] .sidebar-subnav {
+                display: none !important;
+            }
+        }
+
+        /* SIDEBAR SECTION ACCORDION START */
+
+        .sidebar-subnav[hidden] {
+            display: none !important;
+        }
+
+        .sidebar-section-chevron {
+            width: 8px;
+            height: 8px;
+            flex: 0 0 8px;
+            margin-left: auto;
+            margin-right: 3px;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(45deg) translateY(-2px);
+            transform-origin: center;
+            transition: transform .18s ease;
+        }
+
+        .sidebar-nav a[data-sidebar-section-toggle][aria-expanded="true"]
+        .sidebar-section-chevron {
+            transform: rotate(225deg) translateY(-2px);
+        }
+
+        @media (min-width: 1050px) {
+            html[data-sidebar-state="collapsed"]
+            .sidebar-section-chevron {
+                display: none !important;
+            }
+
+            html[data-sidebar-state="collapsed"]
+            .sidebar-subnav {
+                display: none !important;
+            }
+        }
+
+        /* SIDEBAR SECTION ACCORDION END */
+        /* SIDEBAR SECTION NAVIGATION END */
     </style>
     {{-- UNIVERSAL COLLAPSIBLE SIDEBAR END --}}
 </head>
@@ -948,10 +1053,139 @@
             </div>
             <p class="sidebar-label">Main menu</p>
             <nav class="sidebar-nav" aria-label="Primary navigation">
+                @php
+                    /*
+                     * Preserve the current Analytics scope while moving
+                     * between its sidebar sections.
+                     */
+                    $analyticsSidebarCarry = request()->routeIs('analytics.*')
+                        ? request()->only([
+                            'academic_period',
+                            'division',
+                            'unit',
+                            'borrower',
+                        ])
+                        : [];
+
+                    $analyticsSidebarSection = (string) request('section', 'overview');
+
+                    $accountabilitySidebarQueue = (string) request('queue', 'work');
+                @endphp
+
                 @foreach($navigation as [$routeName, $routePattern, $label, $icon])
-                    <a class="interactive {{ request()->routeIs($routePattern) ? 'active' : '' }}" href="{{ route($routeName) }}" aria-label="{{ $label }}" data-sidebar-tooltip="{{ $label }}" @if(request()->routeIs($routePattern)) aria-current="page" @endif>
-                        <span class="nav-icon nav-icon-{{ $icon }}"><x-icon :name="$icon" /></span><span class="nav-label">{{ $label }}</span>
+                    @php
+                        $isNavActive = request()->routeIs($routePattern);
+
+                        $hasSidebarSections =
+                            $activeWorkspace === 'SPMU'
+                            && in_array($routeName, [
+                                'accountability.index',
+                                'analytics.index',
+                            ], true);
+
+                        $sidebarSectionId = $routeName === 'accountability.index'
+                            ? 'sidebar-section-accountability'
+                            : ($routeName === 'analytics.index'
+                                ? 'sidebar-section-analytics'
+                                : null);
+                    @endphp
+
+                    <a
+                        class="interactive {{ $isNavActive ? 'active' : '' }}"
+                        href="{{ route($routeName) }}"
+                        aria-label="{{ $label }}"
+                        data-sidebar-tooltip="{{ $label }}"
+                        @if($hasSidebarSections)
+                            data-sidebar-section-toggle
+                            aria-expanded="false"
+                            aria-controls="{{ $sidebarSectionId }}"
+                        @elseif($isNavActive)
+                            aria-current="page"
+                        @endif
+                    >
+                        <span class="nav-icon nav-icon-{{ $icon }}">
+                            <x-icon :name="$icon" />
+                        </span>
+
+                        <span class="nav-label">{{ $label }}</span>
+
+                        @if($hasSidebarSections)
+                            <span
+                                class="sidebar-section-chevron"
+                                aria-hidden="true"
+                            ></span>
+                        @endif
                     </a>
+
+                    @if($routeName === 'accountability.index' && $activeWorkspace === 'SPMU')
+                        <div
+                            class="sidebar-subnav"
+                            id="sidebar-section-accountability"
+                            aria-label="Accountability sections"
+                            hidden
+                        >
+                            <a
+                                class="interactive {{ request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'work' ? 'active' : '' }}"
+                                href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace"
+                                data-sidebar-tooltip="{{ $classification === App\Enums\AccessClassification::SpmuHead ? 'Needs My Decision' : 'Needs My Action' }}"
+                                @if(request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'work') aria-current="page" @endif
+                            >
+                                {{ $classification === App\Enums\AccessClassification::SpmuHead ? 'Needs My Decision' : 'Needs My Action' }}
+                            </a>
+
+                            <a
+                                class="interactive {{ request()->routeIs('accountability.borrower') || (request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'all') ? 'active' : '' }}"
+                                href="{{ route('accountability.index', ['queue' => 'all']) }}#accountability-workspace"
+                                data-sidebar-tooltip="All Active Cases"
+                                @if(request()->routeIs('accountability.borrower') || (request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'all')) aria-current="page" @endif
+                            >
+                                All Active Cases
+                            </a>
+
+                            @if($classification === App\Enums\AccessClassification::SpmuHead)
+                                <a
+                                    class="interactive {{ request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'sanctions' ? 'active' : '' }}"
+                                    href="{{ route('accountability.index', ['queue' => 'sanctions']) }}#accountability-workspace"
+                                    data-sidebar-tooltip="Sanctions"
+                                    @if(request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'sanctions') aria-current="page" @endif
+                                >
+                                    Sanctions
+                                </a>
+                            @endif
+
+                            <a
+                                class="interactive {{ request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'history' ? 'active' : '' }}"
+                                href="{{ route('accountability.index', ['queue' => 'history']) }}#accountability-workspace"
+                                data-sidebar-tooltip="History"
+                                @if(request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'history') aria-current="page" @endif
+                            >
+                                History
+                            </a>
+                        </div>
+
+                    @elseif($routeName === 'analytics.index' && $activeWorkspace === 'SPMU')
+
+                        <div
+                            class="sidebar-subnav"
+                            id="sidebar-section-analytics"
+                            aria-label="Analytics sections"
+                            hidden
+                        >
+                            @foreach(App\Http\Controllers\AnalyticsController::SECTIONS as $analyticsKey => $analyticsLabel)
+
+                                <a
+                                    class="interactive {{ request()->routeIs('analytics.*') && $analyticsSidebarSection === $analyticsKey ? 'active' : '' }}"
+                                    href="{{ route('analytics.index', array_merge($analyticsSidebarCarry, ['section' => $analyticsKey])) }}"
+                                    data-sidebar-tooltip="{{ $analyticsLabel }}"
+                                    @if(request()->routeIs('analytics.*') && $analyticsSidebarSection === $analyticsKey) aria-current="page" @endif
+                                >
+                                    {{ $analyticsLabel }}
+                                </a>
+
+                            @endforeach
+                        </div>
+
+                    @endif
                 @endforeach
             </nav>
 

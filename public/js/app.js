@@ -736,3 +736,137 @@
         });
     });
 })();
+
+/* SIDEBAR SECTION ACCORDION START */
+(() => {
+    const toggles = Array.from(
+        document.querySelectorAll('[data-sidebar-section-toggle]')
+    );
+
+    if (toggles.length === 0) {
+        return;
+    }
+
+    const panelFor = (toggle) => {
+        const id = toggle.getAttribute('aria-controls');
+
+        return id ? document.getElementById(id) : null;
+    };
+
+    const closeGroup = (toggle) => {
+        const panel = panelFor(toggle);
+
+        toggle.setAttribute('aria-expanded', 'false');
+
+        if (panel) {
+            panel.hidden = true;
+        }
+    };
+
+    const openGroup = (toggle) => {
+        const panel = panelFor(toggle);
+
+        if (!panel) {
+            return;
+        }
+
+        /*
+         * Accordion behavior:
+         * only one module submenu may be expanded at a time.
+         */
+        toggles.forEach((otherToggle) => {
+            if (otherToggle !== toggle) {
+                closeGroup(otherToggle);
+            }
+        });
+
+        panel.hidden = false;
+        toggle.setAttribute('aria-expanded', 'true');
+    };
+
+    /*
+     * KEEP ACTIVE SIDEBAR GROUP OPEN
+     *
+     * Start with every group closed, then reopen the group containing
+     * the currently active submenu item. This keeps Accountability or
+     * Analytics expanded after navigating between their child pages.
+     */
+    toggles.forEach(closeGroup);
+
+    const activeToggle = toggles.find((toggle) => {
+        const panel = panelFor(toggle);
+
+        return panel?.querySelector(
+            'a.active, a[aria-current="page"]'
+        );
+    });
+
+    if (activeToggle) {
+        openGroup(activeToggle);
+    }
+
+    document.addEventListener('click', (event) => {
+        const toggle = event.target.closest('[data-sidebar-section-toggle]');
+
+        if (!toggle) {
+            return;
+        }
+
+        /*
+         * The parent module becomes an accordion control.
+         * Its existing href remains as a no-JavaScript fallback.
+         */
+        event.preventDefault();
+        event.stopPropagation();
+
+        /*
+         * COLLAPSED SIDEBAR ACCORDION FIX
+         *
+         * A grouped module cannot display its submenu while the desktop
+         * sidebar is collapsed. Clicking its icon first expands the main
+         * sidebar, then opens that module's submenu.
+         */
+        const isDesktop = window.matchMedia('(min-width: 1050px)').matches;
+        const sidebarIsCollapsed =
+            document.documentElement.dataset.sidebarState === 'collapsed';
+
+        if (isDesktop && sidebarIsCollapsed) {
+            const desktopToggle = document.querySelector(
+                '[data-sidebar-desktop-toggle]'
+            );
+
+            if (desktopToggle) {
+                desktopToggle.click();
+            }
+
+            openGroup(toggle);
+            return;
+        }
+
+        const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+
+        if (isOpen) {
+            closeGroup(toggle);
+        } else {
+            openGroup(toggle);
+        }
+    }, true);
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') {
+            return;
+        }
+
+        const openToggle = toggles.find(
+            (toggle) => toggle.getAttribute('aria-expanded') === 'true'
+        );
+
+        if (!openToggle) {
+            return;
+        }
+
+        closeGroup(openToggle);
+        openToggle.focus();
+    });
+})();
+/* SIDEBAR SECTION ACCORDION END */

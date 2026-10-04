@@ -254,7 +254,7 @@
 @endif
 
 <div class="analytics-demand-main">
- <section
+ <section id="borrowing-demand-trend"
  data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.trend']) }}"
  class="analytics-card">
  <header class="analytics-card-head">
@@ -268,7 +268,7 @@
 
  @if($trendMode === 'empty')
  <div class="analytics-card-body">
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="analytics" size="19" /></span>
  No borrowing requests were filed during this period.
  </p>
@@ -304,7 +304,7 @@
  @endif
  </section>
 
- <section
+ <section id="demand-by-division"
  data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.division']) }}"
  class="analytics-card">
  <header class="analytics-card-head">
@@ -318,7 +318,7 @@
 
  @if($donutTotal === 0)
  <div class="analytics-card-body">
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="users" size="19" /></span>
  No borrowing activity by division during this period.
  </p>
@@ -413,14 +413,14 @@
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="clipboard-check" size="15" /></span>
  <div>
  <h2>Request Outcomes</h2>
- <p>Current workflow outcome of requests filed in the selected period.</p>
+ <p>Current workflow outcome of all requests filed in the selected period, including those later cancelled or expired.</p>
  </div>
  <a class="analytics-card-open" href="{{ $outcomeLink() }}" aria-label="View Request Outcomes details"><x-icon name="chevron-right" size="15" /></a>
  </header>
 
  @if(! $outcomes['available'])
  <div class="analytics-card-body">
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="clipboard-check" size="19" /></span>
  No filed requests are available for outcome analysis in this period.
  </p>
@@ -430,7 +430,7 @@
  <div class="analytics-outcomes-composition">
  <p class="analytics-dist-total">
  <strong>{{ $outcomes['total'] }}</strong>
- <span>{{ $outcomes['total'] === 1 ? 'request filed during the selected period' : 'requests filed during the selected period' }}</span>
+ <span>{{ $outcomes['total'] === 1 ? 'request in the outcome cohort' : 'requests in the outcome cohort' }}</span>
  </p>
 
  {{--
@@ -500,7 +500,7 @@
 
 {{-- What was asked for -------------------------------------------------- --}}
 <div class="analytics-demand-pair">
- <section
+ <section id="equipment-demand-usage"
  data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.requested-items']) }}"
  class="analytics-card">
  <header class="analytics-card-head">
@@ -514,7 +514,7 @@
 
  <div class="analytics-card-body">
  @if($requestedMode === 'empty')
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="box" size="19" /></span>
  No requested items were recorded during this period.
  </p>
@@ -575,7 +575,7 @@
  @endif
  </section>
 
- <section
+ <section id="top-borrowing-units"
  data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.units']) }}"
  class="analytics-card">
  <header class="analytics-card-head">
@@ -589,7 +589,7 @@
 
  <div class="analytics-card-body">
  @if($rankedUnits->isEmpty())
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="users" size="19" /></span>
  No borrowing unit activity during this period.
  </p>
@@ -684,73 +684,6 @@
 </style>
 
 {{-- Operational processing --------------------------------------------- --}}
-<section
- data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.processing']) }}"
- class="analytics-card analytics-lifecycle">
- <header class="analytics-card-head">
- <span class="analytics-card-mark" aria-hidden="true"><x-icon name="clock" size="15" /></span>
- <div>
- <h2>Operational Processing</h2>
- <p>Elapsed request turnaround and the current pending-approval workload.</p>
- </div>
- <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.processing']) }}" aria-label="View Operational Processing details"><x-icon name="chevron-right" size="15" /></a>
- </header>
-
- @if(! $processing['available'])
- <div class="analytics-card-body">
- <p class="analytics-blank">
- <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="clock" size="19" /></span>
- No filed requests are available for processing analysis in this period.
- </p>
- </div>
- @else
- @php
- $processingStages = [
- [
- 'label' => 'Filing → approval',
- 'value' => $duration($processing['approval_minutes']),
- 'note' => $processing['approval_samples'].' completed '.($processing['approval_samples'] === 1 ? 'request' : 'requests'),
- 'bar' => $processing['approval_minutes'] ?? 0,
- ],
- [
- 'label' => 'Approval → release',
- 'value' => $duration($processing['release_minutes']),
- 'note' => $processing['release_samples'].' released '.($processing['release_samples'] === 1 ? 'request' : 'requests'),
- 'bar' => $processing['release_minutes'] ?? 0,
- ],
- [
- 'label' => 'Pending approval',
- 'value' => (string) $processing['pending_count'],
- 'note' => $processing['pending_count'] > 0
- ? 'Oldest: '.$duration($processing['oldest_pending_minutes'])
- : 'No open approval backlog',
- 'bar' => $processing['pending_count'] > 0 ? max(1, (float) ($processing['oldest_pending_minutes'] ?? 0)) : 0,
- ],
- ];
- $processingMax = max(1, (float) collect($processingStages)->max('bar'));
- @endphp
-
- <div class="analytics-lifecycle-strip analytics-processing-strip">
- @foreach($processingStages as $stage)
- <div class="analytics-lifecycle-stage">
- <span class="analytics-lifecycle-label">{{ $stage['label'] }}</span>
- <strong class="analytics-lifecycle-value">{{ $stage['value'] }}</strong>
- <span class="analytics-lifecycle-note">{{ $stage['note'] }}</span>
- <span
- class="analytics-lifecycle-bar"
- style="width: {{ $stage['bar'] > 0 ? max(6, round($stage['bar'] / $processingMax * 100)) : 0 }}%"
- aria-hidden="true"
- ></span>
- </div>
-
- @unless($loop->last)
- <span class="analytics-lifecycle-link" aria-hidden="true"><x-icon name="chevron-right" size="15" /></span>
- @endunless
- @endforeach
- </div>
- @endif
-</section>
-
 {{-- When requests are filed ---------------------------------------------- --}}
 <section
  data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.peak']) }}"
@@ -766,7 +699,7 @@
 
  @if(! $peak['available'])
  <div class="analytics-card-body">
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="clock" size="19" /></span>
  Not enough activity to determine a reliable peak.
  </p>
@@ -806,3 +739,12 @@
  </p>
  @endif
 </section>
+
+<style>
+#top-borrowing-units,
+#demand-by-division,
+#equipment-demand-usage,
+#borrowing-demand-trend {
+    scroll-margin-top: 110px;
+}
+</style>

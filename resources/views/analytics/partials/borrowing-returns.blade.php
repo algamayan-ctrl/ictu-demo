@@ -46,30 +46,6 @@
 
  /* Only conditions someone actually recorded are charted. */
  $conditionRows = $returnConditions['rows'];
- /*
- * Issue counts, each from a figure the services already computed. A
- * category with nothing recorded is dropped rather than drawn as a zero.
- */
- $issueRows = [];
-
- if ($returns['open_cases'] > 0) {
- $issueRows[] = ['label' => 'Open accountability cases', 'value' => $returns['open_cases'], 'tone' => 'risk'];
- }
-
- foreach ($incidents['types'] as $type) {
- $issueRows[] = [
- 'label' => $type['type'],
- 'value' => $type['count'],
- 'tone' => 'warn',
- 'meta' => ($type['quantity'] + 0).' units affected',
- ];
- }
-
- $resolvedIncidents = $incidents['total'] - $incidents['open'];
-
- if ($resolvedIncidents > 0) {
- $issueRows[] = ['label' => 'Resolved incidents', 'value' => $resolvedIncidents, 'tone' => 'good'];
- }
 @endphp
 
 {{-- Headline figures ------------------------------------------------- --}}
@@ -143,7 +119,7 @@
 
  @if($returnTrendMode === 'empty')
  <div class="analytics-card-body">
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="custody" size="19" /></span>
  No completed returns during this period.
  </p>
@@ -549,7 +525,7 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
 
  @if(! $lateRatesByDivision['available'])
  <div class="analytics-card-body">
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="users" size="19" /></span>
  No completed returns are available for late-return rate analysis in this period.
  </p>
@@ -658,7 +634,7 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
 
  <div class="analytics-card-body">
  @if($currentOverdue['cases'] === [])
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark is-good" aria-hidden="true"><x-icon name="check-circle" size="19" /></span>
  No borrowings are currently overdue.
  </p>
@@ -735,7 +711,7 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
 
  <div class="analytics-card-body">
  @if($conditionRows === [])
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="box" size="19" /></span>
  No return inspections were recorded during this period.
  </p>
@@ -781,41 +757,3 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
 </div>
 
 {{-- Overdue Aging is consolidated into Current Overdue Exposure above. --}}
-
-
-{{-- Accountability and return issues ---------------------------------- --}}
-<section
- data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.issues']) }}"
- class="analytics-card">
- <header class="analytics-card-head">
- <span class="analytics-card-mark" aria-hidden="true"><x-icon name="accountability" size="15" /></span>
- <div>
- <h2>Accountability &amp; Return Issues</h2>
- <p>Recorded against this period's borrowings.</p>
- </div>
- <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.issues']) }}" aria-label="View Accountability and Return Issues details"><x-icon name="chevron-right" size="15" /></a>
- </header>
-
- <div class="analytics-card-body">
- @if($issueRows === [])
- <p class="analytics-blank">
- <span class="analytics-blank-mark is-good" aria-hidden="true"><x-icon name="check-circle" size="19" /></span>
- No accountability or return issues recorded.
- </p>
- @else
- <ul class="analytics-issues">
- @foreach($issueRows as $issue)
- <li class="tone-{{ $issue['tone'] }}">
- <span class="analytics-issues-label">
- {{ $issue['label'] }}
- @isset($issue['meta'])<small>{{ $issue['meta'] }}</small>@endisset
- </span>
- <strong>{{ $issue['value'] }}</strong>
- </li>
- @endforeach
- </ul>
- @endif
- </div>
- </section>
-
-

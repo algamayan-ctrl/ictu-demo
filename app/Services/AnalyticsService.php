@@ -195,6 +195,10 @@ class AnalyticsService
  ?string $unit,
  ?int $borrower = null
  ): Builder {
+ /* Scheduled date columns and legacy timestamps share one inclusive window. */
+ $from = Carbon::parse($from)->startOfDay();
+ $to = Carbon::parse($to)->endOfDay();
+
  $excluded = [
  RequestStatus::Draft,
  RequestStatus::Signed,
@@ -256,7 +260,9 @@ class AnalyticsService
  ->select('request_versions.division_code')
  ->selectRaw('COUNT(borrowing_requests.id) AS total')
  ->groupBy('request_versions.division_code')
- ->pluck('total', 'division_code');
+ ->get()
+ ->groupBy(fn ($row): string => (string) ($row->division_code ?? ''))
+ ->map(fn ($rows): int => (int) $rows->sum('total'));
 
  $groups = collect(self::divisions())
  ->map(fn (string $label, string $code): array => [
@@ -977,12 +983,12 @@ class AnalyticsService
  ])
  ->values();
 
- $unspecified = (int) ($counts[null] ?? 0) + (int) ($counts[''] ?? 0);
+ $unspecified = (int) ($counts[''] ?? 0);
 
  if ($unspecified > 0) {
  $groups->push([
  'code' => null,
- 'label' => 'Unspecified unit',
+ 'label' => 'Unspecified division',
  'count' => $unspecified,
  'percentage' => $total > 0 ? round($unspecified / $total * 100) : 0,
  ]);
@@ -3366,4 +3372,3 @@ class AnalyticsService
  return collect(OrganizationalStructure::unitsByDivision());
  }
 }
-

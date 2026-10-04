@@ -497,6 +497,19 @@
     .accountability-standalone-groups { margin-top: 0; gap: 10px; }
     .accountability-standalone-case { border: 1px solid var(--border); }
     .accountability-standalone-toggle { justify-self: end; min-width: 118px; }
+
+    /* ALWAYS VISIBLE STANDALONE DETAILS START
+       Simple standalone accountability records are operational summaries.
+       Their essential details remain visible without an extra disclosure click.
+       Complex case documents/evidence keep their existing disclosure behavior. */
+    .borrower-accountability-workspace .accountability-standalone-toggle {
+        display: none !important;
+    }
+
+    .borrower-accountability-workspace .accountability-standalone-detail-body {
+        display: grid !important;
+    }
+    /* ALWAYS VISIBLE STANDALONE DETAILS END */
     .accountability-standalone-detail-body {
         display: grid;
         gap: 8px;
@@ -507,7 +520,7 @@
         border-radius: 8px;
         background: var(--surface-elevated);
     }
-    .accountability-standalone-detail-body[hidden] { display: none; }
+
     .accountability-standalone-reference {
         color: var(--text-muted);
         font-size: 9px;
@@ -962,46 +975,25 @@
         <p>{{ $borrower->organizationalUnit?->unit_name ?: $borrower->organizationalUnit?->name }}</p>
     </div>
 </section>
-
-@unless($isFocusedCaseView)
-<section class="accountability-workspace-summary" aria-label="Borrower accountability summary">
-    <a
-        class="accountability-summary-card tone-{{ $activeRestrictionCount > 0 ? 'danger' : 'success' }}"
-        href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'scope' => 'status']) }}#accountability-active-cases"
-        aria-label="Borrowing Status: {{ $borrowingStatus }}. {{ $activeRestrictionCount > 0 ? $activeRestrictionCount.' active restriction(s)' : 'No active restriction' }}."
-    >
-        <span class="accountability-summary-icon" aria-hidden="true"><x-icon :name="$activeRestrictionCount > 0 ? 'lock' : 'check-circle'" size="18" /></span>
-        <span class="accountability-summary-label">Borrowing Status</span>
-        <strong class="accountability-summary-value">{{ $borrowingStatus }}</strong>
-        <span class="accountability-summary-note">{{ $activeRestrictionCount > 0 ? $activeRestrictionCount.' active restriction(s)' : 'No active restriction' }}</span>
-    </a>
-    <a
-        class="accountability-summary-card tone-info"
-        href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'scope' => 'open']) }}#accountability-active-cases"
-        aria-label="Open Accountability Matters: {{ $openMatterCount }}. Unresolved accountability records."
-    >
-        <span class="accountability-summary-icon" aria-hidden="true"><x-icon name="accountability" size="18" /></span>
-        <span class="accountability-summary-label">Open Accountability Matters</span>
-        <strong class="accountability-summary-value">{{ $openMatterCount }}</strong>
-        <span class="accountability-summary-note">{{ $openMatterBreakdownNote }}</span>
-    </a>
-    <a
-        class="accountability-summary-card tone-warning"
-        href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'scope' => 'pending']) }}#accountability-active-cases"
-        aria-label="Pending Borrower Compliance: {{ $pendingBorrowerCount }}. {{ $pendingBorrowerNote }}."
-    >
-        <span class="accountability-summary-icon" aria-hidden="true"><x-icon name="warning" size="18" /></span>
-        <span class="accountability-summary-label">Pending Borrower Compliance</span>
-        <strong class="accountability-summary-value">{{ $pendingBorrowerCount }}</strong>
-        <span class="accountability-summary-note">{{ $pendingBorrowerNote }}</span>
-    </a>
-</section>
-@endunless
-
 @unless($isFocusedCaseView)
 <nav class="accountability-workspace-tabs" aria-label="Borrower accountability sections" role="tablist">
-    <a role="tab" aria-selected="{{ $activeTab === 'cases' ? 'true' : 'false' }}" class="accountability-workspace-tab {{ $activeTab === 'cases' ? 'is-active' : '' }}" href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases']) }}">Active Cases</a>
-    <a role="tab" aria-selected="{{ $activeTab === 'history' ? 'true' : 'false' }}" class="accountability-workspace-tab {{ $activeTab === 'history' ? 'is-active' : '' }}" href="{{ route('accountability.borrower', [$borrower, 'tab' => 'history']) }}">History</a>
+    <a
+        role="tab"
+        aria-selected="{{ $activeTab === 'cases' ? 'true' : 'false' }}"
+        class="accountability-workspace-tab {{ $activeTab === 'cases' ? 'is-active' : '' }}"
+        href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases']) }}"
+    >
+        Active Cases
+    </a>
+
+    <a
+        role="tab"
+        aria-selected="{{ $activeTab === 'history' ? 'true' : 'false' }}"
+        class="accountability-workspace-tab {{ $activeTab === 'history' ? 'is-active' : '' }}"
+        href="{{ route('accountability.borrower', [$borrower, 'tab' => 'history']) }}"
+    >
+        History
+    </a>
 </nav>
 @endunless
 
@@ -1723,6 +1715,17 @@ document.addEventListener('click', (event) => {
 
 
 
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document
+        .querySelectorAll('.borrower-accountability-workspace .accountability-standalone-detail-body')
+        .forEach((detail) => {
+            detail.hidden = false;
+            detail.removeAttribute('hidden');
+        });
+});
+</script>
 @endsection
 
 

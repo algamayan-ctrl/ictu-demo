@@ -35,7 +35,7 @@ class AnalyticsCardDrilldownTest extends TestCase
     {
         $keys = [
             'overview' => [
-                'overview.trend', 'overview.insights', 'overview.released',
+                'overview.insights', 'overview.released',
                 'overview.units', 'overview.snapshot',
             ],
             'demand' => [
@@ -108,7 +108,6 @@ class AnalyticsCardDrilldownTest extends TestCase
     public static function recordBackedCardSources(): array
     {
         return [
-            'overview trend' => ['overview', 'overview.trend', 'report=borrowing'],
             'return compliance' => ['overview', 'overview.return-compliance', 'return_status=COMPLETED'],
             'released quantity' => ['demand', 'demand.released-quantity', 'report=utilization'],
             'available inventory' => ['inventory', 'inventory.available', 'availability_status=AVAILABLE'],
@@ -261,9 +260,9 @@ class AnalyticsCardDrilldownTest extends TestCase
     /**
      * Inventory Availability reconciliation.
      *
-     * The KPI row, the "Inventory Availability" card detail and the Inventory
-     * Status Report all describe the same physical stock, so all three must
-     * agree on the same number. AnalyticsCardDetailService::inventoryState()
+     * The Overview KPI, Inventory Health KPI, "Inventory Availability" card
+     * detail and Inventory Status Report all describe the same physical stock,
+     * so they must agree on the same number. AnalyticsCardDetailService::inventoryState()
      * used to read $inventory['available'] instead of the nested
      * $inventory['totals']['available'] the KPI cards actually use, which
      * silently produced zero for every facet regardless of true stock.
@@ -304,6 +303,17 @@ class AnalyticsCardDrilldownTest extends TestCase
 
         $kpi->assertOk();
         $kpi->assertSee('47', false);
+
+        $overview = $this->actingAs($user)->get(route('analytics.index', [
+            'section' => 'overview',
+            'academic_period' => 'month',
+        ]));
+
+        $overview->assertOk();
+        $overview->assertSeeInOrder([
+            'Available Stock',
+            '<strong class="analytics-kpi-card-value">47</strong>',
+        ], false);
 
         $detail = $this->actingAs($user)->get(route('analytics.index', [
             'section' => 'inventory',

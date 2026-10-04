@@ -138,7 +138,7 @@
                 <h2>
                     Resolved Accountability
                     @if($resolvedHistory->isNotEmpty())
-                        <span class="accountability-count-chip">{{ $resolvedHistory->count() }}</span>
+                        <span class="accountability-count-chip" id="resolved-history-count">{{ $resolvedHistory->count() }}</span>
                     @endif
                 </h2>
             </div>
@@ -152,6 +152,55 @@
                 </div>
             </div>
         @else
+            @unless($embeddedInBorrowerWorkspace)
+            {{-- RESOLVED HISTORY FILTERS START --}}
+            <div class="accountability-browser-toolbar" aria-label="Search and filter resolved accountability cases">
+
+                <label class="accountability-browser-search">
+                    <span>Search</span>
+                    <span class="search-input-shell">
+                        <span class="search-input-icon" aria-hidden="true">
+                            <x-icon name="search" size="16" />
+                        </span>
+
+                        <input
+                            id="resolved-history-search"
+                            type="search"
+                            autocomplete="off"
+                            placeholder="Borrower or reference"
+                        >
+                    </span>
+                </label>
+
+                <label class="accountability-browser-filter">
+                    <span>Case Type</span>
+
+                    <select id="resolved-history-case-type">
+                        <option value="all">All cases</option>
+                        <option value="Property Accountability">Property Accountability</option>
+                        <option value="Late Return">Late Return</option>
+                        <option value="Laundry-Reported Late Return">Laundry-Reported Late Return</option>
+                        <option value="Overdue Record Cleared">Overdue Record Cleared</option>
+                    </select>
+                </label>
+
+                <label class="accountability-browser-filter">
+                    <span>Outcome</span>
+
+                    <select id="resolved-history-outcome">
+                        <option value="all">All outcomes</option>
+                        <option value="Resolved - Paid">Resolved - Paid</option>
+                        <option value="Resolved - No Charge">Resolved - No Charge</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Waived">Waived</option>
+                        <option value="Void">Void</option>
+                    </select>
+                </label>
+
+            </div>
+            {{-- RESOLVED HISTORY FILTERS END --}}
+            @endunless
+
             <div class="table-wrap accountability-cases-table">
                 <table>
                     <thead>
@@ -187,6 +236,10 @@
                             @endphp
                             <tr
                                 class="accountability-case-row"
+                                data-resolved-history-row
+                                data-search="{{ $row['reference'].' '.($row['borrower']?->full_name ?? '') }}"
+                                data-case-type="{{ $typeLabel }}"
+                                data-outcome="{{ $row['outcome'] }}"
                                 @if($resolvedHistoryIndex >= $resolvedHistoryInitialLimit) hidden data-resolved-history-extra @endif
                             >
                                 <td>
@@ -210,27 +263,176 @@
                                 </td>
                             </tr>
                         @endforeach
+
+                        <tr id="resolved-history-none" hidden>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <div>
+                                        <strong>No matching resolved accountability cases.</strong>
+                                        <p>Try another borrower, reference, case type, or outcome.</p>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
 
-            @if($resolvedHistory->count() > $resolvedHistoryInitialLimit)
-                <div class="actions" style="padding:14px 17px;">
-                    <button type="button" class="button secondary" id="resolved-history-show-more">
-                        Show {{ $resolvedHistory->count() - $resolvedHistoryInitialLimit }} More
-                    </button>
-                </div>
-                <script>
-                (() => {
-                    const button = document.getElementById('resolved-history-show-more');
-                    if (!button) return;
-                    button.addEventListener('click', () => {
-                        document.querySelectorAll('[data-resolved-history-extra]').forEach(row => { row.hidden = false; });
-                        button.remove();
-                    }, { once: true });
-                })();
-                </script>
-            @endif
+            <div
+                class="accountability-table-browser-footer"
+                id="resolved-history-pager"
+            >
+                <label class="accountability-page-size-control">
+                    <span>Show</span>
+
+                    <select id="resolved-history-page-size">
+                        <option value="10" selected>10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+
+                    <span>per page</span>
+                </label>
+
+                <nav
+                    class="accountability-pagination"
+                    id="resolved-history-pages"
+                    aria-label="Resolved accountability pages"
+                ></nav>
+            </div>
+
+            <script>
+            (() => {
+                const section = document.getElementById('resolved-history');
+                if (!section) return;
+
+                const rows = [...section.querySelectorAll('[data-resolved-history-row]')];
+                if (rows.length === 0) return;
+
+                const search = section.querySelector('#resolved-history-search');
+                const typeSelect = section.querySelector('#resolved-history-case-type');
+                const outcomeSelect = section.querySelector('#resolved-history-outcome');
+                const count = section.querySelector('#resolved-history-count');
+                const empty = section.querySelector('#resolved-history-none');
+                const showMore = section.querySelector('#resolved-history-show-more');
+
+                const initialLimit = {{ $resolvedHistoryInitialLimit }};
+                let expanded = false;
+
+                function renderResolvedHistory() {
+                    const query =
+                        search?.value.trim().toLocaleLowerCase() || '';
+
+                    const type =
+                        typeSelect?.value || 'all';
+
+                    const outcome =
+                        outcomeSelect?.value || 'all';
+
+                    const filtering =
+                        query !== '' ||
+                        type !== 'all' ||
+                        outcome !== 'all';
+
+                    let matched = 0;
+                    let shown = 0;
+
+                    rows.forEach(row => {
+                        const matchesSearch =
+                            !query ||
+                            (row.dataset.search || '')
+                                .toLocaleLowerCase()
+                                .includes(query);
+
+                        const matchesType =
+                            type === 'all' ||
+                            row.dataset.caseType === type;
+
+                        const matchesOutcome =
+                            outcome === 'all' ||
+                            row.dataset.outcome === outcome;
+
+                        const matches =
+                            matchesSearch &&
+                            matchesType &&
+                            matchesOutcome;
+
+                        if (matches) {
+                            matched++;
+                        }
+
+                        const visible =
+                            matches &&
+                            (
+                                filtering ||
+                                expanded ||
+                                shown < initialLimit
+                            );
+
+                        row.hidden = !visible;
+
+                        if (visible) {
+                            shown++;
+                        }
+
+                        const detail = row.nextElementSibling;
+
+                        if (
+                            detail?.classList.contains(
+                                'accountability-case-detail-row'
+                            )
+                        ) {
+                            detail.hidden =
+                                !visible ||
+                                detail.dataset.expanded !== 'true';
+                        }
+                    });
+
+                    if (count) {
+                        count.textContent = String(matched);
+                    }
+
+                    if (empty) {
+                        empty.hidden = matched > 0;
+                    }
+
+                    if (showMore) {
+                        const remaining =
+                            Math.max(0, matched - initialLimit);
+
+                        showMore.hidden =
+                            filtering ||
+                            expanded ||
+                            remaining === 0;
+
+                        showMore.textContent =
+                            `Show ${remaining} More`;
+                    }
+                }
+
+                search?.addEventListener(
+                    'input',
+                    renderResolvedHistory
+                );
+
+                typeSelect?.addEventListener(
+                    'change',
+                    renderResolvedHistory
+                );
+
+                outcomeSelect?.addEventListener(
+                    'change',
+                    renderResolvedHistory
+                );
+
+                showMore?.addEventListener('click', () => {
+                    expanded = true;
+                    renderResolvedHistory();
+                });
+
+                renderResolvedHistory();
+            })();
+            </script>
         @endif
     </article>
 @endif

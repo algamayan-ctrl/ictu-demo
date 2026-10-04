@@ -33,7 +33,7 @@ use Tests\TestCase;
  * event over the same filters in the previous window as in the selected one -
  * filing date for requests and requested quantity, released_at for released
  * quantity, physical completion for returns. Second, a present-tense reading
- * (Currently Out, Currently Overdue, Low Availability, stock) is never
+ * (On Custody, Overdue, available stock) is never
  * compared with a past window at all.
  *
  * Selected period: April 2026 (30 days), so the previous period is the 30
@@ -344,10 +344,10 @@ class AnalyticsPeriodComparisonTest extends TestCase
         $head = $this->spmuHead();
 
         $overview = $this->page($head, 'overview');
-        $this->assertKpiHasDelta($overview, 'Requests', true);
-        $this->assertKpiHasDelta($overview, 'Currently Out', false);
-        $this->assertKpiHasDelta($overview, 'Currently Overdue', false);
-        $this->assertKpiHasDelta($overview, 'Low Availability', false);
+        $this->assertKpiHasDelta($overview, 'Total Requests', true);
+        $this->assertKpiHasDelta($overview, 'On Custody', false);
+        $this->assertKpiHasDelta($overview, 'Overdue', false);
+        $this->assertKpiHasDelta($overview, 'Available Stock', false);
 
         $inventory = $this->page($head, 'inventory');
         foreach (['Available Units', 'Reserved / Allocated', 'On Custody', 'Attention Needed'] as $label) {

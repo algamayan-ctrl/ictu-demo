@@ -37,7 +37,6 @@ class AnalyticsCardDetailService
  {
  return match ($key) {
  /* Overview */
- 'overview.trend' => $this->trend($scope, 'Borrowing Activity Trend'),
  'overview.insights' => $this->overviewInsights($scope),
  'overview.return-compliance' => $this->returnCompliance($scope),
  'overview.released' => $this->releasedItems($scope, 'Top Released Items'),
@@ -2057,13 +2056,6 @@ class AnalyticsCardDetailService
                 $scope['to']
             );
 
-        /*
-         * forecastTo is the exclusive upper boundary.
-         * The UI displays the final included calendar day.
-         */
-        $forecastDisplayTo =
-            $forecastTo->copy()->subDay();
-
         $normalizedRows = collect($rows)
             ->map(static function ($row): array {
 
@@ -2233,7 +2225,7 @@ class AnalyticsCardDetailService
             'display_period' =>
                 $forecastFrom->format('d M Y')
                 .' - '.
-                $forecastDisplayTo->format('d M Y'),
+                $forecastTo->format('d M Y'),
 
             'summary_title' =>
                 'Capacity Summary',
@@ -2343,23 +2335,10 @@ class AnalyticsCardDetailService
                 $scope['to']
             );
 
-        /*
-         * forecastTo is the exclusive upper boundary.
-         */
-        $forecastDisplayTo =
-            $forecastTo->copy()->subDay();
-
-
         $totalForecastDemand =
-            (int) $buckets->sum(
-                static fn (array $bucket): int =>
-                    max(
-                        0,
-                        (int) (
-                            $bucket['expected']
-                            ?? 0
-                        )
-                    )
+            (int) (
+                $busy['master_forecast']
+                ?? 0
             );
 
 
@@ -2605,7 +2584,7 @@ class AnalyticsCardDetailService
             'display_period' =>
                 $forecastFrom->format('d M Y')
                 .' - '.
-                $forecastDisplayTo->format('d M Y'),
+                $forecastTo->format('d M Y'),
 
             'header_chip' =>
                 $headerChip,
@@ -2689,17 +2668,6 @@ class AnalyticsCardDetailService
                 $scope['from'],
                 $scope['to']
             );
-
-
-        /*
-         * ForecastService uses the end boundary of the forecast
-         * window for its queries. For the UI, display the last
-         * calendar day belonging to the forecast period.
-         */
-        $forecastDisplayTo =
-            $forecastTo
-                ->copy()
-                ->subDay();
 
 
         $demand =
@@ -3169,7 +3137,7 @@ class AnalyticsCardDetailService
             'display_period' =>
                 $forecastFrom->format('d M Y')
                 .' – '
-                .$forecastDisplayTo->format('d M Y'),
+                .$forecastTo->format('d M Y'),
 
             /*
              * Universal Analytics detail visualization contract.
@@ -3249,4 +3217,3 @@ class AnalyticsCardDetailService
  ];
  }
 }
-

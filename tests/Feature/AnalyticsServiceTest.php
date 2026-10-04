@@ -18,6 +18,7 @@ use App\Models\RequestVersion;
 use App\Models\UnitOfMeasure;
 use App\Models\User;
 use App\Services\AnalyticsService;
+use App\Services\ForecastService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -118,9 +119,11 @@ class AnalyticsServiceTest extends TestCase
         Carbon $createdAt,
         RequestStatus $status = RequestStatus::UnderSpmu,
         array $lines = [],
-        ?array $custody = null
+        ?array $custody = null,
+        ?Carbon $scheduleDate = null
     ): BorrowingRequest {
         $borrower = $this->borrower();
+        $scheduleDate ??= $createdAt->copy()->addDay();
 
         $request = BorrowingRequest::query()->create([
             'request_no' => 'BR-'.$createdAt->format('YmdHis').'-'.fake()->unique()->numberBetween(1000, 99999),
@@ -140,11 +143,11 @@ class AnalyticsServiceTest extends TestCase
             'location' => 'Campus',
             'division_code' => $division,
             'office_unit' => $unit,
-            'schedule_date' => $createdAt->copy()->addDay()->toDateString(),
-            'return_date' => $createdAt->copy()->addDays(3)->toDateString(),
+            'schedule_date' => $scheduleDate->toDateString(),
+            'return_date' => $scheduleDate->copy()->addDays(2)->toDateString(),
             /* Legacy timestamp columns are NOT NULL and mirror the dates. */
-            'needed_from' => $createdAt->copy()->addDay()->startOfDay(),
-            'return_due_at' => $createdAt->copy()->addDays(3)->endOfDay(),
+            'needed_from' => $scheduleDate->copy()->startOfDay(),
+            'return_due_at' => $scheduleDate->copy()->addDays(2)->endOfDay(),
         ]);
 
         if ($custody === null) {
@@ -249,6 +252,47 @@ class AnalyticsServiceTest extends TestCase
         $this->request('RESEARCH_INNOVATION_COLLABORATION', $ecso, $april(26));
 
         /* Week 5 (29-30): deliberately empty - trailing. */
+    }
+
+    public function test_scheduled_demand_uses_the_inclusive_forecast_end_without_leaking_next_day_records(): void
+    {
+        $selectedFrom = Carbon::create(2026, 10, 1)->startOfDay();
+        $selectedTo = Carbon::create(2026, 10, 31)->endOfDay();
+        [$forecastFrom, $forecastTo] = app(ForecastService::class)->forecastWindow($selectedFrom, $selectedTo);
+        $filedAt = Carbon::create(2026, 10, 20, 10);
+
+        $this->request(
+            'ACADEMIC',
+            'College of Computer Studies',
+            $filedAt,
+            scheduleDate: $forecastTo
+        );
+
+        $this->request(
+            'ADMINISTRATION',
+            'Human Resource Management Office',
+            $filedAt->copy()->addHour(),
+            scheduleDate: $forecastTo->copy()->addDay()
+        );
+
+        $legacy = $this->request(
+            'RESEARCH_INNOVATION_COLLABORATION',
+            'Research and Development Services Office (RDSO)',
+            $filedAt->copy()->addHours(2),
+            scheduleDate: $forecastTo->copy()->addDay()
+        );
+
+        RequestVersion::query()
+            ->where('request_id', $legacy->id)
+            ->update(['schedule_date' => null]);
+
+        $scheduled = $this->analytics->scheduledDemand($forecastFrom, $forecastTo);
+
+        $this->assertSame('2026-11-01', $forecastFrom->toDateString());
+        $this->assertSame('2026-11-30', $forecastTo->toDateString());
+        $this->assertTrue($forecastTo->isEndOfDay());
+        $this->assertSame(1, $scheduled['requests']);
+        $this->assertSame(['ACADEMIC'], array_column($scheduled['divisions']['groups']->all(), 'code'));
     }
 
     /* ------------------------------------------------------------------ */

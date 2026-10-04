@@ -56,18 +56,6 @@
  $topItems = array_slice($equipment['items'], 0, 5);
 
  /*
- * Whether there is anything to plot. trend() keeps interior and leading
- * empty buckets, so a filter with no activity arrives as a full set of
- * zeroes rather than an empty array - charting that is a row of flat stubs,
- * which reads as a broken chart instead of "nothing happened". A period is
- * only plotted when at least one bucket carries a request; one bucket or
- * many, it is then drawn as bars.
- */
- $trendFilled = array_sum(array_column($trend['points'], 'count')) > 0;
-
- $trendMode = $trend['points'] === [] || ! $trendFilled ? 'empty' : 'line';
-
- /*
  * Priority rows.
  *
  * Every row restates a figure the controller already handed this view, so
@@ -113,51 +101,12 @@
  }
 
  /* Weight 30 - demand pattern for the selected period. */
- if ($rankedUnits->isNotEmpty()) {
- $leadUnit = $rankedUnits->first();
-
- $priorityRows[] = [
- 'weight' => 30,
- 'tone' => 'rank',
- 'icon' => 'users',
- 'title' => 'Top borrowing unit',
- 'text' => $leadUnit['name'].' filed the most requests ('.$leadUnit['count'].').',
- 'href' => AnalyticsDetailLink::to(
- 'unit',
- 'overview',
- $periodSelection,
- $leadUnit['division_code'],
- $leadUnit['name'],
- ['for' => $leadUnit['name']]
- ),
- ];
- }
 
  /*
  * Weight 35. equipment() sums actual_released_quantity, so this is
  * released volume - not how often an item was asked for. The title says
  * released for that reason.
  */
- if ($topItems !== []) {
- $leadItem = $topItems[0];
-
- $priorityRows[] = [
- 'weight' => 35,
- 'tone' => 'item',
- 'icon' => 'box',
- 'title' => 'Top released item',
- 'text' => $leadItem['name'].' had the highest released quantity ('
- .($leadItem['released'] + 0).' '.$leadItem['unit'].').',
- 'href' => AnalyticsDetailLink::to(
- 'equipment',
- 'overview',
- $periodSelection,
- $division,
- $unit,
- ['item' => $leadItem['item_id']]
- ),
- ];
- }
 
  /* Weight 36 - the same inventory reading, reassurance rather than risk. */
  if ($lowAvailability['count'] === 0) {
@@ -212,18 +161,20 @@
 @include('analytics.partials.overview-summary-styles')
 
 {{-- Headline figures ------------------------------------------------- --}}
+
+
 <div class="analytics-kpis analytics-kpis-overview">
  <a
  class="analytics-kpi-card tone-stock"
  href="{{ AnalyticsDetailLink::to('requests', 'overview', $periodSelection, $division, $unit) }}"
  >
  <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="requests" size="19" /></span>
- <span class="analytics-kpi-card-label">Requests</span>
- <strong class="analytics-kpi-card-value">{{ $overview['total'] }}</strong>
+ <span class="analytics-kpi-card-label">Total Requests</span>
+ <strong class="analytics-kpi-card-value">{{ $demandSummary['requests'] }}</strong>
  <span
  class="analytics-kpi-card-note"
  title="Filed borrowing demand and review workload, including requests that were rejected. This is not a measure of asset usage."
- >Requests filed this period</span>
+ >Filed; excludes drafts, cancelled and expired</span>
  {{--
  Period-scoped, so it has a previous period to stand against. The
  three cards beside it are current-state and deliberately do not.
@@ -236,7 +187,7 @@
  href="{{ AnalyticsDetailLink::to('currently-out', 'overview', $periodSelection, $division, $unit) }}"
  >
  <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="custody" size="19" /></span>
- <span class="analytics-kpi-card-label">Currently Out</span>
+ <span class="analytics-kpi-card-label">On Custody</span>
  <strong class="analytics-kpi-card-value">{{ $overview['on_custody'] }}</strong>
  <span class="analytics-kpi-card-note">Released, not yet returned</span>
  </a>
@@ -246,63 +197,28 @@
  href="{{ AnalyticsDetailLink::to('follow-up', 'overview', $periodSelection, $division, $unit) }}"
  >
  <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="warning" size="19" /></span>
- <span class="analytics-kpi-card-label">Currently Overdue</span>
+ <span class="analytics-kpi-card-label">Overdue</span>
  <strong class="analytics-kpi-card-value">{{ $overview['needs_follow_up'] }}</strong>
  <span class="analytics-kpi-card-note">Borrowings past their return date</span>
  </a>
 
  <a
  class="analytics-kpi-card tone-stock"
- href="{{ AnalyticsDetailLink::to('low-availability', 'overview', $periodSelection, $division, $unit) }}"
+ href="{{ AnalyticsDetailLink::to('card', 'overview', $periodSelection, $division, $unit, ['for' => 'inventory.available']) }}"
  >
  <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="inventory" size="19" /></span>
- <span class="analytics-kpi-card-label">Low Availability</span>
- <strong class="analytics-kpi-card-value">{{ $lowAvailability['count'] }}</strong>
- <span class="analytics-kpi-card-note">At or below {{ $lowAvailabilityPercent }}% usable stock</span>
+ <span class="analytics-kpi-card-label">Available Stock</span>
+ <strong class="analytics-kpi-card-value">{{ number_format((float) $inventorySummary['totals']['available']) }}</strong>
+ <span class="analytics-kpi-card-note">Current stock across all inventory</span>
  </a>
 </div>
 
-{{-- Trend and priority signals ---------------------------------------- --}}
+@include('analytics.partials.overview-highlights')
+
+{{-- Priority signals --------------------------------------------------- --}}
 @if($detail)
  @include('analytics.partials.detail-panel')
 @endif
-
-<div class="analytics-overview-main">
-<section
- data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'overview', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'overview.trend']) }}"
- class="analytics-card">
- <header class="analytics-card-head">
- <span class="analytics-card-mark" aria-hidden="true"><x-icon name="analytics" size="15" /></span>
- <div>
- <h2>Borrowing Demand Trend</h2>
- <p>Borrowing requests filed per {{ $trend['granularity'] }}.</p>
- </div>
- <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'overview', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'overview.trend']) }}" aria-label="View Borrowing Demand Trend details"><x-icon name="chevron-right" size="15" /></a>
- </header>
-
- @if($trendMode === 'empty')
- <div class="analytics-card-body">
- <p class="analytics-blank">
- <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="analytics" size="19" /></span>
- No borrowing activity during this period.
- </p>
- </div>
- @else
- {{--
- This is an ordered time series, so a line communicates movement
- between periods better than independent columns. Data and drill-
- down links remain exactly the same.
- --}}
- <div class="analytics-card-body is-plot">
- @include('analytics.partials.trend-line', ['trend' => $trend, 'lineSection' => 'overview'])
- </div>
-
- <p class="analytics-insight-strip">
- <x-icon name="lightbulb" size="14" aria-hidden="true" />
- <span>{{ $trend['summary'] }}</span>
- </p>
- @endif
-</section>
 
 <section class="analytics-card">
  <header class="analytics-card-head">
@@ -340,8 +256,6 @@
  </div>
 </section>
 
-</div>
-
 {{-- Cross-tab executive summary -------------------------------------- --}}
 <section class="analytics-card analytics-summary-shell">
  <header class="analytics-card-head">
@@ -377,11 +291,11 @@
 
  <dl class="analytics-summary-metrics">
  <div>
- <dt>Available units</dt>
+ <dt>Available asset units (now)</dt>
  <dd>{{ number_format((float) $inventorySummary['totals']['available']) }}</dd>
  </div>
  <div>
- <dt>On custody</dt>
+ <dt>Asset units on custody (now)</dt>
  <dd>{{ number_format((float) $inventorySummary['totals']['on_custody']) }}</dd>
  </div>
  </dl>
@@ -394,8 +308,8 @@
 
  <dl class="analytics-summary-metrics">
  <div>
- <dt>Approved requests</dt>
- <dd>{{ number_format((int) $overview['approved']) }}</dd>
+ <dt>On-time returns</dt>
+ <dd>{{ $returns['on_time_rate'] === null ? '—' : $returns['on_time_rate'].'%' }}</dd>
  </div>
  <div>
  <dt>Completed returns</dt>
@@ -403,27 +317,28 @@
  </div>
  </dl>
  </a>
-
- <a class="analytics-summary-card" href="{{ route('analytics.index', $carry + ['section' => 'demand']) }}#operational-processing">
- <span class="analytics-summary-icon" aria-hidden="true"><x-icon name="clock" size="16" /></span>
- <span class="analytics-summary-title">Operational Processing</span>
+<a class="analytics-summary-card" href="{{ route('analytics.index', $carry + ['section' => 'predictive']) }}">
+ <span class="analytics-summary-icon" aria-hidden="true"><x-icon name="calendar-clock" size="16" /></span>
+ <span class="analytics-summary-title">Forecast &amp; Planning</span>
  <span class="analytics-summary-arrow" aria-hidden="true"><x-icon name="chevron-right" size="14" /></span>
 
  <dl class="analytics-summary-metrics">
  <div>
- <dt>Pending approval</dt>
- <dd>{{ number_format((int) $processingSummary['pending_count']) }}</dd>
+ <dt>Next-window requests</dt>
+ <dd>{{ ($forecastSummary['available'] ?? false) ? number_format((int) ($forecastSummary['forecast'] ?? 0)) : '—' }}</dd>
  </div>
  <div>
- <dt>Avg. approval time</dt>
- <dd class="{{ $processingSummary['approval_minutes'] === null ? 'is-text' : '' }}">
- {{ $formatDuration($processingSummary['approval_minutes']) }}
- </dd>
+ <dt>Direction</dt>
+ <dd>{{ ($forecastSummary['available'] ?? false) ? ucfirst((string) ($forecastSummary['direction'] ?? 'steady')) : 'Insufficient history' }}</dd>
  </div>
  </dl>
  </a>
+
+
  </div>
 </section>
+
+
 
 
 {{-- OPERATIONAL PERFORMANCE OVERVIEW V1 START --}}

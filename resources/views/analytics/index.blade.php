@@ -26,18 +26,7 @@
 
 <section class="content-area">
  <div class="analytics-page">
-
- <nav class="analytics-tabs" aria-label="Analytics sections">
- @foreach($sections as $key => $label)
- <a
- class="analytics-tab{{ $section === $key ? ' is-active' : '' }}"
- href="{{ route('analytics.index', $carry + ['section' => $key]) }}"
- @if($section === $key) aria-current="page" @endif
- >{{ $label }}</a>
- @endforeach
- </nav>
-
- {{--
+{{--
  Filters. Every control below re-runs the calculations on the
  server; nothing here is cosmetic.
  --}}

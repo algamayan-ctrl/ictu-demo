@@ -145,7 +145,7 @@
 
  <div class="analytics-card-body">
  @if($availabilityRows === [])
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="inventory" size="19" /></span>
  No borrowable equipment with serviceable stock is recorded yet.
  </p>
@@ -216,7 +216,7 @@
 
  @if($serviceable <= 0)
  <div class="analytics-card-body">
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="box" size="19" /></span>
  No serviceable inventory is recorded yet.
  </p>
@@ -291,7 +291,7 @@
 
  <div class="analytics-card-body">
  @if($lowAvailability['items'] === [])
- <p class="analytics-blank is-positive">
+ <p class="analytics-blank is-positive is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="check-circle" size="19" /></span>
  No equipment currently requires availability attention.
  </p>
@@ -343,7 +343,7 @@
 
  <div class="analytics-card-body">
  @if($released['items'] === [])
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="box" size="19" /></span>
  <span>
  <strong>No equipment was physically released during this period.</strong>
@@ -430,7 +430,7 @@
 
  <div class="analytics-card-body">
  @if($coverageRows === [])
- <p class="analytics-blank">
+ <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="clock" size="19" /></span>
  <span>
  <strong>Insufficient release history.</strong>

@@ -1491,13 +1491,41 @@ html[data-theme="dark"] .analytics-kpi-card.tone-stock { --kpi-from: #5b21b6; --
 .analytics-card-body.is-plot { display: flex; padding: 10px 12px 4px; }
 .analytics-card-body > :last-child { margin-bottom: 0; }
 
-/* Only wholly empty card bodies opt out of their grid row's stretch. */
-.analytics-page .analytics-card:has(> .analytics-card-body > .analytics-blank:only-child) {
+/*
+ * A short explanatory message stays compact unless it replaces a chart,
+ * distribution, ranking, or other visual body. Visual cards opt in below so
+ * their empty state keeps the same reading space as the visualization.
+ */
+.analytics-page .analytics-card:has(> .analytics-card-body > .analytics-blank:only-child):not(:has(> .analytics-card-body > .analytics-blank.is-visualization-empty:only-child)) {
  align-self: start !important;
  height: auto !important;
  min-height: 0 !important;
 }
-.analytics-card-body:has(> .analytics-blank:only-child) { flex: 0 0 auto; }
+.analytics-card-body:has(> .analytics-blank:only-child):not(:has(> .analytics-blank.is-visualization-empty:only-child)) { flex: 0 0 auto; }
+
+/*
+ * The size is set by the card's existing grid role rather than a single fixed
+ * height. That keeps charts and their paired list/distribution cards aligned
+ * while remaining compact on narrow screens.
+ */
+.analytics-card-body:has(> .analytics-blank.is-visualization-empty:only-child) {
+ --analytics-empty-visualization-min-height: clamp(8.5rem, 14vw, 10rem);
+ display: flex;
+ min-block-size: var(--analytics-empty-visualization-min-height);
+}
+
+.analytics-card-body > .analytics-blank.is-visualization-empty:only-child {
+ width: 100%;
+ min-height: 0;
+ flex: 1 1 auto;
+}
+
+.analytics-overview-main .analytics-card-body:has(> .analytics-blank.is-visualization-empty:only-child),
+.analytics-demand-main .analytics-card-body:has(> .analytics-blank.is-visualization-empty:only-child),
+.analytics-inventory-main .analytics-card-body:has(> .analytics-blank.is-visualization-empty:only-child),
+.analytics-forecast-main .analytics-card-body:has(> .analytics-blank.is-visualization-empty:only-child) {
+ --analytics-empty-visualization-min-height: clamp(10.5rem, 18vw, 12.5rem);
+}
 
 .analytics-card-foot {
  padding: 8px 15px;

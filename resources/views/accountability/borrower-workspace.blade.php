@@ -845,6 +845,38 @@
         .accountability-standalone-toggle { justify-self: start; width: 100%; }
         .accountability-action-panel__body .form-grid.two { grid-template-columns: 1fr; }
     }
+
+    /* ACCOUNTABILITY WHITE ACTION HOVER CONSISTENCY */
+    /*
+     * Keep every button's normal/default appearance unchanged.
+     * Only give action buttons inside the focused action forms the same
+     * blue interaction feedback already used by other Accountability controls.
+     */
+    .borrower-accountability-workspace .accountability-dialog-actions
+    :is(a.button, button.button):not(:disabled):is(:hover, :focus-visible) {
+        color: #fff !important;
+        background: var(--interactive) !important;
+        border-color: var(--interactive) !important;
+        box-shadow: var(--shadow-sm);
+        transform: translateY(-1px);
+    }
+
+/* BORROWER ACCOUNTABILITY SECONDARY HOVER CONSISTENCY */
+/*
+ * Keep secondary controls white in their normal state.
+ * Give enabled secondary actions consistent blue hover/focus feedback
+ * throughout the Borrower Accountability workspace.
+ */
+.borrower-accountability-workspace
+.button.secondary:not(:disabled):not([aria-disabled="true"]):not(.is-active):hover,
+.borrower-accountability-workspace
+.button.secondary:not(:disabled):not([aria-disabled="true"]):not(.is-active):focus-visible {
+    color: #fff !important;
+    background: var(--interactive) !important;
+    border-color: var(--interactive) !important;
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
 </style>
 
 @php
@@ -1692,3 +1724,6 @@ document.addEventListener('click', (event) => {
 
 
 @endsection
+
+
+

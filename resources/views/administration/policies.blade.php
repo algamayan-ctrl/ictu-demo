@@ -339,7 +339,7 @@
                                     ])->filter()->join(', ') ?: 'Open day with no enabled physical transaction');
 
                                 $hoursSummary = $exception->open_time && $exception->close_time
-                                    ? substr((string) $exception->open_time, 0, 5).' ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ '.substr((string) $exception->close_time, 0, 5)
+                                    ? substr((string) $exception->open_time, 0, 5).' '."\u{2013}".' '.substr((string) $exception->close_time, 0, 5)
                                     : 'Date-based';
 
                                 $statusLabel = $exception->status === 'OPEN' ? 'Open' : 'Closed';
@@ -409,7 +409,7 @@
 
             <div class="current-period-value">
                 {{ $activePeriod->academic_year }}
-                ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â·
+                &middot;
                 {{ $activePeriod->term_name }}
             </div>
 
@@ -763,7 +763,7 @@
                                                     class="button secondary small ui-pressable"
                                                     type="submit"
                                                     onclick="return confirm(
-                                                        'Activate {{ $period->academic_year }} ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {{ $period->term_name }}? The current active period will be moved to Completed.'
+                                                        'Activate {{ $period->academic_year }} &middot; {{ $period->term_name }}? The current active period will be moved to Completed.'
                                                     )"
                                                 >
                                                     Activate

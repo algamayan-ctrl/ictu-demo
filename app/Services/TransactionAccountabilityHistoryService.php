@@ -110,9 +110,8 @@ class TransactionAccountabilityHistoryService
         }
 
         /*
-         * Head decisions are audit-backed because an incident can move through
-         * more than one Head action and its current status alone cannot recreate
-         * those earlier decisions after the case is resolved.
+         * Keep the Head/Admin decision, approved disposition, Action Officer
+         * verification, and final resolution as separate history milestones.
          */
         if ($incidentIds->isNotEmpty()) {
             $incidentAuditEvents = AuditEvent::query()
@@ -121,6 +120,7 @@ class TransactionAccountabilityHistoryService
                 ->whereIn('record_id', $incidentIds)
                 ->whereIn('action_code', [
                     'PROPERTY_ACCOUNTABILITY_HEAD_DECISION_RECORDED',
+                    'PROPERTY_ACCOUNTABILITY_OFFICIAL_DISPOSITION_RECORDED',
                     'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED',
                     'PROPERTY_ACCOUNTABILITY_CASE_RESOLVED',
                 ])
@@ -129,39 +129,109 @@ class TransactionAccountabilityHistoryService
 
             foreach ($incidentAuditEvents as $audit) {
                 $complianceAction = $audit->after_json['compliance_action'] ?? null;
-                $outcome = $this->outcomeLabel($audit->after_json['resolution_outcome'] ?? null, $complianceAction);
-                $complianceVerified = $audit->action_code === 'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED';
-                $resolved = $complianceVerified || $audit->action_code === 'PROPERTY_ACCOUNTABILITY_CASE_RESOLVED';
-                $reference = $incidents->firstWhere('id', $audit->record_id)?->incident_no ?: 'property case';
-                $resolutionOutcome = strtoupper((string) ($audit->after_json['resolution_outcome'] ?? ''));
+                $outcome = $this->outcomeLabel(
+                    $audit->after_json['resolution_outcome'] ?? null,
+                    $complianceAction
+                );
 
-                if ($complianceVerified) {
+                $officialDispositionRecorded =
+                    $audit->action_code === 'PROPERTY_ACCOUNTABILITY_OFFICIAL_DISPOSITION_RECORDED';
+
+                $complianceVerified =
+                    $audit->action_code === 'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED';
+
+                $resolved =
+                    $audit->action_code === 'PROPERTY_ACCOUNTABILITY_CASE_RESOLVED';
+
+                $reference = $incidents
+                    ->firstWhere('id', $audit->record_id)?->incident_no
+                    ?: 'property case';
+
+                $resolutionOutcome = strtoupper(
+                    (string) ($audit->after_json['resolution_outcome'] ?? '')
+                );
+
+                $officialDisposition = strtoupper(
+                    (string) ($audit->after_json['official_disposition'] ?? '')
+                );
+
+                $officialDispositionLabel = $officialDisposition !== ''
+                    ? ucwords(strtolower(str_replace('_', ' ', $officialDisposition)))
+                    : 'Approved requirement';
+
+                $resolvedOutcomeLabel = $resolutionOutcome !== ''
+                    ? ucwords(strtolower(str_replace('_', ' ', $resolutionOutcome)))
+                    : 'Resolved';
+
+                if ($officialDispositionRecorded) {
+                    $borrowerEvent = 'Approved accountability requirement recorded';
+                    $spmuEvent = 'Official accountability disposition recorded';
+
+                    $borrowerDetails =
+                        "SPMU recorded the approved requirement for {$reference}: {$officialDispositionLabel}.";
+
+                    $spmuDetails =
+                        "Head/Admin recorded the approved F2F requirement for {$reference}: {$officialDispositionLabel}.";
+
+                    $fallbackActor = 'SPMU Head/Admin';
+                    $priority = 145;
+                } elseif ($complianceVerified) {
                     $borrowerEvent = 'Property compliance verified';
                     $spmuEvent = 'Action Officer verified property compliance';
-                    $actionLabel = $this->complianceActionLabel($complianceAction);
-                    $borrowerDetails = "The SPMU Action Officer verified {$actionLabel} for {$reference}; the property case was resolved.";
-                    $spmuDetails = "Action Officer verification completed for {$reference}. Outcome: {$outcome}.";
+
+                    $actionLabel = $complianceAction
+                        ? $this->complianceActionLabel($complianceAction)
+                        : ($officialDisposition !== ''
+                            ? $officialDispositionLabel
+                            : 'required action');
+
+                    $borrowerDetails =
+                        "The SPMU Action Officer verified {$actionLabel} for {$reference}; final SPMU Head/Admin review is still pending.";
+
+                    $spmuDetails =
+                        "Action Officer verification completed for {$reference}. The case is awaiting final SPMU Head/Admin resolution.";
+
                     $fallbackActor = 'SPMU Action Officer';
-                    $priority = 170;
+                    $priority = 160;
                 } elseif ($resolved) {
                     $borrowerEvent = 'Property obligation resolved';
                     $spmuEvent = 'Property accountability case resolved';
-                    $fallbackActor = in_array($resolutionOutcome, ['BILLING_SETTLED'], true)
+
+                    $fallbackActor = in_array(
+                        $resolutionOutcome,
+                        ['BILLING_SETTLED'],
+                        true
+                    )
                         ? 'System / SPMU Action Officer'
                         : 'SPMU Head/Admin';
+
                     $borrowerDetails = match ($resolutionOutcome) {
-                        'BILLING_SETTLED' => "Billing settlement cleared {$reference}; the linked property case was resolved.",
-                        'BILLING_WAIVED' => "An authorized Billing Statement waiver cleared {$reference}; the linked property case was resolved.",
-                        default => "SPMU resolved {$reference}.",
+                        'BILLING_SETTLED' =>
+                            "Billing settlement cleared {$reference}; the linked property case was resolved.",
+
+                        'BILLING_WAIVED' =>
+                            "An authorized Billing Statement waiver cleared {$reference}; the linked property case was resolved.",
+
+                        default =>
+                            "SPMU completed final resolution for {$reference}.",
                     };
-                    $spmuDetails = "{$reference} was resolved. Outcome: {$outcome}.";
+
+                    $spmuDetails =
+                        "{$reference} was resolved. Outcome: {$resolvedOutcomeLabel}.";
+
                     $priority = 170;
                 } else {
                     $borrowerEvent = 'SPMU decision recorded';
                     $spmuEvent = 'SPMU Head accountability decision recorded';
+
                     $fallbackActor = 'SPMU Head/Admin';
-                    $borrowerDetails = "SPMU recorded the decision for {$reference}: {$outcome}.";
-                    $spmuDetails = "Head/Admin decision for {$reference}: {$outcome}.";
+
+                    $borrowerDetails =
+                        "SPMU recorded the decision for {$reference}: {$outcome}.";
+
+                    $spmuDetails =
+                        "Head/Admin decision for {$reference}: {$outcome}.";
+
                     $priority = 130;
                 }
 
@@ -178,7 +248,6 @@ class TransactionAccountabilityHistoryService
                 );
             }
         }
-
         $overdueCases = OverdueCase::query()
             ->with('confirmedBy')
             ->where('custody_transaction_id', $custody->id)

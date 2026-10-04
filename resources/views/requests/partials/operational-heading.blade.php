@@ -2,6 +2,41 @@
     // Presentation only: the custody page continues to authorize and gate every action.
     $hasOperationalObligation = (bool) $obligationSummary;
 
+    // Gate Pass-only processing is operational, not an accountability case.
+    $isGatePassOnlyPending = $custody->isGatePassOnlyPending();
+    $hasAccountabilityObligation = $hasOperationalObligation && ! $isGatePassOnlyPending;
+
+    /*
+     * Kapag may active accountability case ang transaction, diretso sa
+     * mismong case ng borrower imbes na sa generic Accountability page.
+     */
+    $accountabilityUrl = route('accountability.index');
+
+    if ($hasAccountabilityObligation && $borrowingRequest->custody && $borrowingRequest->borrower) {
+        $openIncident = $borrowingRequest->custody->incidents
+            ->where('status', '!=', 'RESOLVED')
+            ->sortByDesc('reported_at')
+            ->first();
+
+        $openOverdueCase = $borrowingRequest->custody->overdueCase;
+
+        $focus = null;
+
+        if ($openIncident) {
+            $focus = 'incident-'.$openIncident->id;
+        } elseif ($openOverdueCase && $openOverdueCase->status !== 'RESOLVED') {
+            $focus = 'overdue-'.$openOverdueCase->id;
+        }
+
+        if ($focus) {
+            $accountabilityUrl = route('accountability.borrower', [
+                'borrower' => $borrowingRequest->borrower,
+                'tab' => 'cases',
+                'focus' => $focus,
+            ]);
+        }
+    }
+
     $nextActionLabel = match (true) {
         $requestIsCancelled => 'No further action required',
         $requestIsCompleted => 'Custody record',
@@ -33,8 +68,8 @@
             </a>
         @else
             <p><span>Next action:</span> {{ $nextActionLabel }}</p>
-            @if($hasOperationalObligation)
-                <a class="button primary ui-pressable request-custody-link" href="{{ route('accountability.index') }}">
+            @if($hasAccountabilityObligation)
+                <a class="button primary ui-pressable request-custody-link" href="{{ $accountabilityUrl }}">
                     Open Accountability
                 </a>
             @else
@@ -45,4 +80,6 @@
         @endif
     </div>
 </section>
+
+
 

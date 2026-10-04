@@ -2771,6 +2771,21 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 .head-status-note-compact span {
     line-height: 1.4;
 }
+
+/* ACCOUNTABILITY SECONDARY BUTTON HOVER CONSISTENCY */
+/*
+ * Preserve the normal appearance of secondary controls.
+ * On hover/focus, white/plain Accountability actions use the standard
+ * interactive blue feedback. Active and disabled controls are excluded.
+ */
+.button.secondary:not(:disabled):not([aria-disabled="true"]):not(.is-active):hover,
+.button.secondary:not(:disabled):not([aria-disabled="true"]):not(.is-active):focus-visible {
+    color: #fff !important;
+    background: var(--interactive) !important;
+    border-color: var(--interactive) !important;
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
 </style>
 
 
@@ -2801,3 +2816,4 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 @endsection
+

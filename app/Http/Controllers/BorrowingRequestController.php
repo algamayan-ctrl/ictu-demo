@@ -457,7 +457,7 @@ class BorrowingRequestController extends Controller
         }
 
         return redirect()
-            ->route('requests.show', $borrowingRequest)
+            ->route('requests.index')
             ->with(
                 'status',
                 'Draft saved. You can continue editing and submit when the required scanned document(s) are complete.'
@@ -797,7 +797,7 @@ class BorrowingRequestController extends Controller
         }
 
         return redirect()
-            ->route('requests.show', $borrowingRequest)
+            ->route('requests.index')
             ->with(
                 'status',
                 'Draft changes saved.'

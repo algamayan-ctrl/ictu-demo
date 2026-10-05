@@ -980,7 +980,7 @@ a.dashboard-kpi-card:focus-visible {
         'ICTU' => [
             'Active Accounts' => ['users', 'success', route('administration.users.index', ['status' => 'active']), 'User accounts currently enabled'],
             'Failed Notifications' => ['notifications', 'danger', route('reports.notifications', ['status' => 'failed']), 'Current delivery failures requiring technical review'],
-            'Pending Verification' => ['email', 'info', route('administration.users.index', ['verification' => 'pending']), 'Institutional accounts awaiting email verification'],
+            'Pending Verification' => ['email', 'info', route('administration.users.index', ['verification' => 'pending']), 'Institutional accounts awaiting OTP email verification'],
             'Inactive Accounts' => ['lock', 'neutral', route('administration.users.index', ['status' => 'inactive']), 'User accounts currently inactive'],
         ],
         default => [],

@@ -31,7 +31,6 @@ class SystemSettingSeeder extends Seeder
             'same_custody_multiple_violations_rule' => [null, 'STRING', 'PENALTY', 'Open for institutional policy confirmation: SAME_OCCURRENCE or SEPARATE_OCCURRENCES when one custody transaction has both a confirmed Late Return and a confirmed Property Accountability violation. Unset leaves the second confirmed matter Policy Pending (no offense number/sanction created) until confirmed.'],
             'max_upload_mb' => [5, 'INTEGER', 'SECURITY', 'Editable evidence and signature upload limit.'],
             'backup_schedule' => ['NOT_FINALIZED', 'STRING', 'ICTU', 'ICTU must finalize before production deployment.'],
-            'email_verification_public_url' => [null, 'STRING', 'ICTU', 'Shared SPMU-ACPMP address used in institutional email verification links so recipients can verify from another device.'],
         ];
     }
 }

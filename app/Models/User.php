@@ -55,8 +55,8 @@ class User extends Authenticatable
     }
 
     /**
-     * The institutional email is trusted only after the recipient has opened
-     * the signed verification link sent to that mailbox.
+     * The institutional email is trusted only after the account holder submits
+     * the valid OTP delivered to that mailbox.
      */
     public function hasVerifiedInstitutionalEmail(): bool
     {

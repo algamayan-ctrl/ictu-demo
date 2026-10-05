@@ -107,7 +107,7 @@ class UserAdministrationController extends Controller
                 ],
                 'account_status' => $data['account_status'],
                 'access_classification' => $classification,
-                // Email remains pending until the recipient opens the signed link.
+                // Email remains pending until the recipient submits the OTP sent to this mailbox.
                 'password' => $data['password'],
             ]);
 
@@ -152,8 +152,8 @@ class UserAdministrationController extends Controller
         return redirect()
             ->route('administration.users.index')
             ->with('status', $sent
-                ? "Account created for {$user->full_name}. A verification link was sent; sign-in remains blocked until verified."
-                : "Account created for {$user->full_name}, but the verification email could not be sent. In ICTU System Configuration, confirm the Verification Address and mail settings, then resend.");
+                ? "Account created for {$user->full_name}. A 6-digit verification OTP was sent; sign-in remains blocked until verified."
+                : "Account created for {$user->full_name}, but the verification OTP could not be sent. Confirm the institutional mail transport, then resend the OTP.");
     }
 
     public function update(
@@ -260,8 +260,8 @@ class UserAdministrationController extends Controller
             return redirect()
                 ->route('administration.users.index')
                 ->with('status', $sent
-                    ? 'Account updated. The changed email must be verified again before sign-in.'
-                    : 'Account updated and its changed email is unverified. Email delivery failed; open Manage to resend.');
+                    ? 'Account updated. A new OTP was sent to the changed email; verification is required again before sign-in.'
+                    : 'Account updated and its changed email is unverified. OTP delivery failed; open Manage to resend the OTP.');
         }
 
         return redirect()
@@ -485,7 +485,7 @@ class UserAdministrationController extends Controller
      * last_login_at checks above.
      */
 
-    /** ICTU recovery action if the first verification email expired or could not be delivered. */
+    /** ICTU recovery action if the previous OTP expired, was exhausted, or could not be delivered. */
     public function resendEmailVerification(
         Request $request,
         User $user,
@@ -509,9 +509,9 @@ class UserAdministrationController extends Controller
 
         return $sent
             ? redirect()->route('administration.users.edit', $user)
-                ->with('status', "A new verification link was sent to {$user->email}.")
+                ->with('status', "A new 6-digit verification OTP was sent to {$user->email}.")
             : redirect()->route('administration.users.edit', $user)
-                ->withErrors(['email_verification' => 'Verification email could not be sent. Confirm the shared Verification Address and mail transport in ICTU System Configuration, then try again.']);
+                ->withErrors(['email_verification' => 'Verification OTP could not be sent. Confirm the institutional mail transport in ICTU System Configuration, then try again.']);
     }
 
     private function form(User $user): View

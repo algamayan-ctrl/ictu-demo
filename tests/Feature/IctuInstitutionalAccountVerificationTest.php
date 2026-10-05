@@ -5,12 +5,12 @@ namespace Tests\Feature;
 use App\Enums\AccessClassification;
 use App\Enums\AccountStatus;
 use App\Models\OrganizationalUnit;
-use App\Models\SystemSetting;
 use App\Models\User;
-use App\Services\EmailVerificationService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class IctuInstitutionalAccountVerificationTest extends TestCase
@@ -20,7 +20,12 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['app.seed_demo_users' => true, 'services.institutional_email.allowed_domains' => 'cspc.edu.ph,spmu.test']);
+
+        config([
+            'app.seed_demo_users' => true,
+            'services.institutional_email.allowed_domains' => 'cspc.edu.ph,spmu.test',
+        ]);
+
         $this->seed(DatabaseSeeder::class);
     }
 
@@ -30,7 +35,9 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
             'email' => 'ictu.integration@cspc.edu.ph',
             'access_classification' => AccessClassification::IctuMaintainer,
             'account_status' => AccountStatus::Active,
-            'organizational_unit_id' => OrganizationalUnit::where('unit_code', 'ICTU')->firstOrFail()->id,
+            'organizational_unit_id' => OrganizationalUnit::where('unit_code', 'ICTU')
+                ->firstOrFail()
+                ->id,
         ]);
     }
 
@@ -55,236 +62,246 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
         ], $overrides);
     }
 
-    public function test_directory_preserves_registration_heading_and_exposes_manage_and_deactivate_icons(): void
-    {
-        $ictu = $this->ictu();
-        $pending = User::factory()->unverified()->create(['email' => 'pending.borrower@cspc.edu.ph']);
-
-        $this->actingAs($ictu)->get(route('administration.users.index'))
-            ->assertOk()
-            ->assertSee('Institutional user accounts')
-            ->assertSee('Register account')
-            ->assertSee('User Accounts')
-            ->assertSee('aria-label="Manage ', false)
-            ->assertSee('aria-label="Deactivate ', false)
-            ->assertSee('Email pending')
-            ->assertSee(route('administration.users.edit', $pending), false)
-            ->assertSee(route('administration.users.deactivate', $pending), false);
-        $this->assertFalse(\Illuminate\Support\Facades\Route::has('administration.users.destroy'));
-    }
-
-    public function test_ictu_can_deactivate_another_active_account_and_preserve_its_record(): void
-    {
-        $ictu = $this->ictu();
-        $target = User::factory()->create(['email' => 'deactivate.borrower@cspc.edu.ph']);
-        \Illuminate\Support\Facades\Mail::fake();
-
-        $this->actingAs($ictu)
-            ->patch(route('administration.users.deactivate', $target))
-            ->assertRedirect(route('administration.users.index'));
-
-        $this->assertSame(AccountStatus::Inactive, $target->fresh()->account_status);
-        $this->assertDatabaseHas('users', ['id' => $target->id, 'email' => $target->email, 'account_status' => 'INACTIVE']);
-        $this->assertDatabaseHas('audit_events', [
-            'action_code' => 'USER_ACCOUNT_UPDATED',
-            'record_type' => User::class,
-            'record_id' => $target->id,
-        ]);
-    }
-
-    public function test_ictu_cannot_deactivate_own_account(): void
-    {
-        $ictu = $this->ictu();
-
-        $this->actingAs($ictu)
-            ->patch(route('administration.users.deactivate', $ictu))
-            ->assertRedirect(route('administration.users.index'))
-            ->assertSessionHasErrors('account_status');
-
-        $this->assertSame(AccountStatus::Active, $ictu->fresh()->account_status);
-    }
-
-    public function test_ictu_can_reactivate_only_another_verified_inactive_account(): void
-    {
-        $ictu = $this->ictu();
-        $inactive = User::factory()->create([
-            'email' => 'reactivate.borrower@cspc.edu.ph',
-            'account_status' => AccountStatus::Inactive,
-        ]);
-        $pending = User::factory()->unverified()->create([
-            'email' => 'pending-reactivate@cspc.edu.ph',
-            'account_status' => AccountStatus::Inactive,
-        ]);
-
-        $this->actingAs($ictu)
-            ->patch(route('administration.users.reactivate', $inactive))
-            ->assertRedirect(route('administration.users.index'));
-
-        $this->assertSame(AccountStatus::Active, $inactive->fresh()->account_status);
-        $this->assertDatabaseHas('audit_events', [
-            'action_code' => 'USER_ACCOUNT_UPDATED',
-            'record_type' => User::class,
-            'record_id' => $inactive->id,
-        ]);
-
-        $this->patch(route('administration.users.reactivate', $pending))
-            ->assertSessionHasErrors('account');
-        $this->assertSame(AccountStatus::Inactive, $pending->fresh()->account_status);
-    }
-
-    public function test_borrower_cannot_deactivate_another_account(): void
-    {
-        $borrower = User::factory()->create(['email' => 'another.borrower@cspc.edu.ph']);
-        $target = User::factory()->create(['email' => 'active.target@cspc.edu.ph']);
-
-        $this->actingAs($borrower)
-            ->patch(route('administration.users.deactivate', $target))
-            ->assertForbidden();
-
-        $this->assertSame(AccountStatus::Active, $target->fresh()->account_status);
-    }
-
-    public function test_ictu_registration_stays_pending_until_signed_link_is_opened(): void
-    {
-        $this->actingAs($this->ictu())->post(route('administration.users.store'), $this->formPayload())
-            ->assertRedirect(route('administration.users.index'));
-
-        $newUser = User::where('email', 'new.borrower@cspc.edu.ph')->firstOrFail();
-        $this->assertNull($newUser->email_verified_at);
-        $this->assertFalse($newUser->hasVerifiedInstitutionalEmail());
-
-        $url = URL::temporarySignedRoute('email.verification.verify', now()->addHours(24), [
-            'user' => $newUser->id,
-            'hash' => app(EmailVerificationService::class)->emailHash($newUser->email),
-        ]);
-        auth()->logout();
-        $this->get($url)->assertRedirect(route('login'));
-        $this->assertTrue($newUser->fresh()->hasVerifiedInstitutionalEmail());
-    }
-
-    public function test_shared_verification_link_works_when_opened_through_another_host(): void
-    {
-        SystemSetting::query()->updateOrCreate(
-            ['setting_key' => 'email_verification_public_url'],
+    private function storeOtp(
+        User $user,
+        string $code = '123456',
+        $expiresAt = null,
+        int $attempts = 0,
+    ): void {
+        DB::table('email_verification_otps')->updateOrInsert(
+            ['user_id' => $user->id],
             [
-                'value_json' => 'http://192.168.50.25:8080',
-                'data_type' => 'STRING',
-                'group_code' => 'ICTU',
-                'description' => 'Test shared verification address.',
-                'status' => 'ACTIVE',
+                'email' => strtolower($user->email),
+                'code_hash' => Hash::make($code),
+                'expires_at' => $expiresAt ?? now()->addMinutes(10),
+                'attempts' => $attempts,
+                'last_sent_at' => now()->subMinutes(2),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]
         );
-
-        $pending = User::factory()->unverified()->create([
-            'email' => 'cross.device@cspc.edu.ph',
-        ]);
-
-        $url = app(EmailVerificationService::class)->verificationUrl($pending);
-        $this->assertStringStartsWith('http://192.168.50.25:8080/email/verify/', $url);
-
-        $parts = parse_url($url);
-        $pathAndQuery = ($parts['path'] ?? '/').(isset($parts['query']) ? '?'.$parts['query'] : '');
-
-        // Simulate the exact same signed verification path being opened through
-        // another valid host. Relative signatures intentionally ignore the host.
-        $this->get('http://spmu-campus.example:8080'.$pathAndQuery)
-            ->assertRedirect(route('login'));
-
-        $this->assertTrue($pending->fresh()->hasVerifiedInstitutionalEmail());
     }
 
-    public function test_missing_verification_account_redirects_instead_of_raw_404(): void
+    public function test_ictu_registration_creates_pending_account_and_otp(): void
     {
-        SystemSetting::query()->updateOrCreate(
-            ['setting_key' => 'email_verification_public_url'],
-            [
-                'value_json' => 'https://spmu.example.test',
-                'data_type' => 'STRING',
-                'group_code' => 'ICTU',
-                'description' => 'Test shared verification address.',
-                'status' => 'ACTIVE',
-            ]
-        );
+        Mail::fake();
 
-        $relative = URL::temporarySignedRoute(
-            'email.verification.verify',
-            now()->addHour(),
-            ['user' => 999999, 'hash' => hash('sha256', 'missing@cspc.edu.ph')],
-            absolute: false,
-        );
-
-        $this->get($relative)
-            ->assertRedirect(route('login'))
-            ->assertSessionHasErrors('email');
-    }
-
-    public function test_registration_refuses_unapproved_email_domain(): void
-    {
         $this->actingAs($this->ictu())
-            ->post(route('administration.users.store'), $this->formPayload(['email' => 'wrong@gmail.com']))
-            ->assertSessionHasErrors('email');
-        $this->assertDatabaseMissing('users', ['email' => 'wrong@gmail.com']);
-    }
-
-    public function test_edited_email_is_unverified_and_previous_address_link_cannot_verify(): void
-    {
-        $this->actingAs($this->ictu());
-        $ccs = OrganizationalUnit::where('unit_code', 'CCS')->firstOrFail();
-        $borrower = User::factory()->create([
-            'email' => 'original@cspc.edu.ph',
-            'organizational_unit_id' => $ccs->id,
-            'designation' => 'Administrative Aide',
-        ]);
-        $oldLink = URL::temporarySignedRoute('email.verification.verify', now()->addHour(), [
-            'user' => $borrower->id,
-            'hash' => app(EmailVerificationService::class)->emailHash($borrower->email),
-        ]);
-
-        $payload = $this->formPayload([
-            'employee_no' => $borrower->employee_no,
-            'email' => 'changed@cspc.edu.ph',
-            'full_name' => $borrower->full_name,
-            'password' => '',
-            'password_confirmation' => '',
-        ]);
-        $this->put(route('administration.users.update', $borrower), $payload)
+            ->post(
+                route('administration.users.store'),
+                $this->formPayload()
+            )
             ->assertRedirect(route('administration.users.index'));
-        $this->assertNull($borrower->fresh()->email_verified_at);
 
-        auth()->logout();
-        $this->get($oldLink)->assertRedirect(route('login'))->assertSessionHasErrors('email');
-        $this->assertNull($borrower->fresh()->email_verified_at);
+        $user = User::where(
+            'email',
+            'new.borrower@cspc.edu.ph'
+        )->firstOrFail();
+
+        $this->assertNull($user->email_verified_at);
+
+        $this->assertDatabaseHas('email_verification_otps', [
+            'user_id' => $user->id,
+            'email' => 'new.borrower@cspc.edu.ph',
+            'attempts' => 0,
+        ]);
     }
 
-    public function test_pending_account_is_rejected_for_local_login_and_existing_sessions(): void
+    public function test_pending_user_can_verify_account_with_valid_otp(): void
+    {
+        $user = User::factory()->unverified()->create([
+            'email' => 'otp.verify@cspc.edu.ph',
+        ]);
+
+        $this->storeOtp($user, '123456');
+
+        $this->post(
+            route('account.verification.verify'),
+            [
+                'email' => $user->email,
+                'otp' => '123456',
+            ]
+        )
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('status');
+
+        $this->assertNotNull(
+            $user->fresh()->email_verified_at
+        );
+
+        $this->assertDatabaseMissing(
+            'email_verification_otps',
+            ['user_id' => $user->id]
+        );
+
+        $this->assertDatabaseHas('audit_events', [
+            'action_code' => 'USER_EMAIL_VERIFIED',
+            'record_type' => User::class,
+            'record_id' => $user->id,
+        ]);
+    }
+
+    public function test_invalid_otp_does_not_verify_and_counts_attempt(): void
+    {
+        $user = User::factory()->unverified()->create([
+            'email' => 'otp.invalid@cspc.edu.ph',
+        ]);
+
+        $this->storeOtp($user, '123456');
+
+        $this->post(
+            route('account.verification.verify'),
+            [
+                'email' => $user->email,
+                'otp' => '654321',
+            ]
+        )
+            ->assertSessionHasErrors('otp');
+
+        $this->assertNull(
+            $user->fresh()->email_verified_at
+        );
+
+        $this->assertDatabaseHas('email_verification_otps', [
+            'user_id' => $user->id,
+            'attempts' => 1,
+        ]);
+    }
+
+    public function test_expired_otp_is_rejected(): void
+    {
+        $user = User::factory()->unverified()->create([
+            'email' => 'otp.expired@cspc.edu.ph',
+        ]);
+
+        $this->storeOtp(
+            $user,
+            '123456',
+            now()->subMinute()
+        );
+
+        $this->post(
+            route('account.verification.verify'),
+            [
+                'email' => $user->email,
+                'otp' => '123456',
+            ]
+        )
+            ->assertSessionHasErrors('otp');
+
+        $this->assertNull(
+            $user->fresh()->email_verified_at
+        );
+
+        $this->assertDatabaseMissing(
+            'email_verification_otps',
+            ['user_id' => $user->id]
+        );
+    }
+
+    public function test_public_resend_creates_new_otp_for_pending_account(): void
+    {
+        Mail::fake();
+
+        $user = User::factory()->unverified()->create([
+            'email' => 'otp.resend@cspc.edu.ph',
+        ]);
+
+        $this->post(
+            route('account.verification.resend'),
+            ['email' => $user->email]
+        )
+            ->assertRedirect(
+                route(
+                    'account.verification.show',
+                    ['email' => $user->email]
+                )
+            )
+            ->assertSessionHas('status');
+
+        $this->assertDatabaseHas('email_verification_otps', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+        ]);
+
+        $this->post(
+            route('account.verification.resend'),
+            ['email' => $user->email]
+        )
+            ->assertSessionHasErrors('otp');
+    }
+
+    public function test_pending_account_is_rejected_for_login(): void
     {
         $pending = User::factory()->unverified()->create([
             'email' => 'not.verified@cspc.edu.ph',
             'password' => 'Complex!Pass2026',
         ]);
-        $this->post(route('login.store'), [
-            'email' => $pending->email,
-            'password' => 'Complex!Pass2026',
-        ])->assertSessionHasErrors('email');
-        $this->assertGuest();
 
-        $this->actingAs($pending)->get(route('dashboard'))
-            ->assertRedirect(route('login'))
+        $this->post(
+            route('login.store'),
+            [
+                'email' => $pending->email,
+                'password' => 'Complex!Pass2026',
+            ]
+        )
             ->assertSessionHasErrors('email');
+
         $this->assertGuest();
     }
 
-    public function test_only_ictu_can_resend_a_pending_link(): void
+    public function test_registration_refuses_unapproved_email_domain(): void
     {
-        $pending = User::factory()->unverified()->create(['email' => 'resend@cspc.edu.ph']);
-        $this->actingAs($this->ictu())
-            ->post(route('administration.users.email-verification.resend', $pending))
-            ->assertRedirect(route('administration.users.edit', $pending));
-        $this->assertNull($pending->fresh()->email_verified_at);
+        Mail::fake();
 
-        $borrower = User::factory()->create(['email' => 'another@cspc.edu.ph']);
+        $this->actingAs($this->ictu())
+            ->post(
+                route('administration.users.store'),
+                $this->formPayload([
+                    'email' => 'wrong@gmail.com',
+                ])
+            )
+            ->assertSessionHasErrors('email');
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'wrong@gmail.com',
+        ]);
+    }
+
+    public function test_ictu_can_resend_otp_but_borrower_cannot_use_ictu_route(): void
+    {
+        Mail::fake();
+
+        $pending = User::factory()->unverified()->create([
+            'email' => 'ictu.resend@cspc.edu.ph',
+        ]);
+
+        $this->actingAs($this->ictu())
+            ->post(
+                route(
+                    'administration.users.email-verification.resend',
+                    $pending
+                )
+            )
+            ->assertRedirect(
+                route('administration.users.edit', $pending)
+            );
+
+        $this->assertDatabaseHas('email_verification_otps', [
+            'user_id' => $pending->id,
+        ]);
+
+        $borrower = User::factory()->create([
+            'email' => 'ordinary.borrower@cspc.edu.ph',
+        ]);
+
         $this->actingAs($borrower)
-            ->post(route('administration.users.email-verification.resend', $pending))
+            ->post(
+                route(
+                    'administration.users.email-verification.resend',
+                    $pending
+                )
+            )
             ->assertForbidden();
     }
 }

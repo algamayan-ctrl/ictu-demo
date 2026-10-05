@@ -2,55 +2,75 @@
 
 namespace App\Services;
 
-use App\Models\SystemSetting;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Mail\Message;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\URL;
-use RuntimeException;
 use Throwable;
 
 /**
- * Handles verification of the institutional email stored on a local account.
+ * Handles institutional mailbox ownership verification using a short-lived OTP.
  *
- * Account registration by ICTU creates the local identity only. Ownership of
- * the email address is proven separately when the recipient opens a temporary
- * signed link delivered to that mailbox.
+ * ICTU remains responsible for account creation, role assignment, organizational
+ * assignment, and account status. The OTP proves only that the account holder
+ * can access the CSPC institutional mailbox recorded by ICTU.
  */
 class EmailVerificationService
 {
-    private const VERIFICATION_LINK_HOURS = 24;
+    public const RESULT_VERIFIED = 'VERIFIED';
+    public const RESULT_ALREADY_VERIFIED = 'ALREADY_VERIFIED';
+    public const RESULT_INVALID = 'INVALID';
+    public const RESULT_EXPIRED = 'EXPIRED';
+    public const RESULT_LOCKED = 'LOCKED';
+    public const RESULT_MISSING = 'MISSING';
+
+    private const OTP_MINUTES = 10;
+    private const MAX_ATTEMPTS = 5;
+    private const RESEND_COOLDOWN_SECONDS = 60;
 
     /**
-     * Send a temporary signed verification link to the user's current email.
-     *
-     * A mail transport accepting the message is not treated as proof that the
-     * mailbox exists. The account becomes verified only after the signed link
-     * is opened successfully by the recipient.
+     * Generate a new six-digit OTP and deliver it through the configured mail
+     * transport. The raw OTP is never stored in the database or application log.
      */
     public function send(User $user): bool
     {
         if ($user->hasVerifiedInstitutionalEmail()) {
+            $this->invalidate($user);
+
             return true;
         }
 
-        try {
-            $verificationUrl = $this->verificationUrl($user);
-        } catch (Throwable $exception) {
-            Log::warning('SPMU-ACPMP institutional email verification link could not be generated.', [
-                'user_id' => $user->getKey(),
-                'email' => $user->email,
-                'exception' => $exception::class,
-                'message' => $exception->getMessage(),
-            ]);
+        $code = str_pad(
+            (string) random_int(0, 999999),
+            6,
+            '0',
+            STR_PAD_LEFT
+        );
 
-            return false;
-        }
+        $email = strtolower(trim((string) $user->email));
+        $codeHash = Hash::make($code);
+        $sentAt = now();
+        $expiresAt = $sentAt->copy()->addMinutes(self::OTP_MINUTES);
+
+        DB::table('email_verification_otps')->updateOrInsert(
+            ['user_id' => $user->getKey()],
+            [
+                'email' => $email,
+                'code_hash' => $codeHash,
+                'expires_at' => $expiresAt,
+                'attempts' => 0,
+                'last_sent_at' => $sentAt,
+                'created_at' => $sentAt,
+                'updated_at' => $sentAt,
+            ]
+        );
 
         $recipientName = e($user->full_name ?: 'CSPC User');
-        $safeUrl = e($verificationUrl);
-        $expiration = self::VERIFICATION_LINK_HOURS;
+        $safeCode = e($code);
+        $expiration = self::OTP_MINUTES;
 
         $html = <<<HTML
 <!doctype html>
@@ -58,13 +78,14 @@ class EmailVerificationService
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Verify your CSPC email</title>
+    <title>Your SPMU-ACPMP verification code</title>
 </head>
 <body style="margin:0;padding:0;background:#f4f7fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
         <tr>
             <td align="center" style="padding:32px 16px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:680px;background:#ffffff;border:1px solid #dde6f0;border-radius:12px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                       style="max-width:680px;background:#ffffff;border:1px solid #dde6f0;border-radius:12px;">
                     <tr>
                         <td style="padding:28px 32px;border-bottom:3px solid #0b2854;">
                             <div style="font-size:26px;font-weight:800;color:#0b2854;">SPMU-ACPMP</div>
@@ -74,18 +95,31 @@ class EmailVerificationService
                     <tr>
                         <td style="padding:30px 32px;">
                             <h1 style="margin:0 0 18px;font-size:24px;color:#102a43;">Verify your CSPC email address</h1>
-                            <p style="margin:0 0 16px;font-size:15px;line-height:1.7;">Dear {$recipientName},</p>
+
+                            <p style="margin:0 0 16px;font-size:15px;line-height:1.7;">
+                                Dear {$recipientName},
+                            </p>
+
                             <p style="margin:0 0 22px;font-size:15px;line-height:1.7;">
-                                ICTU registered an SPMU-ACPMP account using this email address. Confirm that you can receive mail at this address before the account is allowed to enter the system.
+                                ICTU registered an SPMU-ACPMP account using this institutional email address.
+                                Enter the verification code below in SPMU-ACPMP to confirm mailbox ownership.
                             </p>
-                            <p style="margin:0 0 24px;">
-                                <a href="{$safeUrl}" style="display:inline-block;padding:12px 18px;background:#1769e0;color:#ffffff;text-decoration:none;font-weight:700;border-radius:8px;">Verify CSPC Email</a>
-                            </p>
+
+                            <div style="margin:0 0 22px;padding:18px 20px;background:#eef5ff;border:1px solid #cfe1fb;border-radius:10px;text-align:center;">
+                                <div style="font-size:12px;font-weight:700;letter-spacing:.08em;color:#60758d;text-transform:uppercase;">
+                                    Verification Code
+                                </div>
+                                <div style="margin-top:8px;font-size:34px;font-weight:800;letter-spacing:8px;color:#0b2854;">
+                                    {$safeCode}
+                                </div>
+                            </div>
+
                             <p style="margin:0 0 12px;font-size:14px;line-height:1.65;color:#486581;">
-                                This verification link expires in {$expiration} hours and is valid only for the email address currently recorded by ICTU.
+                                This code expires in {$expiration} minutes. Do not share this code with anyone.
                             </p>
+
                             <p style="margin:0;font-size:14px;line-height:1.65;color:#486581;">
-                                If you were not expecting this account, do not open the link and contact ICTU.
+                                If you were not expecting this account, ignore this message and contact ICTU.
                             </p>
                         </td>
                     </tr>
@@ -101,17 +135,24 @@ HTML;
             Mail::html($html, function (Message $mail) use ($user): void {
                 $mail
                     ->to((string) $user->email)
-                    ->subject('[SPMU-ACPMP] Verify your CSPC email address');
+                    ->subject('[SPMU-ACPMP] Your account verification code');
             });
 
-            Log::info('SPMU-ACPMP institutional email verification message accepted by mail transport.', [
+            Log::info('SPMU-ACPMP institutional email verification OTP accepted by mail transport.', [
                 'user_id' => $user->getKey(),
                 'email' => $user->email,
+                'expires_in_minutes' => self::OTP_MINUTES,
             ]);
 
             return true;
         } catch (Throwable $exception) {
-            Log::warning('SPMU-ACPMP institutional email verification delivery failed.', [
+            /*
+             * Do not leave an OTP active when the mail transport rejected the
+             * message. ICTU/user may request a fresh code after mail is fixed.
+             */
+            $this->invalidate($user);
+
+            Log::warning('SPMU-ACPMP institutional email verification OTP delivery failed.', [
                 'user_id' => $user->getKey(),
                 'email' => $user->email,
                 'exception' => $exception::class,
@@ -123,115 +164,122 @@ HTML;
     }
 
     /**
-     * Build a verification URL that is safe to open from another device.
+     * Verify one OTP challenge.
      *
-     * The signature deliberately covers only the path/query. The host is
-     * supplied separately by the shared SPMU-ACPMP address, so the token does
-     * not become invalid merely because the recipient opens the message on a
-     * different laptop, phone, tablet, or browser.
+     * The challenge is bound to both the local user id and the exact email that
+     * was current when the OTP was generated. Changing the ICTU-recorded email
+     * therefore invalidates every previously generated code.
      */
-    public function verificationUrl(User $user): string
+    public function verify(User $user, string $code): string
     {
-        $relativeUrl = URL::temporarySignedRoute(
-            'email.verification.verify',
-            now()->addHours(self::VERIFICATION_LINK_HOURS),
-            [
-                'user' => $user->getKey(),
-                // Binding the current email to the link automatically makes an
-                // older link unusable after ICTU changes the account email.
-                'hash' => $this->emailHash((string) $user->email),
-            ],
-            absolute: false,
-        );
+        if ($user->hasVerifiedInstitutionalEmail()) {
+            $this->invalidate($user);
 
-        return $this->verificationBaseUrl().'/'.ltrim($relativeUrl, '/');
+            return self::RESULT_ALREADY_VERIFIED;
+        }
+
+        return DB::transaction(function () use ($user, $code): string {
+            $account = User::query()
+                ->lockForUpdate()
+                ->find($user->getKey());
+
+            if (! $account) {
+                return self::RESULT_MISSING;
+            }
+
+            if ($account->hasVerifiedInstitutionalEmail()) {
+                $this->invalidate($account);
+
+                return self::RESULT_ALREADY_VERIFIED;
+            }
+
+            $challenge = DB::table('email_verification_otps')
+                ->where('user_id', $account->getKey())
+                ->lockForUpdate()
+                ->first();
+
+            if (! $challenge) {
+                return self::RESULT_MISSING;
+            }
+
+            $currentEmail = strtolower(trim((string) $account->email));
+            $challengeEmail = strtolower(trim((string) $challenge->email));
+
+            if (! hash_equals($currentEmail, $challengeEmail)) {
+                DB::table('email_verification_otps')
+                    ->where('user_id', $account->getKey())
+                    ->delete();
+
+                return self::RESULT_MISSING;
+            }
+
+            if (Carbon::parse($challenge->expires_at)->isPast()) {
+                DB::table('email_verification_otps')
+                    ->where('user_id', $account->getKey())
+                    ->delete();
+
+                return self::RESULT_EXPIRED;
+            }
+
+            $attempts = (int) $challenge->attempts;
+
+            if ($attempts >= self::MAX_ATTEMPTS) {
+                return self::RESULT_LOCKED;
+            }
+
+            if (! Hash::check($code, (string) $challenge->code_hash)) {
+                $attempts++;
+
+                DB::table('email_verification_otps')
+                    ->where('user_id', $account->getKey())
+                    ->update([
+                        'attempts' => $attempts,
+                        'updated_at' => now(),
+                    ]);
+
+                return $attempts >= self::MAX_ATTEMPTS
+                    ? self::RESULT_LOCKED
+                    : self::RESULT_INVALID;
+            }
+
+            $account->markInstitutionalEmailAsVerified();
+
+            DB::table('email_verification_otps')
+                ->where('user_id', $account->getKey())
+                ->delete();
+
+            return self::RESULT_VERIFIED;
+        });
+    }
+
+    public function invalidate(User $user): void
+    {
+        DB::table('email_verification_otps')
+            ->where('user_id', $user->getKey())
+            ->delete();
     }
 
     /**
-     * Resolve the one shared SPMU-ACPMP address used in outgoing verification
-     * emails. Loopback hosts are intentionally rejected because localhost and
-     * 127.0.0.1 always point to the device that clicked the email, not to the
-     * central SPMU-ACPMP server.
+     * Prevent repeated self-service resend clicks from generating a new code
+     * every few seconds. Route throttling remains an additional protection.
      */
-    public function verificationBaseUrl(): string
+    public function secondsUntilResendAllowed(User $user): int
     {
-        $candidates = [];
+        $lastSentAt = DB::table('email_verification_otps')
+            ->where('user_id', $user->getKey())
+            ->value('last_sent_at');
 
-        // ICTU may configure the shared address once in System Configuration.
-        try {
-            $candidates[] = SystemSetting::value('email_verification_public_url');
-        } catch (Throwable) {
-            // Installation/migration may not have created system_settings yet.
+        if (! $lastSentAt) {
+            return 0;
         }
 
-        // Deployment-level override remains available for managed hosting.
-        $candidates[] = config('services.institutional_email.verification_base_url');
+        $availableAt = Carbon::parse($lastSentAt)
+            ->addSeconds(self::RESEND_COOLDOWN_SECONDS);
 
-        // A proper canonical APP_URL is preferred in production deployments.
-        $appUrl = config('app.url');
-        if (app()->environment('production')) {
-            $candidates[] = $appUrl;
-        }
-
-        // For LAN/demo use, opening SPMU through its shared IP/domain is enough;
-        // the current non-loopback request root becomes the outgoing email host.
-        if (app()->bound('request')) {
-            try {
-                $candidates[] = request()->root();
-            } catch (Throwable) {
-                // No active HTTP request (for example, a console process).
-            }
-        }
-
-        // Local installations with an explicitly non-loopback APP_URL can use it.
-        if (! app()->environment('production')) {
-            $candidates[] = $appUrl;
-        }
-
-        foreach ($candidates as $candidate) {
-            $normalized = $this->normalizeReachableBaseUrl($candidate);
-            if ($normalized !== null) {
-                return $normalized;
-            }
-        }
-
-        throw new RuntimeException(
-            'A shared SPMU-ACPMP verification address is not configured. Set Email Verification Address in ICTU System Configuration or use a non-loopback APP_URL.'
+        return max(
+            0,
+            $availableAt->timestamp - now()->timestamp
         );
-    }
-
-    private function normalizeReachableBaseUrl(mixed $value): ?string
-    {
-        if (! is_string($value)) {
-            return null;
-        }
-
-        $url = trim($value);
-        if ($url === '') {
-            return null;
-        }
-
-        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
-        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
-
-        if (! in_array($scheme, ['http', 'https'], true) || $host === '') {
-            return null;
-        }
-
-        if (in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
-            return null;
-        }
-
-        return rtrim($url, '/');
-    }
-
-    /**
-     * Hash used inside the signed URL so changing the stored email invalidates
-     * every verification link that was generated for the previous address.
-     */
-    public function emailHash(string $email): string
-    {
-        return hash('sha256', strtolower(trim($email)));
     }
 
     /**
@@ -242,19 +290,26 @@ HTML;
         $allowedDomains = $this->allowedDomains();
 
         if ($allowedDomains === []) {
-            // A missing policy must not permit arbitrary personal domains.
             return false;
         }
 
-        $domain = strtolower((string) substr(strrchr(trim($email), '@') ?: '', 1));
+        $domain = strtolower(
+            (string) substr(strrchr(trim($email), '@') ?: '', 1)
+        );
 
-        return $domain !== '' && in_array($domain, $allowedDomains, true);
+        return $domain !== ''
+            && in_array($domain, $allowedDomains, true);
     }
 
     /** @return list<string> */
     public function allowedDomains(): array
     {
-        return collect(explode(',', (string) config('services.institutional_email.allowed_domains')))
+        return collect(
+            explode(
+                ',',
+                (string) config('services.institutional_email.allowed_domains')
+            )
+        )
             ->map(fn (string $domain) => strtolower(trim(ltrim($domain, '@'))))
             ->filter()
             ->unique()

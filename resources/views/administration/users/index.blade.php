@@ -159,7 +159,7 @@
                             @if($user->hasVerifiedInstitutionalEmail())
                                 <x-status-badge status="EMAIL_VERIFIED" label="Email verified" />
                             @else
-                                <x-status-badge status="EMAIL_PENDING" label="Email pending" />
+                                <x-status-badge status="EMAIL_PENDING" label="OTP pending" />
                             @endif
                             @if($isRestricted)
                                 <x-status-badge status="BORROWING_RESTRICTED" />

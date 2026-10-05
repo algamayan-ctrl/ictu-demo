@@ -32,7 +32,7 @@
                 <div class="ictu-identity-heading-row">
                     <h2 id="ictu-identity-heading">Account Identity</h2>
                     @if($user->exists && !$user->hasVerifiedInstitutionalEmail())
-                        <span class="ictu-email-verification-status">Pending verification</span>
+                        <span class="ictu-email-verification-status">Pending OTP verification</span>
                     @endif
                 </div>
                 <p>{{ $user->exists ? 'Saved official account details are loaded automatically.' : 'Enter the employee\'s official CSPC account details.' }}</p>
@@ -57,12 +57,12 @@
                     <div class="ictu-email-label-row">
                         <label for="ictu-official-email">Official CSPC email</label>
                         @if($user->exists && !$user->hasVerifiedInstitutionalEmail())
-                            <button type="submit" form="ictu-resend-email-verification-form" class="ictu-email-verification-link" title="Send a verification link to the currently saved email address: {{ $user->email }}">
+                            <button type="submit" form="ictu-resend-email-verification-form" class="ictu-email-verification-link" title="Send a new 6-digit OTP to the currently saved email address: {{ $user->email }}">
                                 <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">
                                     <rect x="3" y="5" width="18" height="14" rx="2"></rect>
                                     <path d="M3 7l9 6 9-6"></path>
                                 </svg>
-                                <span>Send verification link</span>
+                                <span>Send OTP</span>
                             </button>
                         @endif
                     </div>
@@ -72,9 +72,9 @@
                            @if(!$user->exists) readonly onfocus="this.removeAttribute('readonly')" onpointerdown="this.removeAttribute('readonly')" @endif required>
                     @error('email') <small class="field-error">{{ $message }}</small> @enderror
                     @if(!$user->exists)
-                        <small class="field-note">A verification link is sent automatically after saving. Sign-in remains blocked until verification.</small>
+                        <small class="field-note">A 6-digit OTP is sent automatically after saving. Sign-in remains blocked until the user verifies the registered CSPC email.</small>
                     @elseif($user->hasVerifiedInstitutionalEmail())
-                        <small class="field-note">Email verified {{ $user->email_verified_at?->format('M j, Y g:i A') }}. Changing the email requires verification again.</small>
+                        <small class="field-note">Email verified {{ $user->email_verified_at?->format('M j, Y g:i A') }}. Changing the email requires a new OTP verification.</small>
                     @endif
                 </div>
             </div>
@@ -493,7 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const deleteButton = document.getElementById('ictu-delete-pending-registration-button');
     deleteButton?.addEventListener('click', event => {
-        if (!window.confirm('Delete this pending or unverified account? This cannot be undone. If the mailbox is valid but mistyped, editing the email and resending verification is safer.')) {
+        if (!window.confirm('Delete this pending or unverified account? This cannot be undone. If the mailbox is valid but mistyped, editing the email and sending a new OTP is safer.')) {
             event.preventDefault();
         }
     });

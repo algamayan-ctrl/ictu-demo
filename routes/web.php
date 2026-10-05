@@ -36,12 +36,23 @@ Route::get('/', function () {
     return view('welcome');
  })->name('home');
 
-// Public: pending users cannot be required to sign in to verify a mailbox.
-Route::get('/email/verify/{user}/{hash}', [EmailVerificationController::class, 'verify'])
-    ->middleware('throttle:10,1')
-    ->name('email.verification.verify');
-
 Route::middleware('guest')->group(function (): void {
+    /*
+     * Pending institutional accounts verify mailbox ownership by OTP.
+     * ICTU creates the account; the account holder supplies only the code
+     * delivered to the registered CSPC email address.
+     */
+    Route::get('/account/verify', [EmailVerificationController::class, 'create'])
+        ->name('account.verification.show');
+
+    Route::post('/account/verify', [EmailVerificationController::class, 'verify'])
+        ->middleware('throttle:10,1')
+        ->name('account.verification.verify');
+
+    Route::post('/account/verify/resend', [EmailVerificationController::class, 'resend'])
+        ->middleware('throttle:3,1')
+        ->name('account.verification.resend');
+
     Route::get('/login', [LoginController::class, 'create'])
         ->name('login');
 
@@ -669,7 +680,7 @@ Route::middleware(['auth', 'active', 'verified-email'])->group(function (): void
             Route::resource('users', UserAdministrationController::class)
                 ->except(['show', 'destroy']);
 
-            Route::post('/users/{user}/resend-email-verification', [UserAdministrationController::class, 'resendEmailVerification'])
+            Route::post('/users/{user}/resend-email-verification-otp', [UserAdministrationController::class, 'resendEmailVerification'])
                 ->middleware('throttle:5,1')
                 ->name('users.email-verification.resend');
 

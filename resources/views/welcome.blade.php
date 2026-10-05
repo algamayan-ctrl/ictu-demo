@@ -685,6 +685,13 @@
         <div class="landing-container landing-hero-grid">
             <div class="landing-login-slot login-page" id="landing-login">
                 @include('auth.partials.login-card')
+
+<div style="width:min(100%,420px);margin:10px auto 0;text-align:center;font-size:11px;">
+    <a href="{{ route('account.verification.show') }}"
+       style="color:#1769e0;font-weight:700;text-decoration:none;">
+        Pending account verification? Verify with OTP
+    </a>
+</div>
             </div>
         </div>
 

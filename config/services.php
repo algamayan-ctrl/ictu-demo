@@ -56,7 +56,6 @@ return [
             'INSTITUTIONAL_EMAIL_DOMAINS',
             env('APP_ENV') === 'production' ? 'cspc.edu.ph' : 'cspc.edu.ph,spmu.test'
         ),
-        'verification_base_url' => env('EMAIL_VERIFICATION_BASE_URL'),
     ],
 
 ];

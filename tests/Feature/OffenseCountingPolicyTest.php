@@ -15,6 +15,7 @@ use App\Models\InventoryItem;
 use App\Models\OrganizationalUnit;
 use App\Models\RequestItem;
 use App\Models\RequestVersion;
+use App\Models\ReturnTransaction;
 use App\Models\Sanction;
 use App\Models\SystemSetting;
 use App\Models\UnitOfMeasure;
@@ -315,6 +316,45 @@ class OffenseCountingPolicyTest extends TestCase
 
         $this->assertSame(1, $sanction->offense_no);
         $this->assertSame('WRITTEN_REPRIMAND', $sanction->sanction_code);
+    }
+
+    public function test_repeated_late_return_detection_keeps_the_existing_sanction(): void
+    {
+        $borrower = $this->borrower();
+        $custody = $this->custodyFor($borrower);
+        $return = ReturnTransaction::query()->create([
+            'return_no' => 'RET-OFFCNT-'.fake()->unique()->numberBetween(1000, 9999),
+            'custody_transaction_id' => $custody->id,
+            'received_by_user_id' => $this->head->id,
+            'return_type' => 'OVERDUE',
+            'received_at' => now(),
+            'status' => 'INSPECTED',
+        ]);
+        $policy = app(PolicyService::class);
+
+        $detected = $policy->detectFromConfirmedReturn($custody, $return, $this->head);
+        $sanction = $policy->autoConfirmLateReturnViolation(
+            $detected['late_return'],
+            $this->head
+        );
+
+        $this->assertNotNull($sanction);
+        $this->assertSame('CONFIRMED', $detected['late_return']->fresh()->status);
+
+        // A later return branch can run detection again for this custody. It
+        // must preserve the completed violation and its one-to-one sanction.
+        $redetected = $policy->detectFromConfirmedReturn($custody, $return, $this->head);
+
+        $this->assertSame($detected['late_return']->id, $redetected['late_return']->id);
+        $this->assertSame('CONFIRMED', $redetected['late_return']->status);
+
+        $reused = $policy->autoConfirmLateReturnViolation(
+            $redetected['late_return'],
+            $this->head
+        );
+
+        $this->assertSame($sanction->id, $reused?->id);
+        $this->assertDatabaseCount('sanctions', 1);
     }
 
     /* ------------------------------------------------------------------ */

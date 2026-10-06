@@ -158,7 +158,16 @@ class PolicyService
         array $reasons,
         array $dateDetails
     ): BorrowerViolation {
-        $violation = BorrowerViolation::query()->updateOrCreate(
+        /*
+         * Detection may run more than once for the same custody (for example,
+         * when its non-linen and linen return branches are recorded
+         * separately). A violation becomes a historical case once it has
+         * been reviewed, so a later detection must never reset it to
+         * PENDING_REVIEW or clear the review metadata. Resetting it made the
+         * automatic confirmation path try to insert a second, one-to-one
+         * Sanction for the same violation.
+         */
+        $violation = BorrowerViolation::query()->firstOrCreate(
             [
                 'custody_transaction_id' => $custody->id,
                 'violation_code' => 'BORROWING_VIOLATION',
@@ -177,11 +186,13 @@ class PolicyService
             ]
         );
 
-        $this->audit->record(
-            'BORROWING_VIOLATION_DETECTED',
-            $violation,
-            after: $violation->details_json
-        );
+        if ($violation->wasRecentlyCreated) {
+            $this->audit->record(
+                'BORROWING_VIOLATION_DETECTED',
+                $violation,
+                after: $violation->details_json
+            );
+        }
 
         return $violation;
     }
@@ -687,6 +698,18 @@ class PolicyService
                 'reviewed_at' => now(),
                 'review_remarks' => $remarks,
             ]);
+        }
+
+        /*
+         * Be defensive for records created before detection became
+         * idempotent: a previously-issued sanction is authoritative. The
+         * unique constraint intentionally permits only one sanction for a
+         * violation, so reuse it after restoring the case to CONFIRMED
+         * instead of attempting a duplicate insert.
+         */
+        $existingSanction = $locked->sanction()->first();
+        if ($existingSanction) {
+            return $existingSanction;
         }
 
         if ($locked->custody_transaction_id !== null) {

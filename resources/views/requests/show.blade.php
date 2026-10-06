@@ -3697,6 +3697,128 @@
 }
 
 
+/* SPMU DOCUMENT TAB CLICKABILITY FIX */
+
+.spmu-verification-workspace
+.spmu-document-tabs {
+    position: relative !important;
+    z-index: 30 !important;
+    pointer-events: auto !important;
+}
+
+.spmu-verification-workspace
+.spmu-document-tab {
+    position: relative !important;
+    z-index: 31 !important;
+    pointer-events: auto !important;
+}
+
+.spmu-verification-workspace
+.spmu-document-tab:not(:disabled) {
+    cursor: pointer !important;
+}
+
+.spmu-verification-workspace
+.spmu-document-tab:disabled {
+    pointer-events: none !important;
+}
+
+.spmu-verification-workspace
+.spmu-tab-document-frame {
+    display: block;
+    width: 100% !important;
+    height: 70vh !important;
+    min-height: 560px !important;
+    border: 0 !important;
+    background: #eef3f8;
+}
+
+.spmu-verification-workspace
+.spmu-tab-document-image {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
+}
+
+/* SPMU IMAGE HAND CURSOR START */
+
+/*
+ * Uploaded image documents are interactive inspection surfaces.
+ * The hand cursor makes it clear that the image can be inspected
+ * while the existing - / + / Fit controls handle zoom.
+ */
+.spmu-verification-workspace
+.scanned-document-card img:not([hidden]) {
+    cursor: grab !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -webkit-user-drag: none !important;
+}
+
+.spmu-verification-workspace
+.scanned-document-card img:not([hidden]):active {
+    cursor: grabbing !important;
+}
+
+/*
+ * Keep the hand cursor on dynamically-created tab images as well.
+ */
+.spmu-verification-workspace
+.spmu-tab-document-image {
+    cursor: grab !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -webkit-user-drag: none !important;
+}
+
+.spmu-verification-workspace
+.spmu-tab-document-image:active {
+    cursor: grabbing !important;
+}
+
+/* SPMU IMAGE HAND CURSOR END */
+
+/* SPMU IMAGE-ONLY ZOOM CSS START */
+
+/*
+ * Browser/page zoom must not take over while the user is
+ * inspecting an uploaded image document.
+ */
+.spmu-verification-workspace
+.scanned-document-card img:not([hidden]) {
+    cursor: grab !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -webkit-user-drag: none !important;
+
+    /*
+     * Prevent touch gestures on the image itself from zooming
+     * the whole browser page.
+     */
+    touch-action: none !important;
+
+    /*
+     * JS controls image zoom/pan using transform only.
+     */
+    transform-origin: center center !important;
+    will-change: transform;
+}
+
+.spmu-verification-workspace
+.scanned-document-card img:not([hidden]).is-image-panning {
+    cursor: grabbing !important;
+}
+
+.spmu-verification-workspace
+.scanned-document-card {
+    /*
+     * Keep transformed image interaction inside the document viewer.
+     */
+    overscroll-behavior: contain;
+}
+
+/* SPMU IMAGE-ONLY ZOOM CSS END */
 /* SPMU REVIEW WORKSPACE RECOVERY END */
 </style>
 
@@ -3741,17 +3863,78 @@
             tabList.querySelectorAll('[data-document-tab]')
         );
 
-        const activate = (tab) => {
+        /* SPMU DOCUMENT TAB IMAGE/PDF COMPATIBILITY FIX */
+        let documentActivationSequence = 0;
+
+        const detectDocumentType = async (documentUrl) => {
+            try {
+                const response = await fetch(documentUrl, {
+                    method: 'HEAD',
+                    credentials: 'same-origin',
+                    cache: 'no-store'
+                });
+
+                const contentType =
+                    (response.headers.get('content-type') || '')
+                        .toLowerCase();
+
+                if (contentType.startsWith('image/')) {
+                    return 'image';
+                }
+
+                if (contentType.includes('pdf')) {
+                    return 'pdf';
+                }
+            }
+            catch (error) {
+                // Fallback detection below handles servers that reject HEAD.
+            }
+
+            /*
+             * Fallback:
+             * try loading the file as an image.
+             * If the browser cannot decode it as an image, use the frame.
+             */
+            return await new Promise((resolve) => {
+                const probe = new Image();
+
+                let settled = false;
+
+                const finish = (type) => {
+                    if (settled) return;
+
+                    settled = true;
+                    probe.onload = null;
+                    probe.onerror = null;
+
+                    resolve(type);
+                };
+
+                probe.onload = () => finish('image');
+                probe.onerror = () => finish('pdf');
+
+                probe.src = documentUrl;
+            });
+        };
+
+        const activate = async (tab) => {
             const documentUrl = tab.dataset.documentUrl;
 
             if (
                 tab.disabled ||
                 !documentUrl ||
-                !frame
+                !viewer
             ) {
                 return;
             }
 
+            const activationSequence =
+                ++documentActivationSequence;
+
+            /*
+             * Update tab state immediately so the user gets
+             * visual feedback as soon as the tab is clicked.
+             */
             tabs.forEach((candidate) => {
                 const active = candidate === tab;
 
@@ -3769,11 +3952,162 @@
                     active ? 0 : -1;
             });
 
-            frame.src =
+            const documentType =
+                await detectDocumentType(documentUrl);
+
+            /*
+             * Ignore a late response if the user already selected
+             * another tab while document type detection was running.
+             */
+            if (
+                activationSequence !==
+                documentActivationSequence
+            ) {
+                return;
+            }
+
+            let pdfFrame =
+                viewer.querySelector(
+                    '.scanned-pdf-frame'
+                );
+
+            let imageElement =
+                viewer.querySelector(
+                    '.scanned-document-image,' +
+                    '.scanned-image-preview,' +
+                    '.scanned-document-preview img,' +
+                    '.scanned-document-stage img,' +
+                    'img[data-document-image]'
+                );
+
+            /*
+             * Existing image viewers may not have a dedicated
+             * image class, so use the image inside the card
+             * as the final fallback.
+             */
+            if (!imageElement) {
+                imageElement =
+                    viewer.querySelector('img');
+            }
+
+            /*
+             * Make image-document interaction obvious to the reviewer.
+             * Zoom remains controlled by the existing - / + / Fit controls.
+             */
+            if (imageElement) {
+                imageElement.classList.add(
+                    'spmu-document-zoom-image'
+                );
+
+                imageElement.setAttribute(
+                    'draggable',
+                    'false'
+                );
+
+                imageElement.setAttribute(
+                    'title',
+                    'Use the - / + / Fit controls to zoom this document'
+                );
+            }
+
+            let mediaHost =
+                pdfFrame?.parentElement ||
+                imageElement?.parentElement;
+
+            /*
+             * Very defensive fallback. Normally the existing
+             * document viewer already provides a media wrapper.
+             */
+            if (!mediaHost) {
+                mediaHost =
+                    document.createElement('div');
+
+                mediaHost.className =
+                    'spmu-tab-media-host';
+
+                viewer.appendChild(mediaHost);
+            }
+
+            if (documentType === 'image') {
+                /*
+                 * Reuse the component's original image whenever
+                 * possible so its existing zoom / Fit controls
+                 * continue to operate.
+                 */
+                if (!imageElement) {
+                    imageElement =
+                        document.createElement('img');
+
+                    imageElement.className =
+                        'spmu-tab-document-image spmu-document-zoom-image';
+
+                    imageElement.dataset.documentImage = '';
+
+                    imageElement.alt =
+                        'Submitted request document';
+
+                    imageElement.draggable = false;
+
+                    imageElement.title =
+                        'Use the - / + / Fit controls to zoom this document';
+
+                    mediaHost.appendChild(
+                        imageElement
+                    );
+                }
+
+                if (pdfFrame) {
+                    pdfFrame.hidden = true;
+                    pdfFrame.style.display = 'none';
+                }
+
+                imageElement.hidden = false;
+                imageElement.style.display = '';
+
+                imageElement.src = documentUrl;
+
+                return;
+            }
+
+            /*
+             * PDF / non-image document.
+             * If the initial viewer was an image, create the
+             * PDF frame only when it is actually needed.
+             */
+            if (!pdfFrame) {
+                pdfFrame =
+                    document.createElement('iframe');
+
+                pdfFrame.className =
+                    'scanned-pdf-frame spmu-tab-document-frame';
+
+                pdfFrame.dataset.spmuTabFrame = '';
+
+                pdfFrame.title =
+                    'Submitted request document preview';
+
+                pdfFrame.setAttribute(
+                    'loading',
+                    'eager'
+                );
+
+                mediaHost.appendChild(
+                    pdfFrame
+                );
+            }
+
+            if (imageElement) {
+                imageElement.hidden = true;
+                imageElement.style.display = 'none';
+            }
+
+            pdfFrame.hidden = false;
+            pdfFrame.style.display = '';
+
+            pdfFrame.src =
                 documentUrl +
                 '#page=1&zoom=page-fit&toolbar=1&navpanes=0&scrollbar=1&view=Fit';
         };
-
         tabs.forEach((tab) => {
             tab.addEventListener('click', () => {
                 activate(tab);
@@ -3965,6 +4299,412 @@
         });
 })();
 
+
+/* SPMU IMAGE-ONLY ZOOM SCRIPT START */
+
+(() => {
+    const workspace =
+        document.querySelector(
+            '[data-spmu-verification-workspace]'
+        );
+
+    if (!workspace) {
+        return;
+    }
+
+    const viewerSelector =
+        '.scanned-document-card';
+
+    const imageSelector =
+        '.scanned-document-card img:not([hidden])';
+
+    /*
+     * Keep independent zoom/pan state for every image document.
+     */
+    const imageStates = new WeakMap();
+
+    const getState = (image) => {
+        if (!imageStates.has(image)) {
+            imageStates.set(image, {
+                scale: 1,
+                x: 0,
+                y: 0,
+                dragging: false,
+                pointerId: null,
+                startX: 0,
+                startY: 0,
+                originX: 0,
+                originY: 0
+            });
+        }
+
+        return imageStates.get(image);
+    };
+
+    const clamp = (value, minimum, maximum) =>
+        Math.min(
+            maximum,
+            Math.max(minimum, value)
+        );
+
+    const applyTransform = (image, state) => {
+        image.style.transform =
+            `translate(${state.x}px, ${state.y}px) ` +
+            `scale(${state.scale})`;
+    };
+
+    const resetImageGesture = (image) => {
+        if (!image) {
+            return;
+        }
+
+        const state = getState(image);
+
+        state.scale = 1;
+        state.x = 0;
+        state.y = 0;
+        state.dragging = false;
+        state.pointerId = null;
+
+        image.classList.remove(
+            'is-image-panning'
+        );
+
+        image.style.transform = '';
+    };
+
+
+    /*
+     * ---------------------------------------------------------
+     * PINCH / CTRL + MOUSE WHEEL
+     * ---------------------------------------------------------
+     *
+     * Chrome represents trackpad pinch as a wheel event with
+     * ctrlKey=true.
+     *
+     * preventDefault() here stops Chrome from zooming the whole
+     * SPMU-ACPMP page and applies the zoom to the image instead.
+     */
+    workspace.addEventListener(
+        'wheel',
+        (event) => {
+            const target =
+                event.target instanceof Element
+                    ? event.target
+                    : null;
+
+            const image =
+                target?.closest(imageSelector);
+
+            if (!image) {
+                return;
+            }
+
+            /*
+             * Only intercept browser-zoom gestures.
+             * Plain mouse-wheel scrolling remains normal.
+             */
+            if (!event.ctrlKey) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const state = getState(image);
+
+            /*
+             * Smooth but controlled zoom.
+             * Minimum 50%, maximum 300%.
+             */
+            const direction =
+                event.deltaY < 0 ? 1 : -1;
+
+            const step = 0.10;
+
+            const nextScale = clamp(
+                state.scale + (direction * step),
+                0.50,
+                3.00
+            );
+
+            /*
+             * If returning to 100%, also recenter the document.
+             */
+            if (
+                Math.abs(nextScale - 1) < 0.001
+            ) {
+                state.scale = 1;
+                state.x = 0;
+                state.y = 0;
+            }
+            else {
+                state.scale = nextScale;
+            }
+
+            applyTransform(
+                image,
+                state
+            );
+        },
+        {
+            passive: false,
+            capture: true
+        }
+    );
+
+
+    /*
+     * ---------------------------------------------------------
+     * CLICK + DRAG PAN
+     * ---------------------------------------------------------
+     *
+     * Once the image has been zoomed, grab it and move around
+     * inside the document viewer without moving the whole page.
+     */
+    workspace.addEventListener(
+        'pointerdown',
+        (event) => {
+            if (event.button !== 0) {
+                return;
+            }
+
+            const target =
+                event.target instanceof Element
+                    ? event.target
+                    : null;
+
+            const image =
+                target?.closest(imageSelector);
+
+            if (!image) {
+                return;
+            }
+
+            const state = getState(image);
+
+            /*
+             * Pan is useful after zooming.
+             * At normal/fit size, leave normal page interaction alone.
+             */
+            if (state.scale <= 1) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            state.dragging = true;
+            state.pointerId = event.pointerId;
+
+            state.startX = event.clientX;
+            state.startY = event.clientY;
+
+            state.originX = state.x;
+            state.originY = state.y;
+
+            image.classList.add(
+                'is-image-panning'
+            );
+
+            try {
+                image.setPointerCapture(
+                    event.pointerId
+                );
+            }
+            catch (error) {
+                // Pointer capture is optional.
+            }
+        },
+        true
+    );
+
+
+    workspace.addEventListener(
+        'pointermove',
+        (event) => {
+            const images =
+                workspace.querySelectorAll(
+                    imageSelector
+                );
+
+            for (const image of images) {
+                const state =
+                    imageStates.get(image);
+
+                if (
+                    !state ||
+                    !state.dragging ||
+                    state.pointerId !==
+                        event.pointerId
+                ) {
+                    continue;
+                }
+
+                event.preventDefault();
+
+                state.x =
+                    state.originX +
+                    (
+                        event.clientX -
+                        state.startX
+                    );
+
+                state.y =
+                    state.originY +
+                    (
+                        event.clientY -
+                        state.startY
+                    );
+
+                applyTransform(
+                    image,
+                    state
+                );
+
+                break;
+            }
+        },
+        true
+    );
+
+
+    const finishPan = (event) => {
+        const images =
+            workspace.querySelectorAll(
+                imageSelector
+            );
+
+        for (const image of images) {
+            const state =
+                imageStates.get(image);
+
+            if (
+                !state ||
+                state.pointerId !==
+                    event.pointerId
+            ) {
+                continue;
+            }
+
+            state.dragging = false;
+            state.pointerId = null;
+
+            image.classList.remove(
+                'is-image-panning'
+            );
+
+            try {
+                image.releasePointerCapture(
+                    event.pointerId
+                );
+            }
+            catch (error) {
+                // Safe if pointer capture was unavailable.
+            }
+
+            break;
+        }
+    };
+
+    workspace.addEventListener(
+        'pointerup',
+        finishPan,
+        true
+    );
+
+    workspace.addEventListener(
+        'pointercancel',
+        finishPan,
+        true
+    );
+
+
+    /*
+     * ---------------------------------------------------------
+     * RESET GESTURE TRANSFORM WHEN USING EXISTING TOOLBAR
+     * ---------------------------------------------------------
+     *
+     * Existing -, + and Fit controls continue to own their normal
+     * zoom behavior. Before they run, remove gesture-only transform
+     * so the two zoom systems never stack on top of each other.
+     */
+    workspace.addEventListener(
+        'click',
+        (event) => {
+            const target =
+                event.target instanceof Element
+                    ? event.target
+                    : null;
+
+            const button =
+                target?.closest('button');
+
+            if (!button) {
+                return;
+            }
+
+            const label =
+                button.textContent
+                    ?.trim()
+                    .replace(/\s+/g, ' ') ||
+                '';
+
+            const isZoomControl =
+                label === '+' ||
+                label === '-' ||
+                label === '−' ||
+                /^fit$/i.test(label);
+
+            if (!isZoomControl) {
+                return;
+            }
+
+            const viewer =
+                button.closest(viewerSelector);
+
+            const image =
+                viewer?.querySelector(
+                    'img:not([hidden])'
+                );
+
+            if (image) {
+                resetImageGesture(image);
+            }
+        },
+        true
+    );
+
+
+    /*
+     * Switching BR Letter / PTC starts the newly-selected image
+     * from its normal document-viewer position.
+     */
+    workspace
+        .querySelectorAll(
+            '[data-document-tab]'
+        )
+        .forEach((tab) => {
+            tab.addEventListener(
+                'click',
+                () => {
+                    const viewer =
+                        workspace.querySelector(
+                            viewerSelector
+                        );
+
+                    viewer
+                        ?.querySelectorAll('img')
+                        .forEach(
+                            resetImageGesture
+                        );
+                }
+            );
+        });
+
+})();
+
+/* SPMU IMAGE-ONLY ZOOM SCRIPT END */
 /* SPMU REVIEW WORKSPACE RECOVERY SCRIPT END */
 </script>
 

@@ -132,3 +132,115 @@
 
 @include('approvals.partials.queue-interactions')
 @endsection
+
+<!-- SPMU APPROVAL NOTICE ALIGNMENT START -->
+<style>
+/*
+ * Keep the approval success notice on the same horizontal grid
+ * as the page heading, action button, and approval cards.
+ */
+.spmu-approval-success-notice {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 0 20px !important;
+    padding: 14px 18px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+
+    line-height: 1.45 !important;
+}
+
+.spmu-approval-success-notice > :first-child {
+    flex: 0 0 auto !important;
+}
+
+.spmu-approval-success-notice .spmu-approval-notice-text {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+}
+
+.spmu-approval-success-notice .spmu-approval-notice-text,
+.spmu-approval-success-notice .spmu-approval-notice-text p {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/*
+ * Avoid a visually higher icon when the message wraps onto two lines.
+ */
+.spmu-approval-success-notice svg {
+    display: block !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const expectedText =
+        'Verified request E-signed and approved by the authorized SPMU Head signatory';
+
+    /*
+     * Locate the success notice by its message rather than depending
+     * on one specific historical alert class.
+     */
+    const candidates = Array.from(
+        document.querySelectorAll(
+            '[role="alert"], .alert, .notice, .flash-message, .success-message, .message, .banner'
+        )
+    );
+
+    const notice = candidates.find((element) =>
+        (element.textContent || '').includes(expectedText)
+    );
+
+    if (!notice) {
+        return;
+    }
+
+    notice.classList.add(
+        'spmu-approval-success-notice'
+    );
+
+    /*
+     * Wrap text separately from the status icon so both remain
+     * vertically aligned even when the message occupies two lines.
+     */
+    const children = Array.from(notice.childNodes);
+
+    const iconNode = Array.from(notice.children).find((child) =>
+        child.matches?.(
+            'svg, .icon, .status-icon, .alert-icon, [class*="icon"]'
+        )
+    );
+
+    const textNodes = children.filter((node) =>
+        node !== iconNode &&
+        !(
+            node.nodeType === Node.TEXT_NODE &&
+            !node.textContent.trim()
+        )
+    );
+
+    if (
+        textNodes.length &&
+        !notice.querySelector(':scope > .spmu-approval-notice-text')
+    ) {
+        const textWrapper =
+            document.createElement('div');
+
+        textWrapper.className =
+            'spmu-approval-notice-text';
+
+        textNodes.forEach((node) => {
+            textWrapper.appendChild(node);
+        });
+
+        notice.appendChild(textWrapper);
+    }
+});
+</script>
+<!-- SPMU APPROVAL NOTICE ALIGNMENT END -->

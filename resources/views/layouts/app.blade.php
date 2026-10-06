@@ -986,6 +986,129 @@
         /* SIDEBAR SECTION NAVIGATION END */
     </style>
     {{-- UNIVERSAL COLLAPSIBLE SIDEBAR END --}}
+
+
+<!-- GLOBAL APP NOTICE ALIGNMENT START -->
+<style>
+/*
+ * SPMU universal flash / validation notice alignment.
+ * Keep the notice on the normal page grid while centering
+ * its icon against the complete text block.
+ */
+
+.app-main > .notice {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: none !important;
+
+    margin: 0 0 18px !important;
+    padding: 14px 16px !important;
+
+    display: grid !important;
+    grid-template-columns: 20px minmax(0, 1fr) !important;
+
+    /*
+     * Important:
+     * Center the icon against the complete message,
+     * including wrapped validation text.
+     */
+    align-items: center !important;
+    column-gap: 12px !important;
+
+    line-height: 1.45 !important;
+}
+
+/* Notice icon */
+.app-main > .notice > svg,
+.app-main > .notice > .ui-icon,
+.app-main > .notice > [class*="icon"] {
+    display: block !important;
+
+    width: 20px !important;
+    height: 20px !important;
+
+    min-width: 20px !important;
+    min-height: 20px !important;
+
+    margin: 0 !important;
+
+    align-self: center !important;
+}
+
+/* Main text column */
+.app-main > .notice > div {
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+
+    align-self: center !important;
+}
+
+/* Error heading */
+.app-main > .notice strong {
+    display: block !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    line-height: 1.35 !important;
+}
+
+/* Validation list */
+.app-main > .notice ul {
+    margin: 6px 0 0 18px !important;
+    padding: 0 !important;
+}
+
+/* Individual validation message */
+.app-main > .notice li {
+    margin: 0 !important;
+    padding: 0 0 0 1px !important;
+
+    line-height: 1.5 !important;
+
+    overflow-wrap: anywhere !important;
+}
+
+/*
+ * Single success/status messages should also sit vertically
+ * centered with their status icon.
+ */
+.app-main > .notice.success > div {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 20px !important;
+}
+
+/*
+ * Error messages with a heading + list stay compact while
+ * preserving a clear visual hierarchy.
+ */
+.app-main > .notice.error > div {
+    display: block !important;
+}
+
+/* Narrow screen */
+@media (max-width: 700px) {
+    .app-main > .notice {
+        grid-template-columns: 18px minmax(0, 1fr) !important;
+        column-gap: 10px !important;
+
+        padding: 12px 14px !important;
+        margin-bottom: 16px !important;
+    }
+
+    .app-main > .notice > svg,
+    .app-main > .notice > .ui-icon,
+    .app-main > .notice > [class*="icon"] {
+        width: 18px !important;
+        height: 18px !important;
+        min-width: 18px !important;
+        min-height: 18px !important;
+    }
+}
+</style>
+<!-- GLOBAL APP NOTICE ALIGNMENT END -->
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -1207,9 +1330,25 @@
             </header>
             <main class="app-main {{ request()->routeIs('administration.users.*') ? 'ictu-admin-main' : (request()->routeIs('reports.audit') ? 'ictu-audit-main' : '') }}" id="main-content" tabindex="-1">
                 @unless($inlinePageNotices ?? false)
-                @if(session('status'))<div class="notice success" role="status"><x-icon name="success" /><div>{{ session('status') }}</div></div>@endif
-                @if($errors->any())
-                    <div class="notice error" role="alert"><x-icon name="error" /><div><strong>Please correct the following:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>
+                @if(session('status'))
+                    <div class="notice success" role="status">
+                        <x-icon name="success" />
+                        <div>{{ session('status') }}</div>
+                    </div>
+                @endif
+
+                @if($errors->any() && ! request()->routeIs('requests.show'))
+                    <div class="notice error" role="alert">
+                        <x-icon name="error" />
+                        <div>
+                            <strong>Please correct the following:</strong>
+                            <ul>
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
                 @endif
                 @endunless
                 @yield('content')

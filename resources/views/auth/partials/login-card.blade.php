@@ -369,6 +369,12 @@
                 <p>
                     Contact ICTU for account access assistance.
                 </p>
+                <div class="login-otp-verification">
+                    <a href="{{ route('account.verification.show') }}">
+                        <span>Pending account verification?</span>
+                        <strong>Verify with OTP</strong>
+                    </a>
+                </div>
 
             </div>
 
@@ -491,4 +497,38 @@ document.addEventListener('DOMContentLoaded', function () {
 }
 
 /* SPMU REMEMBER CHECKBOX ALIGNMENT END */
+</style>
+
+<style>
+/* LOGIN OTP VERIFICATION FINAL */
+
+.spmu-shared-login-card .login-help .login-otp-verification {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #d8e2ee;
+    text-align: center;
+}
+
+.spmu-shared-login-card .login-help .login-otp-verification a {
+    display: inline-flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    color: #0969e8;
+    font-size: 11px;
+    line-height: 1.4;
+    text-decoration: none;
+}
+
+.spmu-shared-login-card .login-help .login-otp-verification a span {
+    font-weight: 600;
+}
+
+.spmu-shared-login-card .login-help .login-otp-verification a strong {
+    font-weight: 800;
+}
+
+.spmu-shared-login-card .login-help .login-otp-verification a:hover {
+    text-decoration: underline;
+}
 </style>

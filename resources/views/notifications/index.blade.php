@@ -60,3 +60,81 @@
     <div class="top-gap">{{ $notifications->links('partials.pagination') }}</div>
 </section>
 @endsection
+
+<style>
+/* NOTIFICATION READ WHITE ONLY START */
+
+/*
+ * Keep the existing notification design completely unchanged.
+ *
+ * Only an already-read notification becomes white.
+ *
+ * IMPORTANT:
+ * Direct-child selectors identify one notification row only.
+ * This prevents the parent list/card from inheriting the unread
+ * blue state from another notification.
+ */
+:where(article, section, li, div)
+:has(> .notification-date)
+:has(> .notification-copy)
+:not(:has(> .notification-copy .notification-heading .status-badge)) {
+    background: #ffffff !important;
+}
+
+
+/*
+ * The date and message sections must remain transparent so the
+ * row appears as one continuous white notification.
+ */
+:where(article, section, li, div)
+:has(> .notification-date)
+:has(> .notification-copy)
+:not(:has(> .notification-copy .notification-heading .status-badge))
+> .notification-date,
+
+:where(article, section, li, div)
+:has(> .notification-date)
+:has(> .notification-copy)
+:not(:has(> .notification-copy .notification-heading .status-badge))
+> .notification-copy {
+    background: transparent !important;
+}
+
+
+/*
+ * Dark appearance uses the normal application surface rather
+ * than forcing a bright white notification.
+ */
+html[data-theme="dark"]
+:where(article, section, li, div)
+:has(> .notification-date)
+:has(> .notification-copy)
+:not(:has(> .notification-copy .notification-heading .status-badge)) {
+    background: var(--surface-elevated) !important;
+}
+
+/* NOTIFICATION READ WHITE ONLY END */
+</style>
+
+<script>
+/* NOTIFICATION BACK REFRESH START */
+
+/*
+ * When a notification is opened, Laravel records read_at before
+ * forwarding the user to the related record.
+ *
+ * Browsers may restore the Notifications page from the back/forward
+ * cache when the user presses Back. That restored page still contains
+ * the old unread DOM, so refresh only in that situation to render the
+ * latest read_at state from the server.
+ */
+window.addEventListener('pageshow', (event) => {
+    if (!event.persisted) {
+        return;
+    }
+
+    window.location.reload();
+});
+
+/* NOTIFICATION BACK REFRESH END */
+</script>

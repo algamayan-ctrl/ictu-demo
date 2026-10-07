@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureActiveWorkspace;
 use App\Http\Middleware\EnsureInstitutionalEmailIsVerified;
+use App\Http\Middleware\EnforceIdleSession;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\PreventDuplicateSubmission;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'active' => EnsureAccountIsActive::class,
             'verified-email' => EnsureInstitutionalEmailIsVerified::class,
+            'idle' => EnforceIdleSession::class,
             'role' => EnsureUserHasRole::class,
             'workspace' => EnsureActiveWorkspace::class,
         ]);

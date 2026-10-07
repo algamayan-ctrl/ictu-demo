@@ -8,6 +8,8 @@ use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\SessionActivityController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\BorrowingRequestController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ConditionalProcessingController;
@@ -59,6 +61,19 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/login', [LoginController::class, 'store'])
         ->middleware('throttle:5,1')
         ->name('login.store');
+    Route::get('/forgot-password', [PasswordResetController::class, 'requestForm'])
+        ->name('password.request');
+
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])
+        ->middleware('throttle:3,1')
+        ->name('password.email');
+
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'resetForm'])
+        ->name('password.reset');
+
+    Route::post('/reset-password', [PasswordResetController::class, 'reset'])
+        ->middleware('throttle:5,1')
+        ->name('password.update');
 
     /*
      * Google proves identity only. The callback still requires an existing,
@@ -73,7 +88,7 @@ Route::middleware('guest')->group(function (): void {
         ->name('auth.google.callback');
 });
 
-Route::middleware(['auth', 'active', 'verified-email'])->group(function (): void {
+Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function (): void {
 
     /*
     |--------------------------------------------------------------------------
@@ -86,6 +101,13 @@ Route::middleware(['auth', 'active', 'verified-email'])->group(function (): void
 
     Route::post('/logout', [LoginController::class, 'destroy'])
         ->name('logout');
+    /*
+     * Refreshed only by actual browser interaction.
+     * Background page requests do not keep the user signed in.
+     */
+    Route::post('/session/activity', SessionActivityController::class)
+        ->middleware('throttle:20,1')
+        ->name('session.activity');
 
 
     /*
@@ -618,7 +640,7 @@ Route::middleware(['auth', 'active', 'verified-email'])->group(function (): void
     });
 
     Route::get('/reports/audit', [ReportController::class, 'audit'])
-        ->middleware('workspace:ICTU')
+        ->middleware('workspace:SPMU,ICTU')
         ->name('reports.audit');
 
     Route::get('/reports/notifications', [ReportController::class, 'notifications'])

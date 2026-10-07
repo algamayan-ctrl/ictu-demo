@@ -407,7 +407,126 @@
                 null,
             ];
         }
-    @endphp
+            /* BORROWER TRANSACTION TIMELINE DATA START */
+
+        /*
+         * Borrower-facing transaction history.
+         * Important custody events lang ang ipinapakita rito.
+         * Hindi ito kapalit ng administrative Audit Trail.
+         */
+        $borrowerTimeline = collect();
+
+        $addBorrowerTimelineEvent = function (
+            string $title,
+            mixed $occurredAt,
+            ?string $detail = null
+        ) use ($borrowerTimeline): void {
+            if (! $occurredAt) {
+                return;
+            }
+
+            $borrowerTimeline->push([
+                'title' => $title,
+                'detail' => $detail,
+                'occurred_at' => $occurredAt instanceof \Illuminate\Support\Carbon
+                    ? $occurredAt
+                    : \Illuminate\Support\Carbon::parse($occurredAt),
+            ]);
+        };
+
+        $addBorrowerTimelineEvent(
+            'Borrowing record opened',
+            $custody->created_at,
+            'Custody '.$custody->custody_no.' was created for the approved request.'
+        );
+
+        if ($custody->pickup_scheduled_at) {
+            $pickupDetail = $custody->scheduled_release_at
+                ? 'Pickup scheduled for '.$custody->scheduled_release_at->format('d M Y, g:i A').'.'
+                : 'Pickup schedule recorded.';
+
+            $addBorrowerTimelineEvent(
+                'Pickup scheduled',
+                $custody->pickup_scheduled_at,
+                $pickupDetail
+            );
+        }
+
+        $addBorrowerTimelineEvent(
+            'Items prepared',
+            $custody->prepared_at,
+            'Approved items were prepared for release.'
+        );
+
+        $addBorrowerTimelineEvent(
+            'Items released',
+            $custody->released_at,
+            'Issued property was handed over and placed under your custody.'
+        );
+
+        if ($custody->gatePass?->guard_signed_at) {
+            $addBorrowerTimelineEvent(
+                'Gate Pass recorded',
+                $custody->gatePass->guard_signed_at,
+                'Off-campus exit was recorded on the Gate Pass.'
+            );
+        }
+
+        foreach (($custody->returns ?? collect())->sortBy('received_at') as $returnTransaction) {
+            if (! $returnTransaction->received_at) {
+                continue;
+            }
+
+            $returnQuantity = (float) ($returnTransaction->lines ?? collect())
+                ->sum('quantity_received');
+
+            $returnDetail = $returnTransaction->return_no
+                ? 'Return '.$returnTransaction->return_no.' was recorded.'
+                : 'Physical return was recorded.';
+
+            if ($returnQuantity > 0) {
+                $returnDetail .= ' Recorded quantity: '.($returnQuantity + 0).'.';
+            }
+
+            $addBorrowerTimelineEvent(
+                'Return received',
+                $returnTransaction->received_at,
+                $returnDetail
+            );
+        }
+
+        if ($laundryJob?->worker_received_at) {
+            $addBorrowerTimelineEvent(
+                'Linen received by Laundry',
+                $laundryJob->worker_received_at,
+                'Applicable linen was physically received for laundry processing.'
+            );
+        }
+
+        if ($laundryJob?->completed_at) {
+            $addBorrowerTimelineEvent(
+                'Laundry processing completed',
+                $laundryJob->completed_at,
+                'The accomplished Laundry Form was reconciled by SPMU.'
+            );
+        }
+
+        if ($custody->closed_at) {
+            $addBorrowerTimelineEvent(
+                $transactionCancelled ? 'Borrowing cancelled' : 'Borrowing completed',
+                $custody->closed_at,
+                $transactionCancelled
+                    ? 'This borrowing transaction was closed without release.'
+                    : 'All issued items were returned and the transaction was reconciled.'
+            );
+        }
+
+        $borrowerTimeline = $borrowerTimeline
+            ->sortBy(fn (array $event) => $event['occurred_at']->timestamp)
+            ->values();
+
+        /* BORROWER TRANSACTION TIMELINE DATA END */
+@endphp
 
     @include('custody.partials.borrower-custody-styles')
 
@@ -534,7 +653,54 @@
                 </div>
             </article>
 
-            {{-- Processing that continues outside the borrower's hands --}}
+                        {{-- BORROWER TRANSACTION TIMELINE UI START --}}
+            @if($borrowerTimeline->isNotEmpty())
+                <article class="card borrower-activity-card">
+                    <div class="card-header">
+                        <div>
+                            <p class="eyebrow">Borrowing activity</p>
+                            <h2>Transaction timeline</h2>
+                        </div>
+
+                        <span class="borrower-section-note">
+                            {{ $borrowerTimeline->count() }}
+                            {{ $borrowerTimeline->count() === 1 ? 'event' : 'events' }}
+                        </span>
+                    </div>
+
+                    <div class="borrower-activity-list" role="list">
+                        @foreach($borrowerTimeline as $activity)
+                            <div class="borrower-activity-row" role="listitem">
+                                <span
+                                    class="borrower-activity-marker"
+                                    aria-hidden="true"
+                                ></span>
+
+                                <div class="borrower-activity-copy">
+                                    <strong>
+                                        {{ $activity['title'] }}
+                                    </strong>
+
+                                    @if($activity['detail'])
+                                        <small>
+                                            {{ $activity['detail'] }}
+                                        </small>
+                                    @endif
+                                </div>
+
+                                <time
+                                    class="borrower-activity-time"
+                                    datetime="{{ $activity['occurred_at']->toIso8601String() }}"
+                                >
+                                    {{ $activity['occurred_at']->format('d M Y, g:i A') }}
+                                </time>
+                            </div>
+                        @endforeach
+                    </div>
+                </article>
+            @endif
+            {{-- BORROWER TRANSACTION TIMELINE UI END --}}
+{{-- Processing that continues outside the borrower's hands --}}
             @if($hasLaundryItem || $hasOffCampusItem)
                 <article class="card">
                     <div class="card-header">

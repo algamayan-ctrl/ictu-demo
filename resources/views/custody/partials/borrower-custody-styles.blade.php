@@ -516,4 +516,80 @@
     .borrower-items-table th,
     .borrower-items-table td { padding: 10px 14px; }
 }
+
+/* ==========================================================
+   BORROWER TRANSACTION TIMELINE STYLE START
+   ========================================================== */
+
+.borrower-activity-list {
+    display: grid;
+}
+
+.borrower-activity-row {
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: start;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.borrower-activity-row:last-child {
+    border-bottom: 0;
+}
+
+.borrower-activity-marker {
+    width: 9px;
+    height: 9px;
+    margin-top: 5px;
+    border: 2px solid var(--surface);
+    border-radius: 999px;
+    background: var(--interactive);
+    outline: 1px solid var(--border);
+}
+
+.borrower-activity-copy {
+    min-width: 0;
+}
+
+.borrower-activity-copy strong {
+    display: block;
+    color: var(--heading);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.borrower-activity-copy small {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.borrower-activity-time {
+    color: var(--text-muted);
+    font-size: 11.5px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+    .borrower-activity-row {
+        grid-template-columns: 14px minmax(0, 1fr);
+    }
+
+    .borrower-activity-time {
+        grid-column: 2;
+        text-align: left;
+        white-space: normal;
+    }
+}
+
+/* ==========================================================
+   BORROWER TRANSACTION TIMELINE STYLE END
+   ========================================================== */
 </style>

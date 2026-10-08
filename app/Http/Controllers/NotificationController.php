@@ -157,7 +157,7 @@ class NotificationController extends Controller
 
             if ($borrowingRequest->status !== RequestStatus::UnderSpmu) {
                 $hasSpmuHistory = $borrowingRequest->final_approved_at !== null
-                    || $steps->contains(fn ($step) => (string) $step->stage_code === 'SPMU');
+                    || $steps->contains(fn ($step) => $step->stage_code?->value === 'SPMU');
 
                 return $hasSpmuHistory ? route('requests.show', $borrowingRequest) : null;
             }

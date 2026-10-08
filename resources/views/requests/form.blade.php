@@ -1045,7 +1045,9 @@
     <div class="action-panel action-warning request-restriction-alert" role="alert">
         <div>
             <p class="eyebrow">Borrowing restricted</p>
-            <h2>You cannot submit a new borrowing request right now</h2>
+            <h2>{{ request()->routeIs('requests.edit')
+    ? 'You cannot resubmit this borrowing request right now'
+    : 'You cannot submit a new borrowing request right now' }}</h2>
             <p><a class="restriction-obligations-link" href="{{ route('accountability.index') }}">View My Obligations <span aria-hidden="true">→</span></a></p>
         </div>
 

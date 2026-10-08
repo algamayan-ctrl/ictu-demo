@@ -361,6 +361,147 @@
 @media (max-width: 900px) { .head-case-summary, .head-offense-preview, .head-offense-choices { grid-template-columns:1fr 1fr; } }
 @media (max-width: 560px) { .head-case-summary, .head-offense-preview, .head-offense-choices { grid-template-columns:1fr; } }
 
+
+/* ACCOUNTABILITY THREE KPI CARDS START */
+
+/*
+ * Head/Admin overview:
+ * three primary cards fill the complete available row.
+ */
+section:has(> a .accountability-overview-note) {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+}
+
+section:has(> a .accountability-overview-note) > a {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+}
+
+/* Tablet */
+@media (max-width: 1050px) {
+    section:has(> a .accountability-overview-note) {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+    section:has(> a .accountability-overview-note) {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ACCOUNTABILITY THREE KPI CARDS END */
+
+/* ==========================================================
+   ACCOUNTABILITY ROLE-BASED CARD COLORS START
+   ========================================================== */
+
+/*
+|--------------------------------------------------------------------------
+| KPI colors should depend on card role / label,
+| not on visual position.
+|--------------------------------------------------------------------------
+*/
+
+[data-accountability-card-label] {
+    position: relative;
+    overflow: hidden;
+}
+
+/* -------------------------
+   Needs My Decision = BLUE
+   ------------------------- */
+[data-accountability-card-label="Needs My Decision"] {
+    background: linear-gradient(135deg, #2f5fe3 0%, #39a9f3 100%) !important;
+    color: #ffffff !important;
+}
+
+[data-accountability-card-label="Needs My Decision"] * {
+    color: inherit !important;
+}
+
+[data-accountability-card-label="Needs My Decision"] .accountability-overview-icon,
+[data-accountability-card-label="Needs My Decision"] .overview-card-icon,
+[data-accountability-card-label="Needs My Decision"] [class*="overview-icon"] {
+    background: rgba(255,255,255,.14) !important;
+    border-color: rgba(255,255,255,.22) !important;
+}
+
+/* --------------------------------------------
+   Ready for Closure / For Final Resolution = GREEN
+   -------------------------------------------- */
+[data-accountability-card-label="Ready for Closure"],
+[data-accountability-card-label="For Final Resolution"] {
+    background: linear-gradient(135deg, #129a74 0%, #1dbf8a 100%) !important;
+    color: #ffffff !important;
+}
+
+[data-accountability-card-label="Ready for Closure"] *,
+[data-accountability-card-label="For Final Resolution"] * {
+    color: inherit !important;
+}
+
+[data-accountability-card-label="Ready for Closure"] .accountability-overview-icon,
+[data-accountability-card-label="Ready for Closure"] .overview-card-icon,
+[data-accountability-card-label="Ready for Closure"] [class*="overview-icon"],
+[data-accountability-card-label="For Final Resolution"] .accountability-overview-icon,
+[data-accountability-card-label="For Final Resolution"] .overview-card-icon,
+[data-accountability-card-label="For Final Resolution"] [class*="overview-icon"] {
+    background: rgba(255,255,255,.14) !important;
+    border-color: rgba(255,255,255,.22) !important;
+}
+
+/* -----------------------------------
+   Open Accountability Cases = ORANGE/RED
+   ----------------------------------- */
+[data-accountability-card-label="Open Accountability Cases"] {
+    background: linear-gradient(135deg, #ef442f 0%, #f77f2f 100%) !important;
+    color: #ffffff !important;
+}
+
+[data-accountability-card-label="Open Accountability Cases"] * {
+    color: inherit !important;
+}
+
+[data-accountability-card-label="Open Accountability Cases"] .accountability-overview-icon,
+[data-accountability-card-label="Open Accountability Cases"] .overview-card-icon,
+[data-accountability-card-label="Open Accountability Cases"] [class*="overview-icon"] {
+    background: rgba(255,255,255,.14) !important;
+    border-color: rgba(255,255,255,.22) !important;
+}
+
+/* -----------------------------
+   Outstanding Balance = AMBER
+   ----------------------------- */
+[data-accountability-card-label="Outstanding Balance"] {
+    background: linear-gradient(135deg, #dd8b00 0%, #f2a300 100%) !important;
+    color: #ffffff !important;
+}
+
+[data-accountability-card-label="Outstanding Balance"] * {
+    color: inherit !important;
+}
+
+[data-accountability-card-label="Outstanding Balance"] .accountability-overview-icon,
+[data-accountability-card-label="Outstanding Balance"] .overview-card-icon,
+[data-accountability-card-label="Outstanding Balance"] [class*="overview-icon"] {
+    background: rgba(255,255,255,.14) !important;
+    border-color: rgba(255,255,255,.22) !important;
+}
+
+/* Keep subtle decorative bubble visible on colored cards */
+[data-accountability-card-label]::before,
+[data-accountability-card-label]::after {
+    opacity: 1 !important;
+}
+
+/* ==========================================================
+   ACCOUNTABILITY ROLE-BASED CARD COLORS END
+   ========================================================== */
 </style>
 @include('accountability.partials.oversight-styles')
 <style>
@@ -777,19 +918,11 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                 'href' => route('accountability.index', ['queue' => 'work']).'#accountability-workspace',
             ],
             [
-                'tone' => 'resolved',
-                'icon' => 'approval',
-                'label' => 'For Final Resolution',
-                'value' => $finalResolutionCount,
-                'note' => 'Completed compliance ready for final review',
-                'href' => route('accountability.index', ['queue' => 'work', 'metric' => 'resolution']).'#accountability-workspace',
-            ],
-            [
                 'tone' => 'overdue',
                 'icon' => 'accountability',
                 'label' => 'Open Accountability Cases',
                 'value' => $openAccountabilities,
-                'note' => 'All unresolved accountability matters',
+                'note' => 'All unresolved cases for monitoring',
                 'href' => route('accountability.index', ['queue' => 'all']).'#accountability-workspace',
             ],
             [
@@ -855,9 +988,9 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     @foreach($summaryCards as $card)
         <a
             class="accountability-overview-card tone-{{ $card['tone'] }} has-emphasis"
-            href="{{ $card['href'] }}"
+            @if(! empty($card['href'])) href="{{ $card['href'] }}" @else aria-disabled="true" tabindex="-1" @endif
             aria-label="{{ $card['label'] }}: {{ $card['value'] }}. {{ $card['note'] }}. View details."
-        >
+         data-accountability-card-label="{{ $card['label'] }}">
             <span class="accountability-overview-icon" aria-hidden="true"><x-icon :name="$card['icon']" size="18" /></span>
             <span class="accountability-overview-label">{{ $card['label'] }}</span>
             <strong class="accountability-overview-value">{{ $card['value'] }}</strong>
@@ -946,8 +1079,29 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                     <td><span class="accountability-waiting-on">{{ $item['waiting_on'] ?? 'SPMU Processing' }}</span></td>
                                     <td><span class="accountability-next-step-copy">{{ $item['next_step'] ?? 'Continue the applicable accountability process.' }}</span></td>
                                     <td>
-                                        @if(! empty($item['action_url']))
-                                            <a class="button secondary small ui-pressable accountability-queue-action" href="{{ $item['action_url'] }}">
+                                        @php
+                                                $queueActionUrl = $item['action_url'] ?? null;
+
+                                                if (
+                                                    $queueActionUrl
+                                                    && str_contains($queueActionUrl, '/accountability/borrowers/')
+                                                    && ! str_contains($queueActionUrl, 'queue=')
+                                                ) {
+                                                    [$queueActionBase, $queueActionFragment] = array_pad(
+                                                        explode('#', $queueActionUrl, 2),
+                                                        2,
+                                                        null
+                                                    );
+
+                                                    $queueActionUrl =
+                                                        $queueActionBase
+                                                        .(str_contains($queueActionBase, '?') ? '&' : '?')
+                                                        .'queue=work'
+                                                        .($queueActionFragment ? '#'.$queueActionFragment : '');
+                                                }
+                                            @endphp
+                                            @if(! empty($queueActionUrl))
+                                            <a class="button secondary small ui-pressable accountability-queue-action" href="{{ $queueActionUrl }}">
                                                 <span>{{ $item['action_label'] ?? 'View Case' }}</span>
                                                 <span aria-hidden="true">→</span>
                                             </a>
@@ -999,87 +1153,15 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                 );
             }
         @endphp
-        <article class="card top-gap">
-            <div class="card-header">
-                <div>
-                    <strong>{{ $violation->custody?->custody_no ?: 'No custody reference' }}</strong>
-                    <h3>{{ $violation->borrower->full_name }}</h3>
-                    <small>Detected {{ optional($violation->detected_at)->format('d M Y, g:i A') }}</small>
-                </div>
-                <x-status-badge :status="$violation->status" />
-            </div>
-
-            <dl class="summary-grid compact">
-                <div>
-                    <dt>Finding(s)</dt>
-                    <dd>{{ $violationReasons->map(fn ($reason) => str($reason)->replace('_', ' ')->title())->join(', ') ?: 'Borrowing violation' }}</dd>
-                </div>
-                <div>
-                    <dt>Academic Period</dt>
-                    <dd>{{ $offensePreview['academic_period_label'] ?? ($violation->academicPeriod ? $violation->academicPeriod->academic_year.' · '.$violation->academicPeriod->term_name : 'Uses active period when confirmed') }}</dd>
-                </div>
-                @if($isLateReturnViolation)
-                    <div>
-                        <dt>Expected Return</dt>
-                        <dd>{{ $effectiveReturnDate ? \Carbon\CarbonImmutable::parse($effectiveReturnDate)->format('d M Y') : '—' }}</dd>
-                    </div>
-                    <div>
-                        <dt>Actual Return</dt>
-                        <dd>{{ $actualReturnDate ? \Carbon\CarbonImmutable::parse($actualReturnDate)->format('d M Y') : '—' }}{{ $lateDays !== null ? ' · '.$lateDays.' day'.($lateDays === 1 ? '' : 's').' late' : '' }}</dd>
-                    </div>
-                @endif
-            </dl>
-
-            @if($offensePreview)
-                <div class="callout {{ $offensePreview['is_enabled'] ? 'info' : 'warning' }} top-gap">
-                    @if($isLateReturnViolation)
-                        <strong>Late return detected — Head review is required before it counts as an offense.</strong>
-                        <p>The physical return is already recorded. If the SPMU Head confirms this violation, it will be recorded as the borrower's <strong>{{ $offensePreview['next_offense_label'] }}</strong> for this academic period, using the configured action <strong>{{ $offensePreview['configured_sanction_label'] }}</strong> unless an authorized case-specific override is selected.</p>
-                        <p>Any date-based late-return fee is handled separately under Overdue / Late Return Cases. Confirming or dismissing the administrative offense does not remove a valid financial obligation.</p>
-                    @else
-                        <strong>Administrative offense review</strong>
-                        <p>If confirmed, this case will be recorded as the borrower's <strong>{{ $offensePreview['next_offense_label'] }}</strong> for this academic period. Configured action: <strong>{{ $offensePreview['configured_sanction_label'] }}</strong>.</p>
-                    @endif
-
-                    @unless($offensePreview['is_enabled'])
-                        <p>This violation type is currently not enabled under Operational Configuration → Sanction Rules → Offense Application, so it cannot be confirmed as an offense unless that policy is enabled.</p>
-                    @endunless
-                </div>
-            @endif
-
-            <form method="post" action="{{ route('accountability.violations.review', $violation) }}" class="form-grid top-gap">
-                @csrf
-                <div class="form-columns">
-                    <label>
-                        Administrative Action
-                        <select name="sanction_code">
-                            <option value="">Use configured 1st / 2nd / 3rd offense rule</option>
-                            <option value="NOTICE">Notice</option>
-                            <option value="WRITTEN_REPRIMAND">Written Reprimand</option>
-                            <option value="BORROWING_SUSPENSION">Borrowing Suspension</option>
-                            <option value="OTHER">Other Administrative Action</option>
-                        </select>
-                    </label>
-                    <label>
-                        Suspension Until
-                        <input type="date" name="effective_to" min="{{ now()->toDateString() }}">
-                        <small>Optional override. Leave blank to use the configured duration (for example: 2nd offense = 1 month; 3rd offense = until semester end).</small>
-                    </label>
-                </div>
-                <label>
-                    Other Action Label
-                    <input name="custom_sanction_label" maxlength="255" placeholder="Complete only when Other is selected">
-                </label>
-                <label>
-                    Review Remarks
-                    <textarea name="remarks" maxlength="2000" placeholder="Record the basis for the SPMU Head decision."></textarea>
-                </label>
-                <div class="inline-actions">
-                    <button class="button primary" name="decision" value="CONFIRMED" @disabled($offensePreview && ! $offensePreview['is_enabled'])>Confirm Violation & Record Sanction</button>
-                    <button class="button secondary" name="decision" value="DISMISSED">Dismiss Violation</button>
-                </div>
-            </form>
-        </article>
+        {{-- ===================================================== --}}
+        {{-- LEGACY GENERIC VIOLATION REVIEW UI REMOVED             --}}
+        {{--                                                       --}}
+        {{-- Active decisions now use their dedicated workflows:   --}}
+        {{-- Property: Review Finding -> F2F/RSLDDP resolution      --}}
+        {{-- Late return: Review Assessment -> billing/resolution   --}}
+        {{--                                                       --}}
+        {{-- BorrowerViolation/Sanction backend records are kept.   --}}
+        {{-- ===================================================== --}}
     @endforeach
 </section>
 @endif
@@ -2140,7 +2222,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                     </div>
                     @if($isHead)
                         <div class="actions">
-                            <a class="button secondary small" href="{{ route('accountability.borrower', [$incident->borrower, 'tab' => 'cases', 'focus' => 'incident-'.$incident->id]) }}#incident-{{ $incident->id }}">View Case →</a>
+                            <a class="button secondary small" href="{{ route('accountability.borrower', [$incident->borrower, 'tab' => 'cases', 'focus' => 'incident-'.$incident->id, 'queue' => 'work']) }}#incident-{{ $incident->id }}">View Case →</a>
                         </div>
                     @endif
                 </div>
@@ -2313,13 +2395,13 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                     <div class="accountability-current-step__heading">
                         <div>
                             <small>{{ $isHead ? 'Your current action' : 'Current status' }}</small>
-                            <strong>For Final Resolution</strong>
-                            <p>Attach the accomplished RSLDDP and confirm the outcome after the required compliance or payment is verified.</p>
+                            <strong>Ready for Closure</strong>
+                            <p>Required verification is complete. Attach the accomplished RSLDDP and record the final Head/Admin resolution.</p>
                         </div>
                     </div>
                     @if($isHead)
                         <div class="actions">
-                            <a class="button secondary small" href="{{ route('accountability.borrower', [$incident->borrower, 'tab' => 'cases', 'focus' => 'incident-'.$incident->id]) }}#incident-{{ $incident->id }}">Resolve Case →</a>
+                            <a class="button secondary small" href="{{ route('accountability.borrower', [$incident->borrower, 'tab' => 'cases', 'focus' => 'incident-'.$incident->id, 'queue' => 'work']) }}#incident-{{ $incident->id }}">Resolve Case →</a>
                         </div>
                     @endif
                 </div>
@@ -2612,8 +2694,8 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                 <td>
                                     @if($row['borrower'])
                                         <a class="table-action accountability-next-link" href="{{ route('accountability.borrower', $selectedMetric === 'balance'
-                                            ? [$row['borrower'], 'tab' => 'cases', 'scope' => 'payment']
-                                            : [$row['borrower'], 'tab' => 'cases']) }}#accountability-active-cases">
+                                            ? [$row['borrower'], 'tab' => 'cases', 'scope' => 'payment', 'queue' => 'all']
+                                            : [$row['borrower'], 'tab' => 'cases', 'queue' => 'all']) }}#accountability-active-cases">
                                             <span>{{ $selectedMetric === 'balance' ? 'View Payment Cases →' : 'View Cases →' }}</span>
                                         </a>
                                     @endif
@@ -3625,4 +3707,3 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 @endsection
-

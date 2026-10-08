@@ -410,67 +410,181 @@
             /* BORROWER TRANSACTION TIMELINE DATA START */
 
         /*
-         * Borrower-facing transaction history.
-         * Important custody events lang ang ipinapakita rito.
-         * Hindi ito kapalit ng administrative Audit Trail.
+         * Borrower-facing custody history.
+         *
+         * Only events that actually exist for this borrowing are shown.
+         * Request submission / approval history stays under My Requests.
+         * Administrative Audit Trail remains separate.
          */
         $borrowerTimeline = collect();
 
         $addBorrowerTimelineEvent = function (
             string $title,
             mixed $occurredAt,
-            ?string $detail = null
+            ?string $detail = null,
+            int $sortOrder = 100
         ) use ($borrowerTimeline): void {
             if (! $occurredAt) {
                 return;
             }
 
+            $occurredAt = $occurredAt instanceof \Illuminate\Support\Carbon
+                ? $occurredAt
+                : \Illuminate\Support\Carbon::parse($occurredAt);
+
             $borrowerTimeline->push([
                 'title' => $title,
                 'detail' => $detail,
-                'occurred_at' => $occurredAt instanceof \Illuminate\Support\Carbon
-                    ? $occurredAt
-                    : \Illuminate\Support\Carbon::parse($occurredAt),
+                'occurred_at' => $occurredAt,
+                'sort_order' => $sortOrder,
             ]);
         };
+
+        /*
+         |--------------------------------------------------------------------------
+         | 1. Custody record
+         |--------------------------------------------------------------------------
+         */
 
         $addBorrowerTimelineEvent(
             'Borrowing record opened',
             $custody->created_at,
-            'Custody '.$custody->custody_no.' was created for the approved request.'
+            'Custody '.$custody->custody_no.' was created for the approved request.',
+            10
         );
+
+        /*
+         |--------------------------------------------------------------------------
+         | 2. Pickup scheduling
+         |--------------------------------------------------------------------------
+         */
 
         if ($custody->pickup_scheduled_at) {
             $pickupDetail = $custody->scheduled_release_at
                 ? 'Pickup scheduled for '.$custody->scheduled_release_at->format('d M Y, g:i A').'.'
-                : 'Pickup schedule recorded.';
+                : 'The pickup schedule was recorded by SPMU.';
 
             $addBorrowerTimelineEvent(
                 'Pickup scheduled',
                 $custody->pickup_scheduled_at,
-                $pickupDetail
+                $pickupDetail,
+                20
             );
         }
+
+        /*
+         * When the pickup window expires before actual release, show the
+         * operational event instead of pretending release took place.
+         */
+        if ($custody->pickup_expired_at && ! $custody->released_at) {
+            $addBorrowerTimelineEvent(
+                'Pickup window expired',
+                $custody->pickup_expired_at,
+                'The scheduled pickup window ended before the items were released.',
+                25
+            );
+        }
+
+        /*
+         |--------------------------------------------------------------------------
+         | 3. Item preparation and physical release
+         |--------------------------------------------------------------------------
+         */
 
         $addBorrowerTimelineEvent(
             'Items prepared',
             $custody->prepared_at,
-            'Approved items were prepared for release.'
+            'The approved items were prepared for physical release.',
+            30
         );
 
         $addBorrowerTimelineEvent(
             'Items released',
             $custody->released_at,
-            'Issued property was handed over and placed under your custody.'
+            'The issued property was handed over and placed under your custody.',
+            40
         );
+
+        /*
+         |--------------------------------------------------------------------------
+         | 4. Gate Pass - only when actually applicable/recorded
+         |--------------------------------------------------------------------------
+         */
 
         if ($custody->gatePass?->guard_signed_at) {
             $addBorrowerTimelineEvent(
                 'Gate Pass recorded',
                 $custody->gatePass->guard_signed_at,
-                'Off-campus exit was recorded on the Gate Pass.'
+                'The applicable off-campus exit was recorded on the Gate Pass.',
+                45
             );
         }
+
+        /*
+         |--------------------------------------------------------------------------
+         | 5. Early-return workflow - only when records exist
+         |--------------------------------------------------------------------------
+         */
+
+        foreach (($custody->earlyReturnRequests ?? collect()) as $earlyReturn) {
+            $earlyStatus = strtoupper((string) ($earlyReturn->status ?? ''));
+
+            $earlyRequestedAt =
+                $earlyReturn->requested_at
+                ?? $earlyReturn->submitted_at
+                ?? $earlyReturn->created_at;
+
+            $addBorrowerTimelineEvent(
+                'Early return requested',
+                $earlyRequestedAt,
+                'A request to return the borrowed items before the expected return schedule was recorded.',
+                50
+            );
+
+            if (in_array($earlyStatus, ['APPROVED', 'CONFIRMED', 'ACCEPTED'], true)) {
+                $earlyConfirmedAt =
+                    $earlyReturn->confirmed_at
+                    ?? $earlyReturn->approved_at
+                    ?? $earlyReturn->decided_at
+                    ?? null;
+
+                $addBorrowerTimelineEvent(
+                    'Early return confirmed',
+                    $earlyConfirmedAt,
+                    'SPMU confirmed that the return may proceed before the original expected return schedule.',
+                    51
+                );
+            }
+
+            if (in_array($earlyStatus, ['REJECTED', 'DECLINED'], true)) {
+                $earlyDeclinedAt =
+                    $earlyReturn->rejected_at
+                    ?? $earlyReturn->declined_at
+                    ?? $earlyReturn->decided_at
+                    ?? null;
+
+                $addBorrowerTimelineEvent(
+                    'Early return request declined',
+                    $earlyDeclinedAt,
+                    'The original expected return schedule remained applicable.',
+                    51
+                );
+            }
+        }
+
+        /*
+         |--------------------------------------------------------------------------
+         | 6. Returns
+         |
+         | Distinguish partial return from completion using the quantities
+         | actually released and actually received.
+         |--------------------------------------------------------------------------
+         */
+
+        $totalReleasedQuantity = (float) ($custody->lines ?? collect())
+            ->sum(fn ($line) => (float) ($line->actual_released_quantity ?? 0));
+
+        $cumulativeReturnedQuantity = 0.0;
 
         foreach (($custody->returns ?? collect())->sortBy('received_at') as $returnTransaction) {
             if (! $returnTransaction->received_at) {
@@ -478,28 +592,231 @@
             }
 
             $returnQuantity = (float) ($returnTransaction->lines ?? collect())
-                ->sum('quantity_received');
+                ->sum(fn ($line) => (float) ($line->quantity_received ?? 0));
 
-            $returnDetail = $returnTransaction->return_no
-                ? 'Return '.$returnTransaction->return_no.' was recorded.'
-                : 'Physical return was recorded.';
+            $cumulativeReturnedQuantity += $returnQuantity;
 
-            if ($returnQuantity > 0) {
-                $returnDetail .= ' Recorded quantity: '.($returnQuantity + 0).'.';
+            $remainingQuantity = max(
+                0,
+                $totalReleasedQuantity - $cumulativeReturnedQuantity
+            );
+
+            if (
+                $totalReleasedQuantity > 0
+                && $cumulativeReturnedQuantity < $totalReleasedQuantity
+            ) {
+                $returnTitle = 'Partial return received';
+
+                $returnDetail =
+                    ($returnTransaction->return_no
+                        ? 'Return '.$returnTransaction->return_no.' was recorded. '
+                        : '')
+                    .'Received quantity: '.($returnQuantity + 0)
+                    .'. Remaining under custody: '.($remainingQuantity + 0).'.';
+            } elseif ($totalReleasedQuantity > 0) {
+                $returnTitle = 'All issued items returned';
+
+                $returnDetail =
+                    ($returnTransaction->return_no
+                        ? 'Return '.$returnTransaction->return_no.' was recorded. '
+                        : '')
+                    .'The complete issued quantity has been physically returned.';
+            } else {
+                $returnTitle = 'Return received';
+
+                $returnDetail =
+                    $returnTransaction->return_no
+                        ? 'Return '.$returnTransaction->return_no.' was recorded.'
+                        : 'The physical return was recorded.';
             }
 
             $addBorrowerTimelineEvent(
-                'Return received',
+                $returnTitle,
                 $returnTransaction->received_at,
-                $returnDetail
+                $returnDetail,
+                60
             );
         }
+
+        /*
+         |--------------------------------------------------------------------------
+         | 7. Overdue return
+         |--------------------------------------------------------------------------
+         */
+
+        $overdueCase = $custody->overdueCase;
+
+        if ($overdueCase?->overdue_started_at) {
+            $addBorrowerTimelineEvent(
+                'Return became overdue',
+                $overdueCase->overdue_started_at,
+                'The borrowing passed its expected return schedule and entered overdue monitoring.',
+                70
+            );
+        }
+
+        if ($overdueCase?->ao_confirmed_at) {
+            $addBorrowerTimelineEvent(
+                'Late-return assessment confirmed',
+                $overdueCase->ao_confirmed_at,
+                'The SPMU Action Officer confirmed the recorded late-return assessment.',
+                71
+            );
+        }
+
+        if ($overdueCase?->resolved_at) {
+            $addBorrowerTimelineEvent(
+                'Overdue obligation resolved',
+                $overdueCase->resolved_at,
+                'The overdue-return obligation linked to this borrowing was resolved.',
+                79
+            );
+        }
+
+        /*
+         |--------------------------------------------------------------------------
+         | 8. Property accountability
+         |
+         | Damaged, missing, lost, stolen, destroyed, or another recorded
+         | adverse finding appears only if an Incident actually exists.
+         |--------------------------------------------------------------------------
+         */
+
+        foreach (($custody->incidents ?? collect())->sortBy('reported_at') as $incident) {
+            $incidentType = strtoupper(trim((string) ($incident->incident_type ?? '')));
+
+            $incidentTitle = match ($incidentType) {
+                'DAMAGED', 'DAMAGE' =>
+                    'Damaged item recorded',
+
+                'MISSING' =>
+                    'Missing item recorded',
+
+                'LOST', 'LOSS' =>
+                    'Lost item recorded',
+
+                'STOLEN' =>
+                    'Stolen item recorded',
+
+                'DESTROYED' =>
+                    'Destroyed item recorded',
+
+                default =>
+                    'Property accountability case opened',
+            };
+
+            $incidentReference = $incident->incident_no
+                ? ' Case '.$incident->incident_no.'.'
+                : '';
+
+            $incidentDetail = match ($incidentType) {
+                'DAMAGED', 'DAMAGE' =>
+                    'A returned item was recorded with a damage finding and requires SPMU accountability review.'
+                    .$incidentReference,
+
+                'MISSING' =>
+                    'An issued item was recorded as missing and requires SPMU accountability review.'
+                    .$incidentReference,
+
+                'LOST', 'LOSS' =>
+                    'An issued item was recorded as lost and requires SPMU accountability review.'
+                    .$incidentReference,
+
+                'STOLEN' =>
+                    'An issued item was recorded as stolen and requires SPMU accountability review.'
+                    .$incidentReference,
+
+                'DESTROYED' =>
+                    'An issued item was recorded as destroyed and requires SPMU accountability review.'
+                    .$incidentReference,
+
+                default =>
+                    'A property accountability finding was recorded for this borrowing.'
+                    .$incidentReference,
+            };
+
+            $addBorrowerTimelineEvent(
+                $incidentTitle,
+                $incident->reported_at ?? $incident->created_at,
+                $incidentDetail,
+                80
+            );
+
+            /*
+             * Head/Admin decision exists as a separate lifecycle event.
+             */
+            if ($incident->head_decided_at) {
+                $addBorrowerTimelineEvent(
+                    'SPMU accountability decision recorded',
+                    $incident->head_decided_at,
+                    'The SPMU Head/Admin recorded a decision for'
+                    .($incident->incident_no ? ' case '.$incident->incident_no : ' the property case')
+                    .'.',
+                    81
+                );
+            }
+
+            /*
+             * Show the approved disposition only if one was actually recorded.
+             */
+            if ($incident->official_disposition_recorded_at) {
+                $dispositionLabel = trim(
+                    str_replace(
+                        '_',
+                        ' ',
+                        (string) ($incident->official_disposition ?? 'required action')
+                    )
+                );
+
+                $addBorrowerTimelineEvent(
+                    'Property resolution requirement recorded',
+                    $incident->official_disposition_recorded_at,
+                    'SPMU recorded the required resolution action: '
+                    .ucwords(strtolower($dispositionLabel))
+                    .'.',
+                    82
+                );
+            }
+
+            /*
+             * Action Officer physical/compliance verification.
+             */
+            if ($incident->compliance_verified_at) {
+                $addBorrowerTimelineEvent(
+                    'Property compliance verified',
+                    $incident->compliance_verified_at,
+                    'The SPMU Action Officer verified completion of the required property action.',
+                    83
+                );
+            }
+
+            /*
+             * Final property case resolution.
+             */
+            if ($incident->resolved_at) {
+                $addBorrowerTimelineEvent(
+                    'Property accountability case resolved',
+                    $incident->resolved_at,
+                    'The property accountability case'
+                    .($incident->incident_no ? ' '.$incident->incident_no : '')
+                    .' was formally resolved.',
+                    89
+                );
+            }
+        }
+
+        /*
+         |--------------------------------------------------------------------------
+         | 9. Laundry - linen transactions only
+         |--------------------------------------------------------------------------
+         */
 
         if ($laundryJob?->worker_received_at) {
             $addBorrowerTimelineEvent(
                 'Linen received by Laundry',
                 $laundryJob->worker_received_at,
-                'Applicable linen was physically received for laundry processing.'
+                'The applicable linen and Laundry Form were physically received for processing.',
+                90
             );
         }
 
@@ -507,25 +824,61 @@
             $addBorrowerTimelineEvent(
                 'Laundry processing completed',
                 $laundryJob->completed_at,
-                'The accomplished Laundry Form was reconciled by SPMU.'
+                'The completed Laundry Form and linen-return processing were reconciled.',
+                91
             );
         }
+
+        /*
+         |--------------------------------------------------------------------------
+         | 10. Final transaction outcome
+         |--------------------------------------------------------------------------
+         */
 
         if ($custody->closed_at) {
-            $addBorrowerTimelineEvent(
-                $transactionCancelled ? 'Borrowing cancelled' : 'Borrowing completed',
-                $custody->closed_at,
-                $transactionCancelled
-                    ? 'This borrowing transaction was closed without release.'
-                    : 'All issued items were returned and the transaction was reconciled.'
-            );
+            if ($transactionCancelled) {
+                $addBorrowerTimelineEvent(
+                    'Borrowing cancelled',
+                    $custody->closed_at,
+                    $custody->released_at
+                        ? 'The borrowing transaction was closed after its recorded custody activity.'
+                        : 'The borrowing transaction was closed without physical release.',
+                    1000
+                );
+            } else {
+                $addBorrowerTimelineEvent(
+                    'Borrowing completed',
+                    $custody->closed_at,
+                    'All applicable return, document, and accountability requirements were reconciled and the borrowing was closed.',
+                    1000
+                );
+            }
         }
 
+        /*
+         |--------------------------------------------------------------------------
+         | Chronological order
+         |
+         | sort_order only resolves events sharing the exact same timestamp.
+         |--------------------------------------------------------------------------
+         */
+
         $borrowerTimeline = $borrowerTimeline
-            ->sortBy(fn (array $event) => $event['occurred_at']->timestamp)
+            ->sort(function (array $left, array $right): int {
+                $timeComparison =
+                    $left['occurred_at']->timestamp
+                    <=> $right['occurred_at']->timestamp;
+
+                if ($timeComparison !== 0) {
+                    return $timeComparison;
+                }
+
+                return ($left['sort_order'] ?? 100)
+                    <=> ($right['sort_order'] ?? 100);
+            })
             ->values();
 
-        /* BORROWER TRANSACTION TIMELINE DATA END */
+/* BORROWER TRANSACTION TIMELINE DATA END */
 @endphp
 
     @include('custody.partials.borrower-custody-styles')

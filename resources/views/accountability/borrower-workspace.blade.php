@@ -890,6 +890,69 @@
     box-shadow: var(--shadow-sm);
     transform: translateY(-1px);
 }
+
+    /* ACTIVE CASE CARD SPACING TUNE START */
+
+    /*
+     * Active Cases monitoring view:
+     * keep related cards visually separated and use a compact,
+     * consistent internal rhythm without changing focused action forms.
+     */
+
+    .borrower-accountability-workspace:not(.is-focused-case-view)
+    .accountability-custody-groups {
+        gap: 12px;
+    }
+
+    .borrower-accountability-workspace:not(.is-focused-case-view)
+    .accountability-custody-group {
+        padding: 12px;
+    }
+
+    .borrower-accountability-workspace:not(.is-focused-case-view)
+    .accountability-custody-group__header {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+    }
+
+    .borrower-accountability-workspace:not(.is-focused-case-view)
+    .accountability-custody-group .ob-case-list {
+        gap: 10px;
+    }
+
+    .borrower-accountability-workspace:not(.is-focused-case-view)
+    .accountability-custody-case,
+    .borrower-accountability-workspace:not(.is-focused-case-view)
+    .accountability-standalone-case {
+        padding: 12px 14px;
+    }
+
+    .borrower-accountability-workspace:not(.is-focused-case-view)
+    .accountability-case-summary {
+        margin-top: 6px;
+    }
+
+    .borrower-accountability-workspace:not(.is-focused-case-view)
+    .accountability-case-responsibility {
+        margin-top: 8px;
+        padding: 8px 10px;
+    }
+
+    /*
+     * Custody/property cards and standalone restriction/billing cards are
+     * rendered in separate groups. Add the missing vertical separation.
+     */
+    .borrower-accountability-workspace:not(.is-focused-case-view)
+    .accountability-custody-groups ~ .accountability-standalone-groups {
+        margin-top: 12px;
+    }
+
+    .borrower-accountability-workspace:not(.is-focused-case-view)
+    .accountability-standalone-groups {
+        gap: 12px;
+    }
+
+    /* ACTIVE CASE CARD SPACING TUNE END */
 </style>
 
 @php
@@ -915,6 +978,14 @@
         && in_array($requestedScope, ['all', 'status', 'open', 'pending', 'payment'], true)
         ? $requestedScope : 'all';
     $shouldAutoOpenFocusedAction = $isFocusedCaseView;
+
+    /*
+     * "work" = Head/Admin action queue.
+     * "all"  = monitoring/reference view.
+     */
+    $queueContext = in_array((string) request('queue', ''), ['work', 'all'], true)
+        ? (string) request('queue')
+        : ($isFocusedCaseView ? 'work' : 'all');
     $scopeMeta = match ($selectedScope) {
         'status' => ['Borrowing Restrictions', 'No active borrowing restrictions.', 'This borrower currently has no applicable active borrowing restriction.'],
         'pending' => ['Pending Borrower Compliance', 'No borrower compliance pending.', 'There are no recorded obligations currently awaiting this borrower’s action.'],
@@ -967,7 +1038,7 @@
 <div class="borrower-accountability-workspace {{ $isFocusedCaseView ? 'is-focused-case-view' : '' }} {{ $shouldAutoOpenFocusedAction ? 'is-focused-action-view' : '' }}">
 <section class="page-heading">
     <div>
-        <a class="accountability-back-link" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">
+        <a class="accountability-back-link" href="{{ route('accountability.index', ['queue' => $queueContext]) }}#accountability-workspace">
             <span>← {{ $isHead ? 'Accountability Oversight' : 'Accountability Processing' }}</span>
         </a>
         <p class="eyebrow">Borrower Accountability</p>
@@ -981,7 +1052,7 @@
         role="tab"
         aria-selected="{{ $activeTab === 'cases' ? 'true' : 'false' }}"
         class="accountability-workspace-tab {{ $activeTab === 'cases' ? 'is-active' : '' }}"
-        href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases']) }}"
+        href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'queue' => $queueContext]) }}"
     >
         Active Cases
     </a>
@@ -990,7 +1061,7 @@
         role="tab"
         aria-selected="{{ $activeTab === 'history' ? 'true' : 'false' }}"
         class="accountability-workspace-tab {{ $activeTab === 'history' ? 'is-active' : '' }}"
-        href="{{ route('accountability.borrower', [$borrower, 'tab' => 'history']) }}"
+        href="{{ route('accountability.borrower', [$borrower, 'tab' => 'history', 'queue' => $queueContext]) }}"
     >
         History
     </a>
@@ -1002,7 +1073,7 @@
         @if(! $isFocusedCaseView && $selectedScope !== 'all')
             <div class="accountability-scoped-heading">
                 <h2>{{ $scopeMeta[0] }}</h2>
-                <a class="button secondary small" href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases']) }}#accountability-active-cases">View All Cases →</a>
+                <a class="button secondary small" href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'queue' => $queueContext]) }}#accountability-active-cases">View All Cases →</a>
             </div>
         @endif
         @php
@@ -1159,12 +1230,12 @@
                                                 <a class="button secondary small accountability-action-button" href="{{ route('custody.return.show', $record->custody) }}">Record Return</a>
                                             @elseif($currentRoleOwnsAction && $isHeadReview && ! $shouldAutoOpenFocusedAction)
                                                 <a class="button secondary small accountability-action-button"
-                                                   href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'focus' => 'overdue-'.$record->id]) }}#overdue-{{ $record->id }}">
+                                                   href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'focus' => 'overdue-'.$record->id, 'queue' => 'work']) }}#overdue-{{ $record->id }}">
                                                     Review Assessment
                                                 </a>
                                             @elseif($currentRoleOwnsAction && $isAwaitingPayment && $linkedBilling && ! $shouldAutoOpenFocusedAction)
                                                 <a class="button secondary small accountability-action-button"
-                                                   href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'focus' => 'overdue-'.$record->id]) }}#overdue-{{ $record->id }}">
+                                                   href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'focus' => 'overdue-'.$record->id, 'queue' => 'work']) }}#overdue-{{ $record->id }}">
                                                     Record Receipt
                                                 </a>
                                             @endif
@@ -1266,22 +1337,24 @@
                                             'RSLDDP_COMPLIANCE_VERIFICATION' => \App\Support\AccountabilityDispositionLabels::subStatusLabel($incident),
                                             'RSLDDP_FOR_ACCOUNTING_PROCESSING' => 'Official Billing Pending',
                                             'RSLDDP_PAYMENT_REQUIRED' => 'Awaiting Payment',
-                                            'RSLDDP_FOR_RESOLUTION' => 'For Final Resolution',
+                                            'RSLDDP_FOR_RESOLUTION' => 'Ready for Closure',
                                             default => \App\Support\StatusLabels::label($statusKey) ?? str($statusKey)->replace('_', ' ')->title()->toString(),
                                         };
                                         $linkedBilling = $billingForIncident($incident);
                                         $responsibleNow = match ($statusKey) {
                                             'OPEN',
                                             'FOR_BILLING',
-                                            'RSLDDP_AWAITING_UPLOAD',
                                             'F2F_PROCESSING',
+                                            'RSLDDP_AWAITING_UPLOAD',
                                             'RSLDDP_DISPOSITION_PENDING',
                                             'RSLDDP_FOR_ACCOUNTING_PROCESSING',
-                                            'RSLDDP_FOR_RESOLUTION',
+                                            'RSLDDP_FOR_RESOLUTION' => 'SPMU Head/Admin',
                                             'COMPLIANCE_RSLDDP_PENDING' => 'SPMU Action Officer',
                                             'BILLING_PENDING',
                                             'RSLDDP_PAYMENT_REQUIRED' => 'Borrower',
-                                            'RSLDDP_COMPLIANCE_VERIFICATION' => $incident->official_disposition === 'OTHER' ? 'SPMU Head/Admin' : 'Borrower',
+                                            'RSLDDP_COMPLIANCE_VERIFICATION' => $incident->official_disposition === 'OTHER'
+                                                ? 'SPMU Head/Admin'
+                                                : 'Borrower',
                                             'COMPLIANCE_REQUIRED' => 'Borrower',
                                             default => 'SPMU Processing',
                                         };
@@ -1291,7 +1364,7 @@
                                             || ($isOfficer && in_array($statusKey, $officerOwnedStatuses, true))
                                             || ($isOfficer && $statusKey === 'RSLDDP_COMPLIANCE_VERIFICATION' && in_array($incident->official_disposition, ['REPAIR', 'REPLACEMENT', 'RETURN_RECOVERY', 'MONETARY_SETTLEMENT'], true));
                                         $actionLabel = match ($statusKey) {
-                                            'OPEN' => 'Confirm / Clear',
+                                            'OPEN' => 'Review Finding',
                                             'FOR_BILLING' => 'Generate Billing',
                                             'BILLING_PENDING', 'RSLDDP_PAYMENT_REQUIRED' => 'Record Receipt',
                                             'F2F_PROCESSING' => 'Resolve Accountability',
@@ -1300,22 +1373,22 @@
                                             'RSLDDP_COMPLIANCE_VERIFICATION' => $incident->official_disposition === 'MONETARY_SETTLEMENT' ? 'Record Receipt' : 'Record Verification',
                                             'COMPLIANCE_REQUIRED' => 'Verify Compliance',
                                             'RSLDDP_FOR_ACCOUNTING_PROCESSING' => 'Record Billing Statement',
-                                            'RSLDDP_FOR_RESOLUTION' => 'Resolve Case',
+                                            'RSLDDP_FOR_RESOLUTION' => 'Finalize Case',
                                             default => 'Open Action',
                                         };
                                         $roleMessage = match ($statusKey) {
-                                            'OPEN' => 'SPMU Head/Admin reviews the recorded finding and confirms accountability or clears the finding.',
+                                            'OPEN' => 'Review the Action Officer finding and confirm accountability or clear the finding.',
                                             'FOR_BILLING' => 'SPMU Head/Admin records the approved property Billing Statement details.',
                                             'BILLING_PENDING', 'RSLDDP_PAYMENT_REQUIRED' => 'Borrower pays through the CSPC Cashier and presents the official receipt. The Action Officer records it when presented.',
-                                            'F2F_PROCESSING' => 'The borrower completes the required in-person process with SPMU. Upon completion, the Head/Admin records the final resolution and attaches the accomplished RSLDDP.',
-                                            'RSLDDP_AWAITING_UPLOAD', 'RSLDDP_DISPOSITION_PENDING' => 'The required in-person processing must be completed before the Head/Admin records the final resolution and attaches the accomplished RSLDDP.',
+                                            'F2F_PROCESSING' => 'Complete the required in-person accountability processing with the borrower. Then attach the accomplished RSLDDP and record the resolution.',
+                                            'RSLDDP_AWAITING_UPLOAD', 'RSLDDP_DISPOSITION_PENDING' => 'Complete the required in-person processing, then attach the accomplished RSLDDP and record the approved outcome.',
                                             'COMPLIANCE_RSLDDP_PENDING' => 'Existing compliance case: the borrower presents the required property compliance and the Action Officer verifies it before final resolution.',
                                             'RSLDDP_COMPLIANCE_VERIFICATION' => $incident->official_disposition === 'MONETARY_SETTLEMENT'
                                                 ? 'Borrower pays through the CSPC Cashier and presents the official receipt. The Action Officer records it when presented.'
                                                 : 'Borrower completes and presents the required property compliance. The Action Officer physically verifies it.',
                                             'COMPLIANCE_REQUIRED' => 'Borrower completes and presents the required property compliance. The Action Officer physically verifies it.',
                                             'RSLDDP_FOR_ACCOUNTING_PROCESSING' => 'SPMU Head/Admin records the official Accounting-issued Billing Statement after external processing.',
-                                            'RSLDDP_FOR_RESOLUTION' => 'SPMU Head/Admin attaches the accomplished RSLDDP and confirms final resolution.',
+                                            'RSLDDP_FOR_RESOLUTION' => 'Required verification is complete. Attach the accomplished RSLDDP and record the final resolution.',
                                             default => 'Continue the applicable accountability process.',
                                         };
                                         $propertySummary = $incident->lines
@@ -1378,8 +1451,8 @@
                                                     <span class="muted">Billing record pending</span>
                                                 @elseif(! $shouldAutoOpenFocusedAction)
                                                     <a class="button secondary small accountability-action-button"
-                                                       href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'focus' => 'incident-'.$incident->id]) }}#incident-{{ $incident->id }}">
-                                                        {{ $actionLabel }}
+                                                       href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'focus' => 'incident-'.$incident->id, 'queue' => 'work']) }}#incident-{{ $incident->id }}">
+                                                        {{ $statusKey === 'OPEN' && $isHead ? 'Open Decision →' : $actionLabel }}
                                                     </a>
                                                 @endif
                                             @endif
@@ -1392,14 +1465,14 @@
                                         <section class="accountability-action-panel" id="{{ $dialogId }}">
                                             <header class="accountability-action-panel__header">
                                                 <div>
-                                                    <h3>{{ $actionLabel }}</h3>
+                                                    <h3>{{ $statusKey === 'OPEN' ? 'Accountability Decision' : $actionLabel }}</h3>
                                                 </div>
                                             </header>
                                             <div class="accountability-action-panel__body">
                                                 @if($statusKey === 'OPEN')
                                                     <form method="post" action="{{ route('incidents.resolve', $incident) }}">
                                                         @csrf
-                                                        <p class="accountability-dialog-note">Confirm only when the recorded finding establishes borrower accountability. Clear closes this property finding without creating an offense from this case.</p>
+                                                        <p class="accountability-dialog-note">Confirm when the recorded finding establishes borrower accountability. Clear the finding when accountability is not established.</p>
                                                         <label>Decision
                                                             <select name="decision" required>
                                                                 <option value="">Select decision</option>
@@ -1412,7 +1485,7 @@
                                                         </label>
                                                         <div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
-                                                            <button class="button primary small">Save Decision</button>
+                                                            <button class="button primary small">Record Decision</button>
                                                         </div>
                                                     </form>
                                                 @elseif($isDirectF2fResolution)

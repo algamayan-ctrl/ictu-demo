@@ -808,6 +808,10 @@
 
             html[data-sidebar-state="expanded"] .sidebar-brand-row {
                 gap: 8px !important;
+                align-items: center !important;
+                padding-top: 8px !important;
+                padding-bottom: 4px !important;
+                box-sizing: border-box;
             }
 
             html[data-sidebar-state="expanded"] .sidebar-brand.sidebar-brand-logo {
@@ -872,6 +876,16 @@
             .sidebar-close {
                 display: none !important;
             }
+        }
+
+        /* Keep the sidebar brand visible while the sidebar menu scrolls. */
+        .sidebar-brand-row {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 30 !important;
+            flex: 0 0 auto !important;
+            overflow: visible !important;
+            background: inherit !important;
         }
 
         @media (max-width: 1049px) {
@@ -1137,6 +1151,7 @@
                     ['accountability.index', 'accountability.*', 'Accountability', 'accountability'],
                     ['analytics.index', 'analytics.*', 'Analytics', 'analytics'],
                     ['reports.index', 'reports.index', 'Reports', 'report-document'],
+                    ['reports.audit', 'reports.audit', 'Operational Audit Trail', 'reports'],
                     ['policies.index', 'policies.*', 'Configuration', 'settings'],
                 ]
                 : [
@@ -1155,7 +1170,7 @@
                 ['dashboard', 'dashboard', 'Dashboard', 'dashboard'],
                 ['administration.users.index', 'administration.users.*', 'User Accounts', 'users'],
                 ['administration.settings.index', 'administration.settings.*', 'System Configuration', 'settings'],
-                ['reports.audit', 'reports.audit', 'Audit Trail', 'reports'],
+                ['reports.audit', 'reports.audit', 'Technical Audit Trail', 'reports'],
                 ['reports.notifications', 'reports.notifications', 'Delivery Records', 'notifications'],
             ],
             default => [],
@@ -1169,7 +1184,7 @@
                     <img
                         class="sidebar-brand-logo-image"
                         src="{{ asset('images/spmu-acpmp-logo.png') }}"
-                        alt="SPMU-ACPMP — Supply and Property Management Unit, Asset Custody Monitoring Program"
+                        alt="SPMU-ACPMP Ã¢â‚¬â€ Supply and Property Management Unit, Asset Custody Monitoring Program"
                     >
                 </a>
                 <button class="icon-button sidebar-close" type="button" aria-label="Close main menu" title="Close main menu" data-sidebar-close><x-icon name="close" /></button>
@@ -1363,7 +1378,7 @@
             <img
                 class="brand-logo-image"
                 src="{{ asset('images/spmu-acpmp-logo.png') }}"
-                alt="SPMU-ACPMP — Supply and Property Management Unit, Asset Custody Monitoring Program"
+                alt="SPMU-ACPMP Ã¢â‚¬â€ Supply and Property Management Unit, Asset Custody Monitoring Program"
             >
         </a>
                 @unless(request()->routeIs('home', 'login'))
@@ -1644,5 +1659,643 @@
     </script>
     {{-- SPMU-ACPMP NUMBER INPUT SAFETY END --}}
 
+
+@auth
+
+<style>
+/* SPMU SESSION ENDED MODAL START */
+
+/*
+|--------------------------------------------------------------------------
+| Compact login-matched session ended UI
+|--------------------------------------------------------------------------
+*/
+
+.spmu-session-ended-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+
+    display: grid;
+    place-items: center;
+
+    box-sizing: border-box;
+    padding: 18px;
+
+    background: rgba(246, 249, 252, .78);
+
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Compact card
+|--------------------------------------------------------------------------
+*/
+.spmu-session-ended-dialog {
+    width: min(100%, 380px);
+
+    box-sizing: border-box;
+
+    padding: 22px 22px 20px;
+
+    border: 1px solid #d6e1ed;
+    border-radius: 11px;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 16px 38px rgba(37, 61, 86, .13),
+        0 3px 10px rgba(37, 61, 86, .05);
+
+    color: #243f5b;
+
+    font-family: inherit !important;
+
+    text-align: center;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Lock icon
+|--------------------------------------------------------------------------
+*/
+.spmu-session-ended-icon {
+    display: grid;
+    place-items: center;
+
+    width: 44px;
+    height: 44px;
+
+    margin: 0 auto 13px;
+
+    border: 1px solid #d8e7fb;
+    border-radius: 50%;
+
+    background: #eef5ff;
+    color: #0969e8;
+}
+
+.spmu-session-ended-icon svg {
+    width: 19px;
+    height: 19px;
+
+    fill: none;
+    stroke: currentColor;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Heading
+|--------------------------------------------------------------------------
+*/
+.spmu-session-ended-dialog h2 {
+    margin: 0;
+
+    color: #243f5b;
+
+    font-family: inherit !important;
+
+    font-size: 20px !important;
+    font-weight: 750 !important;
+    line-height: 1.2 !important;
+
+    letter-spacing: -.025em !important;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Supporting text
+|--------------------------------------------------------------------------
+*/
+.spmu-session-ended-dialog p {
+    margin: 6px auto 0;
+
+    max-width: 285px;
+
+    color: #62758a;
+
+    font-family: inherit !important;
+
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| OK button
+|--------------------------------------------------------------------------
+*/
+.spmu-session-ended-dialog .spmu-session-ended-ok.button.primary {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 100% !important;
+    min-height: 40px !important;
+
+    margin: 18px 0 0 !important;
+    padding: 8px 14px !important;
+
+    border: 1px solid #0969e8 !important;
+    border-radius: 8px !important;
+
+    background: #0969e8 !important;
+    color: #ffffff !important;
+
+    box-shadow: none !important;
+
+    font-family: inherit !important;
+    font-size: 12px !important;
+    font-weight: 750 !important;
+    line-height: 1.2 !important;
+
+    cursor: pointer !important;
+
+    transform: none !important;
+
+    transition:
+        background-color .16s ease,
+        border-color .16s ease,
+        box-shadow .16s ease !important;
+}
+
+.spmu-session-ended-dialog .spmu-session-ended-ok.button.primary:hover {
+    border-color: #064eb0 !important;
+    background: #064eb0 !important;
+    color: #ffffff !important;
+
+    box-shadow:
+        0 4px 12px rgba(9, 105, 232, .14) !important;
+
+    transform: none !important;
+}
+
+.spmu-session-ended-dialog .spmu-session-ended-ok.button.primary:focus-visible {
+    outline: none !important;
+
+    border-color: #0969e8 !important;
+
+    box-shadow:
+        0 0 0 3px rgba(9, 105, 232, .16) !important;
+}
+
+.spmu-session-ended-dialog .spmu-session-ended-ok.button.primary:active {
+    background: #064eb0 !important;
+    border-color: #064eb0 !important;
+
+    transform: scale(.99) !important;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Expired page lock
+|--------------------------------------------------------------------------
+*/
+html.spmu-session-ended,
+html.spmu-session-ended body {
+    overflow: hidden !important;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Mobile
+|--------------------------------------------------------------------------
+*/
+@media (max-width: 520px) {
+    .spmu-session-ended-overlay {
+        padding: 15px;
+    }
+
+    .spmu-session-ended-dialog {
+        width: 100%;
+
+        padding: 21px 18px 18px;
+    }
+
+    .spmu-session-ended-dialog h2 {
+        font-size: 19px !important;
+    }
+}
+
+/* SPMU SESSION ENDED MODAL END */
+</style>
+
+<script>
+/* SPMU IDLE SESSION MONITOR START */
+(() => {
+    const timeoutMinutes = Number(
+        @json((int) config('session.idle_timeout', 15))
+    );
+
+    const timeoutMs = Math.max(
+        1,
+        timeoutMinutes
+    ) * 60 * 1000;
+
+    const activityRoute = @json(route('session.activity'));
+    const logoutRoute = @json(route('logout'));
+    const loginRoute = @json(route('login'));
+    const csrfToken = @json(csrf_token());
+
+    const userKey = @json(
+        'spmu-acpmp.idle.' .
+        hash('sha256', (string) auth()->id())
+    );
+
+    let lastActivity = Date.now();
+    let lastStorageWrite = 0;
+    let lastHeartbeat = 0;
+
+    let logoutStarted = false;
+    let sessionEndedDialogShown = false;
+
+    /*
+     * Loading an authenticated page counts as initial activity.
+     */
+    try {
+        localStorage.setItem(
+            userKey,
+            String(lastActivity)
+        );
+    } catch (_) {
+        // Local timer remains functional without localStorage.
+    }
+
+
+    const syncStorage = (timestamp) => {
+        /*
+         * Avoid excessive storage writes during continuous mouse movement.
+         */
+        if (timestamp - lastStorageWrite < 5000) {
+            return;
+        }
+
+        lastStorageWrite = timestamp;
+
+        try {
+            localStorage.setItem(
+                userKey,
+                String(timestamp)
+            );
+        } catch (_) {
+            // Ignore storage restrictions.
+        }
+    };
+
+
+    const heartbeat = async (timestamp) => {
+        /*
+         * Real user activity can refresh the server clock at most once
+         * per minute. Background application polling never calls this.
+         */
+        if (
+            logoutStarted ||
+            timestamp - lastHeartbeat < 60000
+        ) {
+            return;
+        }
+
+        lastHeartbeat = timestamp;
+
+        try {
+            await fetch(
+                activityRoute,
+                {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                }
+            );
+        } catch (_) {
+            /*
+             * Server-side idle enforcement still protects the next request
+             * if the temporary heartbeat request cannot be delivered.
+             */
+        }
+    };
+
+
+    const showSessionEndedDialog = () => {
+        if (sessionEndedDialogShown) {
+            return;
+        }
+
+        sessionEndedDialogShown = true;
+
+        document.documentElement.classList.add(
+            'spmu-session-ended'
+        );
+
+        const overlay = document.createElement('div');
+
+        overlay.className =
+            'spmu-session-ended-overlay';
+
+        overlay.setAttribute(
+            'data-session-ended-overlay',
+            ''
+        );
+
+        overlay.innerHTML = `
+            <section
+                class="spmu-session-ended-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="spmu-session-ended-title"
+                aria-describedby="spmu-session-ended-message"
+            >
+                <div
+                    class="spmu-session-ended-icon"
+                    aria-hidden="true"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <rect
+                            x="5"
+                            y="10"
+                            width="14"
+                            height="10"
+                            rx="2"
+                        ></rect>
+
+                        <path
+                            d="M8 10V7a4 4 0 0 1 8 0v3"
+                        ></path>
+
+                        <path
+                            d="M12 14v2"
+                        ></path>
+                    </svg>
+                </div>
+
+                <h2 id="spmu-session-ended-title">
+                    Session ended
+                </h2>
+
+                <p id="spmu-session-ended-message">
+                    Your session ended. Please sign in again.
+                </p>
+
+                <button
+                    type="button"
+                    class="button primary spmu-session-ended-ok"
+                    data-session-ended-ok
+                >
+                    OK
+                </button>
+            </section>
+        `;
+
+        /*
+         * Clicking the faded area intentionally does nothing.
+         * The user must acknowledge the ended session through OK.
+         */
+        overlay.addEventListener(
+            'click',
+            (event) => {
+                if (event.target === overlay) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+            }
+        );
+
+        document.body.appendChild(overlay);
+
+        const okButton = overlay.querySelector(
+            '[data-session-ended-ok]'
+        );
+
+        okButton?.addEventListener(
+            'click',
+            () => {
+                /*
+                 * replace() removes the expired authenticated page from
+                 * the browser history before opening Login.
+                 */
+                window.location.replace(loginRoute);
+            }
+        );
+
+        /*
+         * Escape must not dismiss a security/session-expiration dialog.
+         */
+        document.addEventListener(
+            'keydown',
+            (event) => {
+                if (
+                    sessionEndedDialogShown &&
+                    event.key === 'Escape'
+                ) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+
+                    okButton?.focus();
+                }
+            },
+            true
+        );
+
+        window.setTimeout(
+            () => okButton?.focus(),
+            0
+        );
+    };
+
+
+    const logoutForIdle = () => {
+        if (logoutStarted) {
+            return;
+        }
+
+        logoutStarted = true;
+
+        /*
+         * Keep the current page on screen, but immediately cover and disable
+         * it. The server logout request is sent without navigating the page.
+         */
+        showSessionEndedDialog();
+
+        const formData = new FormData();
+
+        formData.append(
+            '_token',
+            csrfToken
+        );
+
+        formData.append(
+            'reason',
+            'idle'
+        );
+
+        /*
+         * fetch() intentionally consumes any Laravel redirect response.
+         * The browser remains on the current page until the user clicks OK.
+         */
+        void fetch(
+            logoutRoute,
+            {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html,application/xhtml+xml',
+                },
+            }
+        ).catch(() => {
+            /*
+             * The modal still remains active if connectivity fails.
+             * The server-side idle middleware will invalidate the expired
+             * session on the next request.
+             */
+        });
+    };
+
+
+    const recordActivity = () => {
+        if (logoutStarted) {
+            return;
+        }
+
+        const timestamp = Date.now();
+
+        /*
+         * If interaction happens only after the idle limit has already
+         * elapsed, the expired session cannot be revived.
+         */
+        if (
+            timestamp - lastActivity >= timeoutMs
+        ) {
+            logoutForIdle();
+            return;
+        }
+
+        lastActivity = timestamp;
+
+        syncStorage(timestamp);
+
+        void heartbeat(timestamp);
+    };
+
+
+    const events = [
+        'pointerdown',
+        'mousemove',
+        'keydown',
+        'scroll',
+        'touchstart',
+    ];
+
+    events.forEach((eventName) => {
+        window.addEventListener(
+            eventName,
+            recordActivity,
+            {
+                passive: true,
+                capture: true,
+            }
+        );
+    });
+
+
+    /*
+     * Returning to the application tab is genuine activity, but not if
+     * the idle deadline already passed while the tab was hidden.
+     */
+    window.addEventListener(
+        'focus',
+        recordActivity,
+        {
+            passive: true,
+        }
+    );
+
+    document.addEventListener(
+        'visibilitychange',
+        () => {
+            if (!document.hidden) {
+                recordActivity();
+            }
+        }
+    );
+
+
+    /*
+     * Real activity from another SPMU-ACPMP tab keeps all tabs synchronized.
+     */
+    window.addEventListener(
+        'storage',
+        (event) => {
+            if (
+                logoutStarted ||
+                event.key !== userKey ||
+                !event.newValue
+            ) {
+                return;
+            }
+
+            const timestamp = Number(
+                event.newValue
+            );
+
+            if (
+                Number.isFinite(timestamp) &&
+                timestamp > lastActivity
+            ) {
+                lastActivity = timestamp;
+            }
+        }
+    );
+
+
+    /*
+     * Check locally every second so the visual expiration prompt appears
+     * without requiring another HTTP request.
+     */
+    window.setInterval(
+        () => {
+            if (logoutStarted) {
+                return;
+            }
+
+            if (
+                Date.now() - lastActivity >= timeoutMs
+            ) {
+                logoutForIdle();
+            }
+        },
+        1000
+    );
+
+
+    /*
+     * Initialize the server-side user-activity timestamp.
+     */
+    void heartbeat(lastActivity);
+})();
+/* SPMU IDLE SESSION MONITOR END */
+</script>
+
+@endauth
 </body>
 </html>

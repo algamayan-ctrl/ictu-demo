@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\AccountStatus;
 use App\Http\Controllers\Auth\Concerns\EstablishesAuthenticatedSession;
 use App\Http\Controllers\Controller;
+use App\Services\AuditService;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class LoginController extends Controller
@@ -26,11 +29,52 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        /*
+         * LOGIN CREDENTIAL DIAGNOSTICS START
+         *
+         * Validate the password separately before the final authenticated
+         * session is created so the login form can show a useful message
+         * under the Password field. Unknown emails still receive a generic
+         * response.
+         */
+        $account = User::query()
+            ->where('email', $credentials['email'])
+            ->first();
+
+        if (! $account) {
+            return back()
+                ->withErrors([
+                    'password' => 'Incorrect email or password. Please try again.',
+                ])
+                ->onlyInput('email');
+        }
+
+        if (! Hash::check($credentials['password'], $account->password)) {
+            return back()
+                ->withErrors([
+                    'password' => 'Incorrect password. Please try again.',
+                ])
+                ->onlyInput('email');
+        }
+
+        if ($account->account_status !== AccountStatus::Active) {
+            $statusMessage = $account->account_status === AccountStatus::Suspended
+                ? 'This account is suspended. Contact ICTU for assistance.'
+                : 'This account is inactive. Contact ICTU for assistance.';
+
+            return back()
+                ->withErrors([
+                    'password' => $statusMessage,
+                ])
+                ->onlyInput('email');
+        }
+
+        /* LOGIN CREDENTIAL DIAGNOSTICS END */
         $credentials['account_status'] = AccountStatus::Active->value;
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             return back()->withErrors([
-                'email' => 'The supplied credentials are invalid or the account is not active.',
+                'password' => 'The supplied credentials are invalid or the account is not active.',
             ])->onlyInput('email');
         }
 
@@ -63,18 +107,55 @@ class LoginController extends Controller
 
         if ($error !== null) {
             return back()
-                ->withErrors(['email' => $error])
+                ->withErrors(['password' => $error])
                 ->onlyInput('email');
         }
 
         return redirect()->intended(route('dashboard'));
     }
 
-    public function destroy(Request $request): RedirectResponse
-    {
+    public function destroy(
+        Request $request,
+        AuditService $audit,
+    ): RedirectResponse {
+        $user = $request->user();
+
+        $idleLogout = $request->string('reason')->toString() === 'idle';
+
+        if ($idleLogout && $user) {
+            $timeoutMinutes = max(
+                1,
+                (int) config('session.idle_timeout', 15)
+            );
+
+            $audit->record(
+                'SESSION_IDLE_TIMEOUT',
+                $user,
+                reason: "Authenticated session ended after {$timeoutMinutes} minutes of inactivity.",
+                after: [
+                    'idle_timeout_minutes' => $timeoutMinutes,
+                ],
+            );
+        }
+
         Auth::logout();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        if ($idleLogout) {
+            $timeoutMinutes = max(
+                1,
+                (int) config('session.idle_timeout', 15)
+            );
+
+            return redirect()
+                ->route('login')
+                ->with(
+                    'status',
+                    "Your session ended after {$timeoutMinutes} minutes of inactivity. Please sign in again."
+                );
+        }
 
         return redirect()->route('home');
     }

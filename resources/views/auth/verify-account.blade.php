@@ -566,7 +566,7 @@ body > footer {
             @csrf
 
             <label class="otp-field">
-                <span class="otp-field-label">Official CSPC Email</span>
+                <span class="otp-field-label">Email</span>
 
                 <span class="otp-email-shell">
                     <span class="otp-email-icon" aria-hidden="true">

@@ -500,4 +500,777 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 </script>
+<style>
+/* ADMIN PASSWORD LIVE HELP START */
+
+
+/* =========================================================
+   PASSWORD INPUT + EYE ICON
+   ========================================================= */
+
+.ictu-password-input-wrap {
+    position: relative !important;
+    display: block !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+.ictu-password-input-wrap > input {
+    width: 100% !important;
+    padding-right: 42px !important;
+
+    transition:
+        border-color .16s ease,
+        box-shadow .16s ease,
+        background-color .16s ease !important;
+}
+
+.ictu-password-input-wrap > .ictu-password-toggle {
+    position: absolute !important;
+
+    top: 50% !important;
+    right: 8px !important;
+
+    z-index: 3 !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 0 !important;
+    border-radius: 6px !important;
+
+    background: transparent !important;
+    color: #788b9e !important;
+
+    box-shadow: none !important;
+
+    transform: translateY(-50%) !important;
+
+    cursor: pointer !important;
+}
+
+.ictu-password-input-wrap > .ictu-password-toggle:hover {
+    background: #eef5ff !important;
+    color: #0969e8 !important;
+}
+
+.ictu-password-input-wrap > .ictu-password-toggle:focus-visible {
+    outline: none !important;
+
+    background: #eef5ff !important;
+    color: #0969e8 !important;
+
+    box-shadow:
+        0 0 0 2px rgba(9, 105, 232, .14) !important;
+}
+
+.ictu-password-input-wrap > .ictu-password-toggle svg {
+    width: 15px !important;
+    height: 15px !important;
+
+    pointer-events: none;
+}
+
+.ictu-password-input-wrap > .ictu-password-toggle svg[hidden] {
+    display: none !important;
+}
+
+
+/* =========================================================
+   INVALID / VALID FIELD STATE
+   ========================================================= */
+
+.ictu-password-input-wrap.password-is-invalid > input {
+    border-color: #dc3545 !important;
+
+    background: rgba(220, 53, 69, .025) !important;
+
+    box-shadow:
+        0 0 0 2px rgba(220, 53, 69, .08) !important;
+}
+
+.ictu-password-input-wrap.password-is-invalid
+> .ictu-password-toggle {
+    color: #dc3545 !important;
+}
+
+.ictu-password-input-wrap.password-is-valid > input {
+    border-color: #1a9b65 !important;
+
+    background: rgba(26, 155, 101, .025) !important;
+
+    box-shadow:
+        0 0 0 2px rgba(26, 155, 101, .08) !important;
+}
+
+.ictu-password-input-wrap.password-is-valid
+> .ictu-password-toggle {
+    color: #1a9b65 !important;
+}
+
+
+/* =========================================================
+   PASSWORD GUIDANCE
+   ========================================================= */
+
+.password-guidance-block {
+    display: grid;
+
+    gap: 5px;
+
+    margin-top: 5px;
+}
+
+.password-main-feedback {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    width: fit-content;
+
+    margin: 0;
+
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.password-main-feedback.is-error {
+    color: #dc3545;
+}
+
+.password-main-feedback.is-success {
+    color: #1a9b65;
+}
+
+.password-main-feedback::before {
+    content: "!";
+
+    display: grid;
+    place-items: center;
+
+    width: 13px;
+    height: 13px;
+
+    flex: 0 0 13px;
+
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+
+    font-size: 8px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.password-main-feedback.is-success::before {
+    content: "✓";
+
+    border: 0;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   REQUIREMENT LIST
+   ========================================================= */
+
+.password-requirements {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, max-content));
+
+    gap: 3px 18px;
+
+    margin: 1px 0 0;
+    padding: 0;
+
+    list-style: none;
+}
+
+.password-requirement {
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+
+    margin: 0;
+
+    color: #7b8c9f;
+
+    font-family: inherit;
+    font-size: 9.5px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.password-requirement::before {
+    content: "✓";
+
+    display: grid;
+    place-items: center;
+
+    width: 12px;
+    height: 12px;
+
+    flex: 0 0 12px;
+
+    border: 1px solid #c4d0dc;
+    border-radius: 50%;
+
+    color: #c4d0dc;
+
+    font-size: 8px;
+    font-weight: 800;
+}
+
+.password-requirement.is-met {
+    color: #159957;
+}
+
+.password-requirement.is-met::before {
+    border-color: #19b866;
+
+    color: #19b866;
+}
+
+
+/* =========================================================
+   CONFIRM PASSWORD FEEDBACK
+   ========================================================= */
+
+.password-confirm-feedback {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    width: fit-content;
+
+    margin-top: 4px;
+
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1.35;
+}
+
+.password-confirm-feedback.is-error {
+    color: #dc3545;
+}
+
+.password-confirm-feedback.is-success {
+    color: #1a9b65;
+}
+
+.password-confirm-feedback::before {
+    content: "";
+
+    width: 5px;
+    height: 5px;
+
+    flex: 0 0 5px;
+
+    border-radius: 50%;
+
+    background: currentColor;
+}
+
+.password-live-hidden {
+    display: none !important;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 720px) {
+    .password-requirements {
+        grid-template-columns: 1fr;
+        gap: 3px;
+    }
+}
+
+/* ADMIN PASSWORD LIVE HELP END */
+</style>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const passwordInput = document.querySelector(
+        '#ictu-new-password'
+    );
+
+    const confirmInput = document.querySelector(
+        '#ictu-confirm-password'
+    );
+
+    if (!passwordInput) {
+        return;
+    }
+
+
+    const passwordWrap = passwordInput.closest(
+        '.ictu-password-input-wrap'
+    );
+
+    const passwordField = passwordInput.closest(
+        'label.ictu-field'
+    );
+
+    const confirmWrap = confirmInput?.closest(
+        '.ictu-password-input-wrap'
+    );
+
+    const confirmField = confirmInput?.closest(
+        'label.ictu-field'
+    );
+
+    if (
+        !passwordWrap ||
+        !passwordField
+    ) {
+        return;
+    }
+
+
+    passwordInput.minLength = 8;
+    passwordInput.maxLength = 12;
+
+    if (confirmInput) {
+        confirmInput.minLength = 8;
+        confirmInput.maxLength = 12;
+    }
+
+
+    /*
+     * Prevent duplicate UI after browser history restore.
+     */
+    passwordField
+        .querySelectorAll('[data-password-guidance]')
+        .forEach((element) => element.remove());
+
+    confirmField
+        ?.querySelectorAll('[data-password-confirm-feedback]')
+        .forEach((element) => element.remove());
+
+
+    /*
+     * Password guidance.
+     */
+    const guidance = document.createElement('div');
+
+    guidance.className =
+        'password-guidance-block';
+
+    guidance.dataset.passwordGuidance = '';
+
+    guidance.innerHTML = `
+        <div
+            class="password-main-feedback password-live-hidden"
+            data-password-main-feedback
+            aria-live="polite"
+        ></div>
+
+        <ul class="password-requirements">
+            <li
+                class="password-requirement"
+                data-password-rule="length"
+            >
+                8–12 characters
+            </li>
+
+            <li
+                class="password-requirement"
+                data-password-rule="uppercase"
+            >
+                Contains uppercase letter
+            </li>
+
+            <li
+                class="password-requirement"
+                data-password-rule="lowercase"
+            >
+                Contains lowercase letter
+            </li>
+
+            <li
+                class="password-requirement"
+                data-password-rule="number"
+            >
+                Contains number
+            </li>
+
+            <li
+                class="password-requirement"
+                data-password-rule="symbol"
+            >
+                Contains special character
+            </li>
+        </ul>
+    `;
+
+    passwordWrap.insertAdjacentElement(
+        'afterend',
+        guidance
+    );
+
+
+    const mainFeedback = guidance.querySelector(
+        '[data-password-main-feedback]'
+    );
+
+
+    /*
+     * Confirm feedback.
+     */
+    let confirmFeedback = null;
+
+    if (
+        confirmInput &&
+        confirmWrap &&
+        confirmField
+    ) {
+        confirmFeedback =
+            document.createElement('div');
+
+        confirmFeedback.className =
+            'password-confirm-feedback password-live-hidden';
+
+        confirmFeedback.dataset.passwordConfirmFeedback = '';
+
+        confirmFeedback.setAttribute(
+            'aria-live',
+            'polite'
+        );
+
+        confirmWrap.insertAdjacentElement(
+            'afterend',
+            confirmFeedback
+        );
+    }
+
+
+    const rules = {
+        length: {
+            valid: (value) =>
+                value.length >= 8 &&
+                value.length <= 12,
+
+            error: (value) => {
+                if (value.length < 8) {
+                    return 'Password must be at least 8 characters.';
+                }
+
+                if (value.length > 12) {
+                    return 'Password must not exceed 12 characters.';
+                }
+
+                return null;
+            },
+        },
+
+        uppercase: {
+            valid: (value) =>
+                /[A-Z]/.test(value),
+
+            error: () =>
+                'Password must contain an uppercase letter.',
+        },
+
+        lowercase: {
+            valid: (value) =>
+                /[a-z]/.test(value),
+
+            error: () =>
+                'Password must contain a lowercase letter.',
+        },
+
+        number: {
+            valid: (value) =>
+                /[0-9]/.test(value),
+
+            error: () =>
+                'Password must contain a number.',
+        },
+
+        symbol: {
+            valid: (value) =>
+                /[^A-Za-z0-9]/.test(value),
+
+            error: () =>
+                'Password must contain a special character.',
+        },
+    };
+
+
+    const clearFieldState = (wrap) => {
+        wrap?.classList.remove(
+            'password-is-invalid',
+            'password-is-valid'
+        );
+    };
+
+
+    const setFieldState = (
+        wrap,
+        valid
+    ) => {
+        if (!wrap) {
+            return;
+        }
+
+        wrap.classList.remove(
+            'password-is-invalid',
+            'password-is-valid'
+        );
+
+        wrap.classList.add(
+            valid
+                ? 'password-is-valid'
+                : 'password-is-invalid'
+        );
+    };
+
+
+    const updateRequirement = (
+        ruleName,
+        met
+    ) => {
+        const element = guidance.querySelector(
+            `[data-password-rule="${ruleName}"]`
+        );
+
+        element?.classList.toggle(
+            'is-met',
+            met
+        );
+    };
+
+
+    const hideFeedback = (element) => {
+        if (!element) {
+            return;
+        }
+
+        element.textContent = '';
+
+        element.classList.remove(
+            'is-error',
+            'is-success'
+        );
+
+        element.classList.add(
+            'password-live-hidden'
+        );
+    };
+
+
+    const showFeedback = (
+        element,
+        message,
+        type
+    ) => {
+        if (!element) {
+            return;
+        }
+
+        element.textContent = message;
+
+        element.classList.remove(
+            'password-live-hidden',
+            'is-error',
+            'is-success'
+        );
+
+        element.classList.add(
+            type === 'success'
+                ? 'is-success'
+                : 'is-error'
+        );
+    };
+
+
+    const validateConfirmation = () => {
+
+        if (
+            !confirmInput ||
+            !confirmFeedback
+        ) {
+            return;
+        }
+
+        const confirmation =
+            confirmInput.value;
+
+        const password =
+            passwordInput.value;
+
+
+        if (confirmation === '') {
+            clearFieldState(confirmWrap);
+            hideFeedback(confirmFeedback);
+            return;
+        }
+
+
+        if (
+            confirmation !== password ||
+            password === ''
+        ) {
+            setFieldState(
+                confirmWrap,
+                false
+            );
+
+            showFeedback(
+                confirmFeedback,
+                'Passwords do not match.',
+                'error'
+            );
+
+            return;
+        }
+
+
+        setFieldState(
+            confirmWrap,
+            true
+        );
+
+        showFeedback(
+            confirmFeedback,
+            'Passwords match.',
+            'success'
+        );
+    };
+
+
+    const validatePassword = () => {
+
+        const value =
+            passwordInput.value;
+
+
+        /*
+         * Blank remains neutral because existing accounts may retain
+         * their current password.
+         */
+        if (value === '') {
+
+            clearFieldState(passwordWrap);
+
+            hideFeedback(mainFeedback);
+
+            Object.keys(rules).forEach(
+                (ruleName) => {
+                    updateRequirement(
+                        ruleName,
+                        false
+                    );
+                }
+            );
+
+            validateConfirmation();
+
+            return;
+        }
+
+
+        const results = {};
+
+        Object.entries(rules).forEach(
+            ([ruleName, rule]) => {
+
+                results[ruleName] =
+                    rule.valid(value);
+
+                updateRequirement(
+                    ruleName,
+                    results[ruleName]
+                );
+            }
+        );
+
+
+        const valid =
+            Object.values(results)
+                .every(Boolean);
+
+
+        setFieldState(
+            passwordWrap,
+            valid
+        );
+
+
+        if (valid) {
+
+            showFeedback(
+                mainFeedback,
+                'Password meets all requirements.',
+                'success'
+            );
+        }
+        else {
+
+            /*
+             * Show only the first unmet rule.
+             * The checklist below already shows all remaining requirements.
+             */
+            const firstInvalid =
+                Object.keys(rules)
+                    .find(
+                        (ruleName) =>
+                            !results[ruleName]
+                    );
+
+            const message =
+                firstInvalid
+                    ? rules[firstInvalid].error(value)
+                    : 'Password does not meet the requirements.';
+
+
+            showFeedback(
+                mainFeedback,
+                message,
+                'error'
+            );
+        }
+
+
+        validateConfirmation();
+    };
+
+
+    passwordInput.addEventListener(
+        'input',
+        validatePassword
+    );
+
+
+    confirmInput?.addEventListener(
+        'input',
+        validateConfirmation
+    );
+
+
+    validatePassword();
+});
+</script>
+
 @endsection

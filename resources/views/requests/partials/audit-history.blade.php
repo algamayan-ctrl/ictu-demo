@@ -427,14 +427,44 @@
             );
         }
 
-        // 10) Final completion is shown only when the custody closure gate has
-        // cleared return/documentation AND all linked accountability records.
+        // 10) Final lifecycle closure.
+        //
+        // A normally fulfilled borrowing transaction is shown as completed.
+        // A cancelled request is shown as closed instead so the history does
+        // not imply that physical borrowing was successfully completed.
+        $requestWasCancelled = $historyEvents->contains(
+            fn ($item) => ($item['event'] ?? null) === 'Request cancelled'
+        );
+
+        $pickupWasMissed = $historyEvents->contains(
+            fn ($item) => ($item['event'] ?? null) === 'Pickup missed'
+        );
+
+        $closureStage = $requestWasCancelled
+            ? 'Closure'
+            : 'Completion';
+
+        $closureEvent = $requestWasCancelled
+            ? 'Transaction closed'
+            : 'Transaction completed';
+
+        $closureDetails = match (true) {
+            $requestWasCancelled && $pickupWasMissed =>
+                'The request lifecycle was closed after the request was automatically cancelled due to the missed pickup and no response was received within the allowed period.',
+
+            $requestWasCancelled =>
+                'The request lifecycle was closed after the borrowing request was cancelled before completion.',
+
+            default =>
+                'Custody was closed after the applicable return, documentation, inventory, and accountability checks were completed.',
+        };
+
         $addHistoryEvent(
             $custody->closed_at,
-            'Completion',
-            'Transaction completed',
+            $closureStage,
+            $closureEvent,
             'System',
-            'Custody was closed after the applicable return, documentation, inventory, and accountability checks were completed.',
+            $closureDetails,
             'custody-closed',
             200
         );
@@ -488,7 +518,7 @@
     </summary>
 
     <div class="request-history-intro">
-        Significant recorded events from request preparation through pickup, release, return, accountability, resolution, and final completion.
+        Significant recorded events throughout the request and transaction lifecycle.
     </div>
 
     <div class="table-wrap request-history-table-wrap">
@@ -652,6 +682,7 @@
     }
 
     .request-history-stage {
+        white-space: nowrap;
         display: inline-flex;
         align-items: center;
         min-height: 24px;

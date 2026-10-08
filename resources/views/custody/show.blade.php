@@ -879,6 +879,21 @@
             ->values();
 
 /* BORROWER TRANSACTION TIMELINE DATA END */
+        /* BORROWER CUSTODY DOCUMENT DATA START */
+
+        /*
+         * Transaction forms belong to the custody/borrowing lifecycle.
+         * Keep My Requests focused on request-submission documents.
+         */
+        $borrowerSlipDocument = \App\Models\GeneratedDocument::query()
+            ->where('subject_type', \App\Models\CustodyTransaction::class)
+            ->where('subject_id', $custody->id)
+            ->where('document_type', 'BORROWER_SLIP')
+            ->where('status', 'FINAL')
+            ->latest('id')
+            ->first();
+
+        /* BORROWER CUSTODY DOCUMENT DATA END */
 @endphp
 
     @include('custody.partials.borrower-custody-styles')
@@ -1006,7 +1021,118 @@
                 </div>
             </article>
 
-                        {{-- BORROWER TRANSACTION TIMELINE UI START --}}
+
+{{-- Processing that continues outside the borrower's hands --}}
+            @if($borrowerSlipDocument || $hasLaundryItem || $hasOffCampusItem)
+                <article class="card borrower-document-card">
+                    <div class="card-header" style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
+    <div class="borrower-document-heading"
+         style="display:inline-flex; align-items:center; justify-content:flex-start; gap:10px; min-width:0; text-align:left;">
+
+        <span class="borrower-card-icon"
+              aria-hidden="true"
+              style="display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; margin:0;">
+            <x-icon name="requests" size="21" />
+        </span>
+
+        <span class="borrower-document-left-title"
+              style="display:inline-block; position:static; margin:0; font-size:20px; font-weight:700; line-height:1.25; text-align:left;">
+            Transaction Documents
+        </span>
+    </div>
+                        <div>
+                            <p class="eyebrow">Document processing</p>
+                            <h2>Applicable records</h2>
+                        </div>
+                    </div>
+
+                    {{-- BORROWER SLIP DOCUMENT ROW START --}}
+                    @if($borrowerSlipDocument)
+                        <div class="borrower-processing-row">
+                            <div class="borrower-processing-copy">
+                                <strong>Borrower Slip</strong>
+                                <small>
+                                    Official record of the items issued under this borrowing transaction.
+                                </small>
+                            </div>
+
+                            <span class="status-badge status-success">
+                                Available
+                            </span>
+
+                            <a
+                                class="button secondary small ui-pressable"
+                                href="{{ route('documents.preview', $borrowerSlipDocument) }}"
+                            >
+                                Preview
+                            </a>
+                        </div>
+                    @endif
+                    {{-- BORROWER SLIP DOCUMENT ROW END --}}
+
+@if($hasOffCampusItem)
+                        <div class="borrower-processing-row">
+                            <div class="borrower-processing-copy">
+                                <strong>Gate Pass</strong>
+                                <small>
+                                    @if(($borrowerGatePassStatus['key'] ?? null) === 'VOID')
+                                        Voided because the borrowing was cancelled.
+                                    @elseif($borrowerGatePassComplete)
+                                        Off-campus release recorded{{ $custody->gatePass?->guard_signed_at ? ' on '.$custody->gatePass->guard_signed_at->format('d M Y, g:i A') : '' }}.
+                                    @elseif($borrowerReleased && $outstandingTotal <= 0)
+                                        SPMU is completing the Gate Pass record.
+                                    @else
+                                        Required for off-campus release.
+                                    @endif
+                                </small>
+                            </div>
+
+                            <x-status-badge
+                                :status="$borrowerGatePassStatus['key'] ?? ($borrowerGatePassComplete ? 'COMPLETED' : 'PREPARING_RELEASE')"
+                                :label="$borrowerGatePassLabel"
+                            />
+
+                            @if($custody->gatePass?->accomplished_file_id)
+                                <a
+                                    class="button secondary small ui-pressable"
+                                    href="{{ route('files.preview', $custody->gatePass->accomplished_file_id, false) }}"
+                                >
+                                    Preview
+                                </a>
+                            @endif
+                        </div>
+                    @endif
+
+@if($hasLaundryItem)
+                        <div class="borrower-processing-row">
+                            <div class="borrower-processing-copy">
+                                <strong>Laundry Form</strong>
+                                <small>
+                                    {{ $borrowerLaundryComplete
+                                        ? 'Complete. No further action is required.'
+                                        : 'Handled internally by SPMU after the physical return.' }}
+                                </small>
+                            </div>
+
+                            <x-status-badge
+                                :status="$borrowerLaundryComplete ? 'COMPLETED' : 'RETURN_PROCESSING'"
+                                :label="$borrowerLaundryLabel"
+                            />
+
+                            @if($laundryJob?->latestEvidence?->file)
+                                <a
+                                    class="button secondary small ui-pressable"
+                                    href="{{ route('files.preview', $laundryJob->latestEvidence->file, false) }}"
+                                >
+                                    Preview
+                                </a>
+                            @endif
+                        </div>
+                    @endif
+                </article>
+            @endif
+
+            {{-- BORROWER TRANSACTION TIMELINE UI START --}}
             @if($borrowerTimeline->isNotEmpty())
                 <details
                     class="card borrower-activity-card borrower-activity-disclosure"
@@ -1068,80 +1194,10 @@
                 </details>
             @endif
             {{-- BORROWER TRANSACTION TIMELINE UI END --}}
-{{-- Processing that continues outside the borrower's hands --}}
-            @if($hasLaundryItem || $hasOffCampusItem)
-                <article class="card">
-                    <div class="card-header">
-                        <span class="borrower-card-icon" aria-hidden="true">
-                            <x-icon name="requests" size="21" />
-                        </span>
-                        <div>
-                            <p class="eyebrow">Document processing</p>
-                            <h2>Applicable records</h2>
-                        </div>
-                    </div>
 
-                    @if($hasLaundryItem)
-                        <div class="borrower-processing-row">
-                            <div class="borrower-processing-copy">
-                                <strong>Linen processing</strong>
-                                <small>
-                                    {{ $borrowerLaundryComplete
-                                        ? 'Complete. No further action is required.'
-                                        : 'Handled internally by SPMU after the physical return.' }}
-                                </small>
-                            </div>
 
-                            <x-status-badge
-                                :status="$borrowerLaundryComplete ? 'COMPLETED' : 'RETURN_PROCESSING'"
-                                :label="$borrowerLaundryLabel"
-                            />
 
-                            @if($laundryJob?->latestEvidence?->file)
-                                <a
-                                    class="button secondary small ui-pressable"
-                                    href="{{ route('files.preview', $laundryJob->latestEvidence->file, false) }}"
-                                >
-                                    Preview
-                                </a>
-                            @endif
-                        </div>
-                    @endif
 
-                    @if($hasOffCampusItem)
-                        <div class="borrower-processing-row">
-                            <div class="borrower-processing-copy">
-                                <strong>Gate Pass</strong>
-                                <small>
-                                    @if(($borrowerGatePassStatus['key'] ?? null) === 'VOID')
-                                        Voided because the borrowing was cancelled.
-                                    @elseif($borrowerGatePassComplete)
-                                        Off-campus release recorded{{ $custody->gatePass?->guard_signed_at ? ' on '.$custody->gatePass->guard_signed_at->format('d M Y, g:i A') : '' }}.
-                                    @elseif($borrowerReleased && $outstandingTotal <= 0)
-                                        SPMU is completing the Gate Pass record.
-                                    @else
-                                        Required for off-campus release.
-                                    @endif
-                                </small>
-                            </div>
-
-                            <x-status-badge
-                                :status="$borrowerGatePassStatus['key'] ?? ($borrowerGatePassComplete ? 'COMPLETED' : 'PREPARING_RELEASE')"
-                                :label="$borrowerGatePassLabel"
-                            />
-
-                            @if($custody->gatePass?->accomplished_file_id)
-                                <a
-                                    class="button secondary small ui-pressable"
-                                    href="{{ route('files.preview', $custody->gatePass->accomplished_file_id, false) }}"
-                                >
-                                    Preview
-                                </a>
-                            @endif
-                        </div>
-                    @endif
-                </article>
-            @endif
 
         </div>
     </section>

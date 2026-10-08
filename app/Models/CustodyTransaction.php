@@ -61,6 +61,7 @@ class CustodyTransaction extends Model
         'due_adjusted_at',
         'acknowledged_at',
         'closed_at',
+        'issuance_locked_at',
     ];
 
     protected function casts(): array
@@ -71,6 +72,7 @@ class CustodyTransaction extends Model
             'pickup_expired_at' => 'datetime',
             'pickup_scheduled_at' => 'datetime',
             'released_at' => 'datetime',
+            'issuance_locked_at' => 'datetime',
             'physical_handover_attested_at' => 'datetime',
             'prepared_at' => 'datetime',
             'due_at' => 'datetime',

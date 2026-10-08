@@ -56,12 +56,41 @@ class ProcessOperationalDeadlines extends Command
             ->whereNull('issuance_locked_at')
             ->whereDate('released_at', '<', $today->toDateString())
             ->each(function (CustodyTransaction $custody) use (&$issuanceLocked, $audit): void {
-                $custody->update(['issuance_locked_at' => now()]);
+                /*
+                 * Lock issuance only on the actual NULL -> timestamp transition.
+                 *
+                 * The conditional UPDATE is intentionally repeated here even
+                 * though the outer query already checks issuance_locked_at.
+                 * This makes the operation safe when two scheduler processes
+                 * overlap: only one process can update the row and therefore
+                 * only that process may create the audit event.
+                 */
+                $lockedAt = now();
+
+                $updated = CustodyTransaction::query()
+                    ->whereKey($custody->getKey())
+                    ->whereNull('issuance_locked_at')
+                    ->update([
+                        'issuance_locked_at' => $lockedAt,
+                    ]);
+
+                if ($updated !== 1) {
+                    return;
+                }
+
+                $custody->refresh();
+
                 $audit->record(
                     'ISSUANCE_AUTO_LOCKED',
                     $custody,
-                    after: ['issuance_locked_at' => now()->toIso8601String()]
+                    before: [
+                        'issuance_locked_at' => null,
+                    ],
+                    after: [
+                        'issuance_locked_at' => $lockedAt->toIso8601String(),
+                    ]
                 );
+
                 $issuanceLocked++;
             });
 

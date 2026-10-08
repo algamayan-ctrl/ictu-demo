@@ -592,4 +592,90 @@
 /* ==========================================================
    BORROWER TRANSACTION TIMELINE STYLE END
    ========================================================== */
+
+/* BORROWER TIMELINE DISCLOSURE STYLE START */
+
+.borrower-activity-disclosure {
+    overflow: hidden;
+}
+
+.borrower-activity-summary {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px;
+    width: 100%;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.borrower-activity-summary::-webkit-details-marker {
+    display: none;
+}
+
+.borrower-activity-summary::marker {
+    display: none;
+    content: "";
+}
+
+.borrower-activity-summary-copy {
+    min-width: 0;
+}
+
+.borrower-activity-summary-copy h2 {
+    margin-bottom: 0;
+}
+
+.borrower-activity-summary-side {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.borrower-activity-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: transform .18s ease;
+}
+
+.borrower-activity-disclosure[open] .borrower-activity-chevron {
+    transform: rotate(180deg);
+}
+
+.borrower-activity-summary:hover {
+    background: var(--surface-hover);
+}
+
+.borrower-activity-summary:focus-visible {
+    outline: 2px solid var(--interactive);
+    outline-offset: -2px;
+}
+
+.borrower-activity-disclosure:not([open]) .borrower-activity-summary {
+    border-bottom: 0;
+}
+
+.borrower-activity-disclosure[open] .borrower-activity-list {
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 560px) {
+    .borrower-activity-summary {
+        gap: 10px;
+    }
+
+    .borrower-activity-summary-side {
+        gap: 7px;
+    }
+
+    .borrower-activity-summary .borrower-section-note {
+        font-size: 11px;
+    }
+}
+
+/* BORROWER TIMELINE DISCLOSURE STYLE END */
 </style>

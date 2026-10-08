@@ -1008,18 +1008,33 @@
 
                         {{-- BORROWER TRANSACTION TIMELINE UI START --}}
             @if($borrowerTimeline->isNotEmpty())
-                <article class="card borrower-activity-card">
-                    <div class="card-header">
-                        <div>
+                <details
+                    class="card borrower-activity-card borrower-activity-disclosure"
+                    @if(! $custody->closed_at) open @endif
+                >
+                    <summary
+                        class="card-header borrower-activity-summary"
+                        aria-label="Transaction timeline, {{ $borrowerTimeline->count() }} {{ $borrowerTimeline->count() === 1 ? 'event' : 'events' }}"
+                    >
+                        <div class="borrower-activity-summary-copy">
                             <p class="eyebrow">Borrowing activity</p>
                             <h2>Transaction timeline</h2>
                         </div>
 
-                        <span class="borrower-section-note">
-                            {{ $borrowerTimeline->count() }}
-                            {{ $borrowerTimeline->count() === 1 ? 'event' : 'events' }}
-                        </span>
-                    </div>
+                        <div class="borrower-activity-summary-side">
+                            <span class="borrower-section-note">
+                                {{ $borrowerTimeline->count() }}
+                                {{ $borrowerTimeline->count() === 1 ? 'event' : 'events' }}
+                            </span>
+
+                            <span
+                                class="borrower-activity-chevron"
+                                aria-hidden="true"
+                            >
+                                <x-icon name="chevron-down" size="18" />
+                            </span>
+                        </div>
+                    </summary>
 
                     <div class="borrower-activity-list" role="list">
                         @foreach($borrowerTimeline as $activity)
@@ -1050,7 +1065,7 @@
                             </div>
                         @endforeach
                     </div>
-                </article>
+                </details>
             @endif
             {{-- BORROWER TRANSACTION TIMELINE UI END --}}
 {{-- Processing that continues outside the borrower's hands --}}

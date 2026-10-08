@@ -183,9 +183,22 @@ class UserAdministrationController extends Controller
 
         $accountDisabled = false;
         $emailChanged = false;
+        $accountChanged = false;
+        $passwordChanged = filled($data['password'] ?? null);
 
-        DB::transaction(function () use ($data, $user, $audit, $roleAssignments, $request, &$accountDisabled, &$emailChanged): void {
-            $before = $user->load(['roles', 'organizationalUnit', 'authorizedOrganizationalUnits'])->toArray();
+        DB::transaction(function () use ($data, $user, $audit, $roleAssignments, $request, &$accountDisabled, &$emailChanged, &$accountChanged, $passwordChanged): void {
+            /*
+             * Compare only meaningful account information. Technical timestamps
+             * and pivot metadata must never turn an unchanged form submission
+             * into a fake User Account Updated audit event.
+             */
+            $before = $this->accountAuditSnapshot($user);
+
+            if ($passwordChanged) {
+                // Never persist or expose the password/hash in the audit trail.
+                $before['credential'] = 'Unchanged';
+            }
+
             $beforeAccountStatus = $user->account_status?->value;
             $beforeEmail = strtolower(trim((string) $user->email));
             $classification = AccessClassification::from($data['access_classification']);
@@ -230,12 +243,27 @@ class UserAdministrationController extends Controller
                 $request->user()->id,
             );
 
-            $audit->record(
-                'USER_ACCOUNT_UPDATED',
-                $user,
-                before: $before,
-                after: $user->fresh(['roles', 'organizationalUnit', 'authorizedOrganizationalUnits'])->toArray(),
-            );
+            $after = $this->accountAuditSnapshot($user);
+
+            if ($passwordChanged) {
+                $after['credential'] = 'Updated';
+            }
+
+            $accountChanged = $before !== $after;
+
+            /*
+             * Saving an unchanged form must not create audit noise.
+             * Persist USER_ACCOUNT_UPDATED only when a meaningful account,
+             * role, organizational assignment, or credential value changed.
+             */
+            if ($accountChanged) {
+                $audit->record(
+                    'USER_ACCOUNT_UPDATED',
+                    $user,
+                    before: $before,
+                    after: $after,
+                );
+            }
         });
 
         if ($accountDisabled) {
@@ -266,7 +294,12 @@ class UserAdministrationController extends Controller
 
         return redirect()
             ->route('administration.users.index')
-            ->with('status', 'Account and authorized organizational assignments updated with an audit record.');
+            ->with(
+                'status',
+                $accountChanged
+                    ? 'Account and authorized organizational assignments updated with an audit record.'
+                    : 'No account changes were detected.'
+            );
     }
 
     /** Deactivate account access without deleting identities or transaction history. */
@@ -811,6 +844,54 @@ class UserAdministrationController extends Controller
     }
 
     /**
+     * User-facing ICTU account state used for meaningful audit comparisons.
+     *
+     * Database IDs, timestamps, pivot assignment metadata, login timestamps,
+     * verification timestamps, notification preferences, and password hashes
+     * are intentionally excluded. Dedicated audit events already cover
+     * verification and other technical actions.
+     *
+     * @return array<string, mixed>
+     */
+    private function accountAuditSnapshot(User $user): array
+    {
+        $account = $user->fresh(['organizationalUnit']) ?? $user;
+
+        $value = static function ($item) {
+            return $item instanceof \BackedEnum
+                ? $item->value
+                : $item;
+        };
+
+        return [
+            'employee_no' => $account->employee_no,
+            'full_name' => $account->full_name,
+            'designation' => $account->designation,
+            'employment_type' => $value($account->employment_type),
+            'employment_status' => $value($account->employment_status),
+            'email' => $account->email,
+            'mobile_no' => $account->mobile_no,
+            'account_status' => $value($account->account_status),
+            'access_classification' => $value($account->access_classification),
+            'organizational_unit' => $account->organizationalUnit?->unit_name,
+
+            'roles' => $account->roles()
+                ->wherePivotNull('revoked_at')
+                ->orderBy('role_name')
+                ->pluck('role_name')
+                ->values()
+                ->all(),
+
+            'authorized_organizational_units' => $account
+                ->authorizedOrganizationalUnits()
+                ->orderBy('unit_name')
+                ->pluck('unit_name')
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
      * @param list<int|string> $additionalUnitIds
      */
     private function synchronizeOrganizationalAssignments(
@@ -831,30 +912,76 @@ class UserAdministrationController extends Controller
             ->unique()
             ->values();
 
+        $now = now();
+
+        /*
+         * Revoke only assignments that are no longer desired.
+         */
         DB::table('user_organizational_units')
             ->where('user_id', $user->id)
             ->whereNotIn('organizational_unit_id', $desired->all())
             ->whereNull('revoked_at')
             ->update([
-                'revoked_at' => now(),
-                'updated_at' => now(),
+                'revoked_at' => $now,
+                'updated_at' => $now,
             ]);
 
         foreach ($desired as $unitId) {
-            DB::table('user_organizational_units')->updateOrInsert(
-                [
+            $assignmentType = $unitId === $primaryUnitId
+                ? 'PRIMARY'
+                : 'ADDITIONAL';
+
+            $existing = DB::table('user_organizational_units')
+                ->where('user_id', $user->id)
+                ->where('organizational_unit_id', $unitId)
+                ->first();
+
+            /*
+             * New assignment: create its original assignment metadata once.
+             */
+            if ($existing === null) {
+                DB::table('user_organizational_units')->insert([
                     'user_id' => $user->id,
                     'organizational_unit_id' => $unitId,
-                ],
-                [
-                    'assignment_type' => $unitId === $primaryUnitId ? 'PRIMARY' : 'ADDITIONAL',
+                    'assignment_type' => $assignmentType,
                     'assigned_by_user_id' => $assignedByUserId,
-                    'assigned_at' => now(),
+                    'assigned_at' => $now,
                     'revoked_at' => null,
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ]
-            );
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+
+                continue;
+            }
+
+            /*
+             * Same active assignment and same type: leave it untouched.
+             * In particular, do not rewrite assigned_at/created_at merely
+             * because ICTU pressed Save Changes again.
+             */
+            $needsReassignment =
+                $existing->revoked_at !== null
+                || (string) $existing->assignment_type !== $assignmentType;
+
+            if (! $needsReassignment) {
+                continue;
+            }
+
+            /*
+             * Reactivating an old assignment or changing PRIMARY/ADDITIONAL
+             * is a real assignment action, so record a fresh assignment time
+             * and actor while preserving the row's original created_at.
+             */
+            DB::table('user_organizational_units')
+                ->where('user_id', $user->id)
+                ->where('organizational_unit_id', $unitId)
+                ->update([
+                    'assignment_type' => $assignmentType,
+                    'assigned_by_user_id' => $assignedByUserId,
+                    'assigned_at' => $now,
+                    'revoked_at' => null,
+                    'updated_at' => $now,
+                ]);
         }
     }
 

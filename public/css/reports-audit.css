@@ -242,3 +242,196 @@ html[data-theme="dark"] .ictu-audit-type-badge { background: var(--surface-muted
         padding: 20px var(--content-gutter) 34px;
     }
 }
+
+/* UNIVERSAL AUDIT FILTER LAYOUT
+   Shared by ICTU Technical Audit Trail and SPMU Operational Audit Trail. */
+.ictu-audit-filter-grid {
+    grid-template-columns:
+        minmax(280px, 2fr)
+        minmax(150px, 1fr)
+        minmax(170px, 1fr)
+        minmax(170px, 1fr) !important;
+    align-items: end !important;
+}
+
+.ictu-audit-actor-actions {
+    display: block !important;
+    width: 100% !important;
+}
+
+.ictu-audit-actor-actions select {
+    width: 100% !important;
+}
+
+.ictu-audit-reset,
+#audit-reset {
+    display: none !important;
+}
+
+@media (max-width: 1000px) {
+    .ictu-audit-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .ictu-audit-filter-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
+
+/* UNIVERSAL AUDIT DETAIL COMPACTNESS
+   Shared by ICTU Technical Audit Trail and SPMU Operational Audit Trail. */
+
+.ictu-audit-expanded-row td {
+    padding: 9px 12px !important;
+}
+
+.ictu-audit-details-panel {
+    padding: 12px 14px !important;
+}
+
+.ictu-audit-detail-grid {
+    gap: 9px 18px !important;
+}
+
+.ictu-audit-detail-grid dt {
+    margin-bottom: 2px !important;
+}
+
+.ictu-audit-info-section {
+    margin-top: 11px !important;
+}
+
+.ictu-audit-section-title {
+    margin-bottom: 6px !important;
+}
+
+.ictu-audit-description-box {
+    padding: 8px 10px !important;
+    line-height: 1.4 !important;
+}
+
+.ictu-audit-change-table th,
+.ictu-audit-change-table td {
+    padding: 8px 10px !important;
+    line-height: 1.4 !important;
+}
+
+.ictu-audit-empty-state {
+    padding: 10px 12px !important;
+}
+
+/* AUDIT TYPE BADGE SINGLE LINE */
+.ictu-audit-type-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: max-content !important;
+    min-width: 0 !important;
+    max-width: none !important;
+
+    padding: 6px 12px !important;
+
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+
+    line-height: 1.1 !important;
+    text-align: center !important;
+}
+
+/* UNIVERSAL AUDIT TABLE COLUMN BALANCE
+   Shared by Technical and Operational Audit Trail. */
+
+.ictu-audit-table {
+    width: 100% !important;
+    table-layout: fixed !important;
+}
+
+/* Activity */
+.ictu-audit-table thead th:nth-child(1),
+.ictu-audit-data-row > td:nth-child(1) {
+    width: 31% !important;
+}
+
+/* Type */
+.ictu-audit-table thead th:nth-child(2),
+.ictu-audit-data-row > td:nth-child(2) {
+    width: 20% !important;
+}
+
+/* Actor / Record */
+.ictu-audit-table thead th:nth-child(3),
+.ictu-audit-data-row > td:nth-child(3) {
+    width: 24% !important;
+}
+
+/* Time */
+.ictu-audit-table thead th:nth-child(4),
+.ictu-audit-data-row > td:nth-child(4) {
+    width: 12% !important;
+}
+
+/* Action */
+.ictu-audit-table thead th:nth-child(5),
+.ictu-audit-data-row > td:nth-child(5) {
+    width: 13% !important;
+}
+
+.ictu-audit-data-row > td {
+    min-width: 0 !important;
+    vertical-align: middle !important;
+}
+
+.ictu-audit-cell-copy {
+    min-width: 0 !important;
+}
+
+.ictu-audit-cell-copy strong,
+.ictu-audit-cell-copy span {
+    max-width: 100% !important;
+}
+
+/*
+ * Keep category pills compact without allowing long technical
+ * categories to overlap the Actor / Record column.
+ */
+.ictu-audit-type-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: max-content !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+
+    padding: 6px 11px !important;
+
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+
+    font-size: 12px !important;
+    line-height: 1.1 !important;
+}
+
+/* Keep Actor / Record comfortably separated from Type. */
+.ictu-audit-data-row > td:nth-child(3) {
+    padding-left: 16px !important;
+}
+
+/* Shared compact row alignment. */
+.ictu-audit-time {
+    display: grid !important;
+    gap: 2px !important;
+}
+
+@media (max-width: 1100px) {
+    .ictu-audit-table {
+        min-width: 900px !important;
+    }
+}
+
+/* UNIVERSAL AUDIT TABLE COLUMN BALANCE END */

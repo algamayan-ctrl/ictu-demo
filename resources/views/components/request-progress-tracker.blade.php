@@ -550,11 +550,11 @@
 
     $trackerEyebrow =
         $isClosed
-            ? 'Transaction history'
+            ? 'Request progress'
             : 'Real-time progress';
 
     $trackerTitle = match (true) {
-        $isClosed => 'Borrowing transaction history',
+        $isClosed => 'Borrowing request progress',
         (bool) $custody => 'Borrowing transaction progress',
         default => 'Request progress',
     };

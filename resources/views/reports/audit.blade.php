@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Audit Trail'])
+@extends('layouts.app', ['title' => ($auditMode ?? 'technical') === 'operational' ? 'Operational Audit Trail' : 'Technical Audit Trail'])
 
 @section('content')
 @php
@@ -9,17 +9,8 @@
         ->sort()
         ->values();
 
-    $categoryOptions = [
-        'ACCOUNT' => 'Account',
-        'BORROWING' => 'Borrowing',
-        'APPROVAL' => 'Approval',
-        'RELEASE_RETURN' => 'Release / Return',
-        'LAUNDRY_GATEPASS' => 'Laundry / Gate Pass',
-        'ACCOUNTABILITY' => 'Accountability',
-        'SETTINGS' => 'Settings',
-        'SECURITY_SYSTEM' => 'Security / System',
-        'OTHER' => 'Other',
-    ];
+    $categoryOptions = $categoryOptions ?? [];
+    $isOperationalAudit = ($auditMode ?? 'technical') === 'operational';
 
     $preferredAuditLabels = [
         'employee_no' => 'Employee No.',
@@ -29,6 +20,7 @@
         'employment_status' => 'Employment Status',
         'email' => 'Email Address',
         'mobile_no' => 'Mobile No.',
+        'credential' => 'Credential',
         'account_status' => 'Account Status',
         'access_classification' => 'Access Classification',
         'portal' => 'Portal',
@@ -108,6 +100,29 @@
             if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed)) {
                 try {
                     return \Illuminate\Support\Carbon::parse($trimmed)->format('F j, Y');
+                } catch (\Throwable $e) {
+                    return $trimmed;
+                }
+            }
+
+            /*
+             * Audit snapshots often store timestamps in ISO 8601 format.
+             * Present them using the same readable application timezone
+             * used by the rest of the Audit Trail.
+             */
+            if (
+                preg_match(
+                    '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/',
+                    $trimmed
+                )
+            ) {
+                try {
+                    $dateTime = \Illuminate\Support\Carbon::parse($trimmed)
+                        ->timezone(config('app.timezone', 'Asia/Manila'));
+
+                    return $dateTime->format('F j, Y')
+                        .' '."\u{2022}".' '
+                        .$dateTime->format('g:i A');
                 } catch (\Throwable $e) {
                     return $trimmed;
                 }
@@ -210,14 +225,14 @@
 
 <section class="page-heading ictu-audit-page-heading" aria-labelledby="ictu-audit-page-title">
     <div>
-        <p class="eyebrow">ICTU audit administration</p>
-        <h1 id="ictu-audit-page-title">Audit Trail</h1>
-        <p>Review system activities and changes for security and compliance.</p>
+        <p class="eyebrow">{{ $isOperationalAudit ? 'SPMU operational audit' : 'ICTU technical audit' }}</p>
+        <h1 id="ictu-audit-page-title">{{ $isOperationalAudit ? 'Operational Audit Trail' : 'Technical Audit Trail' }}</h1>
+        <p>{{ $isOperationalAudit ? 'Review significant SPMU operational actions and record changes for accountability and traceability.' : 'Review account, authentication, configuration, security, and other technical system activities.' }}</p>
     </div>
 </section>
 
-<section class="content-area ictu-audit-area" aria-label="ICTU audit trail">
-    <span class="visually-hidden">System administration</span>
+<section class="content-area ictu-audit-area" aria-label="{{ $isOperationalAudit ? 'SPMU operational audit trail' : 'ICTU technical audit trail' }}">
+    <span class="visually-hidden">{{ $isOperationalAudit ? 'SPMU operational oversight' : 'ICTU system administration' }}</span>
     <section class="card ictu-audit-filter-card" aria-label="Audit trail filters">
         <div class="ictu-audit-filter-grid">
             <div class="ictu-audit-filter-field ictu-audit-filter-search">
@@ -242,7 +257,7 @@
             <div class="ictu-audit-filter-field">
                 <label for="audit-category-filter">Category</label>
                 <select id="audit-category-filter">
-                    <option value="ALL">All categories</option>
+                    <option value="ALL">{{ $isOperationalAudit ? 'All operational events' : 'All technical events' }}</option>
                     @foreach($categoryOptions as $categoryCode => $categoryLabel)
                         <option value="{{ $categoryCode }}">{{ $categoryLabel }}</option>
                     @endforeach
@@ -257,7 +272,7 @@
                             <option value="{{ $actorOption }}">{{ $actorOption }}</option>
                         @endforeach
                     </select>
-                    <button class="button secondary ictu-audit-reset" id="audit-reset"
+                    <button class="button secondary ictu-audit-reset" id="audit-reset" hidden aria-hidden="true" tabindex="-1"
                             type="button" title="Clear all filters">
                         <x-icon name="cycle" size="17" />
                         <span>Reset</span>
@@ -270,7 +285,7 @@
     <section class="card ictu-audit-table-card" aria-labelledby="ictu-audit-table-title">
         <header class="ictu-audit-table-toolbar">
             <div class="ictu-audit-table-heading">
-                <h1 id="ictu-audit-table-title">Audit Trail</h1>
+                <h1 id="ictu-audit-table-title">{{ $isOperationalAudit ? 'Operational Audit Trail' : 'Technical Audit Trail' }}</h1>
                 <span class="ictu-audit-count" id="audit-result-count" aria-live="polite">
                     {{ $events->count() }} total record{{ $events->count() === 1 ? '' : 's' }}
                 </span>
@@ -324,62 +339,23 @@
                             $actionLabel = match ($actionCode) {
                                 'user.updated', 'user_account_updated' => 'User Account Updated',
                                 'user.created', 'user_account_created' => 'User Account Created',
+                                'user_email_verified' => 'User Email Verified',
+                                'user_email_verification_sent' => 'User Email Verification Sent',
+                                'user_email_verification_resent' => 'User Email Verification Resent',
                                 'system_setting.updated' => 'System Setting Updated',
                                 'user.activated' => 'Account Activated',
                                 'user.deactivated' => 'Account Deactivated',
                                 'borrower_restriction.created' => 'Borrowing Restriction Opened',
                                 'borrower_restriction.lifted' => 'Borrowing Restriction Lifted',
-                                default => ucwords(str_replace(['.', '_'], [' ', ' '], (string) $event->action_code)),
+                                default => (string) \Illuminate\Support\Str::of($actionCode)
+                                    ->replace(['.', '_'], ' ')
+                                    ->title(),
                             };
 
                             $actorName = $event->actor?->full_name ?: 'System';
                             $recordLabel = trim(preg_replace('/(?<!^)[A-Z]/', ' $0', class_basename((string) $event->record_type)) ?: 'Record');
                             $recordName = trim($recordLabel.' #'.$event->record_id);
-                            $category = match (true) {
-                                str_contains($actionCode, 'approval'),
-                                str_contains($actionCode, 'approve'),
-                                str_contains($actionCode, 'reject'),
-                                str_contains($actionCode, 'verify') => 'APPROVAL',
-
-                                str_contains($actionCode, 'laundry'),
-                                str_contains($actionCode, 'gate_pass'),
-                                str_contains($actionCode, 'gatepass') => 'LAUNDRY_GATEPASS',
-
-                                str_contains($actionCode, 'billing'),
-                                str_contains($actionCode, 'payment'),
-                                str_contains($actionCode, 'restriction'),
-                                str_contains($actionCode, 'incident'),
-                                str_contains($actionCode, 'offense'),
-                                str_contains($actionCode, 'sanction'),
-                                str_contains($actionCode, 'penalty'),
-                                str_contains($actionCode, 'accountability') => 'ACCOUNTABILITY',
-
-                                str_contains($actionCode, 'issuance'),
-                                str_contains($actionCode, 'release'),
-                                str_contains($actionCode, 'return'),
-                                str_contains($actionCode, 'custody') => 'RELEASE_RETURN',
-
-                                str_contains($actionCode, 'request'),
-                                str_contains($actionCode, 'borrow') => 'BORROWING',
-
-                                str_contains($actionCode, 'user'),
-                                str_contains($actionCode, 'account'),
-                                str_contains($actionCode, 'profile'),
-                                str_contains($actionCode, 'role'),
-                                str_contains($actionCode, 'delegation') => 'ACCOUNT',
-
-                                str_contains($actionCode, 'setting'),
-                                str_contains($actionCode, 'config'),
-                                str_contains($actionCode, 'policy') => 'SETTINGS',
-
-                                str_contains($actionCode, 'login'),
-                                str_contains($actionCode, 'auth'),
-                                str_contains($actionCode, 'security'),
-                                str_contains($actionCode, 'notification'),
-                                $event->actor_user_id === null => 'SECURITY_SYSTEM',
-
-                                default => 'OTHER',
-                            };
+                            $category = (string) ($event->audit_category ?? 'OTHER');
                             $categoryLabel = $categoryOptions[$category] ?? 'Other';
                             $activitySubtitle = filled($event->reason)
                                 ? $event->reason
@@ -389,6 +365,11 @@
                                     'user.activated' => 'Account status set to Active.',
                                     'user.deactivated' => 'Account status set to Inactive.',
                                     'system_setting.updated' => 'System setting updated.',
+                                    'user_email_verified' => 'Institutional email address verified.',
+                                    'user_email_verification_sent' => 'Verification message sent.',
+                                    'user_email_verification_resent' => 'Verification message sent again.',
+                                    'user_email_verification_delivery_failed' => 'Verification email delivery failed.',
+                                    'issuance_auto_locked' => 'Issuance was automatically locked.',
                                     default => 'Audit event recorded.',
                                 };
                             $icon = match (true) {
@@ -480,7 +461,9 @@
                                         ->filter()
                                         ->sortBy('label', SORT_NATURAL | SORT_FLAG_CASE)
                                         ->values();
-                                    $detailDescription = filled($event->reason) ? $event->reason : $activitySubtitle;
+                                    $detailReason = filled($event->reason)
+                                        ? trim((string) $event->reason)
+                                        : null;
                                 @endphp
                                 <div class="ictu-audit-details-panel">
                                     <dl class="ictu-audit-detail-grid">
@@ -491,11 +474,20 @@
                                         <div><dt>Origin</dt><dd>{{ filled($event->origin_ip) ? $event->origin_ip : 'System / application' }}</dd></div>
                                         <div><dt>Category</dt><dd>{{ $categoryLabel }}</dd></div>
                                     </dl>
+                                    @if(filled($detailReason))
+                                        <section
+                                            class="ictu-audit-info-section"
+                                            aria-label="Audit event reason or notes"
+                                        >
+                                            <h2 class="ictu-audit-section-title">
+                                                Reason / Notes
+                                            </h2>
 
-                                    <section class="ictu-audit-info-section" aria-label="Audit event description">
-                                        <h2 class="ictu-audit-section-title">Description</h2>
-                                        <div class="ictu-audit-description-box">{{ $detailDescription }}</div>
-                                    </section>
+                                            <div class="ictu-audit-description-box">
+                                                {{ $detailReason }}
+                                            </div>
+                                        </section>
+                                    @endif
 
                                     <section class="ictu-audit-info-section" aria-label="Audit event changes">
                                         <h2 class="ictu-audit-section-title">Changes</h2>
@@ -645,4 +637,50 @@ document.addEventListener('DOMContentLoaded', () => {
     applyFilters();
 });
 </script>
+
+{{-- AUDIT DETAIL UX ENHANCEMENT START --}}
+<script>
+document.addEventListener('click', (event) => {
+    const selectedToggle = event.target.closest('[data-audit-details-toggle]');
+    if (!selectedToggle) return;
+
+    /*
+     * Let the Audit Trail's existing disclosure handler update the
+     * selected record first. Then synchronize all button labels and
+     * close any previously opened detail row.
+     */
+    window.requestAnimationFrame(() => {
+        const toggles = Array.from(
+            document.querySelectorAll('[data-audit-details-toggle]')
+        );
+
+        toggles.forEach((toggle) => {
+            if (toggle !== selectedToggle) {
+                toggle.setAttribute('aria-expanded', 'false');
+
+                const controlledId = toggle.getAttribute('aria-controls');
+                const detailRow = controlledId
+                    ? document.getElementById(controlledId)
+                    : null;
+
+                if (detailRow) {
+                    detailRow.hidden = true;
+                }
+            }
+
+            const expanded =
+                toggle.getAttribute('aria-expanded') === 'true';
+
+            const label = toggle.querySelector('span');
+
+            if (label) {
+                label.textContent = expanded
+                    ? 'Hide Details'
+                    : 'View Details';
+            }
+        });
+    });
+});
+</script>
+{{-- AUDIT DETAIL UX ENHANCEMENT END --}}
 @endsection

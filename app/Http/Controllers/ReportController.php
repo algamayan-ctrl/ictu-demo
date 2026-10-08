@@ -614,14 +614,296 @@ class ReportController extends Controller
 
     public function audit(Request $request): View
     {
+        $classification = $request->user()?->access_classification;
+
+        /*
+         * Audit Trail RBAC:
+         *
+         * ICTU sees only account, authentication, technical settings,
+         * security/system, and other technical records.
+         *
+         * SPMU Head/Admin sees the operational audit trail only.
+         * Action Officers continue using transaction/request histories
+         * instead of receiving system-wide Audit Trail access.
+         */
         abort_unless(
-            $request->user()?->access_classification === AccessClassification::IctuMaintainer,
+            in_array($classification, [
+                AccessClassification::SpmuHead,
+                AccessClassification::IctuMaintainer,
+            ], true),
             403
         );
 
+        $auditMode = $classification === AccessClassification::IctuMaintainer
+            ? 'technical'
+            : 'operational';
+
+        $technicalCategories = [
+            'ACCOUNT',
+            'AUTH_VERIFICATION',
+            'SETTINGS',
+            'SECURITY_SYSTEM',
+            'OTHER_TECHNICAL',
+        ];
+
+        $operationalCategories = [
+            'BORROWING',
+            'APPROVAL',
+            'RELEASE_RETURN',
+            'LAUNDRY_GATEPASS',
+            'ACCOUNTABILITY',
+            'INVENTORY',
+            'CORRECTIONS_REOPENINGS',
+            'OTHER_OPERATIONAL',
+        ];
+
+        $allowedCategories = $auditMode === 'technical'
+            ? $technicalCategories
+            : $operationalCategories;
+
+        /*
+         * Filter on the server before the collection is sent to Blade.
+         * A manually supplied URL/category value therefore cannot expose
+         * operational events to ICTU or technical events to SPMU.
+         */
+        $events = AuditEvent::query()
+            ->with('actor')
+            ->latest('occurred_at')
+            ->get()
+            ->map(function (AuditEvent $event): AuditEvent {
+                $event->setAttribute(
+                    'audit_category',
+                    $this->auditEventCategory($event)
+                );
+
+                return $event;
+            })
+            ->filter(
+                fn (AuditEvent $event): bool =>
+                    in_array(
+                        (string) $event->audit_category,
+                        $allowedCategories,
+                        true
+                    )
+            )
+            ->take(500)
+            ->values();
+
+        $categoryOptions = $auditMode === 'technical'
+            ? [
+                'ACCOUNT' => 'Account',
+                'AUTH_VERIFICATION' => 'Authentication / Verification',
+                'SETTINGS' => 'Settings',
+                'SECURITY_SYSTEM' => 'Security / System',
+                'OTHER_TECHNICAL' => 'Other Technical',
+            ]
+            : [
+                'BORROWING' => 'Borrowing',
+                'APPROVAL' => 'Approval',
+                'RELEASE_RETURN' => 'Release / Return',
+                'LAUNDRY_GATEPASS' => 'Laundry / Gate Pass',
+                'ACCOUNTABILITY' => 'Accountability',
+                'INVENTORY' => 'Inventory',
+                'CORRECTIONS_REOPENINGS' => 'Corrections / Reopenings',
+                'OTHER_OPERATIONAL' => 'Other Operational',
+            ];
+
         return view('reports.audit', [
-            'events' => AuditEvent::query()->with('actor')->latest('occurred_at')->limit(500)->get(),
+            'events' => $events,
+            'auditMode' => $auditMode,
+            'categoryOptions' => $categoryOptions,
         ]);
+    }
+
+    /**
+     * Assign one audience-safe category to every persisted audit event.
+     *
+     * Unknown records are intentionally NOT exposed to ICTU unless they are
+     * clearly technical or were performed by ICTU. This gives the technical
+     * workspace a deny-by-default boundary for operational activity.
+     */
+    private function auditEventCategory(AuditEvent $event): string
+    {
+        $action = strtoupper(str_replace(
+            ['.', '-', ' '],
+            '_',
+            (string) $event->action_code
+        ));
+
+        $record = strtoupper(
+            class_basename((string) $event->record_type)
+        );
+
+        $context = $action.' '.$record;
+
+        $containsAny = static function (
+            string $value,
+            array $needles
+        ): bool {
+            foreach ($needles as $needle) {
+                if (str_contains($value, $needle)) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        /*
+         * Technical / ICTU categories.
+         */
+        if ($containsAny($context, [
+            'OTP',
+            'EMAIL_VERIFICATION',
+            'EMAIL_VERIFIED',
+            'EMAIL_VERIFY',
+            'GOOGLE_AUTH',
+            'AUTHENTICATION',
+            'LOGIN',
+            'LOGOUT',
+            'SIGN_IN',
+            'SIGNIN',
+            'PASSWORD',
+            'SESSION',
+        ])) {
+            return 'AUTH_VERIFICATION';
+        }
+
+        if ($containsAny($context, [
+            'USER_ACCOUNT',
+            'USER_CREATED',
+            'USER_UPDATED',
+            'USER_DEACTIVATED',
+            'USER_REACTIVATED',
+            'USER_PENDING_REGISTRATION',
+            'PROFILE_PICTURE',
+            'USER_ORGANIZATIONAL',
+            'ORGANIZATIONAL_UNIT',
+            'ROLE_ASSIGNMENT',
+            'DELEGATION',
+        ])) {
+            return 'ACCOUNT';
+        }
+
+        if ($containsAny($context, [
+            'SYSTEM_SETTING',
+            'SYSTEMSETTING',
+            'CONFIGURATION_CHANGE',
+            'CONFIGURATIONCHANGE',
+            'TECHNICAL_SETTING',
+            'SETTING_UPDATED',
+            'MAIL_TRANSPORT',
+            'SMTP',
+        ])) {
+            return 'SETTINGS';
+        }
+
+        if ($containsAny($context, [
+            'SECURITY',
+            'BACKUP',
+            'TECHNICAL_OPERATION',
+            'NOTIFICATION_DELIVERY',
+            'NOTIFICATIONDELIVERY',
+            'DELIVERY_FAILURE',
+            'AUDIT_EXPORT',
+        ])) {
+            return 'SECURITY_SYSTEM';
+        }
+
+        /*
+         * Operational / SPMU categories.
+         *
+         * Corrections are checked before Return because a status such as
+         * RETURNED_FOR_REVISION is a correction workflow, not a physical
+         * asset return.
+         */
+        if ($containsAny($context, [
+            'CORRECTION',
+            'REOPEN',
+            'RETURNED_FOR_REVISION',
+            'REVISION',
+            'SUPERSEDE',
+        ])) {
+            return 'CORRECTIONS_REOPENINGS';
+        }
+
+        if ($containsAny($context, [
+            'ACCOUNTABILITY',
+            'INCIDENT',
+            'OVERDUE',
+            'BILLING',
+            'PAYMENT',
+            'RESTRICTION',
+            'SANCTION',
+            'VIOLATION',
+            'RSLDDP',
+        ])) {
+            return 'ACCOUNTABILITY';
+        }
+
+        if ($containsAny($context, [
+            'LAUNDRY',
+            'GATE_PASS',
+            'GATEPASS',
+        ])) {
+            return 'LAUNDRY_GATEPASS';
+        }
+
+        if ($containsAny($context, [
+            'INVENTORY',
+            'STOCK',
+            'ALLOCATION',
+            'INVENTORYITEM',
+            'INVENTORYADJUSTMENT',
+            'ITEM_ADJUST',
+        ])) {
+            return 'INVENTORY';
+        }
+
+        if ($containsAny($context, [
+            'RELEASE',
+            'RETURN',
+            'CUSTODY',
+            'ISSUANCE',
+            'PICKUP',
+            'PREPARATION',
+        ])) {
+            return 'RELEASE_RETURN';
+        }
+
+        if ($containsAny($context, [
+            'APPROVAL',
+            'APPROVED',
+            'FINAL_APPROV',
+            'HEAD_DECISION',
+            'REJECTED',
+        ])) {
+            return 'APPROVAL';
+        }
+
+        if ($containsAny($context, [
+            'BORROW',
+            'REQUEST',
+            'SUBMIT',
+            'CANCEL',
+            'RESCHEDULE',
+        ])) {
+            return 'BORROWING';
+        }
+
+        /*
+         * An otherwise-unknown event explicitly performed by ICTU is kept
+         * available to ICTU as Other Technical. Unknown system/SPMU events
+         * remain operational instead of leaking into the ICTU Audit Trail.
+         */
+        if (
+            $event->actor?->access_classification
+                === AccessClassification::IctuMaintainer
+        ) {
+            return 'OTHER_TECHNICAL';
+        }
+
+        return 'OTHER_OPERATIONAL';
     }
 
     public function notifications(Request $request): View

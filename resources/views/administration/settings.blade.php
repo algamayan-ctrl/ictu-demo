@@ -210,6 +210,7 @@
                         type="number"
                         name="value"
                         min="1"
+                        max="64"
                         step="1"
                         required
                         value="{{ old('value', $maxUploadSetting->value_json ?? '') }}"

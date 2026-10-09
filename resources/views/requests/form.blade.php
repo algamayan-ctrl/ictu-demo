@@ -53,6 +53,8 @@
         App\Models\RequestSupportingDocument::TYPE_PERMISSION_TO_CONDUCT
     );
 
+    $maxUploadMb = max(1, (int) ($maxUploadMb ?? 5));
+
 
     $divisionOptions = App\Support\OrganizationalStructure::divisions();
 
@@ -1548,7 +1550,7 @@
                             <strong>Upload file</strong>
                         </span>
                         <span class="document-dropzone-hint">or drag and drop</span>
-                        <small class="document-dropzone-formats">PDF, JPG, PNG (Max 10MB)</small>
+                        <small class="document-dropzone-formats">PDF, JPG, PNG (Max {{ $maxUploadMb }}MB)</small>
                         <span class="document-dropzone-file" data-dropzone-file hidden></span>
                     </label>
                 </div>
@@ -1588,7 +1590,7 @@
                             <strong>Upload file</strong>
                         </span>
                         <span class="document-dropzone-hint">or drag and drop</span>
-                        <small class="document-dropzone-formats">PDF, JPG, PNG (Max 10MB)</small>
+                        <small class="document-dropzone-formats">PDF, JPG, PNG (Max {{ $maxUploadMb }}MB)</small>
                         <span class="document-dropzone-file" data-dropzone-file hidden></span>
                     </label>
                 </div>

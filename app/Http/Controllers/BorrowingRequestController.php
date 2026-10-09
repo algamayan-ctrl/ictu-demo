@@ -13,6 +13,7 @@ use App\Models\OrganizationalUnit;
 use App\Models\RequestItem;
 use App\Models\RequestSupportingDocument;
 use App\Models\RequestVersion;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\InventoryService;
 use App\Services\OperationalCalendarService;
@@ -31,6 +32,8 @@ use Illuminate\View\View;
 
 class BorrowingRequestController extends Controller
 {
+    private const MAX_UPLOAD_MB = 64;
+
     /**
      * Return active Office / Unit assignments that ICTU has authorized this
      * borrower to represent. The primary assignment is always included.
@@ -300,6 +303,7 @@ class BorrowingRequestController extends Controller
                 'prefillRequestingUnitId' => $prefillRequestingUnitId,
                 'prefillDivisionCode' => $prefillDivisionCode,
                 'prefillOfficeUnit' => $prefillOfficeUnit,
+                'maxUploadMb' => $this->uploadLimitMb(),
 
                 'items' => InventoryItem::with(['unit', 'category'])
                     ->where('active', true)
@@ -646,6 +650,7 @@ class BorrowingRequestController extends Controller
                 'prefillRequestingUnitId' => $prefillRequestingUnitId,
                 'prefillDivisionCode' => null,
                 'prefillOfficeUnit' => null,
+                'maxUploadMb' => $this->uploadLimitMb(),
 
                 'items' =>
                     InventoryItem::with(['unit', 'category'])
@@ -925,6 +930,8 @@ class BorrowingRequestController extends Controller
     private function validateRequest(
         Request $request
     ): array {
+        $maxUploadKb = $this->uploadLimitMb() * 1024;
+
         /*
          * Date-only UI contract.
          *
@@ -1074,14 +1081,14 @@ class BorrowingRequestController extends Controller
                 'nullable',
                 'file',
                 'mimes:pdf,png,jpg,jpeg,webp',
-                'max:10240',
+                'max:'.$maxUploadKb,
             ],
 
             'permission_to_conduct_letter' => [
                 'nullable',
                 'file',
                 'mimes:pdf,png,jpg,jpeg,webp',
-                'max:10240',
+                'max:'.$maxUploadKb,
             ],
 
             'item_ids' => [
@@ -1230,6 +1237,14 @@ class BorrowingRequestController extends Controller
         }
 
         return $data;
+    }
+
+    private function uploadLimitMb(): int
+    {
+        return min(
+            self::MAX_UPLOAD_MB,
+            max(1, (int) SystemSetting::value('max_upload_mb', 5))
+        );
     }
 
     /** @return array{open: bool, message: ?string} */

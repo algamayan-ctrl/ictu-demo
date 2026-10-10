@@ -19,9 +19,9 @@
    populated toolbar/table keeps its natural height. */
 .gate-pass-browser > .gate-pass-empty-card { flex: 1 1 auto; }
 .gate-pass-browser .gate-pass-heading { margin: 0 0 20px; }
-.gate-pass-browser .gate-pass-heading .eyebrow { margin-bottom: 9px; font-size: 10px; letter-spacing: .1em; }
-.gate-pass-browser .gate-pass-heading h1 { margin: 0 0 8px; font-size: clamp(25px, 2vw, 29px); }
-.gate-pass-browser .gate-pass-heading p:not(.eyebrow) { max-width: none; margin: 0; font-size: 13px; line-height: 1.5; }
+.gate-pass-browser .gate-pass-heading .eyebrow { margin-bottom: 9px; font-size: 9.5px; letter-spacing: .1em; }
+.gate-pass-browser .gate-pass-heading h1 { margin: 0 0 8px; font-size: clamp(21px, 1.65vw, 25px); }
+.gate-pass-browser .gate-pass-heading p:not(.eyebrow) { max-width: none; margin: 0; font-size: 12.5px; line-height: 1.4; }
 .gate-pass-browser .card { min-width: 0; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-elevated); box-shadow: var(--shadow-sm); }
 
 .gate-pass-browser .gate-pass-toolbar {

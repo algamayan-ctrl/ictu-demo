@@ -10,9 +10,9 @@
 }
 .laundry-detail .content-area, .laundry-detail .content-grid { min-width: 0; margin: 0; }
 .laundry-detail .laundry-detail-heading { margin: 0; }
-.laundry-detail .laundry-detail-heading .eyebrow { margin-bottom: 10px; font-size: 11px; }
-.laundry-detail .laundry-detail-heading h1 { margin: 0 0 8px; font-size: clamp(26px, 2.05vw, 32px); line-height: 1.2; }
-.laundry-detail .laundry-detail-heading p:not(.eyebrow) { font-size: 14px; }
+.laundry-detail .laundry-detail-heading .eyebrow { margin-bottom: 10px; font-size: 9.5px; }
+.laundry-detail .laundry-detail-heading h1 { margin: 0 0 8px; font-size: clamp(21px, 1.65vw, 25px); line-height: 1.2; }
+.laundry-detail .laundry-detail-heading p:not(.eyebrow) { font-size: 12.5px; line-height: 1.4; }
 .laundry-detail .card { min-width: 0; padding: 22px 24px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-elevated); box-shadow: var(--shadow-sm); }
 .laundry-detail .card-header { display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start; gap: 14px; margin: 0 0 18px; padding: 0; border: 0; border-radius: 0; background: transparent; }
 .laundry-detail h2 { margin: 0; color: var(--heading); font-size: 16px; font-weight: 700; line-height: 1.4; }

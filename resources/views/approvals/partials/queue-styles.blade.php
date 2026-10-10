@@ -22,7 +22,7 @@
 .approval-queue .approval-queue-heading { column-gap: 20px; margin-bottom: 14px; }
 .approval-queue-heading .eyebrow { margin-bottom: 10px; }
 .approval-queue .approval-queue-heading h1 { margin: 0 0 9px; }
-.approval-queue .approval-queue-heading > div > p:last-child { margin: 0; font-size: 13px; line-height: 1.55; }
+.approval-queue .approval-queue-heading > div > p:last-child { margin: 0; font-size: 12.5px; line-height: 1.4; }
 .approval-queue .button.approval-queue-records { flex-shrink: 0; white-space: nowrap; }
 .approval-queue-heading > .approval-queue-records { justify-self: end; }
 

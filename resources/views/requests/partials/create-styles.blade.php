@@ -1,7 +1,7 @@
 <style>
 /* Form content only: the existing request stepper keeps its markup and styling. */
-.create-request-heading h1 { font-size: clamp(26px, 2.2vw, 32px); font-weight: 750; }
-.create-request-heading .heading-copy { font-size: 14px; color: var(--text-muted); }
+.create-request-heading h1 { font-size: clamp(21px, 1.65vw, 25px); font-weight: 750; }
+.create-request-heading .heading-copy { font-size: 12.5px; line-height: 1.4; color: var(--text-muted); }
 #request-form .create-request-ui .request-details-card,
 #request-form .create-request-ui .request-picker-card { border: 1px solid var(--border); border-radius: 12px; background: var(--surface-elevated); box-shadow: 0 2px 7px rgba(16, 42, 67, .055); }
 #request-form .create-request-ui .request-details-card .request-card-header,

@@ -319,6 +319,35 @@ class BorrowingRequestController extends Controller
         Request $request,
         OperationalCalendarService $calendar
     ): JsonResponse {
+        // SPMU_MONTH_CALENDAR_START
+        if ($request->has('month')) {
+            $values = $request->validate([
+                'month' => ['required', 'date_format:Y-m']
+            ]);
+
+            $monthStart = Carbon::parse(
+                $values['month'].'-01',
+                config('app.timezone') ?: 'Asia/Manila'
+            )->startOfMonth();
+
+            $profiles = $calendar->profilesForRange(
+                $monthStart,
+                $monthStart->copy()->endOfMonth()
+            );
+
+            return response()->json([
+                'dates' => $profiles->mapWithKeys(
+                    fn (array $profile, string $date): array => [
+                        $date => [
+                            'open' => (bool) ($profile['is_open'] ?? false),
+                            'reason' => $profile['reason'] ?? null,
+                            'special' => ($profile['source'] ?? '') === 'EXCEPTION',
+                        ],
+                    ]
+                )->all(),
+            ]);
+        }
+        // SPMU_MONTH_CALENDAR_END
         $data = $request->validate([
             'schedule_date' => ['required', 'date'],
             'return_date' => ['required', 'date'],
@@ -1191,7 +1220,7 @@ class BorrowingRequestController extends Controller
         ) {
             throw ValidationException::withMessages([
                 'schedule_date' =>
-                    'Schedule Date must be after today.',
+                    'Items Needed From must be '.now($timezone)->addDay()->format('F j, Y').' or later.',
             ]);
         }
 
@@ -1203,7 +1232,7 @@ class BorrowingRequestController extends Controller
         if (! $returnDate->gt($scheduleDate)) {
             throw ValidationException::withMessages([
                 'return_date' =>
-                    'Return Date must be after Schedule Date.',
+                    'Please choose a return date after '.$scheduleDate->format('F j, Y').'.',
             ]);
         }
 
@@ -1258,11 +1287,11 @@ class BorrowingRequestController extends Controller
         }
 
         $profile = $calendar->profile($date);
-        $reason = $profile['reason'] ? ' '.$profile['reason'] : '';
+        $reason = $profile['reason'] ? ' ('.rtrim(trim($profile['reason']), '.').')' : '';
 
         return [
             'open' => false,
-            'message' => $label.' must fall on an open SPMU operational date.'.$reason,
+            'message' => 'SPMU is closed on '.$date->format('F j, Y').$reason.'. Please choose a different '.$label.'.',
         ];
     }
 

@@ -9,9 +9,9 @@
 }
 .completed-laundry [hidden] { display: none !important; }
 .completed-laundry .completed-laundry-heading { column-gap: 20px; margin-bottom: 20px; }
-.completed-laundry-heading .eyebrow { margin-bottom: 9px; font-size: 10px; letter-spacing: .1em; }
-.completed-laundry .completed-laundry-heading h1 { margin: 0 0 8px; font-size: clamp(25px, 2vw, 29px); line-height: 1.25; }
-.completed-laundry .completed-laundry-heading > div > p:last-child { margin: 0; font-size: 13px; line-height: 1.5; }
+.completed-laundry-heading .eyebrow { margin-bottom: 9px; font-size: 9.5px; letter-spacing: .1em; }
+.completed-laundry .completed-laundry-heading h1 { margin: 0 0 8px; font-size: clamp(21px, 1.65vw, 25px); line-height: 1.25; }
+.completed-laundry .completed-laundry-heading > div > p:last-child { margin: 0; font-size: 12.5px; line-height: 1.4; }
 .completed-laundry .button.completed-laundry-back {
     flex-shrink: 0;
     gap: 8px;

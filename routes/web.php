@@ -218,6 +218,11 @@ Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function 
         Route::post('/inventory/{inventory}/adjustments', [InventoryController::class, 'adjust'])
             ->whereNumber('inventory')
             ->name('inventory.adjust');
+
+        // Permanent delete: SPMU Head only, and only for items with no transaction history.
+        Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])
+            ->whereNumber('inventory')
+            ->name('inventory.destroy');
     });
 
 

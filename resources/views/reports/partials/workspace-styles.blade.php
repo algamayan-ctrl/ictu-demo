@@ -2,8 +2,8 @@
 .reporting-workspace { --report-blue: #065df0; --report-green: #008647; --report-line: var(--border); --report-muted: var(--text-muted); min-width: 0; font-size: 13px; }
 .reporting-workspace *, .reporting-workspace *::before, .reporting-workspace *::after { box-sizing: border-box; }
 .reporting-workspace .page-heading { margin-bottom: 16px; }
-.reporting-workspace .page-heading h1 { font-size: clamp(24px, 1.9vw, 29px); margin: 5px 0 7px; }
-.reporting-workspace .page-heading p:not(.eyebrow) { font-size: 13px; line-height: 1.5; max-width: none; }
+.reporting-workspace .page-heading h1 { font-size: clamp(21px, 1.65vw, 25px); margin: 5px 0 7px; }
+.reporting-workspace .page-heading p:not(.eyebrow) { font-size: 12.5px; line-height: 1.4; max-width: none; }
 .reporting-workspace .card { min-width: 0; background: var(--surface-elevated); border: 1px solid var(--report-line); border-radius: 9px; box-shadow: 0 1px 4px rgba(21, 49, 84, .045); }
 .reporting-workspace .content-area { margin: 0; min-width: 0; }
 /* Layout only - color/hover comes from the shared global .button contract

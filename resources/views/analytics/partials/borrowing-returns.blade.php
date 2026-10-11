@@ -652,6 +652,9 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
  {{ $case['custody_no'] }}
  @if($case['request_no']) &middot; {{ $case['request_no'] }} @endif
  </span>
+ @if(! empty($case['linen_state_label']))
+ <span class="analytics-followup-ref" data-linen-state>{{ $case['linen_state_label'] }}</span>
+ @endif
  </span>
  <span class="analytics-followup-due">
  <span>Due {{ optional($case['due_at'])->format('d M Y') ?: '—' }}</span>
@@ -693,6 +696,12 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
  </li>
  @endforeach
  </ul>
+ @if(($overdueAging['provisional'] ?? 0) > 0)
+ <p class="analytics-insight-strip" data-aging-provisional>
+ <x-icon name="information" size="14" aria-hidden="true" />
+ <span>{{ $overdueAging['provisional'] }} of these {{ $overdueAging['provisional'] === 1 ? 'is linen that is' : 'are linen that are' }} provisionally overdue: no signed Laundry Form has reached SPMU, and return verification is pending.</span>
+ </p>
+ @endif
  </div>
  @endif
  </section>

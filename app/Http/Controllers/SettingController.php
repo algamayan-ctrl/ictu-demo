@@ -14,12 +14,12 @@ class SettingController extends Controller
 {
     private const MAX_UPLOAD_MB = 64;
 
-    private const ICTU_SETTING_KEYS = [
+    public const ICTU_SETTING_KEYS = [
         'max_upload_mb',
         'backup_schedule',
     ];
 
-    private const PROTECTED_DIRECT_SETTING_KEYS = [
+    public const PROTECTED_DIRECT_SETTING_KEYS = [
         'overdue_grace_hours',
         'due_soon_hours',
         'billing_statement_template_version',

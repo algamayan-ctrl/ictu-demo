@@ -147,7 +147,12 @@
  @foreach($detail['table']['rows'] as $row)
  <tr>
  @foreach($row as $cell)
+ {{-- A cell is either plain text or a primary/secondary pair (inventory rows). --}}
+ @if(is_array($cell))
+ <td>{{ $cell['primary'] ?? $cell['value'] ?? '—' }}@if(($cell['secondary'] ?? '') !== '')<br>{{ $cell['secondary'] }}@endif</td>
+ @else
  <td>{{ $cell }}</td>
+ @endif
  @endforeach
  </tr>
  @endforeach

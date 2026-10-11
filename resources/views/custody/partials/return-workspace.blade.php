@@ -65,6 +65,15 @@
 
     $laundryFormRecorded = (bool) $laundryJob?->latestEvidence?->file;
     $gatePassRecorded = (bool) $custody->gatePass?->accomplishedFile;
+
+    /* Where the linen stands, from what has reached the system. */
+    $linenReturnState = $showLaundryDocument
+        ? app(App\Services\LateReturnService::class)->linenReturnState($custody)
+        : null;
+    $laundryDatePending = (bool) $laundryJob?->receiptDatePendingAuthorization();
+    $linenProvisionallyOverdue = $linenReturnState === App\Services\LateReturnService::LINEN_PROVISIONALLY_OVERDUE;
+    $linenConfirmedUnreturned = $linenReturnState === App\Services\LateReturnService::LINEN_CONFIRMED_UNRETURNED;
+    $canVerifyLinen = auth()->user()?->access_classification === App\Enums\AccessClassification::SpmuOfficer;
 @endphp
 
 @include('custody.partials.return-process-styles')
@@ -202,15 +211,54 @@
                                     <div>
                                         <strong>Laundry Form</strong>
                                         <small>Accomplished form recorded.</small>
+                                        @if($laundryJob->worker_received_at)
+                                            <small data-laundry-received-date>
+                                                Laundry Received (signed form): <strong>{{ $laundryJob->worker_received_at->format('d M Y, l') }}</strong>
+                                                @if($laundryJob->receiptDateStatusLabel()) &middot; {{ $laundryJob->receiptDateStatusLabel() }} @endif
+                                            </small>
+                                        @endif
                                     </div>
                                 </div>
 
                                 <div class="return-document-actions">
+                                    @if($laundryDatePending)
+                                        <span class="status-badge status-warning">Pending Date Authorization</span>
+                                    @endif
                                     <a class="button secondary small ui-pressable return-navigation-action" href="{{ route('files.preview', $laundryJob->latestEvidence->file) }}">
                                         <span>Preview</span>
                                     </a>
                                 </div>
                             </div>
+
+                            @if($laundryDatePending)
+                                <div class="notice warning" role="status" data-laundry-date-pending>
+                                    <x-icon name="calendar" size="22" />
+                                    <div>
+                                        <strong>Pending Date Authorization</strong>
+                                        <p>{{ $laundryJob->worker_received_at->format('F j, Y (l)') }} is neither an SPMU open return day nor an authorized Laundry receiving day. The signed form and this date are kept exactly as recorded. This linen return cannot be encoded until the SPMU Head/Admin authorizes that date for Laundry receiving or accepts the signed date (Configuration &rarr; Special Dates).</p>
+                                        @if($canVerifyLinen && $laundryJob->status === 'FOR_LAUNDRY')
+                                            <details class="return-laundry-disclosure">
+                                                <summary>The date was typed incorrectly? Record the form again</summary>
+                                                <form method="post" action="{{ route('laundry.spmu.upload-form', $laundryJob) }}" enctype="multipart/form-data" class="return-laundry-form-upload">
+                                                    @csrf
+                                                    <label>
+                                                        Accomplished Laundry Form
+                                                        <input type="file" name="evidence" required accept="application/pdf,image/png,image/jpeg,image/webp">
+                                                        <small>The earlier upload and the earlier date stay on record.</small>
+                                                    </label>
+                                                    <label>
+                                                        Laundry Received Date
+                                                        <input type="date" name="laundry_received_on" required autocomplete="off"
+                                                            @if($custody->released_at) min="{{ $custody->released_at->toDateString() }}" @endif>
+                                                        <small>Use the RECEIVED BY date written on the accomplished form.</small>
+                                                    </label>
+                                                    <button class="button secondary small ui-pressable" type="submit">Record Laundry Form</button>
+                                                </form>
+                                            </details>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
                         @elseif($laundryJob)
                             <details
                                 class="return-laundry-disclosure return-document-disclosure"
@@ -269,6 +317,38 @@
                                     <button class="button secondary small ui-pressable" type="submit">Record Laundry Form</button>
                                 </form>
                             </details>
+
+                            @if($linenProvisionallyOverdue)
+                                <div class="notice warning" role="status" data-linen-provisional>
+                                    <x-icon name="calendar" size="22" />
+                                    <div>
+                                        <strong>Provisionally Overdue &ndash; Pending Return Verification</strong>
+                                        <p>The Expected Return Date has passed and no signed Laundry Form has reached SPMU. This is not a finding that the linen was not returned, and no penalty or restriction has been created. Verify with the Laundry Area: if the linen was returned, record the signed form above with its actual Laundry Received date.</p>
+                                        @if($canVerifyLinen)
+                                            <details class="return-laundry-disclosure" @if($errors->has('unreturned_reason')) open @endif>
+                                                <summary>Verified that the linen was not returned</summary>
+                                                <form method="post" action="{{ route('laundry.spmu.confirm-not-returned', $laundryJob) }}" class="return-laundry-form-upload">
+                                                    @csrf
+                                                    <label>
+                                                        How this was verified
+                                                        <textarea name="unreturned_reason" rows="2" maxlength="500" required placeholder="e.g., Laundry Personnel confirmed on 14 Oct that no linen was received for this transaction.">{{ old('unreturned_reason') }}</textarea>
+                                                        <small>This ends the paperwork hold; the custody then follows the regular overdue and accountability process.</small>
+                                                    </label>
+                                                    <button class="button secondary small ui-pressable" type="submit">Record: Not Returned</button>
+                                                </form>
+                                            </details>
+                                        @endif
+                                    </div>
+                                </div>
+                            @elseif($linenConfirmedUnreturned)
+                                <div class="notice warning" role="status" data-linen-confirmed-unreturned>
+                                    <x-icon name="calendar" size="22" />
+                                    <div>
+                                        <strong>Confirmed Not Returned</strong>
+                                        <p>Recorded {{ $laundryJob->unreturned_confirmed_at?->format('d M Y') }}: {{ $laundryJob->unreturned_confirmation_reason }} If the linen is later returned, record the signed Laundry Form above with its actual Laundry Received date.</p>
+                                    </div>
+                                </div>
+                            @endif
                         @else
                             <div class="return-document-row return-document-row-laundry">
                                 <div class="return-document-copy">

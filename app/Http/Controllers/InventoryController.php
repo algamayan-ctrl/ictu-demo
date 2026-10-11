@@ -1230,21 +1230,24 @@ class InventoryController extends Controller
 
         $data = $this->validated($request);
 
-        $item = InventoryItem::query()->create($data);
-        $inventoryService->recordInitialStock(
-            $item,
-            $request->user(),
-            $request->input('initial_stock_source')
-        );
+        // The item, its opening stock entry and the audit event commit together.
+        DB::transaction(function () use ($data, $request, $audit, $inventoryService): void {
+            $item = InventoryItem::query()->create($data);
+            $inventoryService->recordInitialStock(
+                $item,
+                $request->user(),
+                $request->input('initial_stock_source')
+            );
 
-        $audit->record(
-            'INVENTORY_ITEM_CREATED',
-            $item,
-            reason: filled($request->input('initial_stock_source'))
-                ? 'Initial inventory item created. Source / Reference: '.trim((string) $request->input('initial_stock_source'))
-                : 'Initial inventory item created.',
-            after: $item->toArray()
-        );
+            $audit->record(
+                'INVENTORY_ITEM_CREATED',
+                $item,
+                reason: filled($request->input('initial_stock_source'))
+                    ? 'Initial inventory item created. Source / Reference: '.trim((string) $request->input('initial_stock_source'))
+                    : 'Initial inventory item created.',
+                after: $item->toArray()
+            );
+        });
 
         return redirect()
             ->route('inventory.index')
@@ -1307,17 +1310,20 @@ class InventoryController extends Controller
             ]);
         }
 
-        $before = $inventory->toArray();
+        // The change and its audit event commit together, or not at all.
+        DB::transaction(function () use ($inventory, $data, $request, $audit): void {
+            $before = $inventory->toArray();
 
-        $inventory->update($data);
+            $inventory->update($data);
 
-        $audit->record(
-            'INVENTORY_ITEM_UPDATED',
-            $inventory,
-            reason: $request->input('change_reason'),
-            before: $before,
-            after: $inventory->fresh()->toArray()
-        );
+            $audit->record(
+                'INVENTORY_ITEM_UPDATED',
+                $inventory,
+                reason: $request->input('change_reason'),
+                before: $before,
+                after: $inventory->fresh()->toArray()
+            );
+        });
 
         return redirect()
             ->route('inventory.index')

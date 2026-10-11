@@ -4,12 +4,14 @@ namespace App\Services;
 
 use App\Models\BorrowerRestriction;
 use App\Models\CustodyTransaction;
+use App\Models\LaundryReceivingDay;
 use App\Models\OverdueCase;
 use App\Models\OperationalDateException;
 use App\Models\OperationalWeeklySchedule;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class OperationalCalendarService
@@ -155,10 +157,35 @@ class OperationalCalendarService
             return 0;
         }
 
-        $profiles = $this->profilesForRange($start->addDay(), $end);
-        $count = 0;
+        return count($this->openTransactionDates($activity, $start, $end));
+    }
 
-        foreach ($profiles as $date => $profile) {
+    /**
+     * The dates countOpenTransactionDays() counts: every date after
+     * $startExclusive through $endInclusive on which SPMU is open for the
+     * activity with a valid operating window.
+     *
+     * @return list<string> Y-m-d, ascending
+     */
+    public function openTransactionDates(
+        string $activity,
+        CarbonInterface|string $startExclusive,
+        CarbonInterface|string $endInclusive
+    ): array {
+        $activity = strtoupper($activity);
+        if (! in_array($activity, [self::PICKUP, self::RETURN], true)) {
+            return [];
+        }
+
+        $start = $this->asDate($startExclusive);
+        $end = $this->asDate($endInclusive);
+        if ($end->lte($start)) {
+            return [];
+        }
+
+        $dates = [];
+
+        foreach ($this->profilesForRange($start->addDay(), $end) as $date => $profile) {
             $allowed = $activity === self::PICKUP
                 ? (bool) $profile['allows_pickup']
                 : (bool) $profile['allows_return'];
@@ -169,11 +196,103 @@ class OperationalCalendarService
 
             [$open, $close] = $this->operatingWindow($activity, $date, $profile);
             if ($open && $close && $open->lt($close)) {
-                $count++;
+                $dates[] = (string) $date;
             }
         }
 
-        return $count;
+        return $dates;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Linen receiving days                                                */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Whether the SPMU Head/Admin authorized the Laundry Area to receive
+     * linen on this date. This says nothing about the SPMU Office: an
+     * authorized Laundry date never opens SPMU for pickup, release or
+     * equipment returns.
+     */
+    public function isAuthorizedLaundryReceivingDate(CarbonInterface|string $date): bool
+    {
+        if (! $this->laundryReceivingDaysAvailable()) {
+            return false;
+        }
+
+        return LaundryReceivingDay::query()
+            ->whereDate('receiving_date', $this->asDate($date)->toDateString())
+            ->where('is_authorized', true)
+            ->exists();
+    }
+
+    /**
+     * Whether returned linen can be received on this date: SPMU is open for
+     * returns that day, or the Laundry Area was specifically authorized.
+     * Evaluated for the calendar day, not for a time of day.
+     */
+    public function isLinenReceivingDate(CarbonInterface|string $date): bool
+    {
+        $day = $this->asDate($date);
+
+        return $this->openTransactionDates(self::RETURN, $day->subDay(), $day) !== []
+            || $this->isAuthorizedLaundryReceivingDate($day);
+    }
+
+    /**
+     * Eligible linen receiving dates after $startExclusive through
+     * $endInclusive: SPMU open return days and authorized Laundry receiving
+     * days, each date once.
+     *
+     * @return list<string> Y-m-d, ascending
+     */
+    public function linenReceivingDates(
+        CarbonInterface|string $startExclusive,
+        CarbonInterface|string $endInclusive
+    ): array {
+        $start = $this->asDate($startExclusive);
+        $end = $this->asDate($endInclusive);
+        if ($end->lte($start)) {
+            return [];
+        }
+
+        $dates = $this->openTransactionDates(self::RETURN, $start, $end);
+
+        if ($this->laundryReceivingDaysAvailable()) {
+            $laundry = LaundryReceivingDay::query()
+                ->where('is_authorized', true)
+                ->whereDate('receiving_date', '>', $start->toDateString())
+                ->whereDate('receiving_date', '<=', $end->toDateString())
+                ->get()
+                ->map(fn (LaundryReceivingDay $day): string => CarbonImmutable::parse(
+                    $day->receiving_date,
+                    config('app.timezone') ?: 'Asia/Manila'
+                )->toDateString())
+                ->all();
+
+            $dates = array_values(array_unique(array_merge($dates, $laundry)));
+            sort($dates);
+        }
+
+        return $dates;
+    }
+
+    /**
+     * The Laundry receiving calendar is an additive table. Until its
+     * migration has run, there are simply no authorized Laundry dates and
+     * every calculation behaves exactly as before.
+     */
+    private ?bool $laundryReceivingDaysTable = null;
+
+    private function laundryReceivingDaysAvailable(): bool
+    {
+        return $this->laundryReceivingDaysTable ??= Schema::hasTable('laundry_receiving_days');
+    }
+
+    public function countLinenReceivingDays(
+        CarbonInterface|string $startExclusive,
+        CarbonInterface|string $endInclusive
+    ): int {
+        return count($this->linenReceivingDates($startExclusive, $endInclusive));
     }
 
     public function operatingWindow(string $activity, CarbonInterface|string $dateTime, ?array $profile = null): array

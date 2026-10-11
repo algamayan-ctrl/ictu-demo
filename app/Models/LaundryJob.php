@@ -22,11 +22,56 @@ class LaundryJob extends Model
         'released_to_borrower_at',
         'form_verified_at',
         'completed_at',
+        'receipt_date_status',
+        'receipt_date_reviewed_by_user_id',
+        'receipt_date_reviewed_at',
+        'receipt_date_review_note',
+        'unreturned_confirmed_by_user_id',
+        'unreturned_confirmed_at',
+        'unreturned_confirmation_reason',
     ];
+
+    /*
+     * How the signed Laundry Received date stands against the receiving
+     * calendars. Null is a record from before this check existed and is
+     * treated as accepted, so historical receipts keep their meaning.
+     */
+    public const RECEIPT_DATE_AUTHORIZED = 'AUTHORIZED';
+    public const RECEIPT_DATE_PENDING = 'PENDING_DATE_AUTHORIZATION';
+    public const RECEIPT_DATE_ACCEPTED = 'ACCEPTED_BY_HEAD';
+
+    /** The signed date is on file but not yet usable for finalizing the return. */
+    public function receiptDatePendingAuthorization(): bool
+    {
+        return $this->worker_received_at !== null
+            && $this->receipt_date_status === self::RECEIPT_DATE_PENDING;
+    }
+
+    /** A Laundry Received date exists and may be used as the actual return date. */
+    public function hasUsableReceiptDate(): bool
+    {
+        return $this->worker_received_at !== null && ! $this->receiptDatePendingAuthorization();
+    }
+
+    public function receiptDateStatusLabel(): ?string
+    {
+        if ($this->worker_received_at === null) {
+            return null;
+        }
+
+        return match ($this->receipt_date_status) {
+            self::RECEIPT_DATE_PENDING => 'Pending Date Authorization',
+            self::RECEIPT_DATE_ACCEPTED => 'Signed date accepted by SPMU Head',
+            self::RECEIPT_DATE_AUTHORIZED => 'Authorized receiving day',
+            default => null,
+        };
+    }
 
     protected function casts(): array
     {
         return [
+            'receipt_date_reviewed_at' => 'datetime',
+            'unreturned_confirmed_at' => 'datetime',
             'worker_received_at' => 'datetime',
             'worker_completed_at' => 'datetime',
             'ready_at' => 'datetime',

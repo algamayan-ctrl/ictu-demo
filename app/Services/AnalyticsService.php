@@ -9,6 +9,7 @@ use App\Models\BorrowingRequest;
 use App\Models\CustodyTransaction;
 use App\Models\Incident;
 use App\Models\InventoryItem;
+use App\Models\LaundryJob;
 use App\Models\OverdueCase;
 use App\Support\OrganizationalStructure;
 use App\Support\PeriodComparison;
@@ -18,6 +19,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Analytics for the SPMU Head.
@@ -217,10 +219,15 @@ class AnalyticsService
  array_map(static fn (RequestStatus $status): string => $status->value, $excluded)
  )
  ->where(function ($schedule) use ($from, $to): void {
- $schedule->whereBetween('request_versions.schedule_date', [
- Carbon::parse($from)->toDateString(),
- Carbon::parse($to)->toDateString(),
- ])->orWhere(function ($legacy) use ($from, $to): void {
+ /*
+ * Inclusive of the final day on every database: the upper bound is
+ * "before the next day", so a schedule date stored with a midnight
+ * time part still falls inside the window.
+ */
+ $schedule->where(function ($window) use ($from, $to): void {
+ $window->where('request_versions.schedule_date', '>=', Carbon::parse($from)->toDateString())
+ ->where('request_versions.schedule_date', '<', Carbon::parse($to)->addDay()->toDateString());
+ })->orWhere(function ($legacy) use ($from, $to): void {
  $legacy->whereNull('request_versions.schedule_date')
  ->whereBetween('request_versions.needed_from', [$from, $to]);
  });
@@ -894,7 +901,40 @@ class AnalyticsService
  ->orWhere(function ($inner): void {
  $inner->whereNotNull('due_at')->where('due_at', '<', now()->startOfDay());
  });
+ })
+ /*
+ * Linen that Laundry Personnel verifiably received on or before the
+ * due date is not overdue while it only awaits return encoding. It
+ * is still "out" for stock purposes, so only this measure excludes
+ * it. A signed date awaiting authorization does not qualify.
+ */
+ ->when($this->linenReceiptStatusAvailable(), function (Builder $query): void {
+ $query->whereNot(function (Builder $received): void {
+ $received
+ ->whereDoesntHave('lines', function ($lines): void {
+ $lines->whereColumn('returned_quantity', '<', 'actual_released_quantity')
+ ->whereDoesntHave('requestItem.inventoryItem', function ($items): void {
+ $items->where('laundry_required', true);
  });
+ })
+ ->whereHas('laundryJob', function ($job): void {
+ $job->whereNotNull('worker_received_at')
+ ->where(function ($status): void {
+ $status->whereNull('receipt_date_status')
+ ->orWhere('receipt_date_status', '!=', LaundryJob::RECEIPT_DATE_PENDING);
+ })
+ ->whereRaw('date(worker_received_at) <= date(custody_transactions.due_at)');
+ });
+ });
+ });
+ }
+
+ private ?bool $linenReceiptStatusColumn = null;
+
+ /** The receipt-date check is an additive column; before its migration nothing is excluded. */
+ private function linenReceiptStatusAvailable(): bool
+ {
+ return $this->linenReceiptStatusColumn ??= Schema::hasColumn('laundry_jobs', 'receipt_date_status');
  }
 
  /* ------------------------------------------------------------------ */
@@ -2903,7 +2943,22 @@ class AnalyticsService
  return null;
  }
 
- return $this->lateDaysBetween($custody->due_at, now()->startOfDay());
+ /*
+ * Same counter as penalties and the scheduler: equipment against SPMU
+ * open return days; linen against SPMU open return days and authorized
+ * Laundry receiving days, stopping at a usable signed Laundry Received
+ * date even while return encoding is still pending.
+ */
+ return app(LateReturnService::class)->chargeableLateDays($custody, now()->startOfDay());
+ }
+
+ /**
+ * Late days of a completed return, measured to the date it completed.
+ * Uses the custody's own receiving calendars; see daysOverdue().
+ */
+ public function lateDaysForReturn(CustodyTransaction $custody, CarbonInterface|string $returnedAt): int
+ {
+ return app(LateReturnService::class)->chargeableLateDays($custody, $returnedAt);
  }
 
  /**
@@ -2964,8 +3019,16 @@ class AnalyticsService
 
  $counts = array_fill_keys(array_column(self::OVERDUE_AGING_BANDS, 'key'), 0) + ['unbanded' => 0];
 
+ /* Linen with no return evidence is in the backlog provisionally, not as a confirmed finding. */
+ $provisional = 0;
+ $lateReturns = app(LateReturnService::class);
+
  foreach ($rows as $custody) {
  $counts[$this->overdueAgingBand($this->daysOverdue($custody))]++;
+
+ if ($lateReturns->linenReturnState($custody) === LateReturnService::LINEN_PROVISIONALLY_OVERDUE) {
+ $provisional++;
+ }
  }
 
  $total = $rows->count();
@@ -3000,6 +3063,7 @@ class AnalyticsService
  'available' => $total > 0,
  'groups' => $groups,
  'unbanded' => $counts['unbanded'],
+ 'provisional' => $provisional,
  'leader' => $leader,
  'insight' => match (true) {
  $total === 0 => null,
@@ -3132,6 +3196,10 @@ class AnalyticsService
  'request_no' => (string) ($custody->request?->request_no ?? ''),
  'due_at' => $custody->due_at,
  'days_overdue' => $days,
+ /* Null for equipment and for confirmed overdue linen. */
+ 'linen_state_label' => LateReturnService::linenStateLabel(
+ app(LateReturnService::class)->linenReturnState($custody)
+ ),
  ];
  })->all(),
  ];

@@ -145,8 +145,8 @@ class DocumentController extends Controller
             || (int) $restrictionBorrowerId === (int) $user->id
             || (int) $sanctionBorrowerId === (int) $user->id
             || (int) $incidentBorrowerId === (int) $user->id
-            || $user->hasRole(UserRole::Spmu)
-            || $user->hasRole(UserRole::Ictu),
+            // ICTU Maintainer has no access to generated borrower documents.
+            || $user->hasRole(UserRole::Spmu),
             403
         );
 
@@ -180,7 +180,19 @@ class DocumentController extends Controller
         // authorization checks. Streamed bytes are not executed here.
         $this->protectedFile($request, $file, $files);
 
-        return view('documents.file-preview', ['file' => $file]);
+        /*
+         * Viewing never changes which version is current. A superseded
+         * supporting document is only labelled as historical for the reader.
+         */
+        $historicalDocument = RequestSupportingDocument::query()
+            ->where('stored_file_id', $file->id)
+            ->where('is_current', false)
+            ->first();
+
+        return view('documents.file-preview', [
+            'file' => $file,
+            'historicalDocument' => $historicalDocument,
+        ]);
     }
 
     public function protectedFile(
@@ -192,15 +204,16 @@ class DocumentController extends Controller
 
         abort_unless($user, 401);
 
-        $workspace = strtoupper(
-            (string) $request->session()->get('active_workspace')
-        );
+        /*
+         * The portal is resolved from the account's current access
+         * classification on every request, never from a stored session value,
+         * so a reclassified account cannot keep an older workspace's access.
+         */
+        $workspace = (string) $user->primaryWorkspace();
 
-        $isSpmu = $workspace === 'SPMU'
-            || $user->hasRole(UserRole::Spmu);
+        $isSpmu = $workspace === 'SPMU';
 
-        $isIctu = $workspace === 'ICTU'
-            || $user->hasRole(UserRole::Ictu);
+        $isIctu = $workspace === 'ICTU';
 
         /*
          * A registered signature image and its immutable snapshots are never
@@ -309,8 +322,12 @@ class DocumentController extends Controller
             (int) $file->uploaded_by_user_id === (int) $user->id;
 
         /*
-         * SPMU is allowed to review request supporting documents.
-         * ICTU remains available for authorized technical support.
+         * SPMU is allowed to review request supporting documents, current
+         * and superseded.
+         *
+         * ICTU Maintainer is technical maintenance only: it may open
+         * document template sources and files it uploaded itself, but never
+         * confidential borrower documents, even through a copied direct URL.
          */
         $allowed =
             $uploadedByCurrentUser
@@ -319,8 +336,7 @@ class DocumentController extends Controller
             || $isBorrowerGatePassFile
             || ($requestSupportingDocument && $isSpmu)
             || ($operationalEvidence && $isSpmu)
-            || ($isTemplateSource && ($isSpmu || $isIctu))
-            || $isIctu;
+            || ($isTemplateSource && ($isSpmu || $isIctu));
 
         abort_unless($allowed, 403);
 

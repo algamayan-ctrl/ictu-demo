@@ -1,0 +1,85 @@
+{{--
+    Read-only investigation view of every uploaded supporting-document version
+    of this request, current and superseded. SPMU Head/Admin only; the files
+    themselves stay behind the protected-file authorization (files.preview).
+--}}
+@if(auth()->user()?->access_classification === App\Enums\AccessClassification::SpmuHead)
+    @php
+        $documentHistory = App\Models\RequestSupportingDocument::query()
+            ->where('request_id', $borrowingRequest->id)
+            ->with(['file', 'uploader', 'requestVersion'])
+            ->orderBy('document_type')
+            ->orderBy('request_version_id')
+            ->orderBy('version_no')
+            ->get();
+    @endphp
+
+    @if($documentHistory->isNotEmpty())
+        <article class="card" style="margin-bottom: 16px;">
+            <details class="document-history" data-document-history>
+                <summary class="button secondary small ui-pressable" style="display: inline-flex; cursor: pointer;">
+                    Document History
+                </summary>
+
+                <p class="field-help" style="margin: 10px 0 8px;">
+                    Read-only. Superseded versions are historical and not valid for current use. Viewing a version never changes the current document.
+                </p>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Version</th>
+                                <th scope="col">Document</th>
+                                <th scope="col">Uploaded By</th>
+                                <th scope="col">Date/Time</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($documentHistory as $historyDoc)
+                                <tr>
+                                    <td>
+                                        {{ $historyDoc->version_no }}
+                                        @if($historyDoc->requestVersion && $borrowingRequest->current_version_no > 1)
+                                            <small>(request v{{ $historyDoc->requestVersion->version_no }})</small>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <strong>
+                                            {{ $historyDoc->document_type === App\Models\RequestSupportingDocument::TYPE_REQUEST_LETTER
+                                                ? 'Borrowing Request Letter'
+                                                : 'Permission to Conduct Letter' }}
+                                        </strong>
+                                        <br>
+                                        <small>{{ $historyDoc->file?->original_name ?: 'File name not recorded' }}</small>
+                                    </td>
+                                    <td>{{ $historyDoc->uploader?->full_name ?: 'Not recorded' }}</td>
+                                    <td>{{ $historyDoc->uploaded_at?->format('M j, Y g:i A') ?: 'Not recorded' }}</td>
+                                    <td>
+                                        @if($historyDoc->is_current)
+                                            <span class="status-badge status-success">Current</span>
+                                        @else
+                                            <span class="status-badge status-neutral" title="Historical version, not valid for current use">Superseded</span>
+                                            @if($historyDoc->superseded_at)
+                                                <br><small>{{ $historyDoc->superseded_at->format('M j, Y g:i A') }}</small>
+                                            @endif
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($historyDoc->file)
+                                            <a class="button secondary small ui-pressable" href="{{ route('files.preview', $historyDoc->file) }}">Preview</a>
+                                        @else
+                                            <small>File unavailable</small>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        </article>
+    @endif
+@endif

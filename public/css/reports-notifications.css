@@ -273,6 +273,40 @@
 }
 .notification-delivery-detail-response { align-items: start; }
 
+/* Failure reason: short summary first, full sanitized transport text on demand. */
+.notification-delivery-failure { display: grid; gap: 2px; }
+.notification-delivery-failure-title { font-size: 10.75px; font-weight: 750; }
+.notification-delivery-failure-explanation { display: block; }
+.notification-delivery-technical { margin-top: 2px; min-width: 0; }
+.notification-delivery-technical > summary {
+    display: inline-block;
+    color: var(--primary-action);
+    font-size: 10.5px;
+    font-weight: 750;
+    cursor: pointer;
+    list-style: none;
+}
+.notification-delivery-technical > summary::-webkit-details-marker { display: none; }
+.notification-delivery-technical > summary:hover { text-decoration: underline; }
+.notification-delivery-technical > summary:focus-visible { outline: 2px solid var(--primary-action); outline-offset: 2px; border-radius: 3px; }
+.notification-delivery-technical .notification-delivery-technical-hide,
+.notification-delivery-technical[open] .notification-delivery-technical-show { display: none; }
+.notification-delivery-technical[open] .notification-delivery-technical-hide { display: inline; }
+.notification-delivery-technical-text {
+    max-height: 132px;
+    margin-top: 4px;
+    padding: 6px 8px;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-muted);
+    font-size: 10.5px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
 .notification-delivery-resolve-form {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;

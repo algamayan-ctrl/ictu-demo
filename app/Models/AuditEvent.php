@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AuditEvent extends Model
 {
-    protected $fillable = ['actor_user_id', 'action_code', 'record_type', 'record_id', 'occurred_at', 'origin_ip', 'reason', 'before_json', 'after_json', 'correlation_id'];
+    protected $fillable = ['actor_user_id', 'actor_name', 'actor_role', 'action_code', 'record_type', 'record_id', 'occurred_at', 'origin_ip', 'reason', 'before_json', 'after_json', 'correlation_id'];
 
     protected function casts(): array
     {

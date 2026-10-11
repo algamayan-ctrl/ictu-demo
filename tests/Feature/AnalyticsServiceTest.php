@@ -295,6 +295,38 @@ class AnalyticsServiceTest extends TestCase
         $this->assertSame(['ACADEMIC'], array_column($scheduled['divisions']['groups']->all(), 'code'));
     }
 
+    public function test_scheduled_demand_includes_the_first_and_last_day_and_nothing_outside_them(): void
+    {
+        $from = Carbon::create(2026, 11, 1)->startOfDay();
+        $to = Carbon::create(2026, 11, 30)->endOfDay();
+        $filedAt = Carbon::create(2026, 10, 20, 10);
+
+        $schedule = fn (Carbon $date, int $hour) => $this->request(
+            'ACADEMIC',
+            'College of Computer Studies',
+            $filedAt->copy()->addHours($hour),
+            scheduleDate: $date
+        );
+
+        $schedule(Carbon::create(2026, 10, 31), 0);     /* the day before: outside */
+        $schedule(Carbon::create(2026, 11, 1), 1);      /* first day: inside */
+        $schedule(Carbon::create(2026, 11, 15), 2);     /* mid-period: inside */
+        $schedule(Carbon::create(2026, 11, 30), 3);     /* last day: inside */
+        $schedule(Carbon::create(2026, 12, 1), 4);      /* the day after: outside */
+
+        $this->assertSame(3, $this->analytics->scheduledDemand($from, $to)['requests']);
+
+        /* A single-day window holds exactly that day's request. */
+        $this->assertSame(1, $this->analytics->scheduledDemand(
+            Carbon::create(2026, 11, 30)->startOfDay(),
+            Carbon::create(2026, 11, 30)->endOfDay()
+        )['requests']);
+        $this->assertSame(0, $this->analytics->scheduledDemand(
+            Carbon::create(2026, 11, 29)->startOfDay(),
+            Carbon::create(2026, 11, 29)->endOfDay()
+        )['requests']);
+    }
+
     /* ------------------------------------------------------------------ */
     /* Overview                                                            */
     /* ------------------------------------------------------------------ */

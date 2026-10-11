@@ -430,14 +430,26 @@ class DashboardController extends Controller
                 AccessClassification::assignableCases(),
             );
 
+            /*
+             * The account cards count only the accounts the User Accounts
+             * list can show (assignable classifications). Retired legacy
+             * classifications are hidden there, so counting them here would
+             * produce a card whose drilldown is empty.
+             */
             $statistics = [
-                'Active Accounts' => User::query()->where('account_status', 'ACTIVE')->count(),
+                'Active Accounts' => User::query()
+                    ->whereIn('access_classification', $assignableClassifications)
+                    ->where('account_status', 'ACTIVE')
+                    ->count(),
                 'Failed Notifications' => NotificationDelivery::query()->actionableFailures()->count(),
                 'Pending Verification' => User::query()
                     ->whereIn('access_classification', $assignableClassifications)
                     ->whereNull('email_verified_at')
                     ->count(),
-                'Inactive Accounts' => User::query()->where('account_status', '!=', 'ACTIVE')->count(),
+                'Inactive Accounts' => User::query()
+                    ->whereIn('access_classification', $assignableClassifications)
+                    ->where('account_status', '!=', 'ACTIVE')
+                    ->count(),
             ];
 
             $queue = User::query()

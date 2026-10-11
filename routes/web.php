@@ -473,6 +473,14 @@ Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function 
 
         Route::post('/spmu/laundry/{laundryJob}/upload-form', [LaundryController::class, 'upload'])
             ->name('laundry.spmu.upload-form');
+
+        /* Action Officer: verification found the linen was not returned. */
+        Route::post('/spmu/laundry/{laundryJob}/confirm-not-returned', [LaundryController::class, 'confirmNotReturned'])
+            ->name('laundry.spmu.confirm-not-returned');
+
+        /* SPMU Head/Admin: accept a signed Laundry Received date that awaits authorization. */
+        Route::post('/spmu/laundry/{laundryJob}/accept-receipt-date', [LaundryController::class, 'acceptReceiptDate'])
+            ->name('laundry.spmu.accept-receipt-date');
     });
 
 
@@ -609,6 +617,17 @@ Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function 
             '/administration/policies/date-exceptions/{exception}',
             [PolicyController::class, 'destroyDateException']
         )->name('policies.date-exceptions.destroy');
+
+        /* Laundry Area receiving days (linen only). SPMU Head/Admin; enforced in the controller. */
+        Route::post(
+            '/administration/policies/laundry-receiving-days',
+            [PolicyController::class, 'storeLaundryReceivingDay']
+        )->name('policies.laundry-receiving-days.store');
+
+        Route::post(
+            '/administration/policies/laundry-receiving-days/{day}/revoke',
+            [PolicyController::class, 'revokeLaundryReceivingDay']
+        )->name('policies.laundry-receiving-days.revoke');
     });
 
 
@@ -648,8 +667,14 @@ Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function 
         ->middleware('workspace:SPMU,ICTU')
         ->name('reports.audit');
 
-    Route::get('/reports/notifications', [ReportController::class, 'notifications'])
+    // Controlled recovery of one eligible change; the controller and service re-check audience, role and record state.
+    Route::post('/reports/audit/{event}/revert', [ReportController::class, 'revertAuditEvent'])
+        ->whereNumber('event')
         ->middleware('workspace:SPMU,ICTU')
+        ->name('reports.audit.revert');
+
+    Route::get('/reports/notifications', [ReportController::class, 'notifications'])
+        ->middleware('workspace:ICTU')
         ->name('reports.notifications');
 
     Route::post('/reports/notifications/{delivery}/resolve', [ReportController::class, 'resolveNotificationFailure'])

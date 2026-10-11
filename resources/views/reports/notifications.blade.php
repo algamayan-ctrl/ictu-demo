@@ -2,6 +2,22 @@
 
 @section('content')
 @php
+    // The controller scopes, filters and paginates in the database; this view
+    // only renders the current page of delivery records.
+    $filters = array_merge([
+        'q' => '', 'date' => 'ALL', 'channel' => 'ALL', 'status' => 'ALL', 'event' => 'ALL',
+        'per_page' => 7, 'from_dashboard' => false,
+    ], $filters ?? []);
+    $hasActiveFilters = $filters['q'] !== '' || $filters['date'] !== 'ALL' || $filters['channel'] !== 'ALL'
+        || $filters['status'] !== 'ALL' || $filters['event'] !== 'ALL';
+    $totalRecords = $totalRecords ?? $deliveries->total();
+    $baseQuery = array_filter(['legacy' => $legacyView ? 1 : null, 'per_page' => $filters['per_page'] !== 7 ? $filters['per_page'] : null]);
+    $channelOptions = collect($channelOptions ?? []);
+    $statusOptions = collect($statusOptions ?? []);
+    $eventOptions = collect($eventOptions ?? []);
+    // Mailers that never hand a message to a mail server.
+    $nonSendingMailers = ['log', 'array'];
+
     $recipientIds = $deliveries
         ->pluck('recipient_user_id')
         ->filter()
@@ -14,14 +30,6 @@
         : \App\Models\User::query()
             ->whereIn('id', $recipientIds)
             ->pluck('full_name', 'id');
-
-    $channelOptions = $deliveries
-        ->pluck('channel')
-        ->filter()
-        ->map(fn ($channel) => strtoupper((string) $channel))
-        ->unique()
-        ->sort()
-        ->values();
 
     // A FAILED row's delivery_status never changes (kept FAILED for audit),
     // so filtering/display uses this derived category instead: it is the
@@ -65,19 +73,6 @@
         };
     };
 
-    $statusOptions = $deliveries
-        ->map($categoryFor)
-        ->unique()
-        ->sort()
-        ->values();
-
-    $eventOptions = $deliveries
-        ->map(fn ($delivery) => (string) ($delivery->event?->event_code ?? ''))
-        ->filter()
-        ->unique()
-        ->sort()
-        ->values();
-
     $eventLabel = function (?string $code): string {
         $code = trim((string) $code);
 
@@ -113,16 +108,21 @@
 <section class="content-area notification-delivery-area">
     @if($legacyView)
         <div class="filter-context-banner">
-            <span>SMS was removed as a supported notification channel. These {{ $deliveries->count() }} record{{ $deliveries->count() === 1 ? '' : 's' }} are preserved for audit only and are not part of current operational delivery.</span>
+            <span>SMS was removed as a supported notification channel. These {{ number_format($totalRecords) }} record{{ $totalRecords === 1 ? '' : 's' }} are preserved for audit only and are not part of current operational delivery.</span>
         </div>
     @elseif($statusFilter === 'failed')
         <x-filter-context-banner
             label="Failed Notifications"
-            :count="$deliveries->count()"
+            :count="$deliveries->total()"
             :clear-url="route('reports.notifications')"
         />
     @endif
 
+    <form id="delivery-filter-form" method="GET" action="{{ route('reports.notifications') }}">
+        @if($legacyView)
+            <input type="hidden" name="legacy" value="1">
+        @endif
+    </form>
     <div class="card notification-delivery-toolbar" aria-label="Notification delivery filters">
         <div class="notification-delivery-search">
             <label for="delivery-search">Search</label>
@@ -131,6 +131,10 @@
                 <input
                     id="delivery-search"
                     type="search"
+                    name="q"
+                    form="delivery-filter-form"
+                    value="{{ $filters['q'] }}"
+                    maxlength="120"
                     placeholder="Search recipient, event, channel, status..."
                     autocomplete="off"
                 >
@@ -139,51 +143,52 @@
 
         <div>
             <label for="delivery-date-filter">Date</label>
-            <select id="delivery-date-filter">
-                <option value="ALL">All dates</option>
-                <option value="TODAY">Today</option>
-                <option value="YESTERDAY">Yesterday</option>
-                <option value="7_DAYS">Last 7 days</option>
-                <option value="30_DAYS">Last 30 days</option>
+            <select id="delivery-date-filter" name="date" form="delivery-filter-form">
+                <option value="ALL" @selected($filters['date'] === 'ALL')>All dates</option>
+                <option value="TODAY" @selected($filters['date'] === 'TODAY')>Today</option>
+                <option value="YESTERDAY" @selected($filters['date'] === 'YESTERDAY')>Yesterday</option>
+                <option value="7_DAYS" @selected($filters['date'] === '7_DAYS')>Last 7 days</option>
+                <option value="30_DAYS" @selected($filters['date'] === '30_DAYS')>Last 30 days</option>
             </select>
         </div>
 
         <div>
             <label for="delivery-channel-filter">Channel</label>
-            <select id="delivery-channel-filter">
+            <select id="delivery-channel-filter" name="channel" form="delivery-filter-form">
                 <option value="ALL">All channels</option>
                 @foreach($channelOptions as $channelOption)
-                    <option value="{{ $channelOption }}">{{ $channelLabel($channelOption) }}</option>
+                    <option value="{{ $channelOption }}"{!! $filters['channel'] === $channelOption ? ' selected' : '' !!}>{{ $channelLabel($channelOption) }}</option>
                 @endforeach
             </select>
         </div>
 
         <div>
             <label for="delivery-status-filter">Status</label>
-            <select id="delivery-status-filter">
+            <select id="delivery-status-filter" name="status" form="delivery-filter-form">
                 <option value="ALL">All statuses</option>
                 @foreach($statusOptions as $statusOption)
-                    <option value="{{ $statusOption }}">{{ $categoryLabel($statusOption) }}</option>
+                    <option value="{{ $statusOption }}" @selected($filters['status'] === $statusOption)>{{ $categoryLabel($statusOption) }}</option>
                 @endforeach
             </select>
         </div>
 
         <div>
             <label for="delivery-event-filter">Event</label>
-            <select id="delivery-event-filter">
+            <select id="delivery-event-filter" name="event" form="delivery-filter-form">
                 <option value="ALL">All events</option>
                 @foreach($eventOptions as $eventOption)
-                    <option value="{{ $eventOption }}">{{ $eventLabel($eventOption) }}</option>
+                    <option value="{{ $eventOption }}" @selected($filters['event'] === strtoupper($eventOption))>{{ $eventLabel($eventOption) }}</option>
                 @endforeach
             </select>
         </div>
 
-        <button class="button secondary notification-delivery-reset" type="button" id="delivery-reset">
+        <a class="button secondary notification-delivery-reset" id="delivery-reset"
+           href="{{ route('reports.notifications', $baseQuery) }}">
             Reset
-        </button>
+        </a>
     </div>
 
-    @if($deliveries->isEmpty())
+    @if($totalRecords === 0)
         <div class="card">
             <x-empty-state
                 icon="notifications"
@@ -197,25 +202,33 @@
                 <div class="notification-delivery-table-heading">
                     <h2 id="notification-delivery-table-title">Delivery Records</h2>
                     <span class="notification-delivery-count" id="delivery-result-count" aria-live="polite">
-                        {{ $deliveries->count() }} total record{{ $deliveries->count() === 1 ? '' : 's' }}
+                        @if($hasActiveFilters)
+                            {{ number_format($deliveries->total()) }} matching of {{ number_format($totalRecords) }} total record{{ $totalRecords === 1 ? '' : 's' }}
+                        @else
+                            {{ number_format($totalRecords) }} total record{{ $totalRecords === 1 ? '' : 's' }}
+                        @endif
                     </span>
                 </div>
                 <div class="notification-delivery-pagination" aria-label="Delivery records pagination">
                     <label class="visually-hidden" for="delivery-page-size">Records per page</label>
-                    <select id="delivery-page-size" aria-label="Records per page">
-                        <option value="7" selected>7 records per page</option>
-                        <option value="14">14 records per page</option>
-                        <option value="28">28 records per page</option>
+                    <select id="delivery-page-size" name="per_page" form="delivery-filter-form" aria-label="Records per page">
+                        <option value="7" @selected($filters['per_page'] === 7)>7 records per page</option>
+                        <option value="14" @selected($filters['per_page'] === 14)>14 records per page</option>
+                        <option value="28" @selected($filters['per_page'] === 28)>28 records per page</option>
                     </select>
                     <span class="notification-delivery-page-divider" aria-hidden="true"></span>
                     <span id="delivery-page-indicator" aria-live="polite">
-                        {{ $deliveries->isEmpty() ? '0–0 of 0' : '1–'.min(7, $deliveries->count()).' of '.$deliveries->count() }}
+                        {{ $deliveries->total() === 0 ? '0–0 of 0' : $deliveries->firstItem().'–'.$deliveries->lastItem().' of '.number_format($deliveries->total()) }}
                     </span>
                     <div class="notification-delivery-page-buttons">
-                        <button class="notification-delivery-page-button icon-button" id="delivery-prev" type="button" aria-label="Previous page" disabled>
+                        <button class="notification-delivery-page-button icon-button" id="delivery-prev" type="submit"
+                                form="delivery-filter-form" name="page" value="{{ max(1, $deliveries->currentPage() - 1) }}"
+                                aria-label="Previous page" @disabled($deliveries->onFirstPage())>
                             <x-icon name="chevron-right" size="16" class="notification-delivery-chevron-left" />
                         </button>
-                        <button class="notification-delivery-page-button icon-button" id="delivery-next" type="button" aria-label="Next page" @disabled($deliveries->count() <= 7)>
+                        <button class="notification-delivery-page-button icon-button" id="delivery-next" type="submit"
+                                form="delivery-filter-form" name="page" value="{{ $deliveries->currentPage() + 1 }}"
+                                aria-label="Next page" @disabled(! $deliveries->hasMorePages())>
                             <x-icon name="chevron-right" size="16" />
                         </button>
                     </div>
@@ -248,7 +261,9 @@
 
                             $destination = trim((string) $delivery->address_snapshot);
                             $attemptedAt = $delivery->attempted_at ?? $delivery->created_at;
-                            $providerResponse = trim((string) $delivery->provider_response);
+                            // Shown sanitized; the stored record is never rewritten.
+                            $providerResponse = \App\Models\NotificationDelivery::sanitizeDiagnostic($delivery->provider_response);
+                            $providerCode = strtolower(trim((string) $delivery->provider));
 
                             $category = $categoryFor($delivery);
                             $isCurrentFailure = $category === 'CURRENT_FAILURE';
@@ -260,6 +275,7 @@
                                 $isSmsNotConfigured => 'SMS had no configured provider when this was attempted; no delivery was ever contacted.',
                                 $isHistoricalFailure => 'Resolved by ICTU. Select View Details for the original provider error and resolution note.',
                                 $statusCode === 'SENT' && $channelCode === 'SYSTEM' => 'Stored in the in-system notification record.',
+                                $statusCode === 'SENT' && $channelCode === 'EMAIL' && in_array($providerCode, $nonSendingMailers, true) => 'Written by the "'.$providerCode.'" mailer only. No email left the server.',
                                 $statusCode === 'SENT' && $channelCode === 'EMAIL' => 'Accepted by the configured mail transport.',
                                 $statusCode === 'SENT' && $channelCode === 'SMS' => 'Accepted by the configured SMS provider.',
                                 $isCurrentFailure => 'Delivery attempt failed. Select View Details to review the provider response.',
@@ -267,28 +283,26 @@
                                 default => 'No provider response recorded.',
                             };
 
-                            $searchText = strtolower(implode(' ', array_filter([
-                                $eventDisplay,
-                                $eventCode,
-                                $recipientName,
-                                $destination,
-                                $channelDisplay,
-                                $channelCode,
-                                $statusCode,
-                                $category,
-                                $providerResponse,
-                            ])));
+                            // What the recorded status proves, and what it does not.
+                            $statusMeaning = match (true) {
+                                $isSmsNotConfigured => 'No SMS provider was configured, so nothing was sent.',
+                                $statusCode === 'SENT' && $channelCode === 'SYSTEM' => 'The notification was saved to the recipient\'s in-system notification list. Nothing was transmitted outside the system.',
+                                $statusCode === 'SENT' && $channelCode === 'EMAIL' && in_array($providerCode, $nonSendingMailers, true) => 'The message was written by the "'.$providerCode.'" mailer, which does not send email. It did not reach a mail server or the recipient.',
+                                $statusCode === 'SENT' && $channelCode === 'EMAIL' => 'The mail transport accepted the message for sending. This does not confirm that it reached the recipient\'s inbox; the system receives no delivery confirmation.',
+                                $statusCode === 'FAILED' && in_array($eventCode, \App\Models\NotificationEvent::SCHEDULED_ONCE_ONLY, true) => 'The attempt ended with an error and the message was not accepted. This scheduled reminder is issued once per transaction, so the email was not attempted again. The system does not retry automatically.',
+                                $statusCode === 'FAILED' => 'The attempt ended with an error and the message was not accepted. The system does not retry automatically.',
+                                default => 'Recorded status: '.ucwords(strtolower(str_replace('_', ' ', $statusCode))).'.',
+                            };
+                            $inSystemLabel = $statusCode === 'SENT' && $channelCode === 'SYSTEM' ? 'Posted In-System' : null;
                             $deliveryDetailsId = 'delivery-details-'.$delivery->id;
                         @endphp
 
                         <tr
                             data-delivery-row
-                            data-delivery-search="{{ $searchText }}"
                             data-delivery-date="{{ optional($attemptedAt)->format('Y-m-d') }}"
                             data-delivery-channel="{{ $channelCode }}"
                             data-delivery-status="{{ $category }}"
                             data-delivery-event="{{ $eventCode }}"
-                            @if($loop->index >= 7) hidden @endif
                         >
                             <td class="notification-delivery-time">
                                 @if($attemptedAt)
@@ -326,6 +340,8 @@
                                     <x-status-badge status="HISTORICAL_FAILURE" label="Historical Delivery Failed" />
                                 @elseif($isCurrentFailure)
                                     <x-status-badge :status="$delivery->delivery_status" label="Delivery Failed" />
+                                @elseif($inSystemLabel)
+                                    <x-status-badge :status="$delivery->delivery_status" :label="$inSystemLabel" />
                                 @else
                                     <x-status-badge :status="$delivery->delivery_status" />
                                 @endif
@@ -373,7 +389,8 @@
                                                     </dd>
                                                 </div>
                                                 <div><dt>Channel</dt><dd>{{ $channelDisplay }}</dd></div>
-                                                <div><dt>Requested At</dt><dd>{{ $attemptedAt ? $attemptedAt->format('M j, Y • g:i A') : 'Not recorded' }}</dd></div>
+                                                <div><dt>Attempted At</dt><dd>{{ $attemptedAt ? $attemptedAt->format('M j, Y • g:i:s A') : 'Not recorded' }}</dd></div>
+                                                <div><dt>Delivery Record</dt><dd>#{{ $delivery->id }}</dd></div>
                                             </dl>
                                         </section>
 
@@ -389,14 +406,43 @@
                                                             <x-status-badge status="HISTORICAL_FAILURE" label="Historical Delivery Failed" />
                                                         @elseif($isCurrentFailure)
                                                             <x-status-badge :status="$delivery->delivery_status" label="Delivery Failed" />
+                                                        @elseif($inSystemLabel)
+                                                            <x-status-badge :status="$delivery->delivery_status" :label="$inSystemLabel" />
                                                         @else
                                                             <x-status-badge :status="$delivery->delivery_status" />
                                                         @endif
                                                     </dd>
                                                 </div>
-                                                <div><dt>Provider</dt><dd>{{ filled($delivery->provider) ? $delivery->provider : 'Not recorded' }}</dd></div>
+                                                <div class="notification-delivery-detail-response"><dt>Status Meaning</dt><dd>{{ $statusMeaning }}</dd></div>
+                                                <div><dt>{{ $channelCode === 'EMAIL' ? 'Mail Transport' : 'Provider' }}</dt><dd>{{ filled($delivery->provider) ? $delivery->provider : 'Not recorded' }}</dd></div>
                                                 <div><dt>Attempt</dt><dd>#{{ $delivery->attempt_no ?: 1 }}</dd></div>
-                                                <div class="notification-delivery-detail-response"><dt>Provider Response</dt><dd>{{ $providerResponse !== '' ? $providerResponse : 'No provider response recorded.' }}</dd></div>
+                                                @if($channelCode === 'SYSTEM')
+                                                    <div><dt>Opened By Recipient</dt><dd>{{ $delivery->read_at ? $delivery->read_at->format('M j, Y • g:i A') : 'Not yet opened' }}</dd></div>
+                                                @endif
+                                                @if($statusCode === 'FAILED' && ! $isSmsNotConfigured)
+                                                    @php
+                                                        // Summary and technical text both come from the sanitized diagnostic only.
+                                                        $failureSummary = \App\Models\NotificationDelivery::failureSummary($delivery->provider_response);
+                                                    @endphp
+                                                    <div class="notification-delivery-detail-response">
+                                                        <dt>Failure Reason</dt>
+                                                        <dd class="notification-delivery-failure" data-delivery-failure>
+                                                            <strong class="notification-delivery-failure-title">{{ $failureSummary['title'] }}</strong>
+                                                            <span class="notification-delivery-failure-explanation">{{ $failureSummary['explanation'] }}</span>
+                                                            @if($providerResponse !== '')
+                                                                <details class="notification-delivery-technical" data-delivery-technical>
+                                                                    <summary>
+                                                                        <span class="notification-delivery-technical-show">Show Technical Details</span>
+                                                                        <span class="notification-delivery-technical-hide">Hide Technical Details</span>
+                                                                    </summary>
+                                                                    <div class="notification-delivery-technical-text">{{ $providerResponse }}</div>
+                                                                </details>
+                                                            @endif
+                                                        </dd>
+                                                    </div>
+                                                @else
+                                                    <div class="notification-delivery-detail-response"><dt>{{ $statusCode === 'FAILED' ? 'Failure Reason' : ($channelCode === 'EMAIL' ? 'Transport Result' : 'Provider Response') }}</dt><dd>{{ $providerResponse !== '' ? $providerResponse : 'No provider response recorded.' }}</dd></div>
+                                                @endif
                                             </dl>
                                         </section>
 
@@ -406,7 +452,7 @@
                                                 <div>
                                                     <dt>Source Record</dt>
                                                     <dd>
-                                                        @if($delivery->event)
+                                                        @if($delivery->event && filled($delivery->event->source_type))
                                                             {{ class_basename((string) $delivery->event->source_type) }} #{{ $delivery->event->source_id }}
                                                         @else
                                                             Not recorded
@@ -447,7 +493,7 @@
                             </td>
                         </tr>
                     @endforeach
-                    <tr class="notification-delivery-no-results" id="delivery-no-results" hidden>
+                    <tr class="notification-delivery-no-results" id="delivery-no-results" @if($deliveries->total() > 0) hidden @endif>
                         <td colspan="{{ $deliveryColumnCount }}">No delivery attempts match the selected filters.</td>
                     </tr>
                 </tbody>
@@ -460,25 +506,35 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    /*
+     * Search, date, channel, status, event, page size and paging are applied
+     * by the server across every retained delivery record. Changing a filter
+     * reloads the list from its first page; Previous/Next submit the same
+     * form with a page number, so filters are kept while paging.
+     */
+    const form = document.getElementById('delivery-filter-form');
     const search = document.getElementById('delivery-search');
-    const dateFilter = document.getElementById('delivery-date-filter');
-    const channelFilter = document.getElementById('delivery-channel-filter');
-    const statusFilter = document.getElementById('delivery-status-filter');
-    const eventFilter = document.getElementById('delivery-event-filter');
-    const reset = document.getElementById('delivery-reset');
-    const resultCount = document.getElementById('delivery-result-count');
-    const noResults = document.getElementById('delivery-no-results');
-    const pageSizeControl = document.getElementById('delivery-page-size');
-    const pageIndicator = document.getElementById('delivery-page-indicator');
-    const prev = document.getElementById('delivery-prev');
-    const next = document.getElementById('delivery-next');
-
     const rows = Array.from(document.querySelectorAll('[data-delivery-row]'));
-    const detailRows = Array.from(document.querySelectorAll('[data-delivery-details-row]'));
-    const detailToggles = Array.from(document.querySelectorAll('[data-delivery-details-toggle]'));
-    let filteredRows = [...rows];
-    let pageSize = Number(pageSizeControl?.value || 7);
-    let currentPage = 1;
+    let submitted = false;
+
+    const submitFilters = () => {
+        if (!form || submitted) return;
+        submitted = true;
+        form.submit();
+    };
+
+    ['delivery-date-filter', 'delivery-channel-filter', 'delivery-status-filter', 'delivery-event-filter', 'delivery-page-size'].forEach((id) =>
+        document.getElementById(id)?.addEventListener('change', submitFilters)
+    );
+    search?.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        submitFilters();
+    });
+    // Fired when the field is cleared with its built-in clear button.
+    search?.addEventListener('search', submitFilters);
+    search?.addEventListener('change', submitFilters);
+    window.addEventListener('pageshow', () => { submitted = false; });
 
     const setExpanded = (row, open) => {
         const detail = row?.nextElementSibling;
@@ -488,106 +544,16 @@ document.addEventListener('DOMContentLoaded', () => {
         toggle?.setAttribute('aria-expanded', String(open));
     };
 
-    detailToggles.forEach((button) => {
-        button.addEventListener('click', () => {
-            const row = button.closest('[data-delivery-row]');
-            const detail = row?.nextElementSibling;
-            if (!row || !detail?.matches('[data-delivery-details-row]')) return;
+    rows.forEach((row) => {
+        row.querySelector('[data-delivery-details-toggle]')?.addEventListener('click', () => {
+            const detail = row.nextElementSibling;
+            if (!detail?.matches('[data-delivery-details-row]')) return;
 
             const willOpen = detail.hidden;
             rows.forEach((item) => setExpanded(item, false));
-            if (willOpen && !row.hidden) setExpanded(row, true);
+            if (willOpen) setExpanded(row, true);
         });
     });
-
-    const startOfToday = () => {
-        const value = new Date();
-        value.setHours(0, 0, 0, 0);
-        return value;
-    };
-
-    const dateMatches = (value, selected) => {
-        if (selected === 'ALL') return true;
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-        const rowDate = new Date(`${value}T00:00:00`);
-        const diffDays = Math.round((startOfToday() - rowDate) / 86400000);
-        if (selected === 'TODAY') return diffDays === 0;
-        if (selected === 'YESTERDAY') return diffDays === 1;
-        if (selected === '7_DAYS') return diffDays >= 0 && diffDays < 7;
-        if (selected === '30_DAYS') return diffDays >= 0 && diffDays < 30;
-        return true;
-    };
-
-    const renderPage = () => {
-        const total = filteredRows.length;
-        const totalPages = Math.max(1, Math.ceil(total / pageSize));
-        currentPage = Math.min(Math.max(currentPage, 1), totalPages);
-        const start = total ? (currentPage - 1) * pageSize : 0;
-        const end = Math.min(start + pageSize, total);
-
-        rows.forEach((row) => {
-            row.hidden = true;
-            setExpanded(row, false);
-        });
-        filteredRows.slice(start, end).forEach((row) => { row.hidden = false; });
-
-        if (resultCount) resultCount.textContent = `${total} total record${total === 1 ? '' : 's'}`;
-        if (pageIndicator) pageIndicator.textContent = total ? `${start + 1}–${end} of ${total}` : '0–0 of 0';
-        if (prev) prev.disabled = currentPage <= 1 || !total;
-        if (next) next.disabled = currentPage >= totalPages || !total;
-        if (noResults) noResults.hidden = total !== 0 || rows.length === 0;
-    };
-
-    const applyFilters = () => {
-        const query = (search?.value || '').trim().toLowerCase();
-        const selectedDate = dateFilter?.value || 'ALL';
-        const selectedChannel = channelFilter?.value || 'ALL';
-        const selectedStatus = statusFilter?.value || 'ALL';
-        const selectedEvent = eventFilter?.value || 'ALL';
-
-        filteredRows = rows.filter((row) =>
-            (!query || (row.dataset.deliverySearch || '').includes(query)) &&
-            (selectedChannel === 'ALL' || row.dataset.deliveryChannel === selectedChannel) &&
-            (selectedStatus === 'ALL' || row.dataset.deliveryStatus === selectedStatus) &&
-            (selectedEvent === 'ALL' || row.dataset.deliveryEvent === selectedEvent) &&
-            dateMatches(row.dataset.deliveryDate || '', selectedDate)
-        );
-        currentPage = 1;
-        renderPage();
-    };
-
-    [search, dateFilter, channelFilter, statusFilter, eventFilter].forEach((control) => {
-        control?.addEventListener(control === search ? 'input' : 'change', applyFilters);
-    });
-
-    reset?.addEventListener('click', () => {
-        if (search) search.value = '';
-        if (dateFilter) dateFilter.value = 'ALL';
-        if (channelFilter) channelFilter.value = 'ALL';
-        if (statusFilter) statusFilter.value = 'ALL';
-        if (eventFilter) eventFilter.value = 'ALL';
-        applyFilters();
-        search?.focus();
-    });
-
-    pageSizeControl?.addEventListener('change', () => {
-        pageSize = Math.max(1, Number(pageSizeControl.value || 7));
-        currentPage = 1;
-        renderPage();
-    });
-    prev?.addEventListener('click', () => {
-        if (currentPage <= 1) return;
-        currentPage -= 1;
-        renderPage();
-    });
-    next?.addEventListener('click', () => {
-        const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
-        if (currentPage >= totalPages) return;
-        currentPage += 1;
-        renderPage();
-    });
-
-    applyFilters();
 });
 </script>
 

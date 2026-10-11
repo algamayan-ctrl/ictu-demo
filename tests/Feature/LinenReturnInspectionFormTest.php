@@ -578,6 +578,15 @@ class LinenReturnInspectionFormTest extends TestCase
 
     public function test_actual_linen_return_date_can_be_after_due_date_once_that_date_has_arrived(): void
     {
+        /*
+         * setUp() pins "now" to a Monday, which would make the one late day
+         * below a Saturday - a closed day that, by policy, is not a
+         * chargeable late day (covered in LateReturnAccountabilityTest).
+         * Move to a Thursday so the custody is due on Monday and the linen
+         * is received on Tuesday: one genuinely open late day.
+         */
+        $this->travelTo(Carbon::now()->next(Carbon::THURSDAY)->setTime(10, 0));
+
         ['custody' => $custody, 'lines' => $lines, 'job' => $job] = $this->outstandingCustody(linen: true);
 
         // Simulate a form that reaches SPMU two days after the actual

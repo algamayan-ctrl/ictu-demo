@@ -13,24 +13,29 @@ use App\Models\CustodyTransaction;
 use App\Models\Incident;
 use App\Models\InventoryItem;
 use App\Models\NotificationDelivery;
+use App\Models\NotificationEvent;
 use App\Models\OverdueCase;
 use App\Models\Penalty;
 use App\Models\Sanction;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Reports\ReportCatalogue;
 use App\Reports\ReportExportOptions;
 use App\Reports\ReportFilters;
+use App\Services\AuditRecoveryService;
 use App\Services\AuditService;
 use App\Services\InventoryService;
 use App\Services\ReportService;
 use App\Services\ReportingPeriodService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -612,7 +617,7 @@ class ReportController extends Controller
         );
     }
 
-    public function audit(Request $request): View
+    public function audit(Request $request, AuditRecoveryService $recovery): View
     {
         $classification = $request->user()?->access_classification;
 
@@ -638,56 +643,69 @@ class ReportController extends Controller
             ? 'technical'
             : 'operational';
 
-        $technicalCategories = [
-            'ACCOUNT',
-            'AUTH_VERIFICATION',
-            'SETTINGS',
-            'SECURITY_SYSTEM',
-            'OTHER_TECHNICAL',
-        ];
-
-        $operationalCategories = [
-            'BORROWING',
-            'APPROVAL',
-            'RELEASE_RETURN',
-            'LAUNDRY_GATEPASS',
-            'ACCOUNTABILITY',
-            'INVENTORY',
-            'CORRECTIONS_REOPENINGS',
-            'OTHER_OPERATIONAL',
-        ];
-
-        $allowedCategories = $auditMode === 'technical'
-            ? $technicalCategories
-            : $operationalCategories;
+        $allowedCategories = $this->auditAudienceCategories($auditMode);
 
         /*
-         * Filter on the server before the collection is sent to Blade.
-         * A manually supplied URL/category value therefore cannot expose
-         * operational events to ICTU or technical events to SPMU.
+         * Filter on the server, in the database. The audience boundary is
+         * always applied first, so a manually supplied URL/category/record
+         * value cannot expose operational events to ICTU or technical events
+         * to SPMU. Every retained event stays reachable through pagination;
+         * the audit table is never loaded into memory.
          */
-        $events = AuditEvent::query()
-            ->with('actor')
-            ->latest('occurred_at')
-            ->get()
-            ->map(function (AuditEvent $event): AuditEvent {
-                $event->setAttribute(
-                    'audit_category',
-                    $this->auditEventCategory($event)
-                );
+        $categoryPairs = $this->auditCategoryPairs();
 
-                return $event;
-            })
-            ->filter(
-                fn (AuditEvent $event): bool =>
-                    in_array(
-                        (string) $event->audit_category,
-                        $allowedCategories,
-                        true
-                    )
-            )
-            ->take(500)
-            ->values();
+        $filters = $this->auditFilters($request, $allowedCategories);
+
+        $audienceQuery = fn (): Builder => $this->scopeAuditCategories(
+            AuditEvent::query(),
+            $allowedCategories,
+            $categoryPairs
+        );
+
+        $query = $this->scopeAuditCategories(
+            AuditEvent::query(),
+            $filters['category'] === 'ALL' ? $allowedCategories : [$filters['category']],
+            $categoryPairs
+        );
+
+        $this->applyAuditFilters($query, $filters);
+
+        /*
+         * A single record's history reads oldest-first so repeated edits can
+         * be followed in order; the general trail stays newest-first.
+         */
+        $direction = $filters['record_type'] !== null ? 'asc' : 'desc';
+
+        $events = $query
+            ->with('actor')
+            ->orderBy('occurred_at', $direction)
+            ->orderBy('id', $direction)
+            ->paginate($filters['per_page'])
+            ->withQueryString();
+
+        $events->getCollection()->each(function (AuditEvent $event): void {
+            $event->setAttribute(
+                'audit_category',
+                $this->auditEventCategory($event)
+            );
+        });
+
+        // Which events on this page the viewer may revert, and why not when blocked.
+        $recovery->annotate($events->getCollection(), $request->user());
+
+        $actorIds = $audienceQuery()
+            ->whereNotNull('actor_user_id')
+            ->distinct()
+            ->pluck('actor_user_id');
+
+        $actorOptions = User::query()
+            ->whereIn('id', $actorIds)
+            ->orderBy('full_name')
+            ->pluck('full_name', 'id');
+
+        $hasSystemActor = $audienceQuery()
+            ->whereNull('actor_user_id')
+            ->exists();
 
         $categoryOptions = $auditMode === 'technical'
             ? [
@@ -705,6 +723,7 @@ class ReportController extends Controller
                 'ACCOUNTABILITY' => 'Accountability',
                 'INVENTORY' => 'Inventory',
                 'CORRECTIONS_REOPENINGS' => 'Corrections / Reopenings',
+                'OPERATIONAL_SETTINGS' => 'Operational Settings',
                 'OTHER_OPERATIONAL' => 'Other Operational',
             ];
 
@@ -712,7 +731,412 @@ class ReportController extends Controller
             'events' => $events,
             'auditMode' => $auditMode,
             'categoryOptions' => $categoryOptions,
+            'filters' => $filters,
+            'actorOptions' => $actorOptions,
+            'hasSystemActor' => $hasSystemActor,
+            'recordNames' => $this->auditRecordNames($events->getCollection()),
         ]);
+    }
+
+    /**
+     * Revert one eligible change from the Audit Trail.
+     *
+     * The event must lie inside the acting user's own audit audience, so a
+     * guessed event number never reaches the other trail. The recovery
+     * service then re-checks the module role, the record's current state and
+     * conflicts while the record is locked.
+     */
+    public function revertAuditEvent(
+        Request $request,
+        int $event,
+        AuditRecoveryService $recovery
+    ): RedirectResponse {
+        $classification = $request->user()?->access_classification;
+
+        abort_unless(
+            in_array($classification, [
+                AccessClassification::SpmuHead,
+                AccessClassification::IctuMaintainer,
+            ], true),
+            403
+        );
+
+        $auditEvent = $this->scopeAuditCategories(
+            AuditEvent::query(),
+            $this->auditAudienceCategories(
+                $classification === AccessClassification::IctuMaintainer
+                    ? 'technical'
+                    : 'operational'
+            ),
+            $this->auditCategoryPairs()
+        )
+            ->whereKey($event)
+            ->firstOrFail();
+
+        $data = $request->validate([
+            'revert_reason' => ['required', 'string', 'min:10', 'max:1000'],
+            'confirm_revert' => ['accepted'],
+        ], [
+            'revert_reason.required' => 'Enter the reason for reverting this change.',
+            'revert_reason.min' => 'Enter a reason of at least 10 characters for reverting this change.',
+            'confirm_revert.accepted' => 'Confirm the revert before submitting.',
+        ]);
+
+        $recovery->revert(
+            $auditEvent,
+            $request->user(),
+            trim($data['revert_reason'])
+        );
+
+        return back()->with(
+            'status',
+            'The change was reverted. A new audit event records the recovery and refers to the original event, which is unchanged.'
+        );
+    }
+
+    /**
+     * Audit categories one audience may see.
+     *
+     * @return list<string>
+     */
+    private function auditAudienceCategories(string $auditMode): array
+    {
+        return $auditMode === 'technical'
+            ? [
+                'ACCOUNT',
+                'AUTH_VERIFICATION',
+                'SETTINGS',
+                'SECURITY_SYSTEM',
+                'OTHER_TECHNICAL',
+            ]
+            : [
+                'BORROWING',
+                'APPROVAL',
+                'RELEASE_RETURN',
+                'LAUNDRY_GATEPASS',
+                'ACCOUNTABILITY',
+                'INVENTORY',
+                'CORRECTIONS_REOPENINGS',
+                'OPERATIONAL_SETTINGS',
+                'OTHER_OPERATIONAL',
+            ];
+    }
+
+    /**
+     * Settings owned by the SPMU Head: every system setting that is not one
+     * of ICTU's technical settings. Ownership is the same rule the
+     * configuration screen enforces, read at display time; no audit event is
+     * rewritten to move it between trails.
+     *
+     * @return list<int>
+     */
+    private function operationalSettingIds(): array
+    {
+        return $this->operationalSettingIds ??= SystemSetting::query()
+            ->whereNotIn('setting_key', SettingController::ICTU_SETTING_KEYS)
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+    }
+
+    /**
+     * Split setting events by the office responsible for the setting.
+     * A setting event whose setting can no longer be identified stays
+     * technical, so nothing new is shown to the SPMU Head by default.
+     */
+    private function whereSettingOwnership(Builder $query, bool $operational): void
+    {
+        $ids = $this->operationalSettingIds();
+
+        if ($operational) {
+            $query
+                ->where('record_type', SystemSetting::class)
+                ->whereIn('record_id', $ids);
+
+            return;
+        }
+
+        $query->where(function (Builder $technical) use ($ids): void {
+            $technical
+                ->where('record_type', '!=', SystemSetting::class)
+                ->orWhereNull('record_id')
+                ->orWhereNotIn('record_id', $ids);
+        });
+    }
+
+    /** Record types whose current, human-readable name can be shown beside the record ID. */
+    /** @var list<int>|null */
+    private ?array $operationalSettingIds = null;
+
+    private const AUDIT_RECORD_NAME_COLUMNS = [
+        InventoryItem::class => 'unique_description',
+        BorrowingRequest::class => 'request_no',
+        CustodyTransaction::class => 'custody_no',
+        User::class => 'full_name',
+        SystemSetting::class => 'setting_key',
+        Incident::class => 'incident_no',
+        BillingStatement::class => 'billing_no',
+        AcademicPeriod::class => 'term_name',
+    ];
+
+    /**
+     * Sanitize the Audit Trail query string. Unknown values fall back to the
+     * unfiltered default instead of failing the page.
+     *
+     * @param  list<string>  $allowedCategories
+     * @return array{q: string, date: string, category: string, actor: string, record_type: ?string, record_id: ?int, per_page: int}
+     */
+    private function auditFilters(Request $request, array $allowedCategories): array
+    {
+        $query = mb_substr(trim((string) $request->query('q', '')), 0, 120);
+
+        $date = strtoupper((string) $request->query('date', 'ALL'));
+        if (! in_array($date, ['ALL', 'TODAY', 'YESTERDAY', '7_DAYS', '30_DAYS'], true)) {
+            $date = 'ALL';
+        }
+
+        $category = strtoupper((string) $request->query('category', 'ALL'));
+        if (! in_array($category, $allowedCategories, true)) {
+            $category = 'ALL';
+        }
+
+        $actor = strtoupper((string) $request->query('actor', 'ALL'));
+        if ($actor !== 'SYSTEM' && ! ctype_digit($actor)) {
+            $actor = 'ALL';
+        }
+
+        $recordType = (string) $request->query('record_type', '');
+        $recordId = (string) $request->query('record_id', '');
+        $hasRecord = preg_match('/^[A-Za-z][A-Za-z0-9_]{0,79}$/', $recordType) === 1
+            && ctype_digit($recordId);
+
+        $perPage = (int) $request->query('per_page', 7);
+        if (! in_array($perPage, [7, 14, 28], true)) {
+            $perPage = 7;
+        }
+
+        return [
+            'q' => $query,
+            'date' => $date,
+            'category' => $category,
+            'actor' => $actor,
+            'record_type' => $hasRecord ? $recordType : null,
+            'record_id' => $hasRecord ? (int) $recordId : null,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * @param  array{q: string, date: string, category: string, actor: string, record_type: ?string, record_id: ?int, per_page: int}  $filters
+     */
+    private function applyAuditFilters(Builder $query, array $filters): void
+    {
+        if ($filters['record_type'] !== null) {
+            $recordType = $filters['record_type'];
+
+            $query
+                ->where('record_id', $filters['record_id'])
+                ->where(function (Builder $type) use ($recordType): void {
+                    $type
+                        ->where('record_type', 'App\\Models\\'.$recordType)
+                        ->orWhere('record_type', $recordType);
+                });
+        }
+
+        if ($filters['actor'] === 'SYSTEM') {
+            $query->whereNull('actor_user_id');
+        } elseif ($filters['actor'] !== 'ALL') {
+            $query->where('actor_user_id', (int) $filters['actor']);
+        }
+
+        $today = now(config('app.timezone', 'Asia/Manila'))->startOfDay();
+
+        match ($filters['date']) {
+            'TODAY' => $query->whereBetween('occurred_at', [$today, $today->copy()->endOfDay()]),
+            'YESTERDAY' => $query->whereBetween('occurred_at', [
+                $today->copy()->subDay(),
+                $today->copy()->subDay()->endOfDay(),
+            ]),
+            '7_DAYS' => $query->where('occurred_at', '>=', $today->copy()->subDays(6)),
+            '30_DAYS' => $query->where('occurred_at', '>=', $today->copy()->subDays(29)),
+            default => null,
+        };
+
+        if ($filters['q'] === '') {
+            return;
+        }
+
+        $term = mb_strtolower($filters['q']);
+        $escape = static fn (string $value): string => str_replace(
+            ['!', '%', '_'],
+            ['!!', '!%', '!_'],
+            $value
+        );
+
+        $like = '%'.$escape($term).'%';
+        // "Inventory Item Updated" matches INVENTORY_ITEM_UPDATED; "inventory item" matches InventoryItem.
+        $codeLike = '%'.$escape(str_replace(' ', '_', $term)).'%';
+        $typeLike = '%'.$escape(str_replace([' ', '#'], '', $term)).'%';
+        $numeric = ltrim($term, '#');
+        $storesActorSnapshot = Schema::hasColumn('audit_events', 'actor_name');
+
+        $query->where(function (Builder $search) use ($like, $codeLike, $typeLike, $numeric, $storesActorSnapshot): void {
+            $search
+                ->whereRaw("LOWER(reason) LIKE ? ESCAPE '!'", [$like])
+                ->orWhereRaw("LOWER(action_code) LIKE ? ESCAPE '!'", [$codeLike])
+                ->orWhereRaw("LOWER(record_type) LIKE ? ESCAPE '!'", [$typeLike])
+                ->orWhereRaw("LOWER(before_json) LIKE ? ESCAPE '!'", [$like])
+                ->orWhereRaw("LOWER(after_json) LIKE ? ESCAPE '!'", [$like])
+                ->orWhereHas('actor', function (Builder $actor) use ($like): void {
+                    $actor->whereRaw("LOWER(full_name) LIKE ? ESCAPE '!'", [$like]);
+                });
+
+            if ($storesActorSnapshot) {
+                $search->orWhereRaw("LOWER(actor_name) LIKE ? ESCAPE '!'", [$like]);
+            }
+
+            if ($numeric !== '' && ctype_digit($numeric)) {
+                $search->orWhere('record_id', (int) $numeric);
+            }
+        });
+    }
+
+    /**
+     * Classify every distinct (action, record type) pair that exists in the
+     * audit table, using the same rules as auditEventCategory(). Pairs the
+     * rules do not recognise are returned under UNKNOWN; their audience then
+     * depends on the actor, exactly as before.
+     *
+     * @return array<string, list<array{0: string, 1: string}>>
+     */
+    private function auditCategoryPairs(): array
+    {
+        $pairs = [];
+
+        DB::table('audit_events')
+            ->select('action_code', 'record_type')
+            ->distinct()
+            ->get()
+            ->each(function (object $row) use (&$pairs): void {
+                $category = $this->auditCategoryForPair(
+                    (string) $row->action_code,
+                    (string) $row->record_type
+                ) ?? 'UNKNOWN';
+
+                $pairs[$category][] = [(string) $row->action_code, (string) $row->record_type];
+            });
+
+        return $pairs;
+    }
+
+    /**
+     * Restrict a query to the given audit categories.
+     *
+     * @param  list<string>  $categories
+     * @param  array<string, list<array{0: string, 1: string}>>  $categoryPairs
+     */
+    private function scopeAuditCategories(Builder $query, array $categories, array $categoryPairs): Builder
+    {
+        return $query->where(function (Builder $scope) use ($categories, $categoryPairs): void {
+            // Deny by default: with no matching pair, nothing is returned.
+            $scope->whereRaw('1 = 0');
+
+            foreach ($categories as $category) {
+                if (in_array($category, ['OTHER_TECHNICAL', 'OTHER_OPERATIONAL'], true)) {
+                    $unknownPairs = $categoryPairs['UNKNOWN'] ?? [];
+
+                    if ($unknownPairs === []) {
+                        continue;
+                    }
+
+                    $scope->orWhere(function (Builder $other) use ($category, $unknownPairs): void {
+                        $this->whereAuditPairs($other, $unknownPairs);
+
+                        $performedByIctu = function (Builder $actor): void {
+                            $actor->where(
+                                'access_classification',
+                                AccessClassification::IctuMaintainer->value
+                            );
+                        };
+
+                        if ($category === 'OTHER_TECHNICAL') {
+                            $other->whereHas('actor', $performedByIctu);
+                        } else {
+                            $other->whereDoesntHave('actor', $performedByIctu);
+                        }
+                    });
+
+                    continue;
+                }
+
+                // Setting events are one family, divided by who owns the setting.
+                $isSettingsFamily = in_array($category, ['SETTINGS', 'OPERATIONAL_SETTINGS'], true);
+
+                $pairs = $categoryPairs[$isSettingsFamily ? 'SETTINGS' : $category] ?? [];
+
+                if ($pairs !== []) {
+                    $scope->orWhere(function (Builder $known) use ($pairs, $category, $isSettingsFamily): void {
+                        $this->whereAuditPairs($known, $pairs);
+
+                        if ($isSettingsFamily) {
+                            $this->whereSettingOwnership($known, $category === 'OPERATIONAL_SETTINGS');
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    /** @param  list<array{0: string, 1: string}>  $pairs */
+    private function whereAuditPairs(Builder $query, array $pairs): void
+    {
+        $recordTypesByAction = [];
+
+        foreach ($pairs as [$actionCode, $recordType]) {
+            $recordTypesByAction[$actionCode][] = $recordType;
+        }
+
+        $query->where(function (Builder $group) use ($recordTypesByAction): void {
+            foreach ($recordTypesByAction as $actionCode => $recordTypes) {
+                $group->orWhere(function (Builder $pair) use ($actionCode, $recordTypes): void {
+                    $pair
+                        ->where('action_code', (string) $actionCode)
+                        ->whereIn('record_type', $recordTypes);
+                });
+            }
+        });
+    }
+
+    /**
+     * Current names of the records on one page of events, in one query per
+     * record type. A missing entry for a listed type means the record no
+     * longer exists.
+     *
+     * @param  \Illuminate\Support\Collection<int, AuditEvent>  $events
+     * @return array<string, array<int, string>>
+     */
+    private function auditRecordNames(\Illuminate\Support\Collection $events): array
+    {
+        $names = [];
+
+        foreach (self::AUDIT_RECORD_NAME_COLUMNS as $recordType => $column) {
+            $ids = $events
+                ->where('record_type', $recordType)
+                ->pluck('record_id')
+                ->filter()
+                ->unique()
+                ->values();
+
+            $names[$recordType] = $ids->isEmpty()
+                ? []
+                : $recordType::query()
+                    ->whereIn('id', $ids)
+                    ->pluck($column, 'id')
+                    ->map(fn ($name) => (string) $name)
+                    ->all();
+        }
+
+        return $names;
     }
 
     /**
@@ -724,14 +1148,52 @@ class ReportController extends Controller
      */
     private function auditEventCategory(AuditEvent $event): string
     {
+        $category = $this->auditCategoryForPair(
+            (string) $event->action_code,
+            (string) $event->record_type
+        );
+
+        if (
+            $category === 'SETTINGS'
+            && $event->record_type === SystemSetting::class
+            && in_array((int) $event->record_id, $this->operationalSettingIds(), true)
+        ) {
+            return 'OPERATIONAL_SETTINGS';
+        }
+
+        if ($category !== null) {
+            return $category;
+        }
+
+        /*
+         * An otherwise-unknown event explicitly performed by ICTU is kept
+         * available to ICTU as Other Technical. Unknown system/SPMU events
+         * remain operational instead of leaking into the ICTU Audit Trail.
+         */
+        if (
+            $event->actor?->access_classification
+                === AccessClassification::IctuMaintainer
+        ) {
+            return 'OTHER_TECHNICAL';
+        }
+
+        return 'OTHER_OPERATIONAL';
+    }
+
+    /**
+     * Category decided by the action code and record type alone, or null
+     * when the rules do not recognise the pair.
+     */
+    private function auditCategoryForPair(string $actionCode, string $recordType): ?string
+    {
         $action = strtoupper(str_replace(
             ['.', '-', ' '],
             '_',
-            (string) $event->action_code
+            $actionCode
         ));
 
         $record = strtoupper(
-            class_basename((string) $event->record_type)
+            class_basename($recordType)
         );
 
         $context = $action.' '.$record;
@@ -891,28 +1353,14 @@ class ReportController extends Controller
             return 'BORROWING';
         }
 
-        /*
-         * An otherwise-unknown event explicitly performed by ICTU is kept
-         * available to ICTU as Other Technical. Unknown system/SPMU events
-         * remain operational instead of leaking into the ICTU Audit Trail.
-         */
-        if (
-            $event->actor?->access_classification
-                === AccessClassification::IctuMaintainer
-        ) {
-            return 'OTHER_TECHNICAL';
-        }
-
-        return 'OTHER_OPERATIONAL';
+        return null;
     }
 
     public function notifications(Request $request): View
     {
+        // Delivery diagnostics are ICTU technical records only.
         abort_unless(
-            in_array($request->user()?->access_classification, [
-                AccessClassification::SpmuHead,
-                AccessClassification::IctuMaintainer,
-            ], true),
+            $request->user()?->access_classification === AccessClassification::IctuMaintainer,
             403
         );
 
@@ -922,32 +1370,228 @@ class ReportController extends Controller
         // preserve audit access to them (see the `legacy` param below).
         $legacyView = $request->boolean('legacy');
 
-        $query = NotificationDelivery::query()->with(['event', 'resolvedBy'])->latest('created_at');
+        /*
+         * The view's scope (current SYSTEM/EMAIL records, or legacy SMS) is
+         * always applied first; every filter then runs in the database, so
+         * all retained records stay reachable through pagination and the
+         * table is never loaded into memory.
+         */
+        $scope = fn (): Builder => NotificationDelivery::query()
+            ->when(
+                $legacyView,
+                fn (Builder $query) => $query->where('channel', 'SMS'),
+                fn (Builder $query) => $query->whereIn('channel', NotificationDelivery::OPERATIONAL_CHANNELS)
+            );
 
-        if ($legacyView) {
-            $query->where('channel', 'SMS');
-        } else {
-            $query->whereIn('channel', NotificationDelivery::OPERATIONAL_CHANNELS);
-        }
+        $channelOptions = $scope()
+            ->distinct()
+            ->orderBy('channel')
+            ->pluck('channel')
+            ->map(fn ($channel): string => strtoupper((string) $channel))
+            ->unique()
+            ->values()
+            ->all();
 
-        // Uses the same actionableFailures() scope as the dashboard's Failed
-        // Notifications KPI, and is applied before the 500-row cap so the
-        // drilldown lists the most recent actionable failures rather than
-        // whatever happens to fall in the most recent 500 deliveries of any
-        // status.
-        $statusFilter = null;
+        $eventOptions = NotificationEvent::query()
+            ->whereIn('id', $scope()->select('notification_event_id'))
+            ->distinct()
+            ->orderBy('event_code')
+            ->pluck('event_code')
+            ->filter()
+            ->values()
+            ->all();
 
-        if (! $legacyView && (string) $request->query('status', '') === 'failed') {
-            $statusFilter = 'failed';
-            $query->actionableFailures();
-        }
+        $statusOptions = $this->deliveryStatusOptions($scope(), $legacyView);
+
+        $filters = $this->deliveryFilters($request, $legacyView, $channelOptions, $statusOptions, $eventOptions);
+
+        $query = $scope()->with(['event', 'resolvedBy']);
+
+        $this->applyDeliveryFilters($query, $filters);
+
+        // "status=failed" is the dashboard's Failed Notifications drilldown:
+        // the same actionableFailures() scope as that KPI.
+        $statusFilter = ! $legacyView && $filters['status'] === 'CURRENT_FAILURE' && $filters['from_dashboard']
+            ? 'failed'
+            : null;
 
         return view('reports.notifications', [
-            'deliveries' => $query->limit(500)->get(),
+            'deliveries' => $query
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->paginate($filters['per_page'])
+                ->withQueryString(),
             'statusFilter' => $statusFilter,
-            'canResolveFailures' => ! $legacyView && $request->user()?->access_classification === AccessClassification::IctuMaintainer,
+            'canResolveFailures' => ! $legacyView,
             'legacyView' => $legacyView,
+            'filters' => $filters,
+            'channelOptions' => $channelOptions,
+            'statusOptions' => $statusOptions,
+            'eventOptions' => $eventOptions,
+            'totalRecords' => $scope()->count(),
         ]);
+    }
+
+    /**
+     * Status categories that exist in the current scope. A failure keeps
+     * delivery_status = FAILED for audit, so "current" and "historical"
+     * failures are told apart by resolved_at, exactly as the table shows them.
+     *
+     * @return list<string>
+     */
+    private function deliveryStatusOptions(Builder $scope, bool $legacyView): array
+    {
+        $legacySmsStatuses = ['FAILED', 'NOT_CONFIGURED', 'SKIPPED'];
+        $options = [];
+
+        (clone $scope)
+            ->selectRaw('delivery_status, CASE WHEN resolved_at IS NULL THEN 0 ELSE 1 END AS is_resolved')
+            ->distinct()
+            ->toBase()
+            ->get()
+            ->each(function (object $row) use (&$options, $legacyView, $legacySmsStatuses): void {
+                $status = strtoupper((string) $row->delivery_status);
+
+                $options[] = match (true) {
+                    $legacyView && in_array($status, $legacySmsStatuses, true) => 'SMS_NOT_CONFIGURED',
+                    $status === 'FAILED' && (int) $row->is_resolved === 1 => 'HISTORICAL_FAILURE',
+                    $status === 'FAILED' => 'CURRENT_FAILURE',
+                    default => $status,
+                };
+            });
+
+        $options = array_values(array_unique($options));
+        sort($options);
+
+        return $options;
+    }
+
+    /**
+     * @param  list<string>  $channelOptions
+     * @param  list<string>  $statusOptions
+     * @param  list<string>  $eventOptions
+     * @return array{q: string, date: string, channel: string, status: string, event: string, per_page: int, from_dashboard: bool}
+     */
+    private function deliveryFilters(
+        Request $request,
+        bool $legacyView,
+        array $channelOptions,
+        array $statusOptions,
+        array $eventOptions
+    ): array {
+        $date = strtoupper((string) $request->query('date', 'ALL'));
+        if (! in_array($date, ['ALL', 'TODAY', 'YESTERDAY', '7_DAYS', '30_DAYS'], true)) {
+            $date = 'ALL';
+        }
+
+        $channel = strtoupper((string) $request->query('channel', 'ALL'));
+        if (! in_array($channel, $channelOptions, true)) {
+            $channel = 'ALL';
+        }
+
+        $requestedStatus = (string) $request->query('status', 'ALL');
+        $fromDashboard = ! $legacyView && $requestedStatus === 'failed';
+        $status = $fromDashboard ? 'CURRENT_FAILURE' : strtoupper($requestedStatus);
+        if (! $fromDashboard && ! in_array($status, $statusOptions, true)) {
+            $status = 'ALL';
+        }
+
+        $event = strtoupper((string) $request->query('event', 'ALL'));
+        if (! in_array($event, array_map('strtoupper', $eventOptions), true)) {
+            $event = 'ALL';
+        }
+
+        $perPage = (int) $request->query('per_page', 7);
+        if (! in_array($perPage, [7, 14, 28], true)) {
+            $perPage = 7;
+        }
+
+        return [
+            'q' => mb_substr(trim((string) $request->query('q', '')), 0, 120),
+            'date' => $date,
+            'channel' => $channel,
+            'status' => $status,
+            'event' => $event,
+            'per_page' => $perPage,
+            'from_dashboard' => $fromDashboard,
+        ];
+    }
+
+    private function applyDeliveryFilters(Builder $query, array $filters): void
+    {
+        if ($filters['channel'] !== 'ALL') {
+            $query->where('channel', $filters['channel']);
+        }
+
+        match ($filters['status']) {
+            'ALL' => null,
+            'CURRENT_FAILURE' => $query->actionableFailures(),
+            'HISTORICAL_FAILURE' => $query->where('delivery_status', 'FAILED')->whereNotNull('resolved_at'),
+            'SMS_NOT_CONFIGURED' => $query->whereIn('delivery_status', ['FAILED', 'NOT_CONFIGURED', 'SKIPPED']),
+            default => $query->where('delivery_status', $filters['status']),
+        };
+
+        if ($filters['event'] !== 'ALL') {
+            $query->whereHas('event', function (Builder $event) use ($filters): void {
+                $event->where('event_code', $filters['event']);
+            });
+        }
+
+        // A delivery is dated by its attempt; rows without one fall back to when they were recorded.
+        $today = now(config('app.timezone', 'Asia/Manila'))->startOfDay();
+        $range = match ($filters['date']) {
+            'TODAY' => [$today, $today->copy()->endOfDay()],
+            'YESTERDAY' => [$today->copy()->subDay(), $today->copy()->subDay()->endOfDay()],
+            '7_DAYS' => [$today->copy()->subDays(6), $today->copy()->endOfDay()],
+            '30_DAYS' => [$today->copy()->subDays(29), $today->copy()->endOfDay()],
+            default => null,
+        };
+
+        if ($range !== null) {
+            $query->where(function (Builder $dated) use ($range): void {
+                $dated
+                    ->whereBetween('attempted_at', $range)
+                    ->orWhere(function (Builder $unattempted) use ($range): void {
+                        $unattempted->whereNull('attempted_at')->whereBetween('created_at', $range);
+                    });
+            });
+        }
+
+        if ($filters['q'] === '') {
+            return;
+        }
+
+        $term = mb_strtolower($filters['q']);
+        $escape = static fn (string $value): string => str_replace(
+            ['!', '%', '_'],
+            ['!!', '!%', '!_'],
+            $value
+        );
+
+        $like = '%'.$escape($term).'%';
+        // "Pickup Scheduled" matches PICKUP_SCHEDULED.
+        $codeLike = '%'.$escape(str_replace(' ', '_', $term)).'%';
+        // The table labels the SYSTEM channel "In-system".
+        $matchesInSystem = str_contains('in-system', $term) || str_contains('in system', $term);
+
+        $query->where(function (Builder $search) use ($like, $codeLike, $matchesInSystem): void {
+            $search
+                ->whereRaw("LOWER(address_snapshot) LIKE ? ESCAPE '!'", [$like])
+                ->orWhereRaw("LOWER(channel) LIKE ? ESCAPE '!'", [$like])
+                ->orWhereRaw("LOWER(delivery_status) LIKE ? ESCAPE '!'", [$codeLike])
+                ->orWhereRaw("LOWER(provider) LIKE ? ESCAPE '!'", [$like])
+                ->orWhereRaw("LOWER(provider_response) LIKE ? ESCAPE '!'", [$like])
+                ->orWhereHas('event', function (Builder $event) use ($codeLike): void {
+                    $event->whereRaw("LOWER(event_code) LIKE ? ESCAPE '!'", [$codeLike]);
+                })
+                ->orWhereHas('recipient', function (Builder $recipient) use ($like): void {
+                    $recipient->whereRaw("LOWER(full_name) LIKE ? ESCAPE '!'", [$like]);
+                });
+
+            if ($matchesInSystem) {
+                $search->orWhere('channel', 'SYSTEM');
+            }
+        });
     }
 
     /**

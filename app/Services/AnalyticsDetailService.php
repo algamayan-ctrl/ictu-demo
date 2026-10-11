@@ -770,7 +770,7 @@ class AnalyticsDetailService
  $due = $this->returnMetrics->expectedReturnDate($custody);
  $returnedAt = $this->returnMetrics->completionMoment($custody);
  $days = $due && $returnedAt
- ? $this->analytics->lateDaysBetween($due, $returnedAt)
+ ? $this->analytics->lateDaysForReturn($custody, $returnedAt)
  : null;
 
  return [
@@ -1419,7 +1419,7 @@ class AnalyticsDetailService
  $due = $this->returnMetrics->expectedReturnDate($custody);
  $late = $row['state'] === ReturnMetricsService::RETURNED_LATE;
  $days = $late && $due
- ? $this->analytics->lateDaysBetween($due, $row['returned_at'])
+ ? $this->analytics->lateDaysForReturn($custody, $row['returned_at'])
  : null;
 
  return [

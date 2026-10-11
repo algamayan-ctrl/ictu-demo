@@ -127,11 +127,7 @@ class PolicyService
             'actual_return_date' => $actualDate,
             'return_date_adjusted' => $originalDueDate && $originalDueDate !== $dueDate,
             'late_days' => $isLate
-                ? $this->operationalCalendar->countOpenTransactionDays(
-                    OperationalCalendarService::RETURN,
-                    $dueDate,
-                    $actualDate
-                )
+                ? app(LateReturnService::class)->chargeableLateDays($custody, $actualDate)
                 : 0,
         ];
 
@@ -208,8 +204,14 @@ class PolicyService
      */
     public function autoConfirmLateReturnViolation(BorrowerViolation $violation, User $actor): ?Sanction
     {
-        if ($violation->violation_source !== 'LATE_RETURN' || $violation->status !== 'PENDING_REVIEW') {
+        if ($violation->violation_source !== 'LATE_RETURN') {
             return null;
+        }
+
+        if ($violation->status !== 'PENDING_REVIEW') {
+            // Already reviewed: nothing is confirmed or created again. An
+            // already-confirmed violation hands back its existing sanction.
+            return $violation->status === 'CONFIRMED' ? $violation->sanction()->first() : null;
         }
 
         return DB::transaction(function () use ($violation, $actor): ?Sanction {
@@ -649,7 +651,9 @@ class PolicyService
                 $this->audit->record(
                     'BORROWING_VIOLATION_DISMISSED',
                     $locked,
-                    reason: $remarks
+                    reason: $remarks,
+                    before: ['status' => 'PENDING_REVIEW'],
+                    after: ['status' => 'DISMISSED']
                 );
 
                 return null;

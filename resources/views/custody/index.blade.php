@@ -393,6 +393,9 @@
                         @if($returnDateAdjusted)
                             <small>Adjusted from {{ optional($originalReturnDate)->format('d M Y') }}</small>
                         @endif
+                        @if($mode === 'return' && ($linenQueueLabel = App\Services\LateReturnService::linenStateLabel(app(App\Services\LateReturnService::class)->linenReturnState($custody))))
+                            <small data-linen-return-state><span class="status-badge status-warning">{{ $linenQueueLabel }}</span></small>
+                        @endif
                     </span>
 
                     <span class="operational-record-facts">

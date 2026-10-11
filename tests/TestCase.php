@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use Illuminate\Contracts\Auth\Authenticatable as UserContract;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Cache;
 
@@ -23,5 +24,24 @@ abstract class TestCase extends BaseTestCase
          * the real (unflushed, request-lifetime) production behavior.
          */
         Cache::flush();
+    }
+
+    /**
+     * Signing in as a user starts that user's idle clock at the current
+     * (possibly time-travelled) moment, exactly as a real sign-in does.
+     *
+     * Workflow tests move the clock forward by hours or days between steps
+     * and sign in again for each step. Without this, the single test session
+     * would carry the first step's activity time forward and
+     * EnforceIdleSession would correctly end it before the later step ran.
+     * The middleware and its timeout stay fully active: a session that is
+     * left idle past the limit without a new sign-in is still ended (see
+     * IdleSessionTimeoutTest).
+     */
+    public function actingAs(UserContract $user, $guard = null)
+    {
+        parent::actingAs($user, $guard);
+
+        return $this->withSession(['last_user_activity_at' => now()->timestamp]);
     }
 }

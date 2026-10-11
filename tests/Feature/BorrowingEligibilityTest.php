@@ -23,6 +23,7 @@ use App\Models\UnitOfMeasure;
 use App\Models\User;
 use App\Services\BorrowerObligationService;
 use App\Services\LateReturnService;
+use App\Services\OperationalCalendarService;
 use App\Services\PolicyService;
 use Carbon\Carbon;
 use Database\Seeders\DatabaseSeeder;
@@ -269,14 +270,24 @@ class BorrowingEligibilityTest extends TestCase
     {
         $item = $this->inventoryItem();
 
+        /*
+         * Use the next dates the Operational Calendar itself treats as open,
+         * so this request is judged on the borrower's eligibility alone and
+         * never on a schedule or return date that happens to land on a
+         * closed day (for example a Saturday).
+         */
+        $calendar = app(OperationalCalendarService::class);
+        $scheduleDate = $calendar->nextOpenDate(OperationalCalendarService::PICKUP, now()->addDay());
+        $returnDate = $calendar->nextOpenDate(OperationalCalendarService::RETURN, $scheduleDate->addDay());
+
         return $this->withSession(['active_workspace' => 'BORROWER'])
             ->actingAs($borrower)
             ->post(route('requests.store'), [
                 'purpose_event' => 'Eligibility gate request',
                 'location' => 'Campus',
                 'requesting_organizational_unit_id' => $borrower->organizational_unit_id,
-                'schedule_date' => now()->addDay()->toDateString(),
-                'return_date' => now()->addDays(2)->toDateString(),
+                'schedule_date' => $scheduleDate->toDateString(),
+                'return_date' => $returnDate->toDateString(),
                 'intent' => 'draft',
                 'item_ids' => [$item->id],
                 'quantities' => [$item->id => 1],

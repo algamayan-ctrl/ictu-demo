@@ -1740,6 +1740,16 @@ class CustodyService
                     ->where('custody_transaction_id', $custody->id)
                     ->first();
 
+                /*
+                 * A signed date awaiting authorization is kept on file but must
+                 * not finalize the return, its late days or any penalty.
+                 */
+                if ($laundryJob?->receiptDatePendingAuthorization()) {
+                    throw ValidationException::withMessages([
+                        'laundry_form' => \App\Http\Controllers\LaundryController::PENDING_DATE_MESSAGE,
+                    ]);
+                }
+
                 if (! $laundryJob?->latest_evidence_submission_id
                     || ! $laundryJob?->form_verified_at) {
                     throw ValidationException::withMessages([

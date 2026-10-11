@@ -604,12 +604,15 @@ class BorrowerObligationService
                 ? $actualReturnAt->copy()->startOfDay()
                 : now()->startOfDay();
 
+            /* Same counter as penalties: linen also counts authorized Laundry receiving days. */
             $daysLate = $dueDay && $lateThrough->gt($dueDay)
-                ? $this->operationalCalendar->countOpenTransactionDays(
-                    OperationalCalendarService::RETURN,
-                    $dueDay,
-                    $lateThrough
-                )
+                ? ($custody
+                    ? app(LateReturnService::class)->chargeableLateDays($custody, $lateThrough)
+                    : $this->operationalCalendar->countOpenTransactionDays(
+                        OperationalCalendarService::RETURN,
+                        $dueDay,
+                        $lateThrough
+                    ))
                 : 0;
 
             $document = $billingDocument($linkedBilling);

@@ -1122,6 +1122,7 @@
 
 @unless($isBorrower)
 <section class="content-area">
+    @include('requests.partials.document-history')
     @include('requests.partials.audit-history')
 </section>
 @endunless

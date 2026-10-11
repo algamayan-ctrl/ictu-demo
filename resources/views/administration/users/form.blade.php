@@ -296,7 +296,7 @@
             @if($user->exists)
                 <div class="ictu-form-actions ictu-administrative-actions-row">
                     <div class="ictu-form-action-left">
-                        @if($isPendingUnverified)
+                        @if($isPendingUnverified && ($pendingRegistrationDeletionBlocker ?? null) !== 'borrowing_records')
                             <button type="submit" form="ictu-delete-pending-registration-form"
                                     class="button secondary ictu-delete-account-button"
                                     id="ictu-delete-pending-registration-button"

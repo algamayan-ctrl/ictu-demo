@@ -15,6 +15,7 @@ use App\Support\OrganizationalStructure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -491,6 +492,10 @@ class UserAdministrationController extends Controller
             return 'active_session';
         }
 
+        if ($this->pendingAccountHasBorrowingRecords((int) $user->getKey())) {
+            return 'borrowing_records';
+        }
+
         return null;
     }
 
@@ -500,6 +505,7 @@ class UserAdministrationController extends Controller
             'current_user' => 'You cannot delete your own ICTU account.',
             'verified_email', 'previous_login' => 'Only unverified accounts that have never signed in can be deleted. Use Deactivate for established users.',
             'active_session' => 'This pending account currently has an active session and cannot be deleted yet.',
+            'borrowing_records' => 'This account cannot be deleted because it has borrowing restrictions or borrowing and accountability records that must be preserved. Use Deactivate instead.',
             default => 'This account is not eligible for deletion.',
         };
     }
@@ -509,13 +515,42 @@ class UserAdministrationController extends Controller
         return DB::table('sessions')->where('user_id', $userId)->exists();
     }
 
+    /**
+     * Tables that hold a borrower's restrictions, borrowing transactions and
+     * accountability obligations. A pending registration linked to any of
+     * them is not "unused": deleting it would cascade away its restrictions
+     * (borrower_restrictions) or be refused by the database for the rest.
+     */
+    private const BORROWER_RECORD_TABLES = [
+        'borrower_restrictions',
+        'borrowing_requests',
+        'custody_transactions',
+        'incidents',
+        'overdue_cases',
+        'billing_statements',
+        'penalties',
+        'borrower_violations',
+        'sanctions',
+        'evidence_submissions',
+    ];
+
+    private function pendingAccountHasBorrowingRecords(int $userId): bool
+    {
+        foreach (self::BORROWER_RECORD_TABLES as $table) {
+            if (Schema::hasColumn($table, 'borrower_user_id')
+                && DB::table($table)->where('borrower_user_id', $userId)->exists()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /*
-     * Do not block a never-signed-in, unverified registration merely because
-     * other system rows reference it. Pending registrations can accumulate
-     * administrative/supporting rows before verification, and their foreign-key
-     * delete rules (CASCADE / SET NULL) are responsible for cleanup or history
-     * preservation. Established users are still protected by verification and
-     * last_login_at checks above.
+     * Registration-created supporting rows (role and organizational-unit
+     * assignments, password reset tokens) do not block deletion; their
+     * foreign-key delete rules clean them up. Established users are still
+     * protected by the verification and last_login_at checks above.
      */
 
     /** ICTU recovery action if the previous OTP expired, was exhausted, or could not be delivered. */

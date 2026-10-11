@@ -15,6 +15,7 @@ use App\Models\RequestSupportingDocument;
 use App\Models\RequestVersion;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Services\AuditService;
 use App\Services\InventoryService;
 use App\Services\OperationalCalendarService;
 use App\Services\ProtectedFileService;
@@ -1604,18 +1605,66 @@ class BorrowingRequestController extends Controller
         * is preserved.
         */
         if (! $representsStudentActivity) {
-            $version
-                ->supportingDocuments()
-                ->where(
-                    'document_type',
-                    RequestSupportingDocument::TYPE_PERMISSION_TO_CONDUCT
-                )
-                ->where('is_current', true)
-                ->update([
-                    'is_current' => false,
-                    'superseded_at' => now(),
-                ]);
+            DB::transaction(function () use ($borrowingRequest, $version): void {
+                $retired = $version
+                    ->supportingDocuments()
+                    ->where(
+                        'document_type',
+                        RequestSupportingDocument::TYPE_PERMISSION_TO_CONDUCT
+                    )
+                    ->where('is_current', true)
+                    ->with(['file', 'uploader'])
+                    ->get();
+
+                foreach ($retired as $document) {
+                    $before = $this->supportingDocumentAuditSnapshot($borrowingRequest, $version, $document, 'Current');
+
+                    $document->update([
+                        'is_current' => false,
+                        'superseded_at' => now(),
+                    ]);
+
+                    app(AuditService::class)->record(
+                        'REQUEST_SUPPORTING_DOCUMENT_SUPERSEDED',
+                        $borrowingRequest,
+                        reason: 'The request no longer represents a student activity, so the Permission to Conduct Letter no longer applies. The file is retained as a historical version.',
+                        before: $before,
+                        after: $this->supportingDocumentAuditSnapshot($borrowingRequest, $version, $document, 'Superseded')
+                    );
+                }
+            });
         }
+    }
+
+    /**
+     * Safe, content-free identification of one supporting-document version
+     * for audit events: identifiers, filename and integrity metadata only.
+     *
+     * @return array<string, mixed>
+     */
+    private function supportingDocumentAuditSnapshot(
+        BorrowingRequest $borrowingRequest,
+        RequestVersion $version,
+        RequestSupportingDocument $document,
+        string $status
+    ): array {
+        $document->loadMissing(['file', 'uploader']);
+
+        return [
+            'request_no' => $borrowingRequest->request_no,
+            'request_version_no' => $version->version_no,
+            'document_type' => $document->document_type,
+            'document_record_no' => $document->id,
+            'document_version' => $document->version_no,
+            'stored_file_no' => $document->stored_file_id,
+            'original_filename' => $document->file?->original_name,
+            'file_sha256' => $document->file?->sha256,
+            'file_size_bytes' => $document->file?->byte_size,
+            'file_type' => $document->file?->mime_type,
+            'uploaded_by' => $document->uploader?->full_name,
+            'uploaded_at' => $document->uploaded_at?->toIso8601String(),
+            'document_status' => $status,
+        ];
     }
 
     private function storeSupportingDocument(
@@ -1636,48 +1685,86 @@ class BorrowingRequestController extends Controller
         );
 
         /*
-        * Determine the next document version.
-        */
-        $latestVersion = (int) RequestSupportingDocument::query()
-            ->where('request_version_id', $version->id)
-            ->where('document_type', $documentType)
-            ->max('version_no');
+         * The supersede, the new version row and the audit event commit
+         * together, so a failed upload never leaves a "successful" audit
+         * event behind and a recorded upload always has its version row.
+         */
+        DB::transaction(function () use (
+            $borrowingRequest,
+            $version,
+            $documentType,
+            $storedFile,
+            $uploaderId
+        ): void {
+            /*
+            * Determine the next document version.
+            */
+            $latestVersion = (int) RequestSupportingDocument::query()
+                ->where('request_version_id', $version->id)
+                ->where('document_type', $documentType)
+                ->max('version_no');
 
-        $nextVersion = $latestVersion + 1;
+            $nextVersion = $latestVersion + 1;
 
-        /*
-        * Preserve the old uploaded document.
-        *
-        * Never overwrite or delete historical request evidence.
-        */
-        RequestSupportingDocument::query()
-            ->where('request_version_id', $version->id)
-            ->where('document_type', $documentType)
-            ->where('is_current', true)
-            ->update([
-                'is_current' => false,
-                'superseded_at' => now(),
+            $previous = RequestSupportingDocument::query()
+                ->where('request_version_id', $version->id)
+                ->where('document_type', $documentType)
+                ->where('is_current', true)
+                ->with(['file', 'uploader'])
+                ->orderByDesc('version_no')
+                ->first();
+
+            $previousSnapshot = $previous
+                ? $this->supportingDocumentAuditSnapshot($borrowingRequest, $version, $previous, 'Current')
+                : null;
+
+            /*
+            * Preserve the old uploaded document.
+            *
+            * Never overwrite or delete historical request evidence.
+            */
+            RequestSupportingDocument::query()
+                ->where('request_version_id', $version->id)
+                ->where('document_type', $documentType)
+                ->where('is_current', true)
+                ->update([
+                    'is_current' => false,
+                    'superseded_at' => now(),
+                ]);
+
+            $document = RequestSupportingDocument::query()->create([
+                'request_id' => $borrowingRequest->id,
+                'request_version_id' => $version->id,
+                'document_type' => $documentType,
+                'version_no' => $nextVersion,
+                'stored_file_id' => $storedFile->id,
+                'uploaded_by_user_id' => $uploaderId,
+                'uploaded_at' => now(),
+
+                'verification_status' =>
+                    RequestSupportingDocument::STATUS_PENDING,
+
+                'verified_by_user_id' => null,
+                'verified_at' => null,
+                'verification_remarks' => null,
+
+                'is_current' => true,
+                'superseded_at' => null,
             ]);
 
-        RequestSupportingDocument::query()->create([
-            'request_id' => $borrowingRequest->id,
-            'request_version_id' => $version->id,
-            'document_type' => $documentType,
-            'version_no' => $nextVersion,
-            'stored_file_id' => $storedFile->id,
-            'uploaded_by_user_id' => $uploaderId,
-            'uploaded_at' => now(),
-
-            'verification_status' =>
-                RequestSupportingDocument::STATUS_PENDING,
-
-            'verified_by_user_id' => null,
-            'verified_at' => null,
-            'verification_remarks' => null,
-
-            'is_current' => true,
-            'superseded_at' => null,
-        ]);
+            /*
+             * No reason is collected for an upload or replacement, so none
+             * is recorded: the event states only what happened.
+             */
+            app(AuditService::class)->record(
+                $previous
+                    ? 'REQUEST_SUPPORTING_DOCUMENT_REPLACED'
+                    : 'REQUEST_SUPPORTING_DOCUMENT_UPLOADED',
+                $borrowingRequest,
+                before: $previousSnapshot,
+                after: $this->supportingDocumentAuditSnapshot($borrowingRequest, $version, $document, 'Current')
+            );
+        });
     }
 
     private function authorizeRequest(

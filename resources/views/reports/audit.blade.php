@@ -2,12 +2,30 @@
 
 @section('content')
 @php
-    // Keep the existing AuditEvent fields, category rules and latest-500 controller scope.
-    $actorOptions = $events
-        ->map(fn ($event) => $event->actor?->full_name ?: 'System')
-        ->unique()
-        ->sort()
-        ->values();
+    // The controller scopes, filters and paginates in the database; this view
+    // only renders the current page of AuditEvent rows.
+    $actorOptions = $actorOptions ?? collect();
+    $hasSystemActor = $hasSystemActor ?? false;
+    $recordNames = $recordNames ?? [];
+    $filters = array_merge([
+        'q' => '', 'date' => 'ALL', 'category' => 'ALL', 'actor' => 'ALL',
+        'record_type' => null, 'record_id' => null, 'per_page' => 7,
+    ], $filters ?? []);
+    $hasActiveFilters = $filters['q'] !== '' || $filters['date'] !== 'ALL'
+        || $filters['category'] !== 'ALL' || $filters['actor'] !== 'ALL'
+        || $filters['record_type'] !== null;
+
+    // Snapshot keys that identify a record by a human-readable name.
+    $recordNameKeys = [
+        'unique_description', 'request_no', 'custody_no', 'full_name', 'setting_key',
+        'incident_no', 'billing_no', 'document_no', 'term_name', 'name', 'title',
+    ];
+
+    // Role is shown only when it was stored with the event; never inferred for older events.
+    $auditRoleLabel = fn (?string $role): ?string => filled($role)
+        ? (\App\Enums\AccessClassification::tryFrom((string) $role)?->label()
+            ?? (string) \Illuminate\Support\Str::of(strtolower((string) $role))->replace('_', ' ')->title())
+        : null;
 
     $categoryOptions = $categoryOptions ?? [];
     $isOperationalAudit = ($auditMode ?? 'technical') === 'operational';
@@ -234,43 +252,53 @@
 <section class="content-area ictu-audit-area" aria-label="{{ $isOperationalAudit ? 'SPMU operational audit trail' : 'ICTU technical audit trail' }}">
     <span class="visually-hidden">{{ $isOperationalAudit ? 'SPMU operational oversight' : 'ICTU system administration' }}</span>
     <section class="card ictu-audit-filter-card" aria-label="Audit trail filters">
+        <form id="audit-filter-form" method="GET" action="{{ route('reports.audit') }}">
+            @if($filters['record_type'] !== null)
+                <input type="hidden" name="record_type" value="{{ $filters['record_type'] }}">
+                <input type="hidden" name="record_id" value="{{ $filters['record_id'] }}">
+            @endif
+        </form>
         <div class="ictu-audit-filter-grid">
             <div class="ictu-audit-filter-field ictu-audit-filter-search">
                 <label for="audit-search">Search</label>
                 <div class="ictu-audit-search-control">
                     <x-icon name="search" size="20" />
-                    <input id="audit-search" type="search"
+                    <input id="audit-search" type="search" name="q" form="audit-filter-form"
+                           value="{{ $filters['q'] }}" maxlength="120"
                            placeholder="Search actor, action, record, reason..."
                            autocomplete="off">
                 </div>
             </div>
             <div class="ictu-audit-filter-field">
                 <label for="audit-date-filter">Date</label>
-                <select id="audit-date-filter">
-                    <option value="ALL">All dates</option>
-                    <option value="TODAY">Today</option>
-                    <option value="YESTERDAY">Yesterday</option>
-                    <option value="7_DAYS">Last 7 days</option>
-                    <option value="30_DAYS">Last 30 days</option>
+                <select id="audit-date-filter" name="date" form="audit-filter-form">
+                    <option value="ALL" @selected($filters['date'] === 'ALL')>All dates</option>
+                    <option value="TODAY" @selected($filters['date'] === 'TODAY')>Today</option>
+                    <option value="YESTERDAY" @selected($filters['date'] === 'YESTERDAY')>Yesterday</option>
+                    <option value="7_DAYS" @selected($filters['date'] === '7_DAYS')>Last 7 days</option>
+                    <option value="30_DAYS" @selected($filters['date'] === '30_DAYS')>Last 30 days</option>
                 </select>
             </div>
             <div class="ictu-audit-filter-field">
                 <label for="audit-category-filter">Category</label>
-                <select id="audit-category-filter">
+                <select id="audit-category-filter" name="category" form="audit-filter-form">
                     <option value="ALL">{{ $isOperationalAudit ? 'All operational events' : 'All technical events' }}</option>
                     @foreach($categoryOptions as $categoryCode => $categoryLabel)
-                        <option value="{{ $categoryCode }}">{{ $categoryLabel }}</option>
+                        <option value="{{ $categoryCode }}" @selected($filters['category'] === $categoryCode)>{{ $categoryLabel }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="ictu-audit-filter-field">
                 <label for="audit-actor-filter">Actor</label>
                 <div class="ictu-audit-actor-actions">
-                    <select id="audit-actor-filter">
+                    <select id="audit-actor-filter" name="actor" form="audit-filter-form">
                         <option value="ALL">All actors</option>
-                        @foreach($actorOptions as $actorOption)
-                            <option value="{{ $actorOption }}">{{ $actorOption }}</option>
+                        @foreach($actorOptions as $actorOptionId => $actorOption)
+                            <option value="{{ $actorOptionId }}" @selected($filters['actor'] === (string) $actorOptionId)>{{ $actorOption }}</option>
                         @endforeach
+                        @if($hasSystemActor)
+                            <option value="SYSTEM" @selected($filters['actor'] === 'SYSTEM')>System</option>
+                        @endif
                     </select>
                     <button class="button secondary ictu-audit-reset" id="audit-reset" hidden aria-hidden="true" tabindex="-1"
                             type="button" title="Clear all filters">
@@ -287,32 +315,46 @@
             <div class="ictu-audit-table-heading">
                 <h1 id="ictu-audit-table-title">{{ $isOperationalAudit ? 'Operational Audit Trail' : 'Technical Audit Trail' }}</h1>
                 <span class="ictu-audit-count" id="audit-result-count" aria-live="polite">
-                    {{ $events->count() }} total record{{ $events->count() === 1 ? '' : 's' }}
+                    {{ number_format($events->total()) }} {{ $hasActiveFilters ? 'matching' : 'total' }} record{{ $events->total() === 1 ? '' : 's' }}
+                    @if($hasActiveFilters)
+                        · <a href="{{ route('reports.audit', ['per_page' => $filters['per_page']]) }}">Clear filters</a>
+                    @endif
                 </span>
             </div>
             <div class="ictu-audit-pagination" aria-label="Audit trail pagination">
                 <label class="visually-hidden" for="audit-page-size">Records per page</label>
-                <select id="audit-page-size" aria-label="Records per page">
-                    <option value="7" selected>7 records per page</option>
-                    <option value="14">14 records per page</option>
-                    <option value="28">28 records per page</option>
+                <select id="audit-page-size" name="per_page" form="audit-filter-form" aria-label="Records per page">
+                    <option value="7" @selected($filters['per_page'] === 7)>7 records per page</option>
+                    <option value="14" @selected($filters['per_page'] === 14)>14 records per page</option>
+                    <option value="28" @selected($filters['per_page'] === 28)>28 records per page</option>
                 </select>
                 <span class="ictu-audit-page-divider" aria-hidden="true"></span>
                 <span id="audit-page-indicator" aria-live="polite">
-                    {{ $events->isEmpty() ? '0–0 of 0' : '1–'.min(7, $events->count()).' of '.$events->count() }}
+                    {{ $events->total() === 0 ? '0–0 of 0' : $events->firstItem().'–'.$events->lastItem().' of '.number_format($events->total()) }}
                 </span>
                 <div class="ictu-audit-page-buttons">
-                    <button class="ictu-audit-page-button icon-button" id="audit-prev" type="button"
-                            aria-label="Previous page" disabled>
+                    <button class="ictu-audit-page-button icon-button" id="audit-prev" type="submit"
+                            form="audit-filter-form" name="page" value="{{ max(1, $events->currentPage() - 1) }}"
+                            aria-label="Previous page" @disabled($events->onFirstPage())>
                         <x-icon name="chevron-right" size="17" class="ictu-audit-chevron-left" />
                     </button>
-                    <button class="ictu-audit-page-button icon-button" id="audit-next" type="button"
-                            aria-label="Next page" @disabled($events->count() <= 7)>
+                    <button class="ictu-audit-page-button icon-button" id="audit-next" type="submit"
+                            form="audit-filter-form" name="page" value="{{ $events->currentPage() + 1 }}"
+                            aria-label="Next page" @disabled(! $events->hasMorePages())>
                         <x-icon name="chevron-right" size="17" />
                     </button>
                 </div>
             </div>
         </header>
+
+        @if($filters['record_type'] !== null)
+            <div class="ictu-audit-empty-state" role="status" style="margin: 12px 16px 0;">
+                Full history of
+                <strong>{{ trim(preg_replace('/(?<!^)[A-Z]/', ' $0', $filters['record_type'])) }} #{{ $filters['record_id'] }}</strong>,
+                oldest first, so repeated changes can be followed in order.
+                <a href="{{ route('reports.audit', ['per_page' => $filters['per_page']]) }}">Back to all events</a>
+            </div>
+        @endif
 
         <div class="ictu-audit-table-scroll" role="region" aria-label="Audit event records" tabindex="0">
             <table class="ictu-audit-table">
@@ -352,9 +394,47 @@
                                     ->title(),
                             };
 
-                            $actorName = $event->actor?->full_name ?: 'System';
-                            $recordLabel = trim(preg_replace('/(?<!^)[A-Z]/', ' $0', class_basename((string) $event->record_type)) ?: 'Record');
-                            $recordName = trim($recordLabel.' #'.$event->record_id);
+                            // Name and role as stored with the event; older events fall back to the current profile name.
+                            $actorName = filled($event->actor_name)
+                                ? $event->actor_name
+                                : ($event->actor?->full_name ?: 'System');
+                            $actorRoleAtTime = $auditRoleLabel($event->actor_role);
+
+                            $recordTypeKey = (string) $event->record_type;
+                            $recordBase = class_basename($recordTypeKey);
+                            $recordLabel = trim(preg_replace('/(?<!^)[A-Z]/', ' $0', $recordBase) ?: 'Record');
+
+                            $liveRecordName = $recordNames[$recordTypeKey][$event->record_id] ?? null;
+                            $snapshotRecordName = null;
+                            foreach ([$event->after_json, $event->before_json] as $nameSource) {
+                                if (! is_array($nameSource)) {
+                                    continue;
+                                }
+                                foreach ($recordNameKeys as $nameKey) {
+                                    $candidate = $nameSource[$nameKey] ?? null;
+                                    if (is_scalar($candidate) && trim((string) $candidate) !== '') {
+                                        $snapshotRecordName = trim((string) $candidate);
+                                        break 2;
+                                    }
+                                }
+                            }
+                            $recordDisplayName = $liveRecordName ?? $snapshotRecordName;
+
+                            $isDeletionEvent = str_contains($actionCode, 'delet')
+                                || (is_array($event->after_json) && ($event->after_json['deleted'] ?? false) === true);
+                            // The record type is one whose rows are looked up, and this row is gone.
+                            $recordNoLongerExists = $event->record_id !== null
+                                && array_key_exists($recordTypeKey, $recordNames)
+                                && $liveRecordName === null;
+                            $recordIsDeleted = $isDeletionEvent || $recordNoLongerExists;
+
+                            $recordName = trim(
+                                $recordLabel
+                                .(filled($recordDisplayName) ? ' · '.$recordDisplayName : '')
+                                .($event->record_id !== null ? ' #'.$event->record_id : '')
+                            );
+                            $canViewRecordHistory = $event->record_id !== null
+                                && preg_match('/^[A-Za-z][A-Za-z0-9_]{0,79}$/', $recordBase) === 1;
                             $category = (string) ($event->audit_category ?? 'OTHER');
                             $categoryLabel = $categoryOptions[$category] ?? 'Other';
                             $activitySubtitle = filled($event->reason)
@@ -370,6 +450,8 @@
                                     'user_email_verification_resent' => 'Verification message sent again.',
                                     'user_email_verification_delivery_failed' => 'Verification email delivery failed.',
                                     'issuance_auto_locked' => 'Issuance was automatically locked.',
+                                    'request_supporting_document_uploaded' => 'Supporting document uploaded.',
+                                    'request_supporting_document_replaced' => 'Supporting document replaced with a new version.',
                                     default => 'Audit event recorded.',
                                 };
                             $icon = match (true) {
@@ -380,7 +462,7 @@
                                 str_contains($actionCode, 'email'), str_contains($actionCode, 'mail') => 'email',
                                 str_contains($actionCode, 'updat'), str_contains($actionCode, 'edit') => 'edit',
                                 $category === 'ACCOUNT' => 'users',
-                                $category === 'SETTINGS' => 'settings',
+                                $category === 'SETTINGS', $category === 'OPERATIONAL_SETTINGS' => 'settings',
                                 $category === 'SECURITY_SYSTEM' => 'shield-check',
                                 default => 'reports',
                             };
@@ -388,21 +470,12 @@
                                 str_contains($actionCode, 'delet'), str_contains($actionCode, 'deactivat') => 'red',
                                 str_contains($actionCode, 'creat'), str_contains($actionCode, 'activat') => 'green',
                                 str_contains($actionCode, 'email'), str_contains($actionCode, 'mail') => 'amber',
-                                $category === 'SETTINGS' => 'slate',
+                                $category === 'SETTINGS', $category === 'OPERATIONAL_SETTINGS' => 'slate',
                                 default => 'blue',
                             };
-                            $searchText = mb_strtolower(implode(' ', array_filter([
-                                $actionLabel, $activitySubtitle,
-                                $actorName, $recordName, $event->reason, $categoryLabel,
-                            ])));
                         @endphp
                         <tr class="ictu-audit-data-row"
-                            data-audit-row
-                            data-audit-search="{{ $searchText }}"
-                            data-audit-category="{{ $category }}"
-                            data-audit-actor="{{ $actorName }}"
-                            data-audit-date="{{ $event->occurred_at->format('Y-m-d') }}"
-                            @if($loop->index >= 7) hidden @endif>
+                            data-audit-row>
                             <td>
                                 <div class="ictu-audit-activity">
                                     <span class="ictu-audit-row-icon" data-tone="{{ $iconTone }}" aria-hidden="true">
@@ -418,7 +491,10 @@
                             <td>
                                 <div class="ictu-audit-cell-copy">
                                     <strong>{{ $actorName }}</strong>
-                                    <span>{{ $recordName }}</span>
+                                    <span title="{{ $recordName }}">{{ $recordName }}</span>
+                                    @if($recordIsDeleted)
+                                        <span><span class="status-badge status-danger">Deleted record</span></span>
+                                    @endif
                                 </div>
                             </td>
                             <td>
@@ -444,9 +520,14 @@
                                     $beforeSnapshot = is_array($event->before_json) ? $flattenAuditSnapshot($event->before_json) : [];
                                     $afterSnapshot = is_array($event->after_json) ? $flattenAuditSnapshot($event->after_json) : [];
                                     $changeRows = collect(array_values(array_unique(array_merge(array_keys($beforeSnapshot), array_keys($afterSnapshot)))))
-                                        ->map(function (string $path) use ($beforeSnapshot, $afterSnapshot, $auditFieldLabel) {
+                                        ->map(function (string $path) use ($beforeSnapshot, $afterSnapshot, $auditFieldLabel, $isDeletionEvent) {
+                                            // A deletion's snapshot is the record's last state; the marker flag itself is not a field.
+                                            if ($isDeletionEvent && $path === 'deleted') {
+                                                return null;
+                                            }
+
                                             $beforeValue = $beforeSnapshot[$path] ?? 'Not set';
-                                            $afterValue = $afterSnapshot[$path] ?? 'Not set';
+                                            $afterValue = $afterSnapshot[$path] ?? ($isDeletionEvent ? 'Deleted' : 'Not set');
 
                                             if ($beforeValue === $afterValue) {
                                                 return null;
@@ -468,8 +549,21 @@
                                 <div class="ictu-audit-details-panel">
                                     <dl class="ictu-audit-detail-grid">
                                         <div><dt>Activity</dt><dd>{{ $actionLabel }}</dd></div>
-                                        <div><dt>Actor</dt><dd>{{ $actorName }}</dd></div>
-                                        <div><dt>Record</dt><dd>{{ $recordName }}</dd></div>
+                                        <div><dt>Actor</dt><dd>{{ $actorName }}@if($actorRoleAtTime) <small>({{ $actorRoleAtTime }} at the time)</small>@endif</dd></div>
+                                        <div>
+                                            <dt>Record</dt>
+                                            <dd>
+                                                {{ $recordName }}
+                                                @if($recordIsDeleted)
+                                                    <span class="status-badge status-danger">Deleted record</span>
+                                                @endif
+                                                @if($canViewRecordHistory && ! ($filters['record_type'] === $recordBase && $filters['record_id'] === (int) $event->record_id))
+                                                    <br>
+                                                    <a href="{{ route('reports.audit', ['record_type' => $recordBase, 'record_id' => $event->record_id, 'per_page' => $filters['per_page']]) }}"
+                                                       data-audit-record-history>View Full History</a>
+                                                @endif
+                                            </dd>
+                                        </div>
                                         <div><dt>Date &amp; Time</dt><dd>{{ $event->occurred_at->format('F j, Y • g:i:s A') }}</dd></div>
                                         <div><dt>Origin</dt><dd>{{ filled($event->origin_ip) ? $event->origin_ip : 'System / application' }}</dd></div>
                                         <div><dt>Category</dt><dd>{{ $categoryLabel }}</dd></div>
@@ -490,7 +584,12 @@
                                     @endif
 
                                     <section class="ictu-audit-info-section" aria-label="Audit event changes">
-                                        <h2 class="ictu-audit-section-title">Changes</h2>
+                                        <h2 class="ictu-audit-section-title">{{ $isDeletionEvent ? 'Preserved snapshot of the deleted record' : 'Changes' }}</h2>
+                                        @if($isDeletionEvent)
+                                            <div class="ictu-audit-empty-state" style="margin-bottom: 10px;">
+                                                This record was permanently deleted. The values below are the snapshot kept at the moment of deletion; the record itself cannot be restored from this page.
+                                            </div>
+                                        @endif
                                         @if($changeRows->isNotEmpty())
                                             <div class="ictu-audit-change-table-wrap">
                                                 <table class="ictu-audit-change-table">
@@ -523,11 +622,77 @@
                                             </div>
                                         @endif
                                     </section>
+
+                                    @php
+                                        $recovery = $event->getAttributes()['recovery'] ?? null;
+                                    @endphp
+                                    @if(is_array($recovery))
+                                        <section class="ictu-audit-info-section" aria-label="Recovery" data-audit-recovery>
+                                            <h2 class="ictu-audit-section-title">Recovery</h2>
+                                            @if($recovery['reverted_by'])
+                                                <div class="ictu-audit-empty-state">
+                                                    This change was reverted on
+                                                    {{ $recovery['reverted_by']->occurred_at->format('F j, Y • g:i A') }}
+                                                    (audit event #{{ $recovery['reverted_by']->id }}). Both events remain in the Audit Trail.
+                                                </div>
+                                            @elseif($recovery['allowed'])
+                                                <details data-audit-revert>
+                                                    <summary class="button secondary">Revert This Change</summary>
+                                                    <form method="POST" action="{{ route('reports.audit.revert', ['event' => $event->id]) }}" style="margin-top: 10px;">
+                                                        @csrf
+                                                        <div class="ictu-audit-change-table-wrap">
+                                                            <table class="ictu-audit-change-table">
+                                                                <colgroup>
+                                                                    <col class="ictu-audit-change-field-col">
+                                                                    <col class="ictu-audit-change-before-col">
+                                                                    <col class="ictu-audit-change-after-col">
+                                                                </colgroup>
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th scope="col">Field</th>
+                                                                        <th scope="col">Current Value</th>
+                                                                        <th scope="col">Will Be Restored To</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    @foreach($recovery['fields'] as $recoveryField)
+                                                                        <tr>
+                                                                            <td><strong>{{ $recoveryField['label'] }}</strong></td>
+                                                                            <td>{{ $recoveryField['current'] }}</td>
+                                                                            <td>{{ $recoveryField['restore'] }}</td>
+                                                                        </tr>
+                                                                    @endforeach
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                        @if($recovery['skipped'] !== [])
+                                                            <p class="field-help" style="margin: 8px 0 0;">
+                                                                Not restored by this action: {{ implode(', ', $recovery['skipped']) }}.
+                                                                These values are corrected through their own screen or workflow.
+                                                            </p>
+                                                        @endif
+                                                        <label for="audit-revert-reason-{{ $event->id }}" style="display: block; margin-top: 10px;">
+                                                            Reason for reverting (required)
+                                                        </label>
+                                                        <textarea id="audit-revert-reason-{{ $event->id }}" name="revert_reason" rows="2"
+                                                                  required minlength="10" maxlength="1000" style="width: 100%;"></textarea>
+                                                        <label style="display: block; margin: 8px 0;">
+                                                            <input type="checkbox" name="confirm_revert" value="1" required>
+                                                            I confirm that only the values listed above will be restored. The original audit event stays unchanged.
+                                                        </label>
+                                                        <button class="button" type="submit">Confirm Revert</button>
+                                                    </form>
+                                                </details>
+                                            @else
+                                                <div class="ictu-audit-empty-state">{{ $recovery['blocker'] }}</div>
+                                            @endif
+                                        </section>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
                     @empty
-                        <tr class="ictu-audit-empty-directory"><td colspan="5">No attributable administrative actions recorded.</td></tr>
+                        <tr class="ictu-audit-empty-directory"><td colspan="5">{{ $hasActiveFilters ? 'No audit events match the selected filters.' : 'No attributable administrative actions recorded.' }}</td></tr>
                     @endforelse
                     <tr class="ictu-audit-no-results" id="audit-no-results" hidden>
                         <td colspan="5">No audit events match the selected filters.</td>
@@ -540,38 +705,36 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    /*
+     * Search, date, category, actor, page size and paging are applied by the
+     * server across every retained audit event. Changing a filter reloads the
+     * list from its first page; the Previous/Next buttons submit the same
+     * form with a page number, so filters are kept while paging.
+     */
+    const form = document.getElementById('audit-filter-form');
     const search = document.getElementById('audit-search');
-    const dateFilter = document.getElementById('audit-date-filter');
-    const categoryFilter = document.getElementById('audit-category-filter');
-    const actorFilter = document.getElementById('audit-actor-filter');
-    const reset = document.getElementById('audit-reset');
-    const count = document.getElementById('audit-result-count');
-    const pageSizeControl = document.getElementById('audit-page-size');
-    const pageIndicator = document.getElementById('audit-page-indicator');
-    const prev = document.getElementById('audit-prev');
-    const next = document.getElementById('audit-next');
-    const noResults = document.getElementById('audit-no-results');
     const items = Array.from(document.querySelectorAll('[data-audit-row]'));
-    let filteredItems = [...items];
-    let pageSize = Number(pageSizeControl?.value || 7);
-    let currentPage = 1;
+    let submitted = false;
 
-    const startOfToday = () => {
-        const date = new Date();
-        date.setHours(0, 0, 0, 0);
-        return date;
+    const submitFilters = () => {
+        if (!form || submitted) return;
+        submitted = true;
+        form.submit();
     };
-    const matchesDate = (value, filter) => {
-        if (filter === 'ALL') return true;
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-        const eventDay = new Date(`${value}T00:00:00`);
-        const diffDays = Math.round((startOfToday() - eventDay) / 86400000);
-        if (filter === 'TODAY') return diffDays === 0;
-        if (filter === 'YESTERDAY') return diffDays === 1;
-        if (filter === '7_DAYS') return diffDays >= 0 && diffDays < 7;
-        if (filter === '30_DAYS') return diffDays >= 0 && diffDays < 30;
-        return true;
-    };
+
+    ['audit-date-filter', 'audit-category-filter', 'audit-actor-filter', 'audit-page-size'].forEach(id =>
+        document.getElementById(id)?.addEventListener('change', submitFilters)
+    );
+    search?.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        submitFilters();
+    });
+    // Fired when the field is cleared with its built-in clear button.
+    search?.addEventListener('search', submitFilters);
+    search?.addEventListener('change', submitFilters);
+    window.addEventListener('pageshow', () => { submitted = false; });
+
     const setExpanded = (row, open) => {
         const detail = row?.nextElementSibling;
         const toggle = row?.querySelector('[data-audit-details-toggle]');
@@ -579,54 +742,6 @@ document.addEventListener('DOMContentLoaded', () => {
         detail.hidden = !open;
         toggle?.setAttribute('aria-expanded', String(open));
     };
-    const renderPage = () => {
-        const total = filteredItems.length;
-        const totalPages = Math.max(1, Math.ceil(total / pageSize));
-        currentPage = Math.min(Math.max(currentPage, 1), totalPages);
-        const start = total ? (currentPage - 1) * pageSize : 0;
-        const end = Math.min(start + pageSize, total);
-        items.forEach(item => { item.hidden = true; setExpanded(item, false); });
-        filteredItems.slice(start, end).forEach(item => { item.hidden = false; });
-        if (count) count.textContent = `${total} total record${total === 1 ? '' : 's'}`;
-        if (pageIndicator) pageIndicator.textContent = total ? `${start + 1}–${end} of ${total}` : '0–0 of 0';
-        if (prev) prev.disabled = currentPage <= 1 || !total;
-        if (next) next.disabled = currentPage >= totalPages || !total;
-        if (noResults) noResults.hidden = total !== 0 || items.length === 0;
-    };
-    const applyFilters = () => {
-        const query = (search?.value || '').trim().toLocaleLowerCase();
-        const selectedDate = dateFilter?.value || 'ALL';
-        const selectedCategory = categoryFilter?.value || 'ALL';
-        const selectedActor = actorFilter?.value || 'ALL';
-        filteredItems = items.filter(item =>
-            (!query || (item.dataset.auditSearch || '').includes(query)) &&
-            (selectedCategory === 'ALL' || item.dataset.auditCategory === selectedCategory) &&
-            (selectedActor === 'ALL' || item.dataset.auditActor === selectedActor) &&
-            matchesDate(item.dataset.auditDate || '', selectedDate)
-        );
-        currentPage = 1;
-        renderPage();
-    };
-    [search, dateFilter, categoryFilter, actorFilter].forEach(control =>
-        control?.addEventListener(control === search ? 'input' : 'change', applyFilters)
-    );
-    reset?.addEventListener('click', () => {
-        if (search) search.value = '';
-        if (dateFilter) dateFilter.value = 'ALL';
-        if (categoryFilter) categoryFilter.value = 'ALL';
-        if (actorFilter) actorFilter.value = 'ALL';
-        applyFilters();
-        search?.focus();
-    });
-    pageSizeControl?.addEventListener('change', () => {
-        pageSize = Number(pageSizeControl.value) || 7;
-        currentPage = 1;
-        renderPage();
-    });
-    prev?.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderPage(); } });
-    next?.addEventListener('click', () => {
-        if (currentPage < Math.ceil(filteredItems.length / pageSize)) { currentPage++; renderPage(); }
-    });
     items.forEach(row => {
         row.querySelector('[data-audit-details-toggle]')?.addEventListener('click', () => {
             const isOpen = row.querySelector('[data-audit-details-toggle]').getAttribute('aria-expanded') === 'true';
@@ -634,7 +749,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setExpanded(row, !isOpen);
         });
     });
-    applyFilters();
 });
 </script>
 

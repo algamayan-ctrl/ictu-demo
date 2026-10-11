@@ -930,8 +930,16 @@ class AccountabilityController extends Controller
                     'verification_remarks' => $data['remarks'],
                 ]);
 
+                $billingStatusBefore = $billing->status;
+
                 $billing->update(['status' => 'ISSUED']);
-                $audit->record('PAYMENT_RECEIPT_REJECTED', $payment, reason: $data['remarks']);
+                $audit->record(
+                    'PAYMENT_RECEIPT_REJECTED',
+                    $payment,
+                    reason: $data['remarks'],
+                    before: ['status' => 'PENDING_VERIFICATION', 'billing_status' => $billingStatusBefore],
+                    after: ['status' => 'REJECTED', 'billing_status' => 'ISSUED']
+                );
 
                 return;
             }
@@ -1001,6 +1009,8 @@ class AccountabilityController extends Controller
         }
 
         DB::transaction(function () use ($billing, $request, $data, $audit): void {
+            $billingStatusBefore = $billing->status;
+
             $billing->update([
                 'status' => 'WAIVED',
                 'remarks' => trim(($billing->remarks ? $billing->remarks."\n" : '').'Authorized waiver: '.$data['reason']),
@@ -1054,7 +1064,13 @@ class AccountabilityController extends Controller
                 $this->attemptCloseCustody((int) $custodyId);
             }
 
-            $audit->record('BILLING_STATEMENT_WAIVED', $billing, reason: $data['reason']);
+            $audit->record(
+                'BILLING_STATEMENT_WAIVED',
+                $billing,
+                reason: $data['reason'],
+                before: ['status' => $billingStatusBefore],
+                after: ['status' => 'WAIVED']
+            );
         }, 3);
 
         $billing->refresh();

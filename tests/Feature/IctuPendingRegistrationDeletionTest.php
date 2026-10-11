@@ -214,6 +214,100 @@ class IctuPendingRegistrationDeletionTest extends TestCase
         $this->assertDatabaseHas('borrower_restrictions', ['borrower_user_id' => $pending->id]);
     }
 
+    public function test_deletion_is_refused_with_an_explanation_for_any_restriction_status(): void
+    {
+        $this->actingAs($this->ictu());
+
+        foreach (['ACTIVE', 'LIFTED'] as $index => $status) {
+            $pending = User::factory()->unverified()->create(['email' => "restricted-{$index}@cspc.edu.ph"]);
+            DB::table('borrower_restrictions')->insert([
+                'borrower_user_id' => $pending->id,
+                'restriction_type' => 'ADMIN_REVIEW',
+                'reason' => 'Preservation test',
+                'status' => $status,
+                'effective_from' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $this->delete(route('administration.users.delete-pending', $pending))
+                ->assertRedirect(route('administration.users.edit', $pending))
+                ->assertSessionHasErrors([
+                    'account' => 'This account cannot be deleted because it has borrowing restrictions or borrowing and accountability records that must be preserved. Use Deactivate instead.',
+                ]);
+
+            $this->assertDatabaseHas('users', ['id' => $pending->id]);
+            $this->assertDatabaseHas('borrower_restrictions', ['borrower_user_id' => $pending->id, 'status' => $status]);
+            $this->assertDatabaseMissing('audit_events', [
+                'action_code' => 'USER_PENDING_REGISTRATION_DELETED',
+                'record_id' => $pending->id,
+            ]);
+
+            // The manage form offers no Delete button for this account.
+            $this->get(route('administration.users.edit', $pending))
+                ->assertOk()
+                ->assertDontSee('id="ictu-delete-pending-registration-button"', false)
+                ->assertSee('This account cannot be deleted because linked system records must be preserved.');
+        }
+    }
+
+    public function test_deletion_is_refused_when_the_pending_account_has_a_borrowing_request(): void
+    {
+        $this->actingAs($this->ictu());
+        $pending = User::factory()->unverified()->create(['email' => 'has-request@cspc.edu.ph']);
+        DB::table('borrowing_requests')->insert([
+            'request_no' => 'REQ-PENDING-DELETE-TEST',
+            'borrower_user_id' => $pending->id,
+            'accountable_unit_id' => OrganizationalUnit::where('unit_code', 'CCS')->firstOrFail()->id,
+            'status' => 'DRAFT',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Refused with the explanation, not with a database foreign-key error.
+        $this->delete(route('administration.users.delete-pending', $pending))
+            ->assertRedirect(route('administration.users.edit', $pending))
+            ->assertSessionHasErrors('account');
+        $this->assertDatabaseHas('users', ['id' => $pending->id]);
+        $this->assertDatabaseHas('borrowing_requests', ['borrower_user_id' => $pending->id]);
+    }
+
+    public function test_an_unused_pending_registration_with_no_borrowing_records_is_still_deleted(): void
+    {
+        $ictu = $this->ictu();
+        $this->actingAs($ictu);
+        $pending = User::factory()->unverified()->create(['email' => 'unused-pending@cspc.edu.ph']);
+        $other = User::factory()->unverified()->create(['email' => 'other-restricted@cspc.edu.ph']);
+
+        // Another account's restriction must not block this one.
+        DB::table('borrower_restrictions')->insert([
+            'borrower_user_id' => $other->id,
+            'restriction_type' => 'ADMIN_REVIEW',
+            'reason' => 'Belongs to a different account',
+            'status' => 'ACTIVE',
+            'effective_from' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->get(route('administration.users.edit', $pending))
+            ->assertOk()
+            ->assertSee('id="ictu-delete-pending-registration-button"', false);
+
+        $this->delete(route('administration.users.delete-pending', $pending))
+            ->assertRedirect(route('administration.users.index'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseMissing('users', ['id' => $pending->id]);
+        $this->assertDatabaseHas('users', ['id' => $other->id]);
+        $this->assertDatabaseHas('borrower_restrictions', ['borrower_user_id' => $other->id]);
+        $this->assertDatabaseHas('audit_events', [
+            'action_code' => 'USER_PENDING_REGISTRATION_DELETED',
+            'actor_user_id' => $ictu->id,
+            'record_id' => $pending->id,
+        ]);
+    }
+
     public function test_non_ictu_cannot_delete_pending_registration(): void
     {
         $borrower = User::factory()->create(['email' => 'ordinary-borrower@cspc.edu.ph']);

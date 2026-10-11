@@ -355,6 +355,28 @@ class OffenseCountingPolicyTest extends TestCase
 
         $this->assertSame($sanction->id, $reused?->id);
         $this->assertDatabaseCount('sanctions', 1);
+
+        // Asking again changes nothing: same sanction, same offense number,
+        // still one violation and one sanction.
+        $before = $sanction->fresh()->only(['offense_no', 'sanction_code', 'status', 'effective_to']);
+        $again = $policy->autoConfirmLateReturnViolation($detected['late_return']->fresh(), $this->head);
+
+        $this->assertSame($sanction->id, $again?->id);
+        $this->assertEquals($before, $sanction->fresh()->only(['offense_no', 'sanction_code', 'status', 'effective_to']));
+        $this->assertDatabaseCount('sanctions', 1);
+        $this->assertDatabaseCount('borrower_violations', 1);
+    }
+
+    public function test_auto_confirm_returns_nothing_for_a_dismissed_violation(): void
+    {
+        $borrower = $this->borrower();
+        $dismissed = $this->pendingViolation($borrower, $this->periodA);
+        $policy = app(PolicyService::class);
+        $policy->reviewViolation($dismissed, $this->head, 'DISMISSED', 'Not a real violation.');
+
+        $this->assertNull($policy->autoConfirmLateReturnViolation($dismissed->fresh(), $this->head));
+        $this->assertSame('DISMISSED', $dismissed->fresh()->status);
+        $this->assertDatabaseCount('sanctions', 0);
     }
 
     /* ------------------------------------------------------------------ */

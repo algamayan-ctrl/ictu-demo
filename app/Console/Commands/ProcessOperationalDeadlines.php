@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\AccessClassification;
 use App\Models\BorrowerRestriction;
 use App\Models\CustodyTransaction;
 use App\Models\GeneratedDocument;
@@ -9,9 +10,11 @@ use App\Models\NotificationEvent;
 use App\Models\OverdueCase;
 use App\Models\Sanction;
 use App\Models\SystemSetting;
+use App\Models\User;
 use App\Services\AuditService;
 use App\Services\CustodyService;
 use App\Services\DocumentService;
+use App\Services\LateReturnService;
 use App\Services\NotificationService;
 use App\Services\OperationalCalendarService;
 use Illuminate\Console\Command;
@@ -27,7 +30,8 @@ class ProcessOperationalDeadlines extends Command
         NotificationService $notifications,
         AuditService $audit,
         OperationalCalendarService $operationalCalendar,
-        DocumentService $documents
+        DocumentService $documents,
+        LateReturnService $lateReturns
     ): int {
         /*
          * A missed pickup is never auto-cancelled. It stays
@@ -37,6 +41,7 @@ class ProcessOperationalDeadlines extends Command
         $pickupExpired = $custodyService->expirePickupWindows();
         $legacyLaundryReconciled = $custodyService->reconcileLegacyLaundryAvailability();
         $issuanceLocked = 0;
+        $provisionalLinen = 0;
         $dueSoon = 0;
         $markedOverdue = 0;
         $overdueProcessed = 0;
@@ -180,9 +185,16 @@ class ProcessOperationalDeadlines extends Command
              * linen, do not declare the borrower overdue merely because the
              * accomplished offline Laundry Form has not reached SPMU yet.
              *
-             * - No RECEIVED BY date yet: status stays pending verification.
+             * - No RECEIVED BY date yet: no penalty, violation or restriction is
+             *   created from missing paperwork. From the first eligible linen
+             *   receiving day after the due date the custody is identified once as
+             *   Provisionally Overdue - Pending Return Verification.
+             * - Action Officer confirmed the linen was not returned: the hold ends
+             *   and normal overdue processing continues.
+             * - RECEIVED BY date awaiting authorization: nothing is finalized.
              * - RECEIVED BY on/before due date: documentary delay is not late.
-             * - RECEIVED BY after due date: normal overdue processing continues.
+             * - RECEIVED BY after due date: normal overdue processing continues,
+             *   measured through that signed date, not through today.
              *
              * If any non-linen property is still outstanding, the ordinary
              * overdue rule still applies immediately.
@@ -197,9 +209,48 @@ class ProcessOperationalDeadlines extends Command
                 );
 
             if ($onlyLinenOutstanding) {
-                $physicalLaundryReceipt = $custody->laundryJob?->worker_received_at?->copy()->startOfDay();
+                $laundryJob = $custody->laundryJob;
+                $receiptPendingAuthorization = (bool) $laundryJob?->receiptDatePendingAuthorization();
+                $physicalLaundryReceipt = $laundryJob?->hasUsableReceiptDate()
+                    ? $laundryJob->worker_received_at->copy()->startOfDay()
+                    : null;
+                $noReturnEvidence = $laundryJob?->worker_received_at === null;
+                $confirmedNotReturned = $noReturnEvidence && $laundryJob?->unreturned_confirmed_at !== null;
 
-                if (! $physicalLaundryReceipt || ! $physicalLaundryReceipt->gt($dueDate)) {
+                if (! $confirmedNotReturned
+                    && ($receiptPendingAuthorization || ! $physicalLaundryReceipt || ! $physicalLaundryReceipt->gt($dueDate))) {
+                    /*
+                     * Identify never-evidenced linen exactly once. The existence
+                     * check makes repeated scheduler runs harmless.
+                     */
+                    if ($noReturnEvidence
+                        && $operationalCalendar->countLinenReceivingDays($dueDate, $today) > 0
+                        && ! NotificationEvent::query()
+                            ->where('event_code', 'LINEN_RETURN_PROVISIONALLY_OVERDUE')
+                            ->where('source_type', $custody->getMorphClass())
+                            ->where('source_id', $custody->id)
+                            ->exists()) {
+                        $audit->record('LINEN_RETURN_PROVISIONALLY_OVERDUE', $custody, after: [
+                            'custody_no' => $custody->custody_no,
+                            'effective_due_date' => $dueDate->toDateString(),
+                            'return_evidence_on_file' => false,
+                            'penalty_or_restriction_created' => false,
+                        ]);
+
+                        $notifications->send(
+                            'LINEN_RETURN_PROVISIONALLY_OVERDUE',
+                            User::query()
+                                ->where('access_classification', AccessClassification::SpmuOfficer->value)
+                                ->where('account_status', 'ACTIVE')
+                                ->get(),
+                            "Linen under {$custody->custody_no} is past its Expected Return Date ({$dueDate->format('F j, Y')}) and no signed Laundry Form has reached SPMU. It is provisionally overdue pending return verification: upload the signed Laundry Form if the linen was returned, or record that it was not returned.",
+                            $custody,
+                            ['SYSTEM']
+                        );
+
+                        $provisionalLinen++;
+                    }
+
                     /*
                      * Clean up an older scheduler-created provisional overdue
                      * state when this transaction is now known to be a
@@ -250,11 +301,12 @@ class ProcessOperationalDeadlines extends Command
                 $markedOverdue++;
             }
 
-            $daysLate = $operationalCalendar->countOpenTransactionDays(
-                OperationalCalendarService::RETURN,
-                $dueDate,
-                $today
-            );
+            /*
+             * Equipment: SPMU open return days through today. Linen: SPMU open
+             * return days and authorized Laundry receiving days, through the
+             * signed Laundry Received date once one is usable.
+             */
+            $daysLate = $lateReturns->chargeableLateDays($custody, $today);
             $case = OverdueCase::query()->firstOrNew([
                 'custody_transaction_id' => $custody->id,
             ]);

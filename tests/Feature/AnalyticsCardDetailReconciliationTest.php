@@ -115,14 +115,30 @@ class AnalyticsCardDetailReconciliationTest extends TestCase
             )
         );
 
-        /* Academic (3*6 + 2*4 + 1*2)/6 = 5; Administrative (3*3)/6 = 1.5 -> 2. */
+        /*
+         * The overall forecast is the source of truth: (3*9 + 2*4 + 1*2)/6
+         * = 6.17 -> 6 requests. Division values are apportioned from it by
+         * largest remainder, so they always add up to that total.
+         * Raw weighted averages: Academic (3*6 + 2*4 + 1*2)/6 = 5.0,
+         * Administrative (3*3)/6 = 1.5. Shares of 6: 4.62 and 1.38 -> 4 + 1,
+         * and the one remaining request goes to the larger fraction
+         * (Academic): 5 and 1.
+         */
+        $overall = (int) $this->forecast->demand($this->analytics, $this->from, $this->to)['forecast'];
+        $this->assertSame(6, $overall);
+        $this->assertSame($overall, array_sum(array_map(static fn (array $row): int => (int) $row['forecast'], $divisions['groups'])));
+        $this->assertSame($overall, array_sum(array_map(
+            static fn (array $bar): int => (int) preg_replace('/\D.*/', '', $bar['value']),
+            $detail['bars']
+        )));
+
         $this->assertSame('Academic', $detail['bars'][0]['label']);
         $this->assertSame('5 requests projected', $detail['bars'][0]['value']);
         $this->assertSame(100, $detail['bars'][0]['share']);
 
         $this->assertSame('Administrative', $detail['bars'][1]['label']);
-        $this->assertSame('2 requests projected', $detail['bars'][1]['value']);
-        $this->assertSame(40, $detail['bars'][1]['share']);
+        $this->assertSame('1 request projected', $detail['bars'][1]['value']);
+        $this->assertSame(20, $detail['bars'][1]['share']);
 
         $this->assertSame(count($divisions['groups']), $detail['value']);
     }

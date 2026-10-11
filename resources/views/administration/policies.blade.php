@@ -388,6 +388,8 @@
     </article>
 </section>
 
+@include('administration.partials.laundry-receiving-days')
+
 @include('administration.partials.special-dates-interactions')
 @endif
 

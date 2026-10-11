@@ -5,17 +5,22 @@ namespace App\Http\Controllers;
 use App\Enums\AccessClassification;
 use App\Models\AcademicPeriod;
 use App\Models\CustodyTransaction;
+use App\Models\LaundryJob;
+use App\Models\LaundryReceivingDay;
 use App\Models\OperationalDateException;
 use App\Models\OperationalWeeklySchedule;
 use App\Models\SanctionRule;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\LateReturnService;
 use App\Services\OperationalCalendarService;
 use App\Services\NotificationService;
 use App\Services\PolicyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -49,6 +54,21 @@ class PolicyController extends Controller
                 ->orderBy('exception_date')
                 ->get(),
             'offenseApplicationTypes' => $policy->offenseApplicationTypes(),
+            /* Laundry Area receiving calendar: every decision, including revoked ones. */
+            'laundryReceivingDays' => Schema::hasTable('laundry_receiving_days')
+                ? LaundryReceivingDay::query()
+                    ->with(['authorizedBy', 'revokedBy'])
+                    ->orderByDesc('receiving_date')
+                    ->get()
+                : collect(),
+            'pendingLaundryReceipts' => Schema::hasColumn('laundry_jobs', 'receipt_date_status')
+                ? LaundryJob::query()
+                    ->with(['custody.borrower', 'latestEvidence'])
+                    ->where('receipt_date_status', LaundryJob::RECEIPT_DATE_PENDING)
+                    ->whereNotNull('worker_received_at')
+                    ->orderBy('worker_received_at')
+                    ->get()
+                : collect(),
         ]);
     }
 
@@ -779,6 +799,113 @@ class PolicyController extends Controller
                 'Special operational date removed. Previously communicated return extensions are not shortened automatically.',
                 $calendarChanges
             ));
+    }
+
+    /**
+     * Authorize one specific date for Laundry Area receiving of returned
+     * linen. SPMU Head/Admin only. This is a calendar decision: it does not
+     * open the SPMU Office, changes nothing for equipment, and approves no
+     * penalty. Signed receipts already waiting on this date become usable.
+     */
+    public function storeLaundryReceivingDay(
+        Request $request,
+        AuditService $audit,
+        LateReturnService $lateReturns
+    ): RedirectResponse {
+        $this->authorizeHead($request);
+
+        $data = $request->validate([
+            'receiving_date' => ['required', 'date'],
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
+        ]);
+
+        $date = \Carbon\Carbon::parse($data['receiving_date'])->toDateString();
+
+        $released = DB::transaction(function () use ($date, $data, $request, $audit, $lateReturns): int {
+            $day = LaundryReceivingDay::query()->whereDate('receiving_date', $date)->lockForUpdate()->first()
+                ?? new LaundryReceivingDay(['receiving_date' => $date]);
+
+            if ($day->exists && $day->is_authorized) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'receiving_date' => 'Laundry receiving is already authorized for this date.',
+                ]);
+            }
+
+            $before = $day->exists ? $day->only([
+                'is_authorized', 'reason', 'authorized_by_user_id', 'authorized_at',
+                'revocation_reason', 'revoked_by_user_id', 'revoked_at',
+            ]) : null;
+
+            $day->fill([
+                'is_authorized' => true,
+                'reason' => $data['reason'],
+                'authorized_by_user_id' => $request->user()->id,
+                'authorized_at' => now(),
+            ])->save();
+
+            $audit->record('LAUNDRY_RECEIVING_DAY_AUTHORIZED', $day, reason: $data['reason'], before: $before, after: [
+                'receiving_date' => $date,
+                'is_authorized' => true,
+                'authorized_by_user_id' => $request->user()->id,
+                'spmu_office_opened' => false,
+            ]);
+
+            return $lateReturns->refreshReceiptDateStatusesFor($date, $request->user());
+        });
+
+        return redirect()->to(route('policies.index', ['section' => 'special-dates']).'#laundry-receiving-days')
+            ->with('status', 'Laundry receiving authorized for '.\Carbon\Carbon::parse($date)->format('F j, Y').'.'
+                .($released > 0 ? " {$released} signed receipt(s) waiting on this date can now be encoded." : '')
+                .' The SPMU Office schedule is unchanged.');
+    }
+
+    /**
+     * Revoke a Laundry receiving authorization. The decision stays on
+     * record. Returns that are already encoded keep their late days and
+     * penalties; only receipts not yet encoded go back to pending.
+     */
+    public function revokeLaundryReceivingDay(
+        Request $request,
+        LaundryReceivingDay $day,
+        AuditService $audit,
+        LateReturnService $lateReturns
+    ): RedirectResponse {
+        $this->authorizeHead($request);
+
+        $data = $request->validate([
+            'revocation_reason' => ['required', 'string', 'min:5', 'max:500'],
+        ]);
+
+        DB::transaction(function () use ($day, $data, $request, $audit, $lateReturns): void {
+            $locked = LaundryReceivingDay::query()->lockForUpdate()->findOrFail($day->id);
+
+            if (! $locked->is_authorized) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'revocation_reason' => 'This Laundry receiving authorization is already revoked.',
+                ]);
+            }
+
+            $before = $locked->only(['is_authorized', 'reason', 'authorized_by_user_id', 'authorized_at']);
+
+            $locked->update([
+                'is_authorized' => false,
+                'revocation_reason' => $data['revocation_reason'],
+                'revoked_by_user_id' => $request->user()->id,
+                'revoked_at' => now(),
+            ]);
+
+            $audit->record('LAUNDRY_RECEIVING_DAY_REVOKED', $locked, reason: $data['revocation_reason'], before: $before, after: [
+                'receiving_date' => $locked->receiving_date->toDateString(),
+                'is_authorized' => false,
+                'revoked_by_user_id' => $request->user()->id,
+                'finalized_returns_changed' => false,
+            ]);
+
+            $lateReturns->refreshReceiptDateStatusesFor($locked->receiving_date, $request->user());
+        });
+
+        return redirect()->to(route('policies.index', ['section' => 'special-dates']).'#laundry-receiving-days')
+            ->with('status', 'Laundry receiving authorization revoked. The earlier decision remains on record, and returns already encoded are not changed.');
     }
 
     /**

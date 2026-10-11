@@ -192,7 +192,12 @@
                         </td>
                     </tr>
                 @empty
-                    <tr class="ictu-users-empty-directory"><td colspan="6">No institutional accounts have been registered.</td></tr>
+                    <tr class="ictu-users-empty-directory"><td colspan="6">{{ match (true) {
+                        (bool) ($verificationFilter ?? false) => 'No accounts pending verification found.',
+                        $statusFilter === 'inactive' => 'No inactive accounts found.',
+                        $statusFilter === 'active' => 'No active accounts found.',
+                        default => 'No institutional accounts have been registered.',
+                    } }}</td></tr>
                 @endforelse
                 </tbody>
             </table>

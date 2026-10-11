@@ -18,6 +18,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Mail\Message;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
@@ -47,6 +48,16 @@ class NotificationService
             ],
             'occurred_at' => now(),
         ]);
+
+        /*
+         * The event and its in-system records are ordinary rows: inside a
+         * business transaction they commit or roll back with it. An email
+         * cannot be recalled, so it is only handed to the mail transport
+         * once that transaction has committed. With no open transaction the
+         * attempt runs immediately, exactly as before. A rolled-back action
+         * therefore sends nothing and leaves no delivery record.
+         */
+        $insideTransaction = DB::transactionLevel() > 0;
 
         foreach (collect($recipients)->filter()->unique(fn (User $recipient) => $recipient->id) as $recipient) {
             $eventChannels = collect($channels)
@@ -78,26 +89,57 @@ class NotificationService
                     default => (string) $recipient->id,
                 };
 
-                [$status, $provider, $providerResponse] = $this->deliver(
-                    $channel,
-                    $address,
-                    $message,
-                    $eventCode,
-                    $recipient,
-                    $source
-                );
+                $attempt = function () use ($channel, $address, $message, $eventCode, $recipient, $source, $event): void {
+                    [$status, $provider, $providerResponse] = $this->deliver(
+                        $channel,
+                        $address,
+                        $message,
+                        $eventCode,
+                        $recipient,
+                        $source
+                    );
 
-                NotificationDelivery::query()->create([
-                    'notification_event_id' => $event->id,
-                    'recipient_user_id' => $recipient->id,
-                    'channel' => $channel,
-                    'address_snapshot' => $address,
-                    'attempt_no' => 1,
-                    'provider' => $provider,
-                    'attempted_at' => now(),
-                    'delivery_status' => $status,
-                    'provider_response' => $providerResponse,
-                ]);
+                    NotificationDelivery::query()->create([
+                        'notification_event_id' => $event->id,
+                        'recipient_user_id' => $recipient->id,
+                        'channel' => $channel,
+                        'address_snapshot' => $address,
+                        'attempt_no' => 1,
+                        'provider' => $provider,
+                        'attempted_at' => now(),
+                        'delivery_status' => $status,
+                        'provider_response' => $providerResponse,
+                    ]);
+                };
+
+                if ($channel !== 'EMAIL') {
+                    $attempt();
+
+                    continue;
+                }
+
+                DB::afterCommit(function () use ($attempt, $insideTransaction, $eventCode): void {
+                    if (! $insideTransaction) {
+                        $attempt();
+
+                        return;
+                    }
+
+                    /*
+                     * The business action is already committed here. A fault
+                     * while recording the attempt is reported, never turned
+                     * into an error for an action that actually succeeded.
+                     */
+                    try {
+                        $attempt();
+                    } catch (Throwable $exception) {
+                        report($exception);
+
+                        Log::warning('SPMU email delivery could not be recorded after commit', [
+                            'event' => $eventCode,
+                        ]);
+                    }
+                });
             }
         }
 
@@ -152,15 +194,18 @@ class NotificationService
                     'Accepted by the configured Laravel mail transport using the professional institutional email template.',
                 ];
             } catch (Throwable $exception) {
+                // Keep the transport error for diagnostics, without account names or secrets.
+                $error = NotificationDelivery::sanitizeDiagnostic($exception->getMessage());
+
                 Log::warning('SPMU email delivery failed', [
                     'event' => $eventCode,
-                    'error' => $exception->getMessage(),
+                    'error' => $error,
                 ]);
 
                 return [
                     'FAILED',
                     (string) config('mail.default'),
-                    mb_substr($exception->getMessage(), 0, 1000),
+                    $error !== '' ? $error : 'The mail transport reported an error without a message.',
                 ];
             }
         }
@@ -537,11 +582,13 @@ HTML;
                 && $source->due_at
             ) {
                 $dueDay = Carbon::parse($source->due_at)->startOfDay();
-                $daysOverdue = $this->operationalCalendar->countOpenTransactionDays(
-                    OperationalCalendarService::RETURN,
-                    $dueDay,
-                    now()->startOfDay()
-                );
+                $daysOverdue = $source instanceof \App\Models\CustodyTransaction
+                    ? app(LateReturnService::class)->chargeableLateDays($source, now()->startOfDay())
+                    : $this->operationalCalendar->countOpenTransactionDays(
+                        OperationalCalendarService::RETURN,
+                        $dueDay,
+                        now()->startOfDay()
+                    );
                 $data['details']['Current Overdue Days'] = (string) $daysOverdue;
                 $data['details']['Borrowing Status'] = 'Restricted while the outstanding return remains unresolved';
             }

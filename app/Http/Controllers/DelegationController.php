@@ -73,8 +73,15 @@ class DelegationController extends Controller
     public function revoke(Request $request, TemporaryDelegation $delegation, AuditService $audit): RedirectResponse
     {
         $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
+        $statusBefore = $delegation->status;
         $delegation->update(['status' => 'REVOKED', 'revoked_at' => now(), 'revoked_by_user_id' => $request->user()->id, 'revocation_reason' => $data['reason']]);
-        $audit->record('TEMPORARY_DELEGATION_REVOKED', $delegation, reason: $data['reason']);
+        $audit->record(
+            'TEMPORARY_DELEGATION_REVOKED',
+            $delegation,
+            reason: $data['reason'],
+            before: ['status' => $statusBefore],
+            after: ['status' => 'REVOKED']
+        );
 
         return back()->with('status', 'Temporary delegation revoked.');
     }

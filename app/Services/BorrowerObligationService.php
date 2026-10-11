@@ -604,16 +604,23 @@ class BorrowerObligationService
                 ? $actualReturnAt->copy()->startOfDay()
                 : now()->startOfDay();
 
-            /* Same counter as penalties: linen also counts authorized Laundry receiving days. */
-            $daysLate = $dueDay && $lateThrough->gt($dueDay)
-                ? ($custody
-                    ? app(LateReturnService::class)->chargeableLateDays($custody, $lateThrough)
-                    : $this->operationalCalendar->countOpenTransactionDays(
-                        OperationalCalendarService::RETURN,
-                        $dueDay,
-                        $lateThrough
-                    ))
-                : 0;
+            /*
+             * Once the return is recorded, the finalized assessment is the
+             * source of truth and is shown as it stands. Until then, the same
+             * live counter as penalties: linen also counts authorized Laundry
+             * receiving days.
+             */
+            $daysLate = $overdue->actual_return_date !== null
+                ? max(0, (int) $overdue->late_days)
+                : ($dueDay && $lateThrough->gt($dueDay)
+                    ? ($custody
+                        ? app(LateReturnService::class)->chargeableLateDays($custody, $lateThrough)
+                        : $this->operationalCalendar->countOpenTransactionDays(
+                            OperationalCalendarService::RETURN,
+                            $dueDay,
+                            $lateThrough
+                        ))
+                    : 0);
 
             $document = $billingDocument($linkedBilling);
             $lateReturnNotice = $activeDocument($overdue->documents, 'LATE_RETURN_NOTICE');

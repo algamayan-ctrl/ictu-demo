@@ -335,8 +335,9 @@ class LaundryController extends Controller
 
     /**
      * SPMU Head/Admin: accept the signed Laundry Received date as the actual
-     * return date without authorizing that day. Verifies the receipt only;
-     * the day is not counted as a late day and no penalty is approved here.
+     * return date without authorizing that day. Verifies the receipt only:
+     * the day counts as a late day for this custody alone, stays unauthorized
+     * for every other transaction, and no penalty is approved here.
      */
     public function acceptReceiptDate(
         Request $request,
@@ -359,7 +360,7 @@ class LaundryController extends Controller
         });
 
         return redirect()->to(route('policies.index', ['section' => 'special-dates']).'#laundry-receiving-days')
-            ->with('status', 'Signed Laundry Received date accepted. The day itself remains unauthorized and is not counted as a late day. The Action Officer may now encode the return.');
+            ->with('status', 'Signed Laundry Received date accepted. It counts as a late day for this transaction only; the day remains unauthorized for all other transactions. The Action Officer may now encode the return.');
     }
 
     /**

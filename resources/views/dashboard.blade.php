@@ -1080,30 +1080,96 @@ a.dashboard-kpi-card:focus-visible {
     }
 
     /* SPMU_BORROWER_DASHBOARD_COMPACT_ALIGN_START */
+    /* SPMU_BORROWER_ROWS_V2: borrower-only, presentation-only adjustments. */
     .is-borrower-dashboard .borrower-dashboard-priority-stack > #borrower-actions .card-header,
     .is-borrower-dashboard .borrower-dashboard-priority-stack > .borrower-current-requests > .card-header,
     .is-borrower-dashboard .borrower-dashboard-priority-stack > .dashboard-recent-card > .card-header {
-        min-height: 60px;
-        padding: 12px 16px;
+        min-height: 54px;
+        padding: 10px 16px;
         align-items: center;
     }
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .card-header h2 {
+        font-size: 15px;
+        line-height: 1.3;
+    }
+
+    /* Both cards have the same row baseline, minimum height and inset. */
     .is-borrower-dashboard .borrower-dashboard-priority-stack .queue-list .borrower-next-row,
     .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table tbody tr {
-        min-height: 116px;
-        padding: 12px 14px;
-        row-gap: 4px;
-        align-content: center;
+        min-height: 94px;
+        padding: 10px 14px;
+        row-gap: 3px;
+        align-content: start;
+        box-sizing: border-box;
+    }
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .queue-list .borrower-next-row {
+        grid-template-columns: 34px minmax(0, 1fr) max-content;
+        column-gap: 10px;
+    }
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        align-self: center;
     }
     .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-copy {
-        gap: 3px;
+        gap: 2px;
+        min-width: 0;
     }
-    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-when {
-        margin: 0;
+
+    /* Consistent type scale while keeping full IDs and essential instructions. */
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-copy strong,
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-id {
+        font-size: 12px;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
     }
-    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table td:nth-child(4) {
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-copy > span,
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-purpose {
+        min-width: 0;
+        max-width: 100%;
+        font-size: 11.5px;
         line-height: 1.35;
     }
-    /* SPMU_BORROWER_DASHBOARD_COMPACT_ALIGN_END */
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-copy small {
+        font-size: 10.5px;
+        line-height: 1.35;
+    }
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-when,
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-schedule strong {
+        font-size: 11.5px;
+        line-height: 1.3;
+    }
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-schedule small {
+        margin-top: 1px;
+        font-size: 10.5px;
+        line-height: 1.3;
+    }
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table tbody tr {
+        grid-template-columns: minmax(0, 1fr) minmax(120px, 38%);
+    }
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table .status-badge {
+        padding: 3px 7px;
+        font-size: 10px;
+        line-height: 1.25;
+    }
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .queue-list .borrower-next-row > a.button,
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table td:nth-child(5) .button {
+        min-height: 30px;
+        min-width: 76px;
+        padding: 5px 10px;
+        font-size: 11px;
+    }
+
+    /* Keep compact rows usable when the two panels stack on small screens. */
+    @media (max-width: 760px) {
+        .is-borrower-dashboard .borrower-dashboard-priority-stack .queue-list .borrower-next-row,
+        .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table tbody tr {
+            min-height: 0;
+            padding: 12px;
+        }
+    }
+/* SPMU_BORROWER_DASHBOARD_COMPACT_ALIGN_END */
     /* SPMU_BORROWER_COMPACT_GRID_END */
 </style>
 
@@ -1214,8 +1280,8 @@ a.dashboard-kpi-card:focus-visible {
     @endif
 </section>
 
-@if(in_array($dashboardMode, ['BORROWER', 'SPMU_OFFICER', 'SPMU_HEAD'], true))
-    @include('shared.operational-advisory')
+@if(in_array($dashboardMode, ['SPMU_OFFICER', 'SPMU_HEAD'], true))
+    @include('shared.operational-advisory', ['compact' => $dashboardMode !== 'BORROWER'])
 @endif
 
 <section class="stat-grid dashboard-stat-grid" aria-label="Current totals">
@@ -1246,6 +1312,13 @@ a.dashboard-kpi-card:focus-visible {
         </a>
     @endforeach
 </section>
+
+{{--
+SPMU_BORROWER_ADVISORY_AFTER_KPIS_V1
+: dashboard overview before operational notice. --}}
+@if($dashboardMode === 'BORROWER')
+    @include('shared.operational-advisory')
+@endif
 
 @php
     /*

@@ -228,7 +228,7 @@ class OperationalAdvisoryServiceTest extends TestCase
         ], '2026-10-17');
 
         $this->assertSame('special', $result['tone']);
-        $this->assertSame('Special Schedule', $result['badge']);
+        $this->assertSame('Special Opening', $result['badge']);
         $this->assertSame('Special opening today. On-site transactions are available.', $result['message']);
         $this->assertSame('9:00 AM–12:00 PM', $result['hours']);
         $this->assertSame('Scheduled Saturday service', $result['reason']);

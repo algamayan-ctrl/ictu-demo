@@ -670,7 +670,10 @@ class LinenReturnInspectionFormTest extends TestCase
         ['custody' => $custody, 'lines' => $lines, 'job' => $job] = $this->outstandingCustody(linen: true);
 
         // The expected return was 15 days ago, but the Laundry Worker actually
-        // received the linen only 3 days ago. The Action Officer is encoding the
+        // received the linen only 5 days ago - a Friday, an SPMU open return day.
+        // (A signed date on a closed, unauthorized day is held as Pending Date
+        // Authorization instead of being finalized; that path is covered by
+        // LinenLaundryReceivingTest.) The Action Officer is encoding the
         // accomplished form today. Lateness uses only dates when Return processing
         // was operational; closed weekend days do not increase the fee. The exact
         // RECEIVED BY date remains authoritative and is never replaced by upload time.
@@ -679,7 +682,7 @@ class LinenReturnInspectionFormTest extends TestCase
             'due_at' => now()->subDays(15)->endOfDay(),
         ]);
 
-        $actualReturnDate = now()->subDays(3)->toDateString();
+        $actualReturnDate = now()->subDays(5)->toDateString();
 
         $lateFee = SystemSetting::query()
             ->where('setting_key', 'daily_overdue_tariff')

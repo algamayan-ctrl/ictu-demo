@@ -77,7 +77,7 @@ class OperationalAdvisoryService
         }
 
         [$tone, $badge, $message] = match (true) {
-            $todayAllowed && $specialToday => ['special', 'Special Schedule', $normallyClosedToday
+            $todayAllowed && $specialToday => ['special', $normallyClosedToday ? 'Special Opening' : 'Open Today', $normallyClosedToday
                 ? 'Special opening today. On-site transactions are available.'
                 : 'On-site transactions follow a special schedule today.'],
             $todayAllowed => ['normal', 'Open Today', 'On-site transactions are available today.'],

@@ -271,7 +271,9 @@ class LateReturnService
      *   linen      SPMU open return days and authorized Laundry receiving
      *              days after the effective due date, through the usable
      *              signed Laundry Received date (or $through while there is
-     *              none, or while that date awaits authorization).
+     *              none, or while that date awaits authorization); plus the
+     *              signed date itself when the SPMU Head accepted it for this
+     *              receipt alone.
      *
      * A mixed custody is late on a date when either kind was still out on
      * one of its own eligible days; every date counts once. A Laundry-only
@@ -342,6 +344,21 @@ class LateReturnService
             }
 
             $dates = array_merge($dates, $this->operationalCalendar->linenReceivingDates($due, $end));
+
+            /*
+             * A signed date the SPMU Head accepted for this receipt alone: the
+             * Head verified that Laundry Personnel received the linen that day,
+             * so the day is chargeable for this custody even though the SPMU
+             * Office was closed. It is not a receiving day for anyone else, and
+             * it is counted once if the day was also authorized later.
+             */
+            if ($job?->receipt_date_status === LaundryJob::RECEIPT_DATE_ACCEPTED && $job->worker_received_at !== null) {
+                $acceptedOn = Carbon::parse($job->worker_received_at)->startOfDay();
+
+                if ($acceptedOn->gt($due)) {
+                    $dates[] = $acceptedOn->toDateString();
+                }
+            }
         }
 
         $dates = array_values(array_unique($dates));
@@ -354,6 +371,26 @@ class LateReturnService
     public function chargeableLateDays(CustodyTransaction $custody, \DateTimeInterface|string|null $through = null): int
     {
         return count($this->chargeableLateDates($custody, $through));
+    }
+
+    /**
+     * The late days recorded on this custody's finalized assessment, or null
+     * while there is none (still out, or returned without a case).
+     *
+     * Once the physical return is recorded the case figures are frozen. Any
+     * screen that shows late days for a completed return reads them here, so
+     * a later change to a receiving calendar cannot make it disagree with
+     * the penalty case beside it. Nothing is recalculated or written.
+     */
+    public function finalizedLateDays(CustodyTransaction $custody): ?int
+    {
+        $case = $custody->relationLoaded('overdueCase')
+            ? $custody->overdueCase
+            : $custody->overdueCase()->first();
+
+        return $case && $case->actual_return_date !== null
+            ? max(0, (int) $case->late_days)
+            : null;
     }
 
     /* ------------------------------------------------------------------ */
@@ -489,8 +526,10 @@ class LateReturnService
     /**
      * SPMU Head/Admin: accept the signed Laundry Received date as the actual
      * return date without authorizing that day for Laundry receiving. The
-     * day stays unauthorized, so it is not itself counted as a late day.
-     * This verifies the receipt only; it approves no penalty.
+     * Head has verified that Laundry Personnel received the linen that day,
+     * so the day is a chargeable late day for this custody only; it stays
+     * unauthorized for every other transaction. This verifies the receipt
+     * only; it approves no penalty.
      */
     public function acceptReceiptDate(LaundryJob $job, User $head, string $note): void
     {
@@ -513,6 +552,7 @@ class LateReturnService
             'receipt_date_status' => LaundryJob::RECEIPT_DATE_ACCEPTED,
             'laundry_received_on' => Carbon::parse($job->worker_received_at)->toDateString(),
             'day_authorized_for_laundry_receiving' => false,
+            'counted_as_late_day_for_this_custody_only' => true,
             'accepted_by_user_id' => $head->id,
         ]);
     }

@@ -25,6 +25,7 @@ use App\Models\StoredFile;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\AnalyticsService;
+use App\Services\BorrowerObligationService;
 use App\Services\LateReturnService;
 use App\Services\OperationalCalendarService;
 use Database\Seeders\DatabaseSeeder;
@@ -372,36 +373,257 @@ class LinenLaundryReceivingTest extends TestCase
         $this->assertSame(LateReturnService::STATUS_FOR_HEAD_APPROVAL, $case->status);
     }
 
-    public function test_the_head_accepting_the_signed_date_only_gives_a_truthful_audited_zero_day_case(): void
+    public function test_the_head_accepting_one_signed_receipt_counts_that_day_for_this_custody_only(): void
     {
         ['custody' => $custody, 'lines' => $lines, 'job' => $job] = $this->custody(linen: true);
+        ['custody' => $other, 'job' => $otherJob] = $this->custody(linen: true);
+        ['custody' => $equipment] = $this->custody(linen: false);
         $this->upload($job, self::SAT);
 
-        $this->headPost(route('laundry.spmu.accept-receipt-date', $job), [
-            'review_note' => 'Confirmed with Laundry Personnel that the linen was received on the signed date.',
-        ])->assertSessionHasNoErrors();
+        $note = 'Confirmed with Laundry Personnel that the linen was received on the signed date.';
+        $this->headPost(route('laundry.spmu.accept-receipt-date', $job), ['review_note' => $note])
+            ->assertSessionHasNoErrors();
 
+        /* The decision, its reason, the actor and the time are kept; the signed date is untouched. */
         $job->refresh();
         $this->assertSame(LaundryJob::RECEIPT_DATE_ACCEPTED, $job->receipt_date_status);
         $this->assertSame($this->user(AccessClassification::SpmuHead)->id, $job->receipt_date_reviewed_by_user_id);
         $this->assertNotNull($job->receipt_date_reviewed_at);
+        $this->assertSame($note, $job->receipt_date_review_note);
         $this->assertSame(self::SAT, $job->worker_received_at->toDateString());
-        $this->assertTrue($this->audited('LAUNDRY_RECEIPT_DATE_ACCEPTED', $job));
 
-        /* The day itself was not authorized, so it is not a receiving day for anyone else. */
+        $accepted = AuditEvent::query()->where('action_code', 'LAUNDRY_RECEIPT_DATE_ACCEPTED')->where('record_id', $job->id)->sole();
+        $this->assertSame(self::SAT, data_get($accepted->after_json, 'laundry_received_on'));
+        $this->assertFalse((bool) data_get($accepted->after_json, 'day_authorized_for_laundry_receiving'));
+        $this->assertTrue((bool) data_get($accepted->after_json, 'counted_as_late_day_for_this_custody_only'));
+
+        /* Saturday is the one chargeable day for this custody. */
+        $this->assertSame([self::SAT], $this->lateReturns->chargeableLateDates($custody->fresh()));
+
+        /* It was not opened for anyone else: no calendar entry, nothing counted, and another Saturday receipt still waits. */
         $this->assertFalse(app(OperationalCalendarService::class)->isLinenReceivingDate(self::SAT));
         $this->assertSame(0, LaundryReceivingDay::query()->count());
+        $this->assertSame([], $this->lateReturns->chargeableLateDates($other->fresh(), self::SAT));
+        $this->assertSame([], $this->lateReturns->chargeableLateDates($equipment->fresh(), self::SUN));
+        $this->assertSame([self::MON], $this->lateReturns->chargeableLateDates($equipment->fresh(), self::MON));
+        $this->travel(30)->seconds();
+        $this->upload($otherJob, self::SAT);
+        $this->assertSame(LaundryJob::RECEIPT_DATE_PENDING, $otherJob->fresh()->receipt_date_status);
 
+        $this->travel(30)->seconds();
         $this->encodeLinen($custody, $lines)->assertSessionHasNoErrors();
 
-        /* Returned after the deadline, on a day that is not chargeable: zero days, on the record. */
+        /* Friday due, accepted Saturday receipt: one late day with the applicable fee. */
         $case = $this->headCase($custody);
         $this->assertNotNull($case);
-        $this->assertSame(0, (int) $case->late_days);
-        $this->assertSame(0.0, (float) $case->accrued_amount);
+        $this->assertSame(1, (int) $case->late_days);
+        $this->assertSame(50.0, (float) $case->accrued_amount);
         $this->assertSame(self::SAT, $case->actual_return_date->toDateString());
         $this->assertTrue($this->audited('LATE_RETURN_DETECTED', $case));
     }
+
+    public function test_both_head_decisions_charge_an_identical_saturday_receipt_the_same(): void
+    {
+        /* Receipt-specific acceptance first, while Saturday is not on the Laundry calendar. */
+        ['custody' => $acceptedCustody, 'lines' => $acceptedLines, 'job' => $acceptedJob] = $this->custody(linen: true);
+        $this->upload($acceptedJob, self::SAT);
+        $this->headPost(route('laundry.spmu.accept-receipt-date', $acceptedJob), [
+            'review_note' => 'Laundry Personnel confirmed receipt on the signed Saturday.',
+        ])->assertSessionHasNoErrors();
+        $this->travel(30)->seconds();
+        $this->encodeLinen($acceptedCustody, $acceptedLines)->assertSessionHasNoErrors();
+
+        /* The same receipt for another custody, released by authorizing the whole date. */
+        ['custody' => $authorizedCustody, 'lines' => $authorizedLines, 'job' => $authorizedJob] = $this->custody(linen: true);
+        $this->travel(30)->seconds();
+        $this->upload($authorizedJob, self::SAT);
+        $this->authorizeLaundry(self::SAT)->assertSessionHasNoErrors();
+        $this->travel(30)->seconds();
+        $this->encodeLinen($authorizedCustody, $authorizedLines)->assertSessionHasNoErrors();
+
+        $accepted = $this->headCase($acceptedCustody);
+        $authorized = $this->headCase($authorizedCustody);
+
+        $this->assertSame(1, (int) $accepted->late_days);
+        $this->assertSame(1, (int) $authorized->late_days);
+        $this->assertSame((float) $authorized->accrued_amount, (float) $accepted->accrued_amount);
+        $this->assertSame(50.0, (float) $accepted->accrued_amount);
+
+        /* Accepted and then authorized as well: still one day, never two. */
+        $this->assertSame(LaundryJob::RECEIPT_DATE_ACCEPTED, $acceptedJob->fresh()->receipt_date_status);
+        $this->assertSame([self::SAT], $this->lateReturns->chargeableLateDates($acceptedCustody->fresh()));
+    }
+
+    public function test_an_accepted_sunday_after_an_authorized_saturday_counts_each_eligible_day_once(): void
+    {
+        $this->authorizeLaundry(self::SAT)->assertSessionHasNoErrors();
+        ['custody' => $custody, 'lines' => $lines, 'job' => $job] = $this->custody(linen: true);
+
+        $this->upload($job, self::SUN);
+        $this->assertSame(LaundryJob::RECEIPT_DATE_PENDING, $job->fresh()->receipt_date_status);
+        $this->headPost(route('laundry.spmu.accept-receipt-date', $job), [
+            'review_note' => 'Laundry Personnel confirmed receipt on the signed Sunday.',
+        ])->assertSessionHasNoErrors();
+
+        /* Saturday from the Laundry calendar, Sunday from this receipt alone. */
+        $this->assertSame([self::SAT, self::SUN], $this->lateReturns->chargeableLateDates($custody->fresh()));
+        $this->assertFalse(app(OperationalCalendarService::class)->isLinenReceivingDate(self::SUN));
+
+        $this->travel(30)->seconds();
+        $this->encodeLinen($custody, $lines)->assertSessionHasNoErrors();
+
+        $case = $this->headCase($custody);
+        $this->assertSame(2, (int) $case->late_days);
+        $this->assertSame(100.0, (float) $case->accrued_amount);
+        $this->assertSame(self::SUN, $case->actual_return_date->toDateString());
+    }
+
+    public function test_mixed_custody_with_an_accepted_receipt_counts_distinct_late_dates(): void
+    {
+        ['custody' => $custody, 'lines' => $lines, 'job' => $job] = $this->custody(linen: true, nonLinen: true);
+
+        $this->upload($job, self::SAT);
+        $this->headPost(route('laundry.spmu.accept-receipt-date', $job), [
+            'review_note' => 'Laundry Personnel confirmed receipt on the signed Saturday.',
+        ])->assertSessionHasNoErrors();
+        $this->travel(30)->seconds();
+        $this->encodeLinen($custody, $lines)->assertSessionHasNoErrors();
+        $this->travel(30)->seconds();
+        $this->encodeEquipment($custody, $lines)->assertSessionHasNoErrors();
+
+        /* Saturday for the linen receipt, Monday for the equipment; each date once. */
+        $this->assertSame([self::SAT, self::MON], $this->lateReturns->chargeableLateDates($custody->fresh()));
+        $this->assertSame(2, (int) $this->headCase($custody)->late_days);
+        $this->assertSame(100.0, (float) $this->headCase($custody)->accrued_amount);
+    }
+
+    public function test_finalized_late_days_stay_frozen_everywhere_after_calendar_changes(): void
+    {
+        $this->authorizeLaundry(self::SAT, 'Laundry Area on duty.');
+        ['custody' => $custody, 'lines' => $lines, 'job' => $job] = $this->custody(linen: true);
+
+        /* Authorized Saturday, received Monday: two late days. */
+        $this->upload($job, self::MON)->assertSessionHasNoErrors();
+        $this->encodeLinen($custody, $lines)->assertSessionHasNoErrors();
+
+        $frozen = $this->headCase($custody)->only(['late_days', 'accrued_amount', 'rate_snapshot', 'status', 'actual_return_date']);
+        $this->assertSame(2, (int) $frozen['late_days']);
+        $this->assertSame(100.0, (float) $frozen['accrued_amount']);
+
+        $agrees = function () use ($custody, $frozen): void {
+            $case = OverdueCase::query()->where('custody_transaction_id', $custody->id)->sole();
+
+            /* The stored assessment is untouched. */
+            $this->assertEquals($frozen, $case->only(['late_days', 'accrued_amount', 'rate_snapshot', 'status', 'actual_return_date']));
+            $this->assertSame(2, (int) $this->lateReturns->assessment($case)['late_days']);
+            $this->assertSame(100.0, (float) $this->lateReturns->assessment($case)['amount']);
+
+            /* Analytics and Borrower Obligations show the same finalized figure. */
+            $this->assertSame(2, $this->lateReturns->finalizedLateDays($custody->fresh()));
+            $this->assertSame(2, app(AnalyticsService::class)->lateDaysForReturn($custody->fresh(), self::MON));
+
+            $row = collect(app(BorrowerObligationService::class)->obligationRows($custody->borrower_user_id))
+                ->first(fn (array $row): bool => in_array($row['type'], ['Late Return', 'Overdue Return'], true));
+            $this->assertNotNull($row);
+            $this->assertSame('2 days late', $row['status_meta']);
+        };
+
+        $agrees();
+
+        /* Saturday's authorization is revoked: a live recount would now say one day. */
+        $day = LaundryReceivingDay::query()->sole();
+        $this->headPost(route('policies.laundry-receiving-days.revoke', $day), [
+            'revocation_reason' => 'Authorization was entered for the wrong weekend.',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame(1, $this->lateReturns->chargeableLateDays($custody->fresh()));
+        $agrees();
+
+        /* Sunday is authorized afterwards: a live recount would say two days for another reason. */
+        $this->travel(30)->seconds();
+        $this->authorizeLaundry(self::SUN)->assertSessionHasNoErrors();
+        $agrees();
+
+        /* Both weekend days authorized: a live recount would say three. */
+        $this->travel(30)->seconds();
+        $this->authorizeLaundry(self::SAT, 'Confirmed correct after review.')->assertSessionHasNoErrors();
+        $this->assertSame(3, $this->lateReturns->chargeableLateDays($custody->fresh()));
+        $agrees();
+    }
+
+    public function test_an_unfinalized_return_keeps_using_the_live_counter(): void
+    {
+        ['custody' => $custody] = $this->custody(linen: false);
+
+        $this->at(self::TUE);
+
+        /* Still out, no finalized assessment: nothing to read, so the live counter applies. */
+        $this->assertNull($this->lateReturns->finalizedLateDays($custody->fresh()));
+        $this->assertSame(2, app(AnalyticsService::class)->daysOverdue($custody->fresh()));
+
+        $this->runScheduler();
+        $case = OverdueCase::query()->where('custody_transaction_id', $custody->id)->sole();
+        $this->assertNull($case->actual_return_date);
+        $this->assertNull($this->lateReturns->finalizedLateDays($custody->fresh()));
+        $this->assertTrue((bool) $this->lateReturns->assessment($case)['is_estimate']);
+        $this->assertSame(2, (int) $this->lateReturns->assessment($case)['late_days']);
+
+        $row = collect(app(BorrowerObligationService::class)->obligationRows($custody->borrower_user_id))
+            ->first(fn (array $row): bool => $row['type'] === 'Overdue Return');
+        $this->assertNotNull($row);
+        $this->assertSame('2 days late', $row['status_meta']);
+
+        /* A day later the running figure moves on, as before. */
+        $this->at(self::WED);
+        $this->assertSame(3, app(AnalyticsService::class)->daysOverdue($custody->fresh()));
+    }
+
+    public function test_repeated_decisions_and_scheduler_runs_never_duplicate_cases_sanctions_or_history(): void
+    {
+        ['custody' => $custody, 'lines' => $lines, 'job' => $job] = $this->custody(linen: true);
+
+        $this->upload($job, self::SAT);
+        $this->headPost(route('laundry.spmu.accept-receipt-date', $job), [
+            'review_note' => 'Laundry Personnel confirmed receipt on the signed Saturday.',
+        ])->assertSessionHasNoErrors();
+
+        /* A second acceptance of the same receipt is refused. */
+        $this->travel(30)->seconds();
+        $this->headPost(route('laundry.spmu.accept-receipt-date', $job), [
+            'review_note' => 'Second attempt to accept the same signed date.',
+        ])->assertSessionHasErrors('receipt_date');
+
+        /* The date is then authorized, twice. */
+        $this->authorizeLaundry(self::SAT)->assertSessionHasNoErrors();
+        $this->travel(30)->seconds();
+        $this->authorizeLaundry(self::SAT, 'Authorized again by mistake.');
+        $this->assertSame(1, LaundryReceivingDay::query()->count());
+
+        $this->at(self::MON);
+        $this->runScheduler(3);
+        $this->encodeLinen($custody, $lines)->assertSessionHasNoErrors();
+        $this->runScheduler(3);
+
+        $this->assertSame(1, OverdueCase::query()->where('custody_transaction_id', $custody->id)->count());
+        $case = $this->headCase($custody);
+        $this->assertSame(1, (int) $case->late_days);
+        $this->assertSame(50.0, (float) $case->accrued_amount);
+        $this->assertSame(0, Sanction::query()->count());
+
+        /* One restriction per kind (outstanding return, then late-return settlement), never a repeat. */
+        $restrictions = BorrowerRestriction::query()->where('custody_transaction_id', $custody->id)->pluck('restriction_type');
+        $this->assertSame($restrictions->unique()->count(), $restrictions->count());
+        $this->assertSame(1, BorrowerRestriction::query()->where('custody_transaction_id', $custody->id)->where('restriction_type', 'OVERDUE_RETURN')->count());
+
+        /* The Head's decision and the signed document history are all still on record. */
+        $this->assertSame(1, AuditEvent::query()->where('action_code', 'LAUNDRY_RECEIPT_DATE_ACCEPTED')->where('record_id', $job->id)->count());
+        $this->assertTrue($this->audited('LAUNDRY_RECEIPT_DATE_PENDING_AUTHORIZATION', $job));
+        $this->assertTrue($this->audited('LAUNDRY_SIGNED_FORM_ARCHIVED', $job));
+        $this->assertSame(1, EvidenceSubmission::query()->where('generated_document_id', $job->generated_document_id)->count());
+        $this->assertSame(LaundryJob::RECEIPT_DATE_ACCEPTED, $job->fresh()->receipt_date_status);
+        $this->assertSame(self::SAT, $job->fresh()->worker_received_at->toDateString());
+        $this->assertSame(1, AuditEvent::query()->where('action_code', 'LATE_RETURN_DETECTED')->where('record_id', $case->id)->count());
+    }
+
 
     public function test_a_date_typed_wrongly_can_be_recorded_again_with_the_earlier_evidence_kept(): void
     {
@@ -887,7 +1109,7 @@ class LinenLaundryReceivingTest extends TestCase
         $this->assertSame(self::SAT, data_get($detected->after_json, 'actual_return_date'));
 
         /* The Head sees the signed date, its authorization and the form on the review screen. */
-        $this->headGet(route('accountability.index', ['queue' => 'all']))
+        $this->headGet(route('accountability.index', ['view' => 'cases']))
             ->assertOk()
             ->assertSee('data-late-return-laundry-evidence', false)
             ->assertSee('authorized Laundry receiving day');

@@ -43,7 +43,7 @@
                         <span class="special-dates-count">{{ $pendingLaundryReceipts->count() }}</span>
                     </h3>
                 </div>
-                <p class="meta">Each signed Laundry Form below shows a Laundry Received date that is neither an SPMU open return day nor an authorized Laundry receiving day. Open the form, then decide. These are two different decisions: authorizing the date is a calendar decision (the date then counts as a receiving day); accepting the signed date only verifies this one receipt (the date stays unauthorized and is not counted as a late day). Neither approves a penalty.</p>
+                <p class="meta">Each signed Laundry Form below shows a Laundry Received date that is neither an SPMU open return day nor an authorized Laundry receiving day. Open the form, then decide. These are two different decisions: authorizing the date is a calendar decision (the date then counts as a receiving day); accepting the signed date only verifies this one receipt (the date counts as a late day for this transaction alone and stays unauthorized for all others). Both give this receipt the same late days. Neither approves a penalty.</p>
 
                 <div class="table-wrap special-dates-table-wrap">
                     <table>

@@ -1292,7 +1292,7 @@ class BorrowingRequestController extends Controller
 
         return [
             'open' => false,
-            'message' => 'SPMU is closed on '.$date->format('F j, Y').$reason.'. Please choose a different '.$label.'.',
+            'message' => 'SPMU is closed on '.$date->format('F j, Y').$reason.'. Please choose a different date.',
         ];
     }
 

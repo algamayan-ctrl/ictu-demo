@@ -122,7 +122,7 @@ class OperationalAdvisoryTest extends TestCase
         $this->special('2026-09-19', 'OPEN', ['reason' => 'Enrollment support']);
         $opened = $this->advisory();
         $this->assertSame('special', $opened['tone']);
-        $this->assertSame('Special Schedule', $opened['badge']);
+        $this->assertSame('Special Opening', $opened['badge']);
         $this->assertSame('9:00 AM–12:00 PM', $opened['hours']);
         $this->assertSame('Enrollment support', $opened['reason']);
         $this->assertNull($opened['next_available']);
@@ -161,22 +161,26 @@ class OperationalAdvisoryTest extends TestCase
         }
     }
 
-    public function test_borrower_dashboard_and_create_request_show_the_compact_advisory(): void
+    public function test_dashboard_shows_advisory_but_create_request_does_not_duplicate_it(): void
     {
         $this->travelTo(Carbon::create(2026, 9, 19, 9, 0)); // Saturday
 
-        foreach ([route('dashboard'), route('requests.create')] as $url) {
-            $this->asBorrower()->get($url)->assertOk()
-                ->assertSee('SPMU Transaction Advisory')
-                ->assertSee('Closed Today')
-                ->assertSee('No on-site transactions today. Online requests remain available.')
-                ->assertSee('Next available: Mon, Sep 21')
-                ->assertSee('View Calendar →')
-                ->assertSee('href="'.route('calendar.index').'"', false)
-                ->assertSee('data-refresh-url="'.route('operational-advisory.status').'"', false)
-                ->assertDontSee('Next closed')
-                ->assertDontSee('Pickup and returns follow the Operational Calendar');
-        }
+        $this->asBorrower()->get(route('dashboard'))->assertOk()
+            ->assertSee('SPMU Transaction Advisory')
+            ->assertSee('Closed Today')
+            ->assertSee('No on-site transactions today. Online requests remain available.')
+            ->assertSee('Next available: Mon, Sep 21')
+            ->assertSee('View Calendar →')
+            ->assertSee('href="'.route('calendar.index').'"', false)
+            ->assertSee('data-refresh-url="'.route('operational-advisory.status').'"', false)
+            ->assertDontSee('Next closed');
+
+        $this->asBorrower()->get(route('requests.create'))->assertOk()
+            ->assertDontSee('SPMU Transaction Advisory')
+            ->assertDontSee('data-spmu-operational-advisory')
+            ->assertSee('id="schedule_date"', false)
+            ->assertSee('id="spmu-schedule-live-error"', false)
+            ->assertSee('id="spmu-return-live-error"', false);
     }
 
     public function test_a_closed_day_never_blocks_opening_the_request_form_or_checking_dates(): void
@@ -185,7 +189,7 @@ class OperationalAdvisoryTest extends TestCase
 
         // Today is closed, yet the borrower can still start an online request.
         $this->asBorrower()->get(route('requests.create'))->assertOk()
-            ->assertSee('Temporary Closure')
+            ->assertDontSee('SPMU Transaction Advisory')
             ->assertSee('id="schedule_date"', false)
             ->assertSee('id="spmu-schedule-live-error"', false)
             ->assertSee('id="spmu-return-live-error"', false);
@@ -199,7 +203,7 @@ class OperationalAdvisoryTest extends TestCase
             'schedule_date' => '2026-09-17', 'return_date' => '2026-09-19',
         ]))->assertOk()
             ->assertJsonPath('schedule_date.open', false)
-            ->assertJsonPath('schedule_date.message', 'SPMU is closed on September 17, 2026 (Water interruption). Please choose a different Items Needed From.')
+            ->assertJsonPath('schedule_date.message', 'SPMU is closed on September 17, 2026 (Water interruption). Please choose a different date.')
             ->assertJsonPath('return_date.open', true);
 
         // A regular closed Sunday is explained without inventing a reason.
@@ -208,6 +212,6 @@ class OperationalAdvisoryTest extends TestCase
         ]))->assertOk()
             ->assertJsonPath('schedule_date.open', true)
             ->assertJsonPath('return_date.open', false)
-            ->assertJsonPath('return_date.message', 'SPMU is closed on September 20, 2026. Please choose a different Expected Return Date.');
+            ->assertJsonPath('return_date.message', 'SPMU is closed on September 20, 2026. Please choose a different date.');
     }
 }

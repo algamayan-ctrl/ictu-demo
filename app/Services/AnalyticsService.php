@@ -2953,12 +2953,20 @@ class AnalyticsService
  }
 
  /**
- * Late days of a completed return, measured to the date it completed.
- * Uses the custody's own receiving calendars; see daysOverdue().
+ * Late days of a completed return.
+ *
+ * The finalized late-return assessment is the source of truth: its
+ * recorded figure is shown as it stands, so a later calendar change
+ * never makes Analytics disagree with the penalty case. Only a return
+ * with no finalized assessment is measured, to the date it completed,
+ * against the custody's own receiving calendars; see daysOverdue().
  */
  public function lateDaysForReturn(CustodyTransaction $custody, CarbonInterface|string $returnedAt): int
  {
- return app(LateReturnService::class)->chargeableLateDays($custody, $returnedAt);
+ $lateReturns = app(LateReturnService::class);
+
+ return $lateReturns->finalizedLateDays($custody)
+ ?? $lateReturns->chargeableLateDays($custody, $returnedAt);
  }
 
  /**

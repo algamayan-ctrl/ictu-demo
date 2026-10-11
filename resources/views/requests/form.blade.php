@@ -1085,10 +1085,6 @@
 </section>
 @endif
 
-<div class="content-area" style="margin-bottom:12px">
-    @include('shared.operational-advisory', ['compact' => true])
-</div>
-
 <section class="content-area request-form-shell">
 <form
     method="post"

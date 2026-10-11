@@ -1,5 +1,5 @@
 @php
-    // Shared by the borrower form and the borrower/SPMU dashboards.
+    // Shared by the borrower and SPMU dashboards; request forms use field-level guidance.
     $operationalAdvisory = app(\App\Services\OperationalAdvisoryService::class)->snapshot();
     $operationalAdvisoryCompact = $compact ?? false;
 @endphp
@@ -50,7 +50,11 @@
     .spmu-advisory__link { align-self:center; flex:0 0 auto; font-size:11px; font-weight:700; color:var(--info, #1976d2); text-decoration:none; white-space:nowrap; }
     .spmu-advisory__link:hover,.spmu-advisory__link:focus-visible { text-decoration:underline; }
     .dashboard-page-shell > .spmu-advisory { margin-bottom: 12px; }
-    .spmu-advisory--compact { padding:11px 14px; }
+    /* Staff dashboards use the same status but a less prominent footprint. */
+    .spmu-advisory--compact { padding:8px 12px; gap:8px; }
+    .spmu-advisory--compact .spmu-advisory__icon { height:27px; flex-basis:27px; }
+    .spmu-advisory--compact .spmu-advisory__main { margin-top:2px; font-size:11px; }
+    .spmu-advisory--compact .spmu-advisory__meta { margin-top:3px; }
     @media (max-width:620px) {
         .spmu-advisory { flex-wrap:wrap; }
         .spmu-advisory__link { margin-left:42px; }

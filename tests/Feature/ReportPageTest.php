@@ -64,28 +64,31 @@ class ReportPageTest extends TestCase
     {
         $response = $this->actingAs($this->head)
             ->withSession(['active_workspace' => 'SPMU'])
-            ->get(route('reports.index'));
+            ->get(route('reports.index', ['report' => 'borrowing']));
 
         $response->assertOk();
         $response->assertSee('Report builder', false);
         $response->assertSee('Preview official operational reports, then print or export the exact records you reviewed.', false);
-        $response->assertSee('Preview Report', false);
+        $response->assertSee('Refresh Preview', false);
         $response->assertSee('Filters', false);
         $response->assertDontSee('More Filters', false);
     }
 
-    public function test_reports_page_starts_with_configuration_and_no_generated_document(): void
+    public function test_reports_page_opens_on_the_system_preview_without_a_placeholder_or_paper_layout(): void
     {
         $response = $this->actingAs($this->head)
             ->withSession(['active_workspace' => 'SPMU'])
-            ->get(route('reports.index'));
+            ->get(route('reports.index', ['report' => 'borrowing']));
 
         $response->assertOk();
-        $response->assertSee('Choose the report options above, then select Preview Report to review the records here.', false);
+        $this->assertTrue($response->viewData('showPreview'));
+        $this->assertNotNull($response->viewData('dataset'));
+        $response->assertSee('data-report-live="results"', false);
+        $response->assertDontSee('Choose the report options above', false);
+        $response->assertDontSee('report-preview-empty', false);
         $response->assertDontSee('CAMARINES SUR POLYTECHNIC COLLEGES', false);
+        $response->assertDontSee('Republic of the Philippines', false);
         $response->assertDontSee('Export / Print', false);
-        $response->assertDontSee('Web record navigation', false);
-        $response->assertDontSee('For analysis, insights, and forecasting, use the Analytics module.', false);
     }
 
 
@@ -98,7 +101,7 @@ class ReportPageTest extends TestCase
         $response->assertOk();
         $response->assertSee('name="generated"', false);
         $response->assertSee('value="1"', false);
-        $response->assertSee('Preview Report', false);
+        $response->assertSee('Refresh Preview', false);
         $response->assertSee('AO Verification', false);
         $response->assertSee('Admin Decision', false);
         $response->assertDontSee('<details class="report-more-filters"', false);
@@ -125,7 +128,7 @@ class ReportPageTest extends TestCase
     {
         $response = $this->actingAs($this->head)
             ->withSession(['active_workspace' => 'SPMU'])
-            ->get(route('reports.index'));
+            ->get(route('reports.index', ['report' => 'borrowing']));
 
         foreach (['Borrowing', 'Custody &amp; Return', 'Assets', 'Special Operations'] as $group) {
             $response->assertSee('<optgroup label="'.$group.'">', false);
@@ -136,11 +139,12 @@ class ReportPageTest extends TestCase
     {
         $response = $this->actingAs($this->head)
             ->withSession(['active_workspace' => 'SPMU'])
-            ->get(route('reports.index', ['academic_period' => 'month']));
+            ->get(route('reports.index', ['report' => 'borrowing', 'academic_period' => 'month']));
 
         $response->assertOk();
-        $response->assertSee('Date Range', false);
-        $response->assertSee(now()->startOfMonth()->format('d M Y').' – '.now()->endOfMonth()->format('d M Y'), false);
+        // The builder shows the resolved range in its own From / To fields.
+        $response->assertSee('data-applied-start-label>'.now()->startOfMonth()->format('d M Y').'<', false);
+        $response->assertSee('data-applied-end-label>'.now()->endOfMonth()->format('d M Y').'<', false);
     }
 
     public function test_generated_reports_page_shows_the_analytics_boundary_note(): void
@@ -150,7 +154,7 @@ class ReportPageTest extends TestCase
 
         $this->actingAs($this->head)
             ->withSession(['active_workspace' => 'SPMU'])
-            ->get(route('reports.index', ['generated' => 1]))
+            ->get(route('reports.index', ['report' => 'borrowing', 'generated' => 1]))
             ->assertSee('For analysis, insights, and forecasting, use the Analytics module.', false);
     }
 
@@ -200,35 +204,144 @@ class ReportPageTest extends TestCase
         $response->assertDontSee('<span>Delivery Records</span>', false);
     }
 
-    public function test_spmu_head_cannot_see_or_open_the_ictu_audit_trail(): void
-    {
-        $response = $this->actingAs($this->head)
-            ->withSession(['active_workspace' => 'SPMU'])
-            ->get(route('reports.index'));
-
-        $response->assertDontSee('View related audit history', false);
-        $response->assertDontSee(route('reports.audit'), false);
-
-        $this->actingAs($this->head)
-            ->withSession(['active_workspace' => 'SPMU'])
-            ->get(route('reports.audit'))
-            ->assertForbidden();
-    }
-
-    public function test_ictu_maintainer_can_open_the_audit_trail(): void
+    public function test_spmu_head_opens_only_the_read_only_operational_audit_trail(): void
     {
         $ictu = User::factory()->create([
             'access_classification' => AccessClassification::IctuMaintainer,
             'full_name' => 'ICTU Maintainer',
         ]);
 
-        $this->actingAs($ictu)
+        $this->auditEvent('BORROWING_REQUEST_SUBMITTED', $this->head, 'Operational fixture: request submitted.');
+        $this->auditEvent('INVENTORY_ADJUSTED', $this->head, 'Operational fixture: stock adjusted.');
+        $this->auditEvent('LOGIN_FAILED', $this->head, 'Technical fixture: failed sign-in.');
+        $this->auditEvent('SYSTEM_SETTING_UPDATED', $ictu, 'Technical fixture: setting changed.');
+        $this->auditEvent('USER_ACCOUNT_DEACTIVATED', $ictu, 'Technical fixture: account deactivated.');
+        $this->auditEvent('UNCLASSIFIED_MAINTENANCE', $ictu, 'Technical fixture: unclassified ICTU action.');
+
+        /* Reports itself still carries no audit controls; the trail is its own sidebar destination. */
+        $reports = $this->actingAs($this->head)
+            ->withSession(['active_workspace' => 'SPMU'])
+            ->get(route('reports.index'));
+
+        $reports->assertDontSee('View related audit history', false);
+        $reports->assertSee('Operational Audit Trail', false);
+        $reports->assertDontSee('Technical Audit Trail', false);
+        $this->assertSame(1, substr_count($reports->getContent(), 'href="'.route('reports.audit').'"'));
+
+        /* A hand-typed category cannot widen the list: it is filtered on the server. */
+        foreach ([[], ['category' => 'AUTH_VERIFICATION'], ['category' => 'SETTINGS', 'mode' => 'technical']] as $query) {
+            $trail = $this->actingAs($this->head)
+                ->withSession(['active_workspace' => 'SPMU'])
+                ->get(route('reports.audit', $query))
+                ->assertOk();
+
+            $this->assertSame('operational', $trail->viewData('auditMode'));
+            $this->assertEqualsCanonicalizing(
+                ['BORROWING_REQUEST_SUBMITTED', 'INVENTORY_ADJUSTED'],
+                $trail->viewData('events')->pluck('action_code')->all()
+            );
+
+            $trail->assertSee('Operational Audit Trail', false)
+                ->assertSee('Operational fixture: request submitted.', false)
+                ->assertSee('Operational fixture: stock adjusted.', false)
+                ->assertDontSee('Technical Audit Trail', false)
+                ->assertDontSee('Technical fixture', false)
+                ->assertDontSee('Authentication / Verification', false);
+
+            /* Read-only: the page offers no way to change or remove a record. */
+            $auditArea = substr($trail->getContent(), strpos($trail->getContent(), 'class="content-area ictu-audit-area"'));
+            $auditArea = substr($auditArea, 0, strpos($auditArea, '</main>') ?: null);
+            $this->assertStringContainsString('Operational fixture: request submitted.', $auditArea);
+            $this->assertDoesNotMatchRegularExpression('/<form[^>]+method="post"|name="_method"/i', $auditArea);
+        }
+
+        foreach (['post', 'put', 'patch', 'delete'] as $method) {
+            $this->actingAs($this->head)
+                ->withSession(['active_workspace' => 'SPMU'])
+                ->{$method}(route('reports.audit'))
+                ->assertStatus(405);
+        }
+
+        $this->assertSame(6, AuditEvent::query()->whereIn('reason', [
+            'Operational fixture: request submitted.', 'Operational fixture: stock adjusted.',
+            'Technical fixture: failed sign-in.', 'Technical fixture: setting changed.',
+            'Technical fixture: account deactivated.', 'Technical fixture: unclassified ICTU action.',
+        ])->count());
+    }
+
+    public function test_audit_trail_is_closed_to_everyone_but_the_spmu_head_and_ictu(): void
+    {
+        $this->get(route('reports.audit'))->assertRedirect();
+
+        foreach ([AccessClassification::SpmuOfficer, AccessClassification::BorrowerOnly] as $classification) {
+            $user = User::factory()->create(['access_classification' => $classification]);
+
+            $this->actingAs($user)
+                ->withSession(['active_workspace' => $user->primaryWorkspace()])
+                ->get(route('reports.audit'))
+                ->assertForbidden();
+        }
+    }
+
+    public function test_delivery_records_is_open_to_ictu_only_by_navigation_and_by_url(): void
+    {
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $officer = User::factory()->create(['access_classification' => AccessClassification::SpmuOfficer]);
+
+        foreach ([[], ['status' => 'failed'], ['legacy' => 1]] as $query) {
+            $this->actingAs($this->head)
+                ->withSession(['active_workspace' => 'SPMU'])
+                ->get(route('reports.notifications', $query))
+                ->assertForbidden();
+
+            $this->actingAs($officer)
+                ->withSession(['active_workspace' => 'SPMU'])
+                ->get(route('reports.notifications', $query))
+                ->assertForbidden();
+
+            $this->actingAs($ictu)
+                ->withSession(['active_workspace' => 'ICTU'])
+                ->get(route('reports.notifications', $query))
+                ->assertOk();
+        }
+
+        /* The Head's pages never linked to it, and still do not. */
+        foreach (['reports.index', 'dashboard', 'administration.index'] as $route) {
+            $this->actingAs($this->head)
+                ->withSession(['active_workspace' => 'SPMU'])
+                ->get(route($route))
+                ->assertOk()
+                ->assertDontSee(route('reports.notifications'), false);
+        }
+    }
+
+    public function test_ictu_maintainer_opens_only_the_technical_audit_trail(): void
+    {
+        $ictu = User::factory()->create([
+            'access_classification' => AccessClassification::IctuMaintainer,
+            'full_name' => 'ICTU Maintainer',
+        ]);
+
+        $this->auditEvent('BORROWING_REQUEST_SUBMITTED', $this->head, 'Operational fixture: request submitted.');
+        $this->auditEvent('LOGIN_FAILED', $this->head, 'Technical fixture: failed sign-in.');
+        $this->auditEvent('SYSTEM_SETTING_UPDATED', $ictu, 'Technical fixture: setting changed.');
+
+        $trail = $this->actingAs($ictu)
             ->withSession(['active_workspace' => 'ICTU'])
-            ->get(route('reports.audit'))
-            ->assertOk()
-            ->assertSee('Audit Trail', false)
-            ->assertSee('System administration', false)
-            ->assertDontSee('ICTU system administration', false)
+            ->get(route('reports.audit', ['category' => 'BORROWING']))
+            ->assertOk();
+
+        $this->assertSame('technical', $trail->viewData('auditMode'));
+        $this->assertEqualsCanonicalizing(
+            ['LOGIN_FAILED', 'SYSTEM_SETTING_UPDATED'],
+            $trail->viewData('events')->pluck('action_code')->all()
+        );
+
+        $trail->assertSee('Technical Audit Trail', false)
+            ->assertSee('ICTU technical audit', false)
+            ->assertSee('Technical fixture: failed sign-in.', false)
+            ->assertDontSee('Operational Audit Trail', false)
+            ->assertDontSee('Operational fixture', false)
             /* Under the 500-row display cap, no "latest N of total" caveat is shown. */
             ->assertDontSee('Showing latest', false);
     }
@@ -274,16 +387,27 @@ class ReportPageTest extends TestCase
         $this->assertSame(510, \App\Models\AuditEvent::query()->count());
     }
 
-    public function test_spmu_administration_page_does_not_link_to_the_ictu_audit_trail(): void
+    public function test_spmu_administration_page_shows_no_audit_evidence_only_the_operational_trail_link(): void
     {
-        $this->actingAs($this->head)
+        $this->auditEvent('SYSTEM_SETTING_UPDATED', $this->head, 'Technical fixture: setting changed.');
+
+        $page = $this->actingAs($this->head)
             ->withSession(['active_workspace' => 'SPMU'])
             ->get(route('administration.index'))
             ->assertOk()
-            ->assertDontSee('Open audit trail', false)
+            ->assertSee('System administration', false)
+            ->assertDontSee('Open Audit Trail', false)
             ->assertDontSee('Full audit', false)
             ->assertDontSee('Recent attributable actions', false)
-            ->assertDontSee(route('reports.audit'), false);
+            ->assertDontSee('SYSTEM_SETTING_UPDATED', false)
+            ->assertDontSee('Technical Audit Trail', false);
+
+        $this->assertFalse($page->viewData('mayViewAuditTrail'));
+        $this->assertCount(0, $page->viewData('recentAudits'));
+
+        /* The one audit link is the Head's own sidebar entry for the operational trail. */
+        $this->assertSame(1, substr_count($page->getContent(), 'href="'.route('reports.audit').'"'));
+        $page->assertSee('Operational Audit Trail', false);
     }
 
     public function test_delivery_is_not_offered_as_a_report_action(): void
@@ -346,15 +470,27 @@ class ReportPageTest extends TestCase
             ->withSession(['active_workspace' => 'SPMU'])
             ->get(route('reports.index', ['report' => 'borrowing', 'academic_period' => 'month', 'generated' => 1]));
 
+        /* The preview is the system view; the formal document exists only in print/export. */
         $response->assertDontSee('Republic of the Philippines', false);
         $response->assertDontSee('CAMARINES SUR POLYTECHNIC COLLEGES', false);
         $response->assertDontSee('Nabua, Camarines Sur', false);
-        $response->assertSee('BORROWING ACTIVITY REPORT', false);
-        $response->assertSee('For the period', false);
-        $response->assertSee('This is a system-generated report. No signature is required.', false);
-
-        /* No document code belongs in the institutional header. */
+        $response->assertDontSee('cspc-seal-document.png', false);
+        $response->assertDontSee('This is a system-generated report. No signature is required.', false);
+        $response->assertDontSee('doc-sheet', false);
         $response->assertDontSee('CSPC-F-SPMU', false);
+
+        $response->assertSee('<h2 class="report-preview-title">Borrowing Activity Report</h2>', false);
+        $response->assertSee('class="report-system-table"', false);
+        $response->assertSee('aria-label="Report summary values"', false);
+
+        /* The formal layout is still applied to the printed copy. */
+        $this->actingAs($this->head)
+            ->withSession(['active_workspace' => 'SPMU'])
+            ->get(route('reports.print', ['type' => 'borrowing', 'academic_period' => 'month']))
+            ->assertOk()
+            ->assertSee('BORROWING ACTIVITY REPORT', false)
+            ->assertSee('For the period', false)
+            ->assertSee('CAMARINES SUR POLYTECHNIC COLLEGES', false);
     }
 
     public function test_inventory_report_states_an_as_of_date_not_a_range(): void
@@ -387,7 +523,7 @@ class ReportPageTest extends TestCase
             ->withSession(['active_workspace' => 'SPMU'])
             ->get(route('reports.index', ['report' => 'inventory', 'academic_period' => 'month', 'generated' => 1]));
 
-        $response->assertSee('INVENTORY STATUS REPORT', false);
+        $response->assertSee('<h2 class="report-preview-title">Inventory Status Report</h2>', false);
         $response->assertSee('As of '.now()->endOfMonth()->format('d F Y'), false);
         $response->assertDontSee('For the period', false);
     }
@@ -670,6 +806,19 @@ class ReportPageTest extends TestCase
     /* ------------------------------------------------------------------ */
     /* Fixture                                                             */
     /* ------------------------------------------------------------------ */
+
+    private function auditEvent(string $action, User $actor, string $reason): AuditEvent
+    {
+        return AuditEvent::query()->create([
+            'actor_user_id' => $actor->id,
+            'action_code' => $action,
+            'record_type' => User::class,
+            'record_id' => $actor->id,
+            'occurred_at' => now(),
+            'reason' => $reason,
+            'correlation_id' => (string) \Illuminate\Support\Str::uuid(),
+        ]);
+    }
 
     private function request(string $division, string $unit, ?User $borrower = null): BorrowingRequest
     {

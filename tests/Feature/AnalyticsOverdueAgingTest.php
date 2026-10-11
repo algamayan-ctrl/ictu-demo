@@ -144,9 +144,13 @@ class AnalyticsOverdueAgingTest extends TestCase
         $this->assertSame(21, $this->analytics->daysOverdue($this->custody(dueAt: Carbon::create(2026, 3, 21))));
         $this->assertSame(21, $this->analytics->daysOverdue($this->custody(dueAt: Carbon::create(2026, 3, 20))));
 
+        /* Friday 10 Apr is six operational days overdue at Mon 20 Apr. */
+        $this->assertSame(6, $this->analytics->daysOverdue($this->custody(dueAt: Carbon::create(2026, 4, 10))));
+
         /* Due today, or in the future, is not past due at all. */
         $this->assertSame(0, $this->analytics->daysOverdue($this->custody(dueAt: Carbon::create(2026, 4, 20))));
         $this->assertSame(0, $this->analytics->daysOverdue($this->custody(dueAt: Carbon::create(2026, 4, 24))));
+        $this->assertSame('unbanded', $this->analytics->overdueAgingBand(0));
     }
 
     public function test_special_closures_and_special_open_days_move_the_count_and_the_band(): void
@@ -489,8 +493,11 @@ class AnalyticsOverdueAgingTest extends TestCase
             $page = $this->actingAs($head)->get(route('analytics.index', ['section' => 'returns', 'academic_period' => $period]));
 
             $page->assertOk();
-            $card = $this->agingCard($page->getContent());
             $x = $this->xpath($page->getContent());
+            $card = $this->agingCard($page->getContent());
+            /* January's still-overdue custody remains visible for any reporting period. */
+            $this->assertSame(1, $x->query('.//a[contains(@class,"analytics-followup-row")]', $card)->length);
+            $this->assertStringContainsString('71 days overdue', $card->textContent);
 
             /* The January custody is still drawn, in the 31+ band, whichever period is selected. */
             $bands = $x->query('.//ul[contains(@class,"analytics-aging-bands")]/li/a', $card);
@@ -512,6 +519,7 @@ class AnalyticsOverdueAgingTest extends TestCase
 
     public function test_the_card_draws_three_bands_with_counts_and_no_period_comparison(): void
     {
+        /* Operational days late: 18 Apr = 1, 15 Apr = 3, 5 Apr = 11, 1 Mar = 36. */
         $this->custody(dueAt: Carbon::create(2026, 4, 18));
         $this->custody(dueAt: Carbon::create(2026, 4, 15));
         $this->custody(dueAt: Carbon::create(2026, 4, 5));
@@ -524,9 +532,13 @@ class AnalyticsOverdueAgingTest extends TestCase
         $x = $this->xpath($html);
         $card = $this->agingCard($html);
 
-        /* Open days past due: 18 Apr = 1, 15 Apr = 3, 5 Apr = 11, 1 Mar = 36 -> bands 2, 1, 1. */
+        /* The aging bands live inside Current Overdue Exposure, with current case links. */
         $this->assertStringContainsString('Current Overdue Exposure', $card->textContent);
         $this->assertStringContainsString('Current overdue cases with aging context.', $card->textContent);
+        $this->assertSame(0, $x->query('//h2[normalize-space(text())="Overdue Aging"]')->length);
+        $this->assertSame(4, $x->query('.//a[contains(@class,"analytics-followup-row")]', $card)->length);
+        $this->assertStringContainsString('36 days overdue', $card->textContent);
+        $this->assertStringContainsString('1 day overdue', $card->textContent);
 
         $rows = $x->query('.//ul[contains(@class,"analytics-aging-bands")]/li/a', $card);
         $this->assertSame(3, $rows->length);

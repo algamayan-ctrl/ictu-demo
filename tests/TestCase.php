@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-use Illuminate\Contracts\Auth\Authenticatable as UserContract;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Cache;
 
@@ -27,21 +27,26 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Signing in as a user starts that user's idle clock at the current
-     * (possibly time-travelled) moment, exactly as a real sign-in does.
+     * Signing a user in starts a new idle-session clock, exactly as a real
+     * login does (the session is regenerated, and EnforceIdleSession starts
+     * counting from the first request).
      *
      * Workflow tests move the clock forward by hours or days between steps
-     * and sign in again for each step. Without this, the single test session
-     * would carry the first step's activity time forward and
-     * EnforceIdleSession would correctly end it before the later step ran.
-     * The middleware and its timeout stay fully active: a session that is
-     * left idle past the limit without a new sign-in is still ended (see
-     * IdleSessionTimeoutTest).
+     * (travelTo / setTestNow) to reach a pickup window or a due date, then
+     * call actingAs() for the next step. Without this, that next request was
+     * answered by the idle-session logout - a redirect to /login with no
+     * validation errors - so assertSessionHasNoErrors() passed while the
+     * step under test never ran.
+     *
+     * This does not disable the middleware: a test that signs in once and
+     * then lets the clock run still gets logged out.
      */
-    public function actingAs(UserContract $user, $guard = null)
+    public function actingAs(Authenticatable $user, $guard = null)
     {
-        parent::actingAs($user, $guard);
+        if ($this->app->bound('session')) {
+            $this->app['session']->forget('last_user_activity_at');
+        }
 
-        return $this->withSession(['last_user_activity_at' => now()->timestamp]);
+        return parent::actingAs($user, $guard);
     }
 }

@@ -18,7 +18,6 @@ use App\Services\AuditService;
 use App\Services\InventoryService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -1273,7 +1272,6 @@ class InventoryController extends Controller
                 'active',
                 true
             )->get(),
-            'deletionBlockers' => $this->deletionBlockers($inventory),
         ]);
     }
 
@@ -1411,11 +1409,8 @@ class InventoryController extends Controller
     }
 
     /**
-     * Permanently delete an inventory item that was never used.
-     *
-     * Only items with no business or stock-ledger history qualify; anything
-     * else must be archived (Active unchecked) so history stays traceable.
-     * Eligibility is re-checked under a row lock immediately before deletion.
+     * Delete an unused inventory record. Only its auto-generated opening
+     * stock movement may be removed; operational movements are immutable.
      */
     public function destroy(
         Request $request,
@@ -1424,115 +1419,120 @@ class InventoryController extends Controller
     ): RedirectResponse {
         $this->authorizeInventoryAdministrator($request);
 
-        $data = $request->validateWithBag('inventoryDelete', [
-            'confirm_item_name' => ['required', 'string', 'max:255'],
-            'deletion_reason' => ['required', 'string', 'max:1000'],
-        ], [
-            'confirm_item_name.required' => 'Type the exact item name to confirm deletion.',
-            'deletion_reason.required' => 'Enter the reason for deleting this inventory item.',
+        $validated = $request->validate([
+            'delete_reason' => ['required', 'string', 'min:10', 'max:1000'],
         ]);
 
-        if (trim($data['confirm_item_name']) !== (string) $inventory->unique_description) {
-            throw ValidationException::withMessages([
-                'confirm_item_name' => 'The typed name does not match this inventory item exactly.',
-            ])->errorBag('inventoryDelete');
-        }
+        DB::transaction(function () use ($inventory, $validated, $audit): void {
+            $item = InventoryItem::query()
+                ->lockForUpdate()
+                ->findOrFail($inventory->id);
 
-        $reason = trim($data['deletion_reason']);
-
-        try {
-            $deleted = DB::transaction(function () use ($inventory, $reason, $audit): array {
-                $item = InventoryItem::query()
-                    ->with(['category', 'unit'])
-                    ->lockForUpdate()
-                    ->find($inventory->id);
-
-                if (! $item) {
-                    return ['deleted' => false, 'blockers' => ['This inventory item no longer exists.']];
-                }
-
-                $blockers = $this->deletionBlockers($item);
-
-                if ($blockers !== []) {
-                    return ['deleted' => false, 'blockers' => $blockers];
-                }
-
-                $snapshot = array_merge($item->withoutRelations()->toArray(), [
-                    'category_name' => $item->category?->category_name,
-                    'unit_name' => $item->unit?->unit_name,
+            // Even cancelled/draft requests are historical records.
+            if (DB::table('request_items')->where('inventory_item_id', $item->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'inventory_delete' => 'Cannot delete this item because it has borrowing or reservation records. Deactivate it instead.',
                 ]);
+            }
 
-                $item->delete();
+            if (DB::table('inventory_adjustments')->where('inventory_item_id', $item->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'inventory_delete' => 'Cannot delete this item because it has stock adjustment history. Deactivate it instead.',
+                ]);
+            }
 
-                $audit->record(
-                    'INVENTORY_ITEM_DELETED',
-                    InventoryItem::class,
-                    recordId: $snapshot['id'],
-                    reason: $reason,
-                    before: $snapshot,
-                    after: ['deleted' => true]
-                );
+            if (DB::table('notification_events')
+                ->where('source_type', InventoryItem::class)
+                ->where('source_id', $item->id)
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'inventory_delete' => 'Cannot delete this item because it is linked to notification history. Deactivate it instead.',
+                ]);
+            }
 
-                return ['deleted' => true, 'name' => $snapshot['unique_description']];
-            }, 3);
-        } catch (QueryException $exception) {
-            // A foreign-key restriction means a related record exists that the
-            // eligibility check did not anticipate; never surface this as a 500.
-            report($exception);
+            $movements = DB::table('inventory_transaction_lines as line')
+                ->join('inventory_transactions as tx', 'tx.id', '=', 'line.inventory_transaction_id')
+                ->where('line.inventory_item_id', $item->id)
+                ->select('line.id as line_id', 'line.inventory_transaction_id as tx_id',
+                    'line.from_state', 'line.quantity', 'tx.transaction_type',
+                    'tx.source_type', 'tx.source_id')
+                ->lockForUpdate()
+                ->get();
 
-            return redirect()
-                ->route('inventory.edit', $inventory)
-                ->withErrors([
-                    'delete' => 'This item cannot be deleted because related records exist. Archive it instead by unchecking Active.',
-                ], 'inventoryDelete');
-        }
+            // Normal initial stock is recorded automatically on item creation.
+            // No request, adjustment, release, return or other movement can be removed.
+            foreach ($movements as $movement) {
+                if ($movement->transaction_type !== 'INVENTORY_INITIAL_STOCK'
+                    || $movement->source_type !== InventoryItem::class
+                    || (int) $movement->source_id !== (int) $item->id
+                    || $movement->from_state !== 'OPENING_BALANCE') {
+                    throw ValidationException::withMessages([
+                        'inventory_delete' => 'Cannot delete this item because it has operational stock history. Deactivate it instead.',
+                    ]);
+                }
+            }
 
-        if (! $deleted['deleted']) {
-            return redirect()
-                ->route('inventory.edit', $inventory)
-                ->withErrors(['delete' => implode(' ', $deleted['blockers'])], 'inventoryDelete');
-        }
+            if ($movements->count() > 1) {
+                throw ValidationException::withMessages([
+                    'inventory_delete' => 'Cannot delete this item because it has multiple stock movements. Deactivate it instead.',
+                ]);
+            }
+
+            $openingTransactionIds = $movements->pluck('tx_id')->unique()->values()->all();
+            $linkedSourceTransactions = DB::table('inventory_transactions')
+                ->where('source_type', InventoryItem::class)
+                ->where('source_id', $item->id)
+                ->lockForUpdate()
+                ->pluck('id')
+                ->all();
+
+            // Reject extra source records, including opening transactions with
+            // missing lines. Never delete a multi-item ledger transaction.
+            if (count(array_diff($linkedSourceTransactions, $openingTransactionIds)) > 0) {
+                throw ValidationException::withMessages([
+                    'inventory_delete' => 'Cannot delete this item because it has additional stock references. Deactivate it instead.',
+                ]);
+            }
+
+            foreach ($openingTransactionIds as $txId) {
+                if (DB::table('inventory_transaction_lines')
+                    ->where('inventory_transaction_id', $txId)->count() !== 1) {
+                    throw ValidationException::withMessages([
+                        'inventory_delete' => 'Cannot delete a stock transaction shared with other items.',
+                    ]);
+                }
+            }
+
+            // Preserve the original inventory data and opening-stock metadata
+            // in the permanent audit trail before removing the unused record.
+            $snapshot = $item->toArray();
+            $snapshot['opening_stock_movements_removed'] = $movements->map(
+                fn ($movement) => (array) $movement
+            )->all();
+
+            if ($openingTransactionIds !== []) {
+                DB::table('inventory_transaction_lines')
+                    ->where('inventory_item_id', $item->id)
+                    ->whereIn('inventory_transaction_id', $openingTransactionIds)
+                    ->delete();
+                DB::table('inventory_transactions')
+                    ->whereIn('id', $openingTransactionIds)
+                    ->delete();
+            }
+
+            $item->delete();
+
+            $audit->record(
+                'INVENTORY_ITEM_DELETED',
+                $item,
+                reason: trim($validated['delete_reason']),
+                before: $snapshot
+            );
+        }, 3);
 
         return redirect()
             ->route('inventory.index')
-            ->with('status', "Inventory item \"{$deleted['name']}\" was permanently deleted. The deletion is recorded in the Audit Trail.");
-    }
-
-    /**
-     * Reasons this item must be archived instead of permanently deleted.
-     * Allocations, custody, returns, laundry, Gate Pass and accountability
-     * records all reach an item through request_items, so checking that table
-     * covers them. Every direct foreign key to inventory_items is checked.
-     *
-     * @return list<string>
-     */
-    private function deletionBlockers(InventoryItem $item): array
-    {
-        $blockers = [];
-
-        if (DB::table('request_items')->where('inventory_item_id', $item->id)->exists()) {
-            $blockers[] = 'It is part of one or more borrowing requests (with any related reservation, custody, return, laundry, Gate Pass, or accountability records).';
-        }
-
-        $hasStockLedger = DB::table('inventory_transaction_lines')->where('inventory_item_id', $item->id)->exists()
-            || DB::table('inventory_transactions')
-                ->where('source_type', InventoryItem::class)
-                ->where('source_id', $item->id)
-                ->exists();
-
-        if ($hasStockLedger) {
-            $blockers[] = 'It has Stock Card movement history, including any opening stock balance.';
-        }
-
-        if (DB::table('inventory_adjustments')->where('inventory_item_id', $item->id)->exists()) {
-            $blockers[] = 'It has recorded inventory adjustments.';
-        }
-
-        if ((float) $item->total_quantity > 0) {
-            $blockers[] = 'It still records physical stock on hand.';
-        }
-
-        return $blockers;
+            ->with('status', 'Unused inventory item deleted. The action was recorded in the audit trail.');
     }
 
     private function authorizeInventoryAdministrator(Request $request): void

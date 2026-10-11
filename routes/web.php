@@ -15,6 +15,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ConditionalProcessingController;
 use App\Http\Controllers\CustodyController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OperationalAdvisoryController;
 use App\Http\Controllers\DelegationController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\GatePassController;
@@ -25,6 +26,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProfilePictureController;
 use App\Http\Controllers\PolicyController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\OfficialEquipmentSummaryController;
+use App\Http\Controllers\ReportFormConfigurationController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\TechnicalOperationController;
 use App\Http\Controllers\UserAdministrationController;
@@ -98,6 +101,10 @@ Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function 
 
     Route::get('/dashboard', DashboardController::class)
         ->name('dashboard');
+
+    Route::get('/operational-advisory/status', OperationalAdvisoryController::class)
+        ->middleware('throttle:30,1')
+        ->name('operational-advisory.status');
 
     Route::post('/logout', [LoginController::class, 'destroy'])
         ->name('logout');
@@ -215,14 +222,14 @@ Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function 
         Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])
             ->name('inventory.update');
 
+        Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])
+            ->whereNumber('inventory')
+            ->name('inventory.destroy');
+
         Route::post('/inventory/{inventory}/adjustments', [InventoryController::class, 'adjust'])
             ->whereNumber('inventory')
             ->name('inventory.adjust');
 
-        // Permanent delete: SPMU Head only, and only for items with no transaction history.
-        Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])
-            ->whereNumber('inventory')
-            ->name('inventory.destroy');
     });
 
 
@@ -576,6 +583,35 @@ Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function 
     Route::middleware('workspace:SPMU')->group(function (): void {
         Route::get('/administration/policies', [PolicyController::class, 'index'])
             ->name('policies.index');
+        /*
+        |--------------------------------------------------------------------------
+        | Report Form Configuration
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/administration/policies/report-forms',
+            [ReportFormConfigurationController::class, 'index']
+        )->name('policies.report-forms.index');
+
+        Route::post(
+            '/administration/policies/report-forms',
+            [ReportFormConfigurationController::class, 'storeRevision']
+        )->name('policies.report-forms.store');
+
+        Route::post(
+            '/administration/policies/report-forms/{template}/activate',
+            [ReportFormConfigurationController::class, 'activate']
+        )->name('policies.report-forms.activate');
+        Route::post(
+            '/administration/policies/report-forms/{template}/duplicate',
+            [ReportFormConfigurationController::class, 'duplicate']
+        )->name('policies.report-forms.duplicate');
+
+        Route::post(
+            '/administration/policies/report-forms/{template}/discard',
+            [ReportFormConfigurationController::class, 'discard']
+        )->name('policies.report-forms.discard');
 
         Route::post(
             '/administration/policies/academic-periods',
@@ -649,6 +685,14 @@ Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function 
         Route::get('/reports/analytics-records', AnalyticsRecordsController::class)
             ->name('reports.analytics-records');
 
+        // The institutional CSPC-F-SPMU-22 form has its own Active-template renderer.
+        Route::get('/reports/official/equipment', [OfficialEquipmentSummaryController::class, 'index'])
+            ->name('reports.official.equipment');
+
+        Route::get('/reports/official/equipment/export/{format}', [OfficialEquipmentSummaryController::class, 'export'])
+            ->where('format', 'print|pdf|docx|xlsx|csv')
+            ->name('reports.official.equipment.export');
+
         Route::get('/reports', [ReportController::class, 'index'])
             ->name('reports.index');
 
@@ -673,6 +717,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function 
         ->middleware('workspace:SPMU,ICTU')
         ->name('reports.audit.revert');
 
+    // Delivery Records is ICTU technical administration: addresses, providers and provider responses.
     Route::get('/reports/notifications', [ReportController::class, 'notifications'])
         ->middleware('workspace:ICTU')
         ->name('reports.notifications');

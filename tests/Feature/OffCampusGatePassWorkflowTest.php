@@ -308,7 +308,19 @@ class OffCampusGatePassWorkflowTest extends TestCase
             ->actingAs($this->borrower)
             ->get(route('requests.show', $request))
             ->assertOk()
-            ->assertSeeText('Bring the generated documents to SPMU')
+            // The generated forms are no longer repeated on the request page (its
+            // "Forms for Physical Processing" card and "Bring the generated
+            // documents to SPMU" callout were removed). The borrower reaches
+            // them through View Borrowing.
+            ->assertSeeText('View Borrowing')
+            ->assertSee(route('custody.show', $custody), false);
+
+        $this->withSession(['active_workspace' => 'BORROWER'])
+            ->actingAs($this->borrower)
+            ->get(route('custody.show', $custody))
+            ->assertOk()
+            ->assertSeeText('Borrower Slip')
+            ->assertSeeText('Gate Pass')
             ->assertSee(route('documents.preview', $borrowerSlip), false)
             ->assertSee(route('documents.preview', $gatePassDocument), false)
             ->assertDontSee(route('documents.download', $borrowerSlip), false)

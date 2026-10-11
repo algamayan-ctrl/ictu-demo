@@ -124,6 +124,17 @@
                 >
                     <x-icon name="edit" size="16" />
                 </a>
+                <button
+                    type="button"
+                    class="table-action ui-pressable spmu-inventory-icon-action spmu-inventory-delete-action"
+                    data-inventory-delete-trigger
+                    data-delete-url="{{ route('inventory.destroy', $item) }}"
+                    data-delete-name="{{ $item->unique_description }}"
+                    aria-label="Delete {{ $item->unique_description }}"
+                    title="Delete Item"
+                >
+                    <x-icon name="trash" size="16" />
+                </button>
             @endif
         </span>
     </td>

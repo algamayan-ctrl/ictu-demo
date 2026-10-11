@@ -100,4 +100,183 @@ html[data-theme="dark"] .spmu-inventory-page.is-active { color: var(--navy-950);
     .spmu-inventory-pagination-group { align-items: stretch; justify-content: flex-start; margin-left: 0; }
     .spmu-inventory-pagination { margin-left: 0; }
 }
+/* Delete icon and confirmation */
+.spmu-inventory.is-inventory-head .spmu-inventory-actions .spmu-inventory-delete-action { color: #c63535; cursor: pointer; font: inherit; }
+.spmu-inventory.is-inventory-head .spmu-inventory-actions .spmu-inventory-delete-action:hover,
+.spmu-inventory.is-inventory-head .spmu-inventory-actions .spmu-inventory-delete-action:focus-visible { background: rgba(198, 53, 53, .10); color: #af2929; }
+.spmu-inventory-delete-dialog { width: min(92vw, 480px); max-width: 480px; border: 1px solid var(--border); border-radius: 14px; padding: 24px; background: var(--surface-elevated, #fff); color: var(--heading); box-shadow: 0 20px 56px rgba(0, 0, 0, .20); }
+.spmu-inventory-delete-dialog::backdrop { background: rgba(13, 26, 46, .55); }
+.spmu-inventory-delete-dialog form { display: grid; gap: 13px; }
+.spmu-inventory-delete-dialog h2 { margin: 0; font-size: 19px; font-weight: 750; color: var(--heading); }
+.spmu-inventory-delete-dialog p { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+.spmu-inventory-delete-dialog strong { color: var(--heading); }
+.spmu-inventory-delete-dialog .spmu-inventory-delete-warning { padding: 11px 12px; border-radius: 8px; background: var(--surface-subtle); font-size: 12px; }
+.spmu-inventory-delete-dialog label { color: var(--heading); font-size: 12px; font-weight: 700; }
+.spmu-inventory-delete-dialog label span { color: #c63535; }
+.spmu-inventory-delete-dialog textarea { width: 100%; min-height: 88px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--surface-elevated, #fff); color: var(--heading); font: inherit; font-size: 13px; resize: vertical; }
+.spmu-inventory-delete-dialog textarea:focus-visible { outline: 2px solid var(--inventory-blue, #0865df); outline-offset: 2px; }
+.spmu-inventory-delete-buttons { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.spmu-inventory-delete-buttons .button { padding: 10px 18px; min-height: 39px; }
+.spmu-inventory-delete-confirm { border: 1px solid #bc2e2e !important; color: white !important; background: #c63535 !important; cursor: pointer; }
+.spmu-inventory-delete-confirm:hover { background: #aa2525 !important; }
+
+/* SPMU ACTION ICON FIX */
+
+/* View, Edit, Delete - icon only, no box */
+.spmu-inventory.is-inventory-head
+.spmu-inventory-actions
+.spmu-inventory-icon-action,
+.spmu-inventory.is-inventory-head
+.spmu-inventory-actions
+.spmu-inventory-icon-action:is(:hover,:focus,:active) {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    padding: 4px !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    color: var(--inventory-blue, #0865df) !important;
+    opacity: 1 !important;
+    text-decoration: none !important;
+    cursor: pointer;
+    appearance: none;
+}
+
+/* Delete stays red */
+.spmu-inventory.is-inventory-head
+.spmu-inventory-actions
+.spmu-inventory-delete-action,
+.spmu-inventory.is-inventory-head
+.spmu-inventory-actions
+.spmu-inventory-delete-action:is(:hover,:focus,:active) {
+    color: #c63535 !important;
+}
+
+/* SVG icons always remain visible */
+.spmu-inventory.is-inventory-head
+.spmu-inventory-actions
+.spmu-inventory-icon-action .ui-icon {
+    display: block !important;
+    width: 16px !important;
+    height: 16px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    color: inherit !important;
+}
+
+/* Subtle hover feedback, no outline */
+.spmu-inventory.is-inventory-head
+.spmu-inventory-actions
+.spmu-inventory-icon-action:is(:hover,:focus-visible) .ui-icon {
+    transform: scale(1.12) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Prevent decorative outlines */
+.spmu-inventory.is-inventory-head
+.spmu-inventory-actions
+.spmu-inventory-icon-action::before,
+.spmu-inventory.is-inventory-head
+.spmu-inventory-actions
+.spmu-inventory-icon-action::after {
+    content: none !important;
+    display: none !important;
+}
+/* SPMU COMPACT DELETE MODAL V1 */
+
+.spmu-inventory-delete-dialog {
+    box-sizing: border-box;
+    width: min(92vw, 420px);
+    max-width: 420px;
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    padding: 17px 18px;
+    border-radius: 12px;
+}
+
+.spmu-inventory-delete-dialog form {
+    display: grid;
+    gap: 9px;
+}
+
+.spmu-inventory-delete-dialog h2 {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.3;
+    font-weight: 750;
+}
+
+.spmu-inventory-delete-dialog p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.spmu-inventory-delete-dialog .spmu-inventory-delete-warning {
+    padding: 8px 10px;
+    border-radius: 7px;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.spmu-inventory-delete-dialog label {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    margin: 0 !important;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.spmu-inventory-delete-dialog label span {
+    display: inline !important;
+    margin: 0 !important;
+}
+
+.spmu-inventory-delete-dialog textarea {
+    box-sizing: border-box;
+    width: 100%;
+    height: 68px;
+    min-height: 64px;
+    max-height: 130px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.45;
+    resize: vertical;
+}
+
+.spmu-inventory-delete-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.spmu-inventory-delete-buttons .button {
+    min-height: 35px;
+    padding: 8px 14px;
+    font-size: 12px;
+    line-height: 1.2;
+    border-radius: 7px;
+}
+
+@media (max-width: 480px) {
+    .spmu-inventory-delete-dialog {
+        width: 94vw;
+        padding: 16px;
+    }
+}
 </style>

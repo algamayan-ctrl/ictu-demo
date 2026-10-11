@@ -147,12 +147,17 @@
  @foreach($detail['table']['rows'] as $row)
  <tr>
  @foreach($row as $cell)
- {{-- A cell is either plain text or a primary/secondary pair (inventory rows). --}}
- @if(is_array($cell))
- <td>{{ $cell['primary'] ?? $cell['value'] ?? '—' }}@if(($cell['secondary'] ?? '') !== '')<br>{{ $cell['secondary'] }}@endif</td>
- @else
- <td>{{ $cell }}</td>
- @endif
+  {{-- A cell may contain a primary/value label and a secondary description. --}}
+  <td>
+  @if(is_array($cell))
+  <span class="analytics-cell-primary">{{ $cell['primary'] ?? $cell['value'] ?? '—' }}</span>
+  @if(filled($cell['secondary'] ?? null))
+  <small class="analytics-cell-secondary" style="display:block;color:var(--text-muted);font-size:11px">{{ $cell['secondary'] }}</small>
+  @endif
+  @else
+  {{ $cell }}
+  @endif
+  </td>
  @endforeach
  </tr>
  @endforeach

@@ -124,6 +124,7 @@ class OffCampusGatePassReport implements ReportBuilder
                     '_gate_pass_status' => $gatePassState,
                     '_division_code' => (string) ($version?->division_code ?? ''),
                     '_office_unit' => (string) ($version?->office_unit ?? ''),
+                    '_request_id' => (int) $request->id,
                     '_link' => route('requests.show', $request),
                     '_tone_gate_pass_status' => match ($gatePassState) {
                         'VERIFIED' => 'positive',

@@ -320,6 +320,11 @@
                         · <a href="{{ route('reports.audit', ['per_page' => $filters['per_page']]) }}">Clear filters</a>
                     @endif
                 </span>
+                @if(($totalEvents ?? $events->count()) > $events->count())
+                    <span class="ictu-audit-count" role="note">
+                        Showing latest {{ number_format($events->count()) }} of {{ number_format($totalEvents) }} total records.
+                    </span>
+                @endif
             </div>
             <div class="ictu-audit-pagination" aria-label="Audit trail pagination">
                 <label class="visually-hidden" for="audit-page-size">Records per page</label>

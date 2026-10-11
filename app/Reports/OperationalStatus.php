@@ -60,9 +60,16 @@ final class OperationalStatus
         };
     }
 
-    /** The human-readable label for a reported status. */
+    /**
+     * The human-readable label for a reported status.
+     *
+     * Request statuses use the application's own RequestStatus labels
+     * ("Under SPMU Review"), never a title-cased code ("Under Spmu").
+     */
     public static function label(string $status, ?string $label = null): string
     {
-        return $label ?: str($status)->replace('_', ' ')->title()->toString();
+        return $label
+            ?: \App\Enums\RequestStatus::tryFrom($status)?->label()
+            ?: str($status)->replace('_', ' ')->title()->toString();
     }
 }

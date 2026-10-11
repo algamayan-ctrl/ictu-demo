@@ -923,7 +923,50 @@ class RequestWorkflowService
                         now()
                     );
 
-                if (! $automaticPickupWindow) {
+                /*
+                 * DELAYED APPROVAL
+                 * ----------------
+                 * When the suggested pickup day (the last open day before
+                 * Items Needed From) has already passed, that suggestion was
+                 * never an appointment: nothing was approved, allocated or
+                 * communicated to the borrower. Approval may still proceed
+                 * while a pickup on or before Items Needed From remains
+                 * possible under the Operational Calendar, but NO pickup
+                 * schedule is activated. The transaction waits for SPMU to
+                 * confirm with the borrower (Schedule Review Required), so it
+                 * can never become a missed pickup on its own.
+                 */
+                $scheduleReviewReason = $automaticPickupWindow
+                    ? null
+                    : 'DELAYED_APPROVAL';
+
+                /*
+                 * APPROVAL DURING THE SUGGESTED PICKUP DAY
+                 * ----------------------------------------
+                 * When the only window left before Items Needed From is the
+                 * remainder of today, it is already running at the moment of
+                 * approval - possibly with minutes left. Activating it would
+                 * hold the borrower to a pickup they were never given in
+                 * advance, and its expiry would read as a missed pickup. No
+                 * minimum notice period is defined by policy, so the system
+                 * does not judge how much time is "enough": it leaves the
+                 * schedule unconfirmed and SPMU arranges the pickup with the
+                 * borrower through Schedule Review Required.
+                 */
+                if ($automaticPickupWindow
+                    && $automaticPickupWindow['start']->isSameDay(now())) {
+                    $automaticPickupWindow = null;
+                    $scheduleReviewReason = 'APPROVED_DURING_SUGGESTED_PICKUP_WINDOW';
+                }
+
+                $scheduleReviewWindow = $automaticPickupWindow
+                    ? null
+                    : $this->operationalCalendar->latestPickupWindowOnOrBefore(
+                        $version->needed_from,
+                        now()
+                    );
+
+                if (! $automaticPickupWindow && ! $scheduleReviewWindow) {
                     $neededFrom = CarbonImmutable::parse(
                         $version->needed_from,
                         config('app.timezone') ?: 'Asia/Manila'
@@ -937,8 +980,8 @@ class RequestWorkflowService
                         $requiredPickupDate,
                         false
                     )
-                        ? "The required pickup date ({$requiredPickupLabel}) no longer has a valid SPMU Pickup / Issuance operating window. SPMU pickup and issuance must occur one day before the Items Needed From date ({$neededFromLabel}). Please return the request for revision."
-                        : "The required pickup date ({$requiredPickupLabel}) falls on a non-operating day. SPMU pickup and issuance must occur one day before the Items Needed From date ({$neededFromLabel}). Please return the request for revision.";
+                        ? "No SPMU Pickup / Issuance operating window remains on or before the Items Needed From date ({$neededFromLabel}); the suggested pickup date ({$requiredPickupLabel}) has passed. Please return the request for revision so the borrower can choose new dates."
+                        : "No SPMU Pickup / Issuance operating window remains on or before the Items Needed From date ({$neededFromLabel}); the suggested pickup date ({$requiredPickupLabel}) is a non-operating day. Please return the request for revision so the borrower can choose new dates.";
 
                     throw ValidationException::withMessages([
                         'pickup' => $pickupMessage,
@@ -954,7 +997,10 @@ class RequestWorkflowService
                 try {
                     $this->inventory->allocate(
                         $version,
-                        $automaticPickupWindow['start']->startOfDay()
+                        // Under schedule review the pickup may still happen today.
+                        $automaticPickupWindow
+                            ? $automaticPickupWindow['start']->startOfDay()
+                            : CarbonImmutable::now(config('app.timezone') ?: 'Asia/Manila')->startOfDay()
                     );
                 } catch (
                     ValidationException $exception
@@ -1132,9 +1178,34 @@ class RequestWorkflowService
                 $custody = $this->custody->ensurePickupRecord(
                     $request->fresh(),
                     $approver,
-                    $automaticPickupWindow['start'],
-                    $automaticPickupWindow['end']
+                    $automaticPickupWindow['start'] ?? null,
+                    $automaticPickupWindow['end'] ?? null
                 );
+
+                if ($scheduleReviewWindow) {
+                    // The day the system would have suggested had approval not been delayed.
+                    $originalSuggestion = $this->operationalCalendar->automaticPickupWindowBefore(
+                        $version->needed_from,
+                        $version->submitted_at ?: $request->created_at
+                    );
+
+                    $this->audit->record(
+                        'PICKUP_SCHEDULE_REVIEW_REQUIRED',
+                        $custody,
+                        after: [
+                            'reason' => $scheduleReviewReason,
+                            'items_needed_from' => CarbonImmutable::parse($version->needed_from)->toDateString(),
+                            'original_suggested_pickup_date' => $originalSuggestion
+                                ? $originalSuggestion['end']->toDateString()
+                                : null,
+                            'approved_at' => now()->toIso8601String(),
+                            'pickup_schedule_created' => false,
+                            'borrower_missed_pickup' => false,
+                            'possible_pickup_from' => $scheduleReviewWindow['start']->toIso8601String(),
+                            'possible_pickup_until' => $scheduleReviewWindow['end']->toIso8601String(),
+                        ]
+                    );
+                }
 
                 /*
                  * Generate the borrower's printable physical document packet
@@ -1236,16 +1307,23 @@ class RequestWorkflowService
                             true,
 
                         'pickup_schedule_created' =>
-                            true,
+                            (bool) $automaticPickupWindow,
 
                         'pickup_schedule_confirmed' =>
-                            true,
+                            (bool) $automaticPickupWindow,
+
+                        'pickup_schedule_review_required' =>
+                            (bool) $scheduleReviewWindow,
 
                         'automatic_pickup_at' =>
-                            $automaticPickupWindow['start']->toIso8601String(),
+                            $automaticPickupWindow
+                                ? $automaticPickupWindow['start']->toIso8601String()
+                                : null,
 
                         'automatic_pickup_expires_at' =>
-                            $automaticPickupWindow['end']->toIso8601String(),
+                            $automaticPickupWindow
+                                ? $automaticPickupWindow['end']->toIso8601String()
+                                : null,
 
                         'borrower_documents_generated' =>
                             true,
@@ -1260,7 +1338,11 @@ class RequestWorkflowService
                     collect([
                         $request->borrower,
                     ]),
-                    "Your borrowing request {$request->request_no} has been approved. Pickup is scheduled for {$automaticPickupWindow['start']->format('F j, Y g:i A')} to {$automaticPickupWindow['end']->format('g:i A')}. Please preview and print your Borrower Slip before pickup, together with any other required form shown in your request.",
+                    $automaticPickupWindow
+                        ? "Your borrowing request {$request->request_no} has been approved. Pickup is scheduled for {$automaticPickupWindow['start']->format('F j, Y g:i A')} to {$automaticPickupWindow['end']->format('g:i A')}. Please preview and print your Borrower Slip before pickup, together with any other required form shown in your request."
+                        : ($scheduleReviewReason === 'DELAYED_APPROVAL'
+                            ? "Your borrowing request {$request->request_no} has been approved. Because it was approved after the originally suggested pickup date, no pickup schedule has been set yet. SPMU will contact you to confirm that you still need the items and to arrange pickup. This is not recorded as a missed pickup."
+                            : "Your borrowing request {$request->request_no} has been approved. Because it was approved on the suggested pickup date itself, no pickup schedule has been set automatically. SPMU will contact you to arrange when you can collect the items. You are not expected to collect them until SPMU confirms a schedule with you."),
                     $request
                 );
 
@@ -1272,7 +1354,11 @@ class RequestWorkflowService
                 $this->notifications->send(
                     'REQUEST_APPROVED',
                     $actionOfficers,
-                    "Request {$request->request_no} was approved. Pickup is scheduled for {$automaticPickupWindow['start']->format('F j, Y g:i A')} to {$automaticPickupWindow['end']->format('g:i A')}. Prepare the approved items for release.",
+                    $automaticPickupWindow
+                        ? "Request {$request->request_no} was approved. Pickup is scheduled for {$automaticPickupWindow['start']->format('F j, Y g:i A')} to {$automaticPickupWindow['end']->format('g:i A')}. Prepare the approved items for release."
+                        : ($scheduleReviewReason === 'DELAYED_APPROVAL'
+                            ? "Request {$request->request_no} was approved after its originally suggested pickup date. Schedule Review Required: confirm with the borrower that the equipment is still needed before continuing the release."
+                            : "Request {$request->request_no} was approved on its suggested pickup date. Schedule Review Required: no pickup schedule was confirmed automatically; arrange the pickup with the borrower before continuing the release."),
                     $request,
                     ['SYSTEM', 'EMAIL']
                 );

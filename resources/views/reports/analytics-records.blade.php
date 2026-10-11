@@ -141,9 +141,9 @@
 <style>
 .analytics-records-page { display: grid; gap: 18px; }
 .analytics-records-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
-.analytics-records-heading h1 { margin: 3px 0 5px; font-size: 25px; color: var(--heading); }
-.analytics-records-heading p { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.55; }
-.analytics-records-eyebrow { margin: 0 !important; color: var(--text-muted) !important; font-size: 10px !important; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.analytics-records-heading h1 { margin: 3px 0 5px; font-size: clamp(21px, 1.65vw, 25px); color: var(--heading); }
+.analytics-records-heading p { margin: 0; color: var(--text-muted); font-size: 12.5px; line-height: 1.4; }
+.analytics-records-eyebrow { margin: 0 !important; color: var(--text-muted) !important; font-size: 9.5px !important; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .analytics-records-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .analytics-records-actions .button {
  display: inline-flex;

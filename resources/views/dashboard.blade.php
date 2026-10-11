@@ -901,6 +901,210 @@ a.dashboard-kpi-card:focus-visible {
     html[data-theme="dark"] .dashboard-kpi-card,
     html[data-theme="dark"] .dashboard-balanced-grid > .card,
     html[data-theme="dark"] .dashboard-recent-card { box-shadow:var(--shadow-sm); }
+    /* SPMU_BORROWER_COMPACT_GRID_START */
+    .is-borrower-dashboard .borrower-dashboard-priority-stack {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        align-items: stretch;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack > #borrower-actions,
+    .is-borrower-dashboard .borrower-dashboard-priority-stack > .borrower-current-requests,
+    .is-borrower-dashboard .borrower-dashboard-priority-stack > .dashboard-recent-card {
+        min-width: 0;
+        width: 100%;
+        margin: 0;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack > #borrower-actions {
+        align-self: stretch;
+        min-height: 0;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack > #borrower-actions > .queue-card {
+        height: 100%;
+        margin: 0;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack > .dashboard-recent-card {
+        order: 3;
+        grid-column: 1 / -1;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .card-header {
+        flex-wrap: nowrap;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .card-header > div:first-child {
+        min-width: 0;
+        flex: 1 1 0;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .dashboard-view-all {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
+    /* Existing action rows, sized for a half-width card. */
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .queue-list .borrower-next-row {
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr) auto;
+        gap: 8px 10px;
+        padding: 12px 14px;
+        align-items: center;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-icon {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-copy {
+        grid-column: 2;
+        grid-row: 1;
+        min-width: 0;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-when {
+        grid-column: 2;
+        grid-row: 2;
+        justify-self: start;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .queue-list .borrower-next-row > a.button {
+        grid-column: 3;
+        grid-row: 1 / span 2;
+        justify-self: end;
+        min-width: 78px;
+        width: auto;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-row > span:empty {
+        display: none;
+    }
+
+    /* Existing Current Requests table displayed as compact records. */
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-scroll {
+        width: 100%;
+        overflow: visible;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table,
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table tbody {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table thead {
+        display: none;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(100px, 38%);
+        gap: 4px 10px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--row-border);
+        align-items: center;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table td {
+        display: block;
+        width: auto;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table td::before {
+        content: none;
+        display: none;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table td:nth-child(1) {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table td:nth-child(2) {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table td:nth-child(3) {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
+        text-align: right;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table td:nth-child(4) {
+        grid-column: 1;
+        grid-row: 3;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table td:nth-child(5) {
+        grid-column: 2;
+        grid-row: 2 / span 2;
+        justify-self: end;
+        align-self: center;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-id {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table .status-badge {
+        max-width: 100%;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table td:nth-child(5) .button {
+        width: auto;
+        min-width: 78px;
+    }
+
+    @media (max-width: 1100px) {
+        .is-borrower-dashboard .borrower-dashboard-priority-stack {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .is-borrower-dashboard .borrower-dashboard-priority-stack > .dashboard-recent-card {
+            grid-column: auto;
+        }
+    }
+
+    /* SPMU_BORROWER_DASHBOARD_COMPACT_ALIGN_START */
+    .is-borrower-dashboard .borrower-dashboard-priority-stack > #borrower-actions .card-header,
+    .is-borrower-dashboard .borrower-dashboard-priority-stack > .borrower-current-requests > .card-header,
+    .is-borrower-dashboard .borrower-dashboard-priority-stack > .dashboard-recent-card > .card-header {
+        min-height: 60px;
+        padding: 12px 16px;
+        align-items: center;
+    }
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .queue-list .borrower-next-row,
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table tbody tr {
+        min-height: 116px;
+        padding: 12px 14px;
+        row-gap: 4px;
+        align-content: center;
+    }
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-copy {
+        gap: 3px;
+    }
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-when {
+        margin: 0;
+    }
+    .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table td:nth-child(4) {
+        line-height: 1.35;
+    }
+    /* SPMU_BORROWER_DASHBOARD_COMPACT_ALIGN_END */
+    /* SPMU_BORROWER_COMPACT_GRID_END */
 </style>
 
 @php
@@ -1047,6 +1251,9 @@ a.dashboard-kpi-card:focus-visible {
      * action panel. Empty sections remain visible after the useful content
      * so the dashboard still confirms that nothing is pending there.
      */
+    $borrowerDashboardActionRows = $dashboardMode === 'BORROWER'
+        ? $queue->take(max(0, 3 - $borrowerRestrictionActions->take(3)->count()))
+        : $queue;
     $primaryActionHasRecords = $queue->isNotEmpty()
         || ($dashboardMode === 'BORROWER' && $borrowerRestrictionActions->isNotEmpty());
 
@@ -1077,7 +1284,6 @@ a.dashboard-kpi-card:focus-visible {
             <div>
                 @if($dashboardMode === 'BORROWER')
                     <h2>{{ $copy['taskTitle'] }}</h2>
-                    <p class="meta">{{ $copy['taskDescription'] }}</p>
                 @else
                     <p class="eyebrow">{{ $copy['taskEyebrow'] }}</p>
                     <h2>{{ $copy['taskTitle'] }}</h2>
@@ -1085,8 +1291,8 @@ a.dashboard-kpi-card:focus-visible {
                 @endif
             </div>
 
-            @if($dashboardMode === 'BORROWER' && (($statistics['Active Obligations'] ?? 0) > 0))
-                <a class="dashboard-view-all" href="{{ route('accountability.index') }}">My Obligations </a>
+            @if($dashboardMode === 'BORROWER')
+                <a class="dashboard-view-all" href="{{ route('requests.index') }}">View all </a>
             @elseif($dashboardMode === 'SPMU_OFFICER')
                 <a class="dashboard-view-all" href="{{ route('verifications.index') }}">View all </a>
             @elseif($dashboardMode === 'SPMU_HEAD')
@@ -1095,7 +1301,7 @@ a.dashboard-kpi-card:focus-visible {
         </div>
 
         <div class="queue-list {{ $dashboardMode === 'BORROWER' ? 'borrower-next-list' : '' }}">
-            @forelse($queue as $record)
+            @forelse($borrowerDashboardActionRows as $record)
                 @if($dashboardMode === 'BORROWER')
                     @php
                         $custody = $record->custody;
@@ -1175,7 +1381,9 @@ a.dashboard-kpi-card:focus-visible {
                         <div class="borrower-next-copy">
                             <strong>{{ $record->request_no }}</strong>
                             <span>{{ $record->currentVersion?->purpose_event ?: 'Borrowing request' }}</span>
-                            <small>{{ $nextAction }}</small>
+                            @if(!in_array($record->status, [\App\Enums\RequestStatus::Draft, \App\Enums\RequestStatus::ReturnedForRevision], true))
+                                <small>{{ $nextAction }}</small>
+                            @endif
                         </div>
 
                         @if($actionWhen)
@@ -1259,7 +1467,7 @@ a.dashboard-kpi-card:focus-visible {
             @endforelse
 
             @if($dashboardMode === 'BORROWER')
-                @foreach($borrowerRestrictionActions as $obligationRow)
+                @foreach($borrowerRestrictionActions->take(3) as $obligationRow)
                     <article class="borrower-next-row">
                         <span class="borrower-next-icon tone-{{ $obligationRow['tone'] ?? 'warning' }}" aria-hidden="true">
                             <x-icon :name="$obligationRow['icon'] ?? 'warning'" size="17" />
@@ -1338,7 +1546,6 @@ a.dashboard-kpi-card:focus-visible {
         <div class="card-header">
             <div>
                 <h2 id="active-requests-title">Current Borrowing Requests</h2>
-                <p class="meta">Active requests that do not need your response right now are shown here. Open My Requests for the full status and history.</p>
             </div>
             <a class="dashboard-view-all" href="{{ route('requests.index') }}">View all </a>
         </div>
@@ -1359,7 +1566,7 @@ a.dashboard-kpi-card:focus-visible {
                     </thead>
 
                     <tbody>
-                @foreach($activeRequestBars as $activeRequest)
+                @foreach($activeRequestBars->take(3) as $activeRequest)
                     @php
                         $activeCustody = $activeRequest->custody;
                         $activeCustodyStatus = strtoupper((string) ($activeCustody?->status ?? ''));
@@ -1454,7 +1661,9 @@ a.dashboard-kpi-card:focus-visible {
 
                         <td class="borrower-active-schedule" data-label="Schedule / Due Date">
                             <strong>{{ $activeDateValue }}</strong>
-                            <small>{{ $activeDateLabel }}</small>
+                            @if(!in_array($activeStateKey, ['PICKUP_SCHEDULED', 'PICKUP_EXPIRED'], true))
+                                <small>{{ $activeDateLabel }}</small>
+                            @endif
                             @if($activeDateNote)
                                 <small class="borrower-active-adjusted-date">{{ $activeDateNote }}</small>
                             @endif
@@ -1474,17 +1683,8 @@ a.dashboard-kpi-card:focus-visible {
                 </table>
             </div>
 
-            @if($activeRequestTotal > $activeRequestBars->count())
-                <p class="borrower-active-overflow">
-                    {{ $activeRequestTotal - $activeRequestBars->count() }} more ongoing {{ ($activeRequestTotal - $activeRequestBars->count()) === 1 ? 'request is' : 'requests are' }} available in My Requests.
-                </p>
-            @endif
         @endif
     </article>
-@endif
-
-@if($dashboardMode === 'BORROWER')
-    </div>
 @endif
 
 @if($dashboardMode === 'BORROWER')
@@ -1492,7 +1692,6 @@ a.dashboard-kpi-card:focus-visible {
         <div class="card-header">
             <div>
                 <h2 id="recent-borrowing-title">Recent Borrowing Activity</h2>
-                <p class="meta">Your latest completed or closed borrowing activity. Open My Requests for the full history.</p>
             </div>
             <a class="dashboard-view-all" href="{{ route('requests.index') }}">View all </a>
         </div>
@@ -1501,7 +1700,7 @@ a.dashboard-kpi-card:focus-visible {
             <x-empty-state icon="clock" title="No recent borrowing activity" message="Completed or closed borrowing activity will appear here." />
         @else
             <div class="dashboard-recent-list">
-                @foreach($recentBorrowerActivity as $recentRequest)
+                @foreach($recentBorrowerActivity->take(3) as $recentRequest)
                     @php
                         $recentWorkflow = $recentRequest->custody?->workflowStatus();
                         $recentGatePassOnlyPending = $recentRequest->custody?->isGatePassOnlyPending() ?? false;
@@ -1524,6 +1723,7 @@ a.dashboard-kpi-card:focus-visible {
             </div>
         @endif
     </article>
+    </div>
 @endif
 
 </div>

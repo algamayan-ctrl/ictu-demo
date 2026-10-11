@@ -178,6 +178,147 @@
                 </button>
             </div>
         </form>
+
+        @if($item->exists)
+            @php
+                $deleteErrors = $errors->getBag('inventoryDelete');
+                $deletionBlockers = $deletionBlockers ?? [];
+            @endphp
+
+            {{-- Permanent delete: separate from Save Changes; the server re-checks everything. --}}
+            <section class="inventory-delete-zone" aria-labelledby="inventory-delete-heading">
+                <div>
+                    <strong id="inventory-delete-heading">Delete inventory item</strong>
+                    @if($deletionBlockers === [])
+                        <p>Permanently removes this item. Allowed only because it has no related transaction records.</p>
+                    @else
+                        <p>This item cannot be deleted. To stop using it, uncheck <strong>Active</strong> above and save to archive it.</p>
+                        <ul>
+                            @foreach($deletionBlockers as $blocker)
+                                <li>{{ $blocker }}</li>
+                            @endforeach
+                        </ul>
+                    @endif
+                    @if($deleteErrors->has('delete'))
+                        <small class="field-error" role="alert">{{ $deleteErrors->first('delete') }}</small>
+                    @endif
+                </div>
+
+                <button
+                    type="button"
+                    class="button danger ui-pressable"
+                    data-inventory-delete-open
+                    @disabled($deletionBlockers !== [])
+                >
+                    Delete Item
+                </button>
+            </section>
+
+            @if($deletionBlockers === [])
+                <dialog
+                    class="inventory-delete-dialog"
+                    id="inventory-delete-dialog"
+                    aria-labelledby="inventory-delete-title"
+                    data-reopen="{{ $deleteErrors->hasAny(['confirm_item_name', 'deletion_reason']) ? '1' : '0' }}"
+                >
+                    <form method="post" action="{{ route('inventory.destroy', $item) }}" data-inventory-delete-form>
+                        @csrf
+                        @method('DELETE')
+
+                        <h2 id="inventory-delete-title">Delete Inventory Item?</h2>
+                        <p>This action permanently deletes this inventory item. It is only allowed for items without related transaction records.</p>
+
+                        <label>
+                            Type the item name to confirm: <strong>{{ $item->unique_description }}</strong>
+                            <input
+                                name="confirm_item_name"
+                                autocomplete="off"
+                                required
+                                data-expected-name="{{ $item->unique_description }}"
+                                value="{{ old('confirm_item_name') }}"
+                            >
+                            @if($deleteErrors->has('confirm_item_name'))
+                                <small class="field-error">{{ $deleteErrors->first('confirm_item_name') }}</small>
+                            @endif
+                        </label>
+
+                        <label>
+                            Reason for deletion
+                            <textarea name="deletion_reason" required maxlength="1000">{{ old('deletion_reason') }}</textarea>
+                            @if($deleteErrors->has('deletion_reason'))
+                                <small class="field-error">{{ $deleteErrors->first('deletion_reason') }}</small>
+                            @endif
+                        </label>
+
+                        <div class="inventory-delete-actions">
+                            <button type="button" class="button secondary ui-pressable" data-inventory-delete-cancel>Cancel</button>
+                            <button type="submit" class="button danger ui-pressable" data-inventory-delete-submit disabled>Delete Permanently</button>
+                        </div>
+                    </form>
+                </dialog>
+            @endif
+
+            <style>
+                .inventory-delete-zone { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 14px 18px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); }
+                .inventory-delete-zone strong { color: var(--heading); font-size: 13px; }
+                .inventory-delete-zone p { margin: 4px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.45; }
+                .inventory-delete-zone ul { margin: 6px 0 0; padding-left: 18px; color: var(--text-muted); font-size: 12px; line-height: 1.45; }
+                .inventory-delete-zone .field-error { display: block; margin-top: 6px; color: var(--danger); }
+                .inventory-delete-zone .button { flex: 0 0 auto; }
+                .inventory-delete-dialog { width: min(480px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-elevated); color: var(--text); }
+                .inventory-delete-dialog::backdrop { background: rgba(8, 18, 33, .58); }
+                .inventory-delete-dialog form { display: grid; gap: 14px; padding: 20px 22px; }
+                .inventory-delete-dialog h2 { margin: 0; color: var(--heading); font-size: 18px; }
+                .inventory-delete-dialog p { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+                .inventory-delete-dialog label { display: grid; gap: 6px; font-size: 12px; font-weight: 650; }
+                .inventory-delete-dialog .field-error { color: var(--danger); }
+                .inventory-delete-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+                @media (max-width: 640px) {
+                    .inventory-delete-zone { flex-direction: column; align-items: stretch; }
+                }
+            </style>
+
+            <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const dialog = document.getElementById('inventory-delete-dialog');
+                const openButton = document.querySelector('[data-inventory-delete-open]');
+
+                if (!dialog || !openButton || typeof dialog.showModal !== 'function') return;
+
+                const form = dialog.querySelector('[data-inventory-delete-form]');
+                const nameInput = form.querySelector('[name="confirm_item_name"]');
+                const reasonInput = form.querySelector('[name="deletion_reason"]');
+                const submitButton = form.querySelector('[data-inventory-delete-submit]');
+
+                // Frontend convenience only; the server validates the same rules.
+                const sync = () => {
+                    submitButton.disabled = nameInput.value.trim() !== nameInput.dataset.expectedName
+                        || reasonInput.value.trim() === '';
+                };
+
+                nameInput.addEventListener('input', sync);
+                reasonInput.addEventListener('input', sync);
+
+                openButton.addEventListener('click', () => {
+                    sync();
+                    dialog.showModal();
+                    nameInput.focus();
+                });
+
+                // Cancel only closes the dialog; nothing is submitted.
+                form.querySelector('[data-inventory-delete-cancel]').addEventListener('click', () => {
+                    dialog.close();
+                    form.reset();
+                    sync();
+                });
+
+                if (dialog.dataset.reopen === '1') {
+                    sync();
+                    dialog.showModal();
+                }
+            });
+            </script>
+        @endif
     </section>
 </div>
 @endsection

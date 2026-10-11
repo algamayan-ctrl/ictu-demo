@@ -29,7 +29,7 @@ class SystemSettingSeeder extends Seeder
             'due_soon_hours' => [24, 'INTEGER', 'LEGACY', 'Legacy compatibility only. Current reminders are date-based: one day before and on the Expected Return Date.'],
             'rslddp_template_status' => ['PROVISIONAL', 'STRING', 'DOCUMENT', 'Official layout and appraisal requirements remain open.'],
             'same_custody_multiple_violations_rule' => [null, 'STRING', 'PENALTY', 'Open for institutional policy confirmation: SAME_OCCURRENCE or SEPARATE_OCCURRENCES when one custody transaction has both a confirmed Late Return and a confirmed Property Accountability violation. Unset leaves the second confirmed matter Policy Pending (no offense number/sanction created) until confirmed.'],
-            'max_upload_mb' => [5, 'INTEGER', 'SECURITY', 'Editable evidence and signature upload limit.'],
+            'max_upload_mb' => [5, 'INTEGER', 'SECURITY', 'Editable protected upload limit (1-64 MB) for supporting documents, evidence, and E-signature files.'],
             'backup_schedule' => ['NOT_FINALIZED', 'STRING', 'ICTU', 'ICTU must finalize before production deployment.'],
         ];
     }

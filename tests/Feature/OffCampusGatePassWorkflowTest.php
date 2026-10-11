@@ -9,6 +9,7 @@ use App\Models\GeneratedDocument;
 use App\Models\InventoryItem;
 use App\Models\RequestSupportingDocument;
 use App\Models\StoredFile;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserSignature;
 use App\Services\OperationalCalendarService;
@@ -123,6 +124,28 @@ class OffCampusGatePassWorkflowTest extends TestCase
             ],
             $request->currentVersion->supportingDocuments->pluck('document_type')->all()
         );
+    }
+
+    public function test_request_supporting_document_uses_the_ictu_configured_upload_limit(): void
+    {
+        SystemSetting::query()
+            ->where('setting_key', 'max_upload_mb')
+            ->firstOrFail()
+            ->update(['value_json' => 50]);
+
+        $payload = $this->requestPayload();
+        $payload['approved_request_letter'] = UploadedFile::fake()->create(
+            'signed-borrowing-request-letter.pdf',
+            13 * 1024,
+            'application/pdf'
+        );
+
+        $this->withSession(['active_workspace' => 'BORROWER'])
+            ->actingAs($this->borrower)
+            ->post(route('requests.store'), $payload)
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('request_supporting_documents', 1);
     }
 
     public function test_action_officer_can_return_for_correction_and_corrected_version_restarts_verification(): void

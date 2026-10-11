@@ -126,9 +126,11 @@
                     id="schedule_date"
                     type="date"
                     name="schedule_date"
+                    min="{{ now()->addDay()->toDateString() }}"
                     value="{{ old('schedule_date', optional($version->schedule_date ?: $version->needed_from)->format('Y-m-d')) }}"
                     required
                 >
+                <small id="spmu-schedule-live-error" class="field-error" style="display:none; color:#b42318;" aria-live="polite"></small>
                 @error('schedule_date')
                     <small class="field-error">{{ $message }}</small>
                 @enderror
@@ -140,9 +142,11 @@
                     id="return_date"
                     type="date"
                     name="return_date"
+                    min="{{ now()->addDays(2)->toDateString() }}"
                     value="{{ old('return_date', optional($version->return_date ?: $version->return_due_at)->format('Y-m-d')) }}"
                     required
                 >
+                <small id="spmu-return-live-error" class="field-error" style="display:none; color:#b42318;" aria-live="polite"></small>
                 @error('return_date')
                     <small class="field-error">{{ $message }}</small>
                 @enderror
@@ -169,7 +173,6 @@
     </div>
 
     <div class="stage-actions request-details-actions" data-stage-panel="1">
-        <a class="button secondary ui-pressable" href="{{ route('requests.index') }}">Cancel</a>
         <button type="button" class="button primary ui-pressable" data-stage-next="2" disabled>
             Continue to Select Items
             <svg class="ui-icon request-continue-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg>

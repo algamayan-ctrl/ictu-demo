@@ -28,7 +28,7 @@
 .reporting-workspace .report-output-card { padding: 24px; }
 .report-output-header { display: flex; justify-content: space-between; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 24px; border: 0; background: transparent; padding: 0; }
 .reporting-workspace .report-output-header .eyebrow { margin: 0 0 6px; color: var(--text-secondary); font-size: 10px; }
-.report-output-header h2 { margin: 0 0 5px; font-size: 20px; font-weight: 650; }
+.report-output-header h2 { margin: 0 0 5px; font-size: 17px; font-weight: 650; }
 .report-output-header p:not(.eyebrow) { margin: 0; color: var(--report-muted); font-size: 13px; }
 .report-output-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .reporting-workspace .report-output-actions .button { min-height: 40px; padding: 9px 14px; }

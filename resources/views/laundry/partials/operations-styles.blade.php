@@ -19,9 +19,9 @@
    populated toolbar/table keeps its natural height. */
 .laundry-operations > .laundry-empty-card { flex: 1 1 auto; }
 .laundry-operations .laundry-operations-heading { column-gap: 20px; margin-bottom: 20px; }
-.laundry-operations-heading .eyebrow { margin-bottom: 9px; font-size: 10px; letter-spacing: .1em; }
-.laundry-operations .laundry-operations-heading h1 { margin: 0 0 8px; font-size: clamp(25px, 2vw, 29px); }
-.laundry-operations .laundry-operations-heading > div > p:last-child { font-size: 13px; line-height: 1.5; }
+.laundry-operations-heading .eyebrow { margin-bottom: 9px; font-size: 9.5px; letter-spacing: .1em; }
+.laundry-operations .laundry-operations-heading h1 { margin: 0 0 8px; font-size: clamp(21px, 1.65vw, 25px); }
+.laundry-operations .laundry-operations-heading > div > p:last-child { font-size: 12.5px; line-height: 1.4; }
 .laundry-operations .button.laundry-completed-link { flex-shrink: 0; min-height: 40px; padding: 10px 16px; border-radius: 7px; }
 .laundry-operations .card { border-radius: 10px; }
 .laundry-operations .laundry-flow-card {

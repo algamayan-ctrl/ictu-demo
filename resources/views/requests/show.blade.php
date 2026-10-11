@@ -537,27 +537,8 @@
                                 </span>
                             </label>
                         @elseif($v->off_campus)
-                            <label class="spmu-check-row">
-                                <input type="checkbox" name="details_complete" value="1" data-verification-check @checked(old('details_complete'))>
-                                <span>
-                                    <strong>Action Officer verification has been reviewed</strong>
-                                    <small class="meta" style="display:block; margin-top:4px;">Review the completed verification before making the final decision.</small>
-                                </span>
-                            </label>
-                            <label class="spmu-check-row">
-                                <input type="checkbox" name="documents_complete" value="1" data-verification-check @checked(old('documents_complete'))>
-                                <span>
-                                    <strong>Request is appropriate for approval</strong>
-                                    <small class="meta" style="display:block; margin-top:4px;">Confirm that the purpose, schedule, and intended use may be authorized.</small>
-                                </span>
-                            </label>
-                            <label class="spmu-check-row">
-                                <input type="checkbox" name="availability_verified" value="1" data-verification-check @checked(old('availability_verified'))>
-                                <span>
-                                    <strong>Inventory availability is verified</strong>
-                                    <small class="meta" style="display:block; margin-top:4px;">Confirm that the requested quantities may be allocated without conflict.</small>
-                                </span>
-                            </label>
+                            {{-- AO verification already recorded; Head makes the final decision. --}}
+
                         @else
                             <label class="spmu-check-row">
                                 <input type="checkbox" name="details_complete" value="1" data-verification-check @checked(old('details_complete'))>
@@ -582,7 +563,8 @@
                             </label>
                         @endif
                     </div>
-                    <section
+                    @unless($canDecide && $v->off_campus)
+<section
                         class="spmu-review-readiness"
                         data-review-readiness
                         aria-live="polite"
@@ -633,6 +615,7 @@
                             Complete all review checks to continue.
                         </p>
                     </section>
+@endunless
 
                     @unless($hasCurrentESignature)
                         <p class="field-error top-gap">
@@ -954,98 +937,7 @@
             // for reference from that point on.
             $physicalReleaseComplete = (bool) $custody?->released_at;
         @endphp
-        <article class="borrower-detail-card">
-            <h2 class="borrower-card-title">
-                <span class="borrower-card-icon" aria-hidden="true"><x-icon name="printer" size="20" /></span>
-                {{ $physicalReleaseComplete ? 'Transaction Forms' : 'Forms for Physical Processing' }}
-                <span class="borrower-card-note">{{ $physicalReleaseComplete ? 'Available for reference.' : 'Bring the applicable forms for pickup.' }}</span>
-            </h2>
-
-            <div class="borrower-documents-scroll">
-                <table class="borrower-documents-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Document</th>
-                            <th scope="col">Description</th>
-                            <th scope="col">Status</th>
-                            <th scope="col">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>
-                                <span class="borrower-document-name">
-                                    <x-icon name="requests" size="18" />
-                                    Borrower Slip
-                                </span>
-                            </td>
-                            <td>{{ $physicalReleaseComplete ? 'Record of item issuance.' : 'Required for physical handover.' }}</td>
-                            <td>
-                                <span class="status-badge status-{{ $borrowerSlipDocument ? 'success' : 'neutral' }}">
-                                    {{ $borrowerSlipDocument ? 'Available' : 'Not available' }}
-                                </span>
-                            </td>
-                            <td>
-                                @if($borrowerSlipDocument)
-                                    <a class="button secondary small ui-pressable borrower-document-view" href="{{ route('documents.preview', $borrowerSlipDocument) }}">Preview</a>
-                                @else
-                                    <span class="borrower-document-no-action">—</span>
-                                @endif
-                            </td>
-                        </tr>
-
-                        @if($requestHasLaundry)
-                            <tr>
-                                <td>
-                                    <span class="borrower-document-name">
-                                        <x-icon name="requests" size="18" />
-                                        Laundry Form
-                                    </span>
-                                </td>
-                                <td>For laundry-handled items in this borrowing.</td>
-                                <td>
-                                    <span class="status-badge status-{{ $laundryFormDocument ? 'success' : 'neutral' }}">
-                                        {{ $laundryFormDocument ? 'Available' : 'Not available' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    @if($laundryFormDocument)
-                                        <a class="button secondary small ui-pressable borrower-document-view" href="{{ route('documents.preview', $laundryFormDocument) }}">Preview</a>
-                                    @else
-                                        <span class="borrower-document-no-action">—</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endif
-
-                        @if($requestHasOffCampus)
-                            <tr>
-                                <td>
-                                    <span class="borrower-document-name">
-                                        <x-icon name="requests" size="18" />
-                                        Gate Pass
-                                    </span>
-                                </td>
-                                <td>{{ $gatePassFinalized ? 'Off-campus release document.' : 'Awaiting SPMU processing. Do not proceed with off-campus release.' }}</td>
-                                <td>
-                                    <span class="status-badge status-{{ $gatePassFinalized ? 'success' : 'neutral' }}">
-                                        {{ $gatePassFinalized ? 'Available' : 'Not available' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    @if($gatePassFinalized)
-                                        <a class="button secondary small ui-pressable borrower-document-view" href="{{ route('documents.preview', $gatePassDocument) }}">Preview</a>
-                                    @else
-                                        <span class="borrower-document-no-action">—</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endif
-                    </tbody>
-                </table>
-            </div>
-        </article>
-    @endif
+            @endif
 </div>
 @elseif($isOperationalRequestLayout)
     @include('requests.partials.operational-details')
@@ -1302,11 +1194,20 @@
     const isPositiveDecision = (decision) =>
         decision === 'VERIFIED' || decision === 'APPROVED';
 
+    const headApprovalUsesPriorAoVerification =
+        @json($canDecide && $v->off_campus && $actionOfficerVerified);
+
+    // SPMU_AO_VERIFIED_HEAD_APPROVAL_FIX
     const checklistComplete = () =>
         requiredSupportingPresent &&
         hasCurrentESignature &&
-        checks.length === 3 &&
-        checks.every((checkbox) => checkbox.checked);
+        (
+            headApprovalUsesPriorAoVerification ||
+            (
+                checks.length === 3 &&
+                checks.every((checkbox) => checkbox.checked)
+            )
+        );
 
     const updateApproveState = () => {
         if (approveButton) approveButton.disabled = !checklistComplete();

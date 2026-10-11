@@ -33,7 +33,7 @@
     font-weight: 750;
     overflow-wrap: anywhere;
 }
-.release-flow-page .release-page-heading > div > p:last-child { max-width: 900px; margin: 0; font-size: 13px; line-height: 1.45; }
+.release-flow-page .release-page-heading > div > p:last-child { max-width: 900px; margin: 0; font-size: 12.5px; line-height: 1.4; }
 .release-flow-page .release-status-summary {
     overflow: hidden;
     border: 1px solid var(--border);

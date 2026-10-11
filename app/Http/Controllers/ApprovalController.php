@@ -146,12 +146,22 @@ class ApprovalController extends Controller
         ];
 
         if (strtoupper((string) $request->input('decision')) === 'APPROVED') {
-            $rules = array_merge($rules, [
-                'details_complete' => ['required', 'accepted'],
-                'documents_complete' => ['required', 'accepted'],
-                'availability_verified' => ['required', 'accepted'],
-                'confirm_e_signature' => ['required', 'accepted'],
-            ]);
+            // The Head must still explicitly confirm their own E-signature.
+            $rules['confirm_e_signature'] = ['required', 'accepted'];
+
+            // On-campus requests go directly to the Head and keep
+            // the existing checklist because no AO verification occurred.
+            if (! (bool) $borrowingRequest->currentVersion?->off_campus) {
+                $rules = array_merge($rules, [
+                    'details_complete' => ['required', 'accepted'],
+                    'documents_complete' => ['required', 'accepted'],
+                    'availability_verified' => ['required', 'accepted'],
+                ]);
+            }
+
+            // For off-campus requests, RequestWorkflowService::decide()
+            // verifies that the current version was already marked
+            // VERIFIED by the Action Officer before final approval.
         }
 
         $data = $request->validate($rules, [

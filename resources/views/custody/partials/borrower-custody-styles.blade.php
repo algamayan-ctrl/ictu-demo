@@ -678,4 +678,48 @@
 }
 
 /* BORROWER TIMELINE DISCLOSURE STYLE END */
+
+/* ==========================================================
+   BORROWER TRANSACTION DOCUMENT HEADER START
+   ========================================================== */
+
+.borrower-document-card .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.borrower-document-card .card-header > svg,
+.borrower-document-card .card-header > .icon {
+    flex: 0 0 auto;
+}
+
+.borrower-document-left-title {
+    flex: 0 1 auto;
+    margin-right: auto;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--text);
+}
+
+.borrower-document-card .card-header > :last-child {
+    margin-left: auto;
+}
+
+@media (max-width: 680px) {
+
+    .borrower-document-card .card-header {
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
+    .borrower-document-left-title {
+        flex: 1 1 auto;
+    }
+}
+
+/* ==========================================================
+   BORROWER TRANSACTION DOCUMENT HEADER END
+   ========================================================== */
 </style>

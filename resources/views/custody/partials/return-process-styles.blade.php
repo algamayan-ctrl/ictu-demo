@@ -15,7 +15,7 @@
 .return-flow-page .card { min-width: 0; padding: 18px 20px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); box-shadow: none; }
 .return-flow-page .card-header { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 12px; margin: 0 0 12px; padding: 0; border: 0; border-radius: 0; background: transparent; }
 .return-flow-page .eyebrow { margin: 0 0 4px; color: var(--text-secondary); font-size: 11px; font-weight: 750; line-height: 1.5; letter-spacing: .04em; }
-.return-flow-page h2 { margin: 0; color: var(--heading); font-size: clamp(17px, 1.2vw, 20px); font-weight: 650; line-height: 1.4; }
+.return-flow-page h2 { margin: 0; color: var(--heading); font-size: 17px; font-weight: 650; line-height: 1.4; }
 .return-flow-page .notice { margin: 0; padding: 10px 14px; align-items: center; }
 .return-flow-page .return-flash { gap: 12px; }
 .return-flow-page .return-flash > div { flex: 1; min-width: 0; }

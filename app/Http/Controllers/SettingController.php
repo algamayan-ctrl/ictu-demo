@@ -12,6 +12,8 @@ use Illuminate\View\View;
 
 class SettingController extends Controller
 {
+    private const MAX_UPLOAD_MB = 64;
+
     private const ICTU_SETTING_KEYS = [
         'max_upload_mb',
         'backup_schedule',
@@ -85,7 +87,7 @@ class SettingController extends Controller
             ];
         } elseif ($setting->setting_key === 'max_upload_mb') {
             $data = $request->validate([
-                'value' => ['required', 'integer', 'min:1'],
+                'value' => ['required', 'integer', 'min:1', 'max:'.self::MAX_UPLOAD_MB],
                 'reason' => ['nullable', 'string', 'max:1000'],
             ]);
 

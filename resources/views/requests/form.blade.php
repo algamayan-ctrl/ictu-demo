@@ -53,6 +53,8 @@
         App\Models\RequestSupportingDocument::TYPE_PERMISSION_TO_CONDUCT
     );
 
+    $maxUploadMb = max(1, (int) ($maxUploadMb ?? 5));
+
 
     $divisionOptions = App\Support\OrganizationalStructure::divisions();
 
@@ -884,8 +886,8 @@
 {{-- Scoped presentation refinements; no request, validation, or stage behavior changes. --}}
 <style>
     .create-request-heading { margin-bottom: 12px; }
-    .create-request-heading h1 { margin-bottom: 3px; font-size: clamp(24px, 2vw, 29px); line-height: 1.2; }
-    .create-request-heading .heading-copy { font-size: 13px; line-height: 1.45; }
+    .create-request-heading h1 { margin-bottom: 3px; font-size: clamp(21px, 1.65vw, 25px); line-height: 1.2; }
+    .create-request-heading .heading-copy { font-size: 12.5px; line-height: 1.4; }
     /* Match the existing 1120px request-form shell so the restriction notice,
        stepper, and form cards share the same left/right edges. */
     .create-request-restriction {
@@ -1548,7 +1550,7 @@
                             <strong>Upload file</strong>
                         </span>
                         <span class="document-dropzone-hint">or drag and drop</span>
-                        <small class="document-dropzone-formats">PDF, JPG, PNG (Max 10MB)</small>
+                        <small class="document-dropzone-formats">PDF, JPG, PNG (Max {{ $maxUploadMb }}MB)</small>
                         <span class="document-dropzone-file" data-dropzone-file hidden></span>
                     </label>
                 </div>
@@ -1588,7 +1590,7 @@
                             <strong>Upload file</strong>
                         </span>
                         <span class="document-dropzone-hint">or drag and drop</span>
-                        <small class="document-dropzone-formats">PDF, JPG, PNG (Max 10MB)</small>
+                        <small class="document-dropzone-formats">PDF, JPG, PNG (Max {{ $maxUploadMb }}MB)</small>
                         <span class="document-dropzone-file" data-dropzone-file hidden></span>
                     </label>
                 </div>
@@ -1739,6 +1741,26 @@
         </div>
     </div>
 </form>
+
+{{-- Unsaved-changes guard: kept outside the form so its buttons are never submitted. --}}
+<div class="request-dialog-backdrop" id="request-leave-dialog" data-request-leave-dialog role="dialog" aria-modal="true" aria-labelledby="request-leave-title" aria-describedby="request-leave-message" hidden>
+    <div class="request-dialog request-submit-dialog" role="document">
+        <div class="request-dialog-header">
+            <div>
+                <p class="request-section-label">Unsaved changes</p>
+                <h2 id="request-leave-title">Leave Create Request?</h2>
+            </div>
+            <button type="button" class="request-dialog-close" data-request-leave-stay aria-label="Stay on page">&times;</button>
+        </div>
+        <div class="request-dialog-body">
+            <p id="request-leave-message">You have unsaved changes. If you leave now, your latest changes will not be saved.</p>
+        </div>
+        <div class="request-dialog-actions">
+            <button type="button" class="button secondary ui-pressable" data-request-leave-stay>Stay on Page</button>
+            <button type="button" class="button primary ui-pressable" data-request-leave-confirm>Leave Without Saving</button>
+        </div>
+    </div>
+</div>
 </section>
 
 <script>
@@ -2273,7 +2295,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const to = returnDate?.value || '';
         const validationId = ++operationalDateValidationId;
 
-        [scheduleDate, returnDate].forEach((field) => field?.setCustomValidity(''));
+        // Field validity is owned by the date-validation block
+        // (SPMU_CREATE_REQUEST_DATE_VALIDATION); do not clear it here.
 
         if (!from || !to) {
             return true;
@@ -2301,8 +2324,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 [scheduleDate, dates.schedule_date],
                 [returnDate, dates.return_date],
             ].forEach(([field, result]) => {
-                const message = result?.open ? '' : (result?.message || 'Choose an open SPMU operational date.');
-                field?.setCustomValidity(message);
+                const message = result?.open ? '' : (result?.message || 'SPMU is closed on this date. Please choose another date.');
+                spmuDateServerResult(field, result);
 
                 if (message) {
                     invalidMessages.push(message);
@@ -2316,7 +2339,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return invalidMessages.length === 0;
         } catch (error) {
             if (validationId === operationalDateValidationId && availabilityMessage) {
-                availabilityMessage.textContent = 'Operational date validation could not be loaded. The request will be validated when submitted.';
+                availabilityMessage.textContent = "We couldn't check your dates right now. They will be checked again when you save or submit.";
             }
 
             return true;
@@ -2762,8 +2785,335 @@ document.addEventListener('DOMContentLoaded', () => {
             updateReviewSummary();
         }
     });
-    scheduleDate?.addEventListener('change', refreshAvailability);
-    returnDate?.addEventListener('change', refreshAvailability);
+    // SPMU_CREATE_REQUEST_DATE_VALIDATION_START
+    /*
+     * Items Needed From / Expected Return Date checks, using the native date
+     * picker. Mirrors the server rules exactly (the server stays authoritative
+     * on Save Draft and Submit):
+     * - Items Needed From is after today (the input's min attribute);
+     * - Expected Return Date is after Items Needed From;
+     * - both fall on a day SPMU is open in the Operational Calendar,
+     *   including special openings and excluding closures/holidays.
+     * One message line per field; never auto-picks a date for the borrower.
+     */
+    var spmuDateStates = null;
+    var spmuDefaultReturnMin = '';
+
+    const spmuDateCheckUrl = @json(route('requests.operational-date-availability'));
+
+    function spmuDateLabel(value) {
+        const date = new Date(`${value}T12:00:00`);
+
+        return Number.isNaN(date.getTime())
+            ? value
+            : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    function spmuNextDay(value) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return '';
+
+        const [year, month, day] = value.split('-').map(Number);
+        const date = new Date(year, month - 1, day + 1);
+
+        return [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, '0'),
+            String(date.getDate()).padStart(2, '0'),
+        ].join('-');
+    }
+
+    function spmuDateEmptyMessage(field) {
+        return field === scheduleDate
+            ? 'Please select Items Needed From.'
+            : 'Please select Expected Return Date.';
+    }
+
+    function spmuDateRender(field) {
+        const state = spmuDateStates.get(field);
+        const showMessage = state.message && !state.suppressMessage;
+
+        if (state.node) {
+            state.node.textContent = showMessage ? state.message : '';
+            state.node.style.display = showMessage ? 'block' : 'none';
+        }
+
+        // One message per field: once the live message speaks, hide the
+        // server-rendered error under the same input.
+        if (showMessage && state.serverError) {
+            state.serverError.hidden = true;
+        }
+
+        const blocking = {
+            pending: 'Checking this date. Please wait a moment.',
+            invalid: state.message || 'Please choose another date.',
+            error: state.message,
+        }[state.status] || '';
+
+        field.setCustomValidity(blocking);
+        field.toggleAttribute('aria-invalid', Boolean(showMessage));
+    }
+
+    function spmuSyncReturnMin() {
+        const afterFrom = spmuNextDay(scheduleDate.value);
+
+        returnDate.min = afterFrom && afterFrom > spmuDefaultReturnMin
+            ? afterFrom
+            : spmuDefaultReturnMin;
+    }
+
+    function spmuDatesReady() {
+        return spmuDateStates.get(scheduleDate).status === 'valid'
+            && spmuDateStates.get(returnDate).status === 'valid'
+            && returnDate.value > scheduleDate.value;
+    }
+
+    /*
+     * Local rules first; only a locally valid date is sent to the
+     * Operational Calendar. Bumping the serial makes any older in-flight
+     * check for this field irrelevant (it can never overwrite this result).
+     */
+    function spmuDateEvaluate(field, { userChange, emptyMessage = null }) {
+        const state = spmuDateStates.get(field);
+        const value = field.value;
+
+        state.serial++;
+
+        if (!value) {
+            state.status = 'empty';
+            state.message = emptyMessage ?? (state.touched ? spmuDateEmptyMessage(field) : '');
+            spmuDateRender(field);
+            return;
+        }
+
+        let problem = '';
+
+        if (field === scheduleDate && scheduleDate.min && value < scheduleDate.min) {
+            problem = `Items Needed From must be ${spmuDateLabel(scheduleDate.min)} or later.`;
+        } else if (field === returnDate && scheduleDate.value && value <= scheduleDate.value) {
+            problem = `Please choose a return date after ${spmuDateLabel(scheduleDate.value)}.`;
+        } else if (field === returnDate && returnDate.min && value < returnDate.min) {
+            problem = `Expected Return Date must be ${spmuDateLabel(returnDate.min)} or later.`;
+        }
+
+        if (problem) {
+            state.status = 'invalid';
+            state.message = problem;
+            spmuDateRender(field);
+            return;
+        }
+
+        void spmuDateCheckCalendar(field, state.serial, userChange);
+    }
+
+    async function spmuDateCheckCalendar(field, serial, userChange) {
+        const state = spmuDateStates.get(field);
+        const picked = field.value;
+        const isCurrent = () => serial === state.serial && field.value === picked;
+
+        state.status = 'pending';
+        state.message = '';
+        spmuDateRender(field);
+        spmuDateAfterChange();
+
+        let result;
+
+        try {
+            // The endpoint checks two dates independently; sending the picked
+            // date as both lets one field be checked before the other is set.
+            const query = new URLSearchParams({ schedule_date: picked, return_date: picked });
+            const response = await fetch(`${spmuDateCheckUrl}?${query}`, {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) throw new Error('Calendar lookup failed.');
+
+            result = (await response.json())?.[field.id];
+
+            if (typeof result?.open !== 'boolean') throw new Error('Unexpected calendar response.');
+        } catch (error) {
+            if (!isCurrent()) return;
+
+            state.status = 'error';
+            state.message = "We couldn't check this date. Please select it again.";
+            spmuDateRender(field);
+            spmuDateAfterChange();
+            return;
+        }
+
+        if (!isCurrent()) return;
+
+        if (result.open) {
+            state.status = 'valid';
+            state.message = '';
+        } else {
+            state.message = result.message
+                || `SPMU is closed on ${spmuDateLabel(picked)}. Please choose another date.`;
+
+            if (userChange) {
+                // Reject a closed day immediately; Chrome cannot grey out single dates.
+                field.value = '';
+                state.lastValue = '';
+                state.status = 'empty';
+
+                if (field === scheduleDate) spmuSyncReturnMin();
+            } else {
+                // A saved draft value is shown as invalid but never silently cleared.
+                state.status = 'invalid';
+            }
+        }
+
+        spmuDateRender(field);
+        spmuDateAfterChange();
+    }
+
+    function spmuDateAfterChange() {
+        const schedule = spmuDateStates.get(scheduleDate).status;
+        const ret = spmuDateStates.get(returnDate).status;
+
+        if (spmuDatesReady() || schedule === 'empty' || ret === 'empty') {
+            // Existing availability flow (also resets it when a date is empty).
+            void refreshAvailability();
+        } else {
+            syncDateContext();
+            availability = {};
+            availabilityLoaded = false;
+            updateCatalogAvailability();
+            syncSelectedItems();
+        }
+
+        syncForwardActionStates();
+    }
+
+    function spmuDateOnUserChange(field) {
+        const state = spmuDateStates.get(field);
+
+        // Chrome fires both input and change for one pick; handle a value once,
+        // except to retry after a failed check.
+        if (field.value === state.lastValue && state.status !== 'error') return;
+
+        state.lastValue = field.value;
+        state.touched = true;
+        state.suppressMessage = false;
+
+        if (state.serverError) state.serverError.hidden = true;
+
+        spmuDateEvaluate(field, { userChange: true });
+
+        if (field === scheduleDate) {
+            spmuSyncReturnMin();
+
+            const returnState = spmuDateStates.get(returnDate);
+
+            if (returnDate.value && scheduleDate.value && returnDate.value <= scheduleDate.value) {
+                // The earlier return date is no longer valid: clear only it and
+                // let the borrower choose a new one.
+                returnDate.value = '';
+                returnState.lastValue = '';
+                returnState.touched = true;
+                returnState.suppressMessage = false;
+
+                if (returnState.serverError) returnState.serverError.hidden = true;
+
+                spmuDateEvaluate(returnDate, {
+                    userChange: true,
+                    emptyMessage: `Please choose a new return date after ${spmuDateLabel(scheduleDate.value)}.`,
+                });
+            } else if (returnDate.value && returnState.status === 'invalid') {
+                // An order problem may now be fixed by the new Items Needed From.
+                spmuDateEvaluate(returnDate, { userChange: true });
+            }
+        }
+
+        spmuDateAfterChange();
+    }
+
+    /*
+     * Called by validateOperationalDates() when the availability refresh
+     * re-checks both dates on the server. Only a closure for the value still
+     * selected is applied; it never overrides a newer selection.
+     */
+    function spmuDateServerResult(field, result) {
+        if (!spmuDateStates || !field || !result || result.open) return;
+
+        const state = spmuDateStates.get(field);
+
+        if (state.status !== 'valid' || state.lastValue !== field.value) return;
+
+        state.status = 'invalid';
+        state.message = result.message || `SPMU is closed on ${spmuDateLabel(field.value)}. Please choose another date.`;
+        spmuDateRender(field);
+    }
+
+    if (scheduleDate && returnDate) {
+        spmuDefaultReturnMin = returnDate.min;
+
+        spmuDateStates = new Map([scheduleDate, returnDate].map((field) => {
+            const serverError = Array.from(field.closest('label')?.querySelectorAll('.field-error') || [])
+                .find((node) => !node.id?.startsWith('spmu-')) || null;
+
+            return [field, {
+                node: document.getElementById(field === scheduleDate ? 'spmu-schedule-live-error' : 'spmu-return-live-error'),
+                serverError,
+                // Do not repeat a server error already shown under this input.
+                suppressMessage: Boolean(serverError),
+                status: 'empty',
+                message: '',
+                touched: Boolean(field.value),
+                lastValue: field.value,
+                serial: 0,
+            }];
+        }));
+
+        spmuSyncReturnMin();
+
+        // Saved draft / redisplayed values are checked but never cleared.
+        // Deferred until the page script has finished initializing.
+        queueMicrotask(() => {
+            [scheduleDate, returnDate].forEach((field) => spmuDateEvaluate(field, { userChange: false }));
+        });
+
+        ['input', 'change'].forEach((eventName) => {
+            scheduleDate.addEventListener(eventName, () => spmuDateOnUserChange(scheduleDate));
+            returnDate.addEventListener(eventName, () => spmuDateOnUserChange(returnDate));
+        });
+
+        /*
+         * Step 2 cannot be reached (Continue or the step indicator) while a
+         * date is missing, invalid, or still being checked.
+         */
+        document.addEventListener('click', (event) => {
+            const button = event.target instanceof Element
+                ? event.target.closest('[data-stage-next], [data-stage-target]')
+                : null;
+
+            if (!button || activeStage !== 1) return;
+
+            const target = Number(button.dataset.stageNext || button.dataset.stageTarget);
+
+            if (target < 2 || spmuDatesReady()) return;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+
+            [scheduleDate, returnDate].forEach((field) => {
+                const state = spmuDateStates.get(field);
+
+                state.touched = true;
+                state.suppressMessage = false;
+
+                if (state.status === 'empty' && !state.message) {
+                    state.message = spmuDateEmptyMessage(field);
+                }
+
+                spmuDateRender(field);
+            });
+
+            ([scheduleDate, returnDate].find((field) => spmuDateStates.get(field).status !== 'valid') || returnDate)
+                .focus();
+        }, true);
+    }
+    // SPMU_CREATE_REQUEST_DATE_VALIDATION_END
 
     searchInput?.addEventListener('input', renderCatalog);
 
@@ -3073,6 +3423,232 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<script>
+// SPMU_CREATE_REQUEST_UNSAVED_GUARD_START
+// Warns before leaving Create/Edit Request with unsaved changes. It never
+// submits, saves, or deletes anything, so an existing saved draft is untouched.
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('request-form');
+    const dialog = document.querySelector('[data-request-leave-dialog]');
+
+    if (!form || !dialog) return;
+
+    const stayButton = dialog.querySelector('.request-dialog-actions [data-request-leave-stay]');
+    const confirmButton = dialog.querySelector('[data-request-leave-confirm]');
+
+    // Values written by scripts or the submit flow, not entered by the borrower.
+    const ignoredNames = new Set(['_token', '_method', '_action_token', 'intent', 'confirm_e_signature']);
+
+    // A redisplayed form after failed validation holds input that was NOT saved.
+    const startsDirty = @json($errors->any());
+
+    let baseline = null;
+    let submitting = false;
+    let leaving = false;
+    let submitResetTimer = null;
+    let pendingHref = null;
+    let returnFocus = null;
+
+    const snapshot = () => JSON.stringify(
+        Array.from(form.elements)
+            .filter((field) => {
+                const type = (field.type || '').toLowerCase();
+
+                return field.name
+                    && !field.disabled
+                    && !ignoredNames.has(field.name)
+                    && !['submit', 'button', 'reset', 'image'].includes(type);
+            })
+            .map((field) => {
+                const type = (field.type || '').toLowerCase();
+
+                if (type === 'checkbox' || type === 'radio') {
+                    return [field.name, field.value, field.checked];
+                }
+
+                if (type === 'file') {
+                    return [field.name, Array.from(field.files || [])
+                        .map((file) => `${file.name}:${file.size}:${file.lastModified}`)];
+                }
+
+                return [field.name, field.value];
+            })
+    );
+
+    /*
+     * The baseline is taken at the borrower's first real interaction, after
+     * the page's own initialization has populated derived values (division,
+     * office, normalized quantities, E-sign flag). Script-driven changes made
+     * before that point are therefore never reported as unsaved changes.
+     */
+    const captureBaseline = (event) => {
+        if (baseline === null && event.isTrusted) {
+            baseline = snapshot();
+        }
+    };
+
+    ['pointerdown', 'keydown', 'dragenter', 'drop', 'input', 'change'].forEach((eventName) => {
+        document.addEventListener(eventName, captureBaseline, true);
+    });
+
+    const isDirty = () => startsDirty || (baseline !== null && snapshot() !== baseline);
+
+    const markSubmitting = () => {
+        submitting = true;
+        window.clearTimeout(submitResetTimer);
+
+        // Matches the existing 20-second retry window: if the submission never
+        // navigates away (e.g. dropped connection), the guard becomes active again.
+        submitResetTimer = window.setTimeout(() => {
+            submitting = false;
+        }, 20000);
+    };
+
+    /*
+     * Window bubble phase runs after every form/document submit handler, so a
+     * blocked or invalid submission (defaultPrevented) is never treated as an
+     * accepted Save Draft or E-sign & Submit.
+     */
+    window.addEventListener('submit', (event) => {
+        if (event.target === form && !event.defaultPrevented) {
+            markSubmitting();
+        }
+    });
+
+    // Older-browser fallback in the existing confirm flow uses form.submit(),
+    // which fires no submit event.
+    document.querySelector('[data-confirm-request-submit]')?.addEventListener('click', () => {
+        if (typeof form.requestSubmit !== 'function') {
+            markSubmitting();
+        }
+    });
+
+    const openLeaveDialog = (href, trigger) => {
+        pendingHref = href;
+        returnFocus = trigger;
+        dialog.hidden = false;
+        document.body.classList.add('request-dialog-open');
+        stayButton?.focus();
+    };
+
+    const closeLeaveDialog = () => {
+        dialog.hidden = true;
+        pendingHref = null;
+
+        if (!document.querySelector('.request-dialog-backdrop:not([hidden])')) {
+            document.body.classList.remove('request-dialog-open');
+        }
+
+        returnFocus?.focus?.();
+        returnFocus = null;
+    };
+
+    /*
+     * Same-window links only (Cancel, sidebar, top bar, in-page links to other
+     * modules). Runs in the window bubble phase so links already handled by
+     * other scripts (defaultPrevented) are left alone. The intended
+     * destination is kept and used after confirmation.
+     */
+    window.addEventListener('click', (event) => {
+        if (
+            leaving
+            || event.defaultPrevented
+            || event.button !== 0
+            || event.metaKey
+            || event.ctrlKey
+            || event.shiftKey
+            || event.altKey
+        ) {
+            return;
+        }
+
+        const link = event.target instanceof Element
+            ? event.target.closest('a[href]')
+            : null;
+
+        if (!link || dialog.contains(link) || link.hasAttribute('download')) return;
+
+        const target = (link.getAttribute('target') || '').toLowerCase();
+        if (target && target !== '_self') return;
+
+        let url;
+        try {
+            url = new URL(link.href, window.location.href);
+        } catch (error) {
+            return;
+        }
+
+        if (!['http:', 'https:'].includes(url.protocol)) return;
+
+        // In-page anchors (e.g. Terms and Conditions) do not leave the page.
+        if (
+            url.origin === window.location.origin
+            && url.pathname === window.location.pathname
+            && url.search === window.location.search
+        ) {
+            return;
+        }
+
+        if (!isDirty()) return;
+
+        event.preventDefault();
+        openLeaveDialog(url.href, link);
+    });
+
+    dialog.querySelectorAll('[data-request-leave-stay]').forEach((button) => {
+        button.addEventListener('click', closeLeaveDialog);
+    });
+
+    dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) closeLeaveDialog();
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !dialog.hidden) closeLeaveDialog();
+    });
+
+    confirmButton?.addEventListener('click', () => {
+        if (!pendingHref) return;
+
+        leaving = true;
+        window.location.assign(pendingHref);
+    });
+
+    /*
+     * Refresh, browser Back/Forward to another page, tab/window close, and
+     * other forms (e.g. Logout). The browser shows its own native text.
+     * Switching tabs does not unload the page, so it is never affected.
+     */
+    window.addEventListener('beforeunload', (event) => {
+        if (
+            leaving
+            || submitting
+            // The layout already ended an idle session; nothing can be saved.
+            || document.documentElement.classList.contains('spmu-session-ended')
+            || !isDirty()
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+        event.returnValue = '';
+    });
+
+    // Returning via the back/forward cache after leaving or submitting.
+    window.addEventListener('pageshow', (event) => {
+        if (!event.persisted) return;
+
+        if (submitting) {
+            baseline = snapshot();
+        }
+
+        submitting = false;
+        leaving = false;
+    });
+});
+// SPMU_CREATE_REQUEST_UNSAVED_GUARD_END
+</script>
+
 <style>
 /* E-SIGN CONFIRM MODAL ENHANCEMENTS START */
 
@@ -3172,6 +3748,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* E-SIGN CONFIRM MODAL ENHANCEMENTS END */
 </style>
+
+
 
 @endsection
 

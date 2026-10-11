@@ -151,7 +151,7 @@ class PasswordResetController extends Controller
             [
                 'email' => $data['email'],
                 'password' => $data['password'],
-                'password_confirmation' => $data['password_confirmation'],
+                'password_confirmation' => (string) $request->input('password_confirmation'),
                 'token' => $data['token'],
             ],
             function (User $user, string $password) use ($audit): void {

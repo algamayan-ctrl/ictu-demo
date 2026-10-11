@@ -18,6 +18,42 @@
         const summaries = Array.from(browser.querySelectorAll('[data-spmu-inventory-summary]'));
         const pageSizes = Array.from(browser.querySelectorAll('[data-spmu-inventory-page-size]'));
 
+        const deleteDialog = document.getElementById('spmu-inventory-delete-dialog');
+        const deleteForm = document.getElementById('spmu-inventory-delete-form');
+        const deleteName = document.getElementById('spmu-inventory-delete-name');
+        const deleteReason = document.getElementById('spmu-inventory-delete-reason');
+
+        if (deleteDialog && deleteForm && deleteName && deleteReason) {
+            browser.addEventListener('click', (event) => {
+                const trigger = event.target instanceof Element
+                    ? event.target.closest('[data-inventory-delete-trigger]')
+                    : null;
+
+                if (!trigger) return;
+
+                const url = trigger.dataset.deleteUrl;
+                if (!url) return;
+
+                deleteForm.action = url;
+                deleteName.textContent = trigger.dataset.deleteName || 'this item';
+                deleteReason.value = '';
+                deleteDialog.showModal();
+                deleteReason.focus();
+            });
+
+            deleteDialog.querySelector('[data-inventory-delete-cancel]')?.addEventListener('click', () => {
+                deleteDialog.close();
+            });
+
+            deleteForm.addEventListener('submit', () => {
+                const confirmButton = deleteForm.querySelector('[type="submit"]');
+                if (confirmButton && deleteForm.checkValidity()) {
+                    confirmButton.disabled = true;
+                    confirmButton.textContent = 'Deleting...';
+                }
+            });
+        }
+
         let currentPage = 1;
 
         const perPage = () => {

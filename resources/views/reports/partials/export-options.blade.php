@@ -24,7 +24,7 @@
 
         <header class="report-options-header">
             <div>
-                <p class="report-options-eyebrow">Report output</p>
+                <p class="report-options-eyebrow">Report Options</p>
                 <h2 id="report-options-title">Export / Print Report</h2>
             </div>
             <button class="icon-button" type="button" aria-label="Close export options" data-export-close>

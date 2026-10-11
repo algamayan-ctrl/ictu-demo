@@ -98,6 +98,7 @@ class ApprovalDecisionReport implements ReportBuilder
                     '_decision' => $decisionState,
                     '_division_code' => (string) ($version?->division_code ?? ''),
                     '_office_unit' => (string) ($version?->office_unit ?? ''),
+                    '_request_id' => (int) $request->id,
                     '_link' => route('requests.show', $request),
                     '_tone_verification' => match ($verificationState) {
                         'VERIFIED' => 'positive',

@@ -15,10 +15,6 @@
 .reporting-workspace .report-generate-button { min-height: 45px; padding: 11px 20px; font-size: 13px; }
 .report-period-helper, .report-description { margin: 16px 0 0; font-size: 11px; color: var(--report-muted); line-height: 1.5; }
 .report-description { margin-top: 6px; }
-.report-preview-empty { display: flex; align-items: center; gap: 13px; padding: 19px 20px; border: 1px dashed var(--report-line); border-radius: var(--radius); background: var(--surface-subtle); }
-.report-preview-empty-icon { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 36px; height: 36px; border: 1px solid color-mix(in srgb, var(--report-blue) 18%, var(--border)); border-radius: 10px; background: color-mix(in srgb, var(--report-blue) 7%, var(--surface-elevated)); color: var(--report-blue); }
-.report-preview-empty p { margin: 0; color: var(--report-muted); font-size: 12px; line-height: 1.5; }
-.report-preview-empty .report-preview-label { margin-bottom: 2px; color: var(--heading); }
 .report-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
 .report-summary-grid.report-primary-summaries { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .reporting-workspace .report-summary-item { display: flex; flex-direction: row; align-items: flex-start; gap: 22px; padding: 24px 22px; min-height: 126px; }
@@ -121,10 +117,6 @@
 .report-preview-title { margin: 3px 0 0; color: var(--heading); font-size: 16px; font-weight: 750; }
 .report-preview-context { margin: 3px 0 0; color: var(--text-muted); font-size: 11px; line-height: 1.35; }
 .report-filter-warning { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 12px; color: var(--warning); font-size: 12px; }
-.report-preview-sheet { display: block; overflow: auto; padding: clamp(12px, 2vw, 28px); border: 1px solid var(--border); background: #edf1f5; }
-.report-preview-sheet .doc-sheet { width: 100%; min-width: min-content; margin: 0 auto; box-shadow: 0 2px 9px rgba(13, 31, 49, .12); }
-.report-preview-sheet--portrait .doc-sheet { max-width: 794px; }
-.report-preview-sheet--landscape .doc-sheet { max-width: 1123px; }
 
 /* Records footer and pagination */
 .report-records-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
@@ -181,7 +173,7 @@
  .report-filters-panel, .report-generate-button, .report-records-footer,
  .report-pagination, .report-boundary-note,
  .report-options-dialog { display: none !important; }
- .report-preview-sheet { border: 0 !important; }
+
 }
 </style>
 
@@ -490,27 +482,61 @@
  }
 }
 
+</style>
+
+<style>
+/* =========================================================
+ SYSTEM REPORT PREVIEW — server-rendered records table
+ The on-screen preview is application UI only. The formal
+ document exists only in Print and the exported files.
+ ========================================================= */
+
+
+.report-preview-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.report-preview-filters { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+
+.report-results { position: relative; }
+.report-results-loading { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-subtle); color: var(--text-secondary); font-size: 12px; font-weight: 650; }
+.report-results-loading[hidden] { display: none; }
+.report-results-spinner, .report-system-records-card.is-loading::after { width: 16px; height: 16px; border: 2px solid color-mix(in srgb, var(--primary-action) 25%, transparent); border-top-color: var(--primary-action); border-radius: 50%; animation: report-spin .8s linear infinite; }
+.report-results.is-loading .report-system-preview, .report-results.is-loading .report-no-results { opacity: .45; pointer-events: none; transition: opacity .15s ease; }
+.report-system-records-card { position: relative; }
+.report-system-records-card.is-loading > * { opacity: .5; pointer-events: none; }
+.report-system-records-card.is-loading::after { content: ''; position: absolute; top: 22px; right: 22px; }
+@keyframes report-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .report-results-spinner, .report-system-records-card.is-loading::after { animation: none; } }
+
+.report-sort-link { display: inline-flex; align-items: center; gap: 5px; color: inherit !important; text-decoration: none !important; font-weight: inherit; }
+.report-sort-link:hover span:first-child, .report-sort-link:focus-visible span:first-child { text-decoration: underline; }
+.report-sort-indicator { color: var(--text-soft); font-size: 9px; line-height: 1; }
+th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .report-sort-indicator { color: var(--primary-action); }
+.report-system-table th.numeric, .report-system-table td.numeric { text-align: right !important; font-variant-numeric: tabular-nums; }
+.report-system-table th.numeric .report-sort-link { flex-direction: row-reverse; }
+.report-system-table .status-badge { font-size: 10px; font-weight: 650; padding: 3px 8px; white-space: nowrap; }
+.report-system-table .report-system-action-column { width: 1%; white-space: nowrap !important; text-align: right !important; }
+.report-system-table .report-record-restricted { color: var(--text-muted); font-size: 11px; cursor: help; }
+.report-system-table .report-system-table-empty { padding: 26px 12px !important; color: var(--text-muted) !important; text-align: center !important; }
+
+.report-system-search-note { margin: -4px 0 12px; color: var(--text-secondary); font-size: 11.5px; line-height: 1.5; }
+.report-system-search-note a { margin-left: 4px; color: var(--primary-action); font-weight: 700; }
+
+.report-records-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-left: auto; }
+.report-per-page-control select { min-height: 32px; padding: 4px 28px 4px 10px; font-size: 11.5px; }
+.report-records-summary { margin: 0; color: var(--text-secondary); font-size: 12px; }
+
+.report-output-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; color: var(--text-muted); font-size: 11.5px; line-height: 1.5; }
+.report-output-note .ui-icon { flex: 0 0 auto; margin-top: 1px; color: var(--info); }
+
+.report-preview-error .report-no-results-icon { color: var(--danger); background: var(--danger-bg, color-mix(in srgb, var(--danger) 10%, var(--surface-elevated))); }
+
+@media (max-width: 620px) {
+ .report-preview-actions, .report-preview-actions .button { width: 100%; justify-content: center; }
+ .report-records-controls { margin-left: 0; }
+}
+
 @media print {
- .report-system-preview {
- display: none !important;
- }
-
- .report-print-view {
- display: block !important;
- }
-
- .report-print-view .report-preview-sheet {
- display: block !important;
- overflow: visible !important;
- padding: 0 !important;
- border: 0 !important;
- background: #fff !important;
- }
-
- .report-print-view .doc-sheet {
- margin: 0 auto !important;
- box-shadow: none !important;
- }
+ .report-system-search, .report-records-controls, .report-preview-actions,
+ .report-system-action-column, .report-output-note { display: none !important; }
 }
 </style>
 
@@ -830,38 +856,6 @@
 }
 
 
-/* =========================================================
- PRINT / EXPORT
- ========================================================= */
-
-@media print {
-
- .report-system-preview {
- display: none !important;
- }
-
- .report-print-view {
- display: block !important;
- }
-
- .report-print-view
- .report-preview-sheet {
-
- display: block !important;
- overflow: visible !important;
- padding: 0 !important;
- border: 0 !important;
- background: #fff !important;
- }
-
- .report-print-view
- .doc-sheet {
-
- margin: 0 auto !important;
- box-shadow: none !important;
- }
-}
-
 </style>
 
 <style>
@@ -880,12 +874,6 @@
  display: none !important;
 }
 
-</style>
-<style>
-/* REMOVE REPORT SUMMARY CARDS */
-.report-system-summary-grid {
- display: none !important;
-}
 </style>
 <style>
 /* REPORT UNIVERSAL EMPTY STATE FINAL */
@@ -1873,4 +1861,182 @@ dialog.report-options-dialog[open] > form::after {
  row-gap: 0;
 }
 
+</style>
+<style>
+/* =========================================================
+ SYSTEM PREVIEW — COMPACT LAYOUT (final overrides)
+ Dense, dashboard-style cards and table consistent with Analytics.
+ ========================================================= */
+.reporting-detail .report-system-preview { gap: 14px; }
+.reporting-detail .report-system-summary-grid { grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 10px; }
+.reporting-detail .report-system-summary-card { min-height: 0; padding: 12px 14px; border-radius: 9px; }
+.reporting-detail .report-system-summary-label { margin-bottom: 3px; font-size: 11px; line-height: 1.3; }
+.reporting-detail .report-system-summary-value { font-size: 20px; }
+.reporting-detail .report-system-records-card { padding: 14px 16px; }
+.reporting-detail .report-system-records-header { margin-bottom: 12px; }
+.reporting-detail .report-system-table { min-width: 860px; }
+.reporting-detail .report-system-table th, .reporting-detail .report-system-table td { padding: 9px 10px !important; }
+/* Only horizontal overflow scrolls inside the card; rows never scroll in a nested box. */
+.reporting-detail .report-system-table-scroll { max-height: none; overflow-x: auto; overflow-y: visible; }
+.reporting-detail .report-system-table td.report-cell-nowrap { white-space: nowrap !important; }
+.reporting-detail .report-records-footer { margin-top: 12px; }
+.reporting-detail .report-preview-bar { gap: 12px; margin-bottom: 12px; }
+@media (max-width: 760px) {
+ .reporting-detail .report-system-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .reporting-detail .report-system-records-card { padding: 12px; }
+}
+@media (max-width: 330px) {
+ .reporting-detail .report-system-summary-grid { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+
+<style>
+/* SPMU-REPORTS-INVENTORY-TABLE-V1 — display only; print/export stays unchanged */
+@media screen {
+  .reporting-detail .report-system-table-scroll {
+    max-width: 100%;
+    border: 1px solid var(--border) !important;
+    border-radius: 9px !important;
+    overflow-x: auto !important;
+    scrollbar-width: thin;
+  }
+  .reporting-detail .report-system-table {
+    width: max-content !important;
+    min-width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    table-layout: auto !important;
+  }
+  .reporting-detail .report-system-table thead th,
+  .reporting-detail [data-report-system-table] thead th {
+    padding: 11px 12px !important;
+    background: var(--surface-subtle) !important;
+    color: var(--text-secondary) !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--border) !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    line-height: 1.3 !important;
+    letter-spacing: .045em !important;
+    text-transform: uppercase !important;
+    vertical-align: middle !important;
+  }
+  .reporting-detail .report-system-table tbody td,
+  .reporting-detail [data-report-system-table] tbody td {
+    padding: 10px 12px !important;
+    background: var(--surface-elevated) !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--border) !important;
+    font-size: 11.5px !important;
+    line-height: 1.45 !important;
+    vertical-align: middle !important;
+  }
+  .reporting-detail .report-system-table tbody tr:last-child td,
+  .reporting-detail [data-report-system-table] tbody tr:last-child td {
+    border-bottom: 0 !important;
+  }
+  .reporting-detail .report-system-table tbody tr:hover td,
+  .reporting-detail [data-report-system-table] tbody tr:hover td {
+    background: color-mix(in srgb, var(--primary-action) 3%, var(--surface-elevated)) !important;
+  }
+  .reporting-detail .report-reference-badge {
+    display: inline-block;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    padding: 6px 9px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-subtle);
+    color: var(--heading);
+    font-size: 10.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .reporting-detail .report-inventory-view-action {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    padding: 4px !important;
+    border: 0 !important;
+    border-radius: 7px;
+    background: transparent !important;
+    color: var(--primary-action) !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+    font-size: 0 !important; /* Visible eye icon, accessible View Record text remains in HTML */
+  }
+  .reporting-detail .report-inventory-view-action:hover {
+    background: color-mix(in srgb, var(--primary-action) 9%, var(--surface-elevated)) !important;
+    color: var(--primary-action) !important;
+  }
+  .reporting-detail .report-inventory-view-action:focus-visible {
+    outline: 2px solid var(--primary-action) !important;
+    outline-offset: 2px;
+  }
+  .reporting-detail .report-inventory-view-action svg {
+    display: block;
+    visibility: visible !important;
+    opacity: 1 !important;
+    stroke: currentColor !important;
+  }
+  .reporting-detail .report-sr-only {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0);
+    white-space: nowrap; clip-path: inset(50%);
+  }
+  .reporting-detail .report-system-action-column {
+    min-width: 66px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+  .reporting-detail .report-system-table td.numeric,
+  .reporting-detail [data-report-system-table] td.numeric {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700 !important;
+  }
+  /* All Transactions: retain all fields with sensible widths and scroll, never squash. */
+  .all-transactions-page .all-transactions-table { min-width: 1280px !important; }
+  .all-transactions-page .all-transactions-table thead th { white-space: nowrap !important; }
+  .all-transactions-page .all-transactions-table tbody td { height: 54px; white-space: nowrap !important; }
+  .all-transactions-page .all-transactions-table th:nth-child(1) { min-width: 186px !important; }
+  .all-transactions-page .all-transactions-table th:nth-child(2) { min-width: 116px !important; }
+  .all-transactions-page .all-transactions-table th:nth-child(3) { min-width: 147px !important; }
+  .all-transactions-page .all-transactions-table th:nth-child(4) { min-width: 195px !important; }
+  .all-transactions-page .all-transactions-table th:nth-child(5) { min-width: 185px !important; }
+  .all-transactions-page .all-transactions-table th:nth-child(6) { min-width: 85px !important; text-align: center !important; }
+  .all-transactions-page .all-transactions-table th:nth-child(7) { min-width: 152px !important; }
+  .all-transactions-page .all-transactions-table th:nth-child(8) { min-width: 128px !important; }
+  .all-transactions-page .all-transactions-table th:nth-child(9) { min-width: 70px !important; text-align: center !important; }
+  .all-transactions-page .all-transactions-table td:nth-child(6) { text-align: center !important; }
+  .all-transactions-page .all-transactions-person,
+  .all-transactions-page .all-transactions-items {
+    display: inline-block;
+    max-width: 182px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    font-weight: 700;
+    color: var(--heading);
+  }
+  .all-transactions-page .all-transactions-person { max-width: 155px; }
+  .all-transactions-page .all-transactions-unit { max-width: 175px; }
+  .all-transactions-page .all-transactions-type { color: var(--heading); font-weight: 500; }
+  .all-transactions-page .all-transactions-date { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  .all-transactions-page .all-transactions-quantity { text-align: center !important; }
+  .all-transactions-page .all-transactions-reference-cell { white-space: nowrap !important; }
+  .all-transactions-page .report-system-records-card { padding: 14px 16px !important; }
+  .all-transactions-page .report-system-records-header { margin-bottom: 11px !important; }
+  @media (max-width: 720px) {
+    .all-transactions-page .report-system-records-card { padding: 11px !important; }
+  }
+}
 </style>

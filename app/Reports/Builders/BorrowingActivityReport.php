@@ -94,6 +94,7 @@ class BorrowingActivityReport implements ReportBuilder
                     '_borrower_user_id' => (int) $request->borrower_user_id,
                     '_division_code' => (string) ($version?->division_code ?? ''),
                     '_office_unit' => (string) ($version?->office_unit ?? ''),
+                    '_request_id' => (int) $request->id,
                     '_link' => route('requests.show', $request),
                     '_tone_status' => self::statusTone($statusCode),
 

@@ -20,15 +20,17 @@ use App\Models\User;
 use App\Reports\ReportCatalogue;
 use App\Reports\ReportExportOptions;
 use App\Reports\ReportFilters;
+use App\Reports\ReportRecordTable;
 use App\Services\AuditService;
+use App\Services\AllTransactionsService;
 use App\Services\InventoryService;
 use App\Services\ReportService;
 use App\Services\ReportingPeriodService;
+use App\Support\RequestRecordAccess;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -36,8 +38,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    /** Records shown on one page of a generated report. */
-    private const PER_PAGE = 10;
+    /** The most audit events the Audit Trail page lists at once. */
+    private const AUDIT_DISPLAY_CAP = 500;
 
     public function index(Request $request): View|RedirectResponse|JsonResponse
     {
@@ -66,37 +68,61 @@ class ReportController extends Controller
             return $this->borrowerOptions($request);
         }
 
+        /* All Transactions is the unfiltered landing page, not an official report type. */
+        if (! $request->filled('report') || $request->input('report') === 'all-transactions') {
+            $timeline = app(AllTransactionsService::class)->page($request, $request->user());
+
+            return view('reports.all-transactions', $timeline);
+        }
+
         $scope = $this->resolveScope($request, $request->input('report'));
-        $showPreview = $request->boolean('generated');
+        $showPreview = true;
         $dataset = null;
-        $paginator = null;
+        $table = null;
+        $previewFailed = false;
 
         /*
-         * Opening Reports is intentionally configuration-first. The report is
-         * generated only when the operator submits the builder, so a direct
-         * visit does not imply a report has been reviewed or is ready to
-         * export. CSV and print still generate their own full data sets from
-         * this same resolved scope.
+         * Reports always opens on the actual records of the resolved scope
+         * (the default report and period when nothing was chosen); the
+         * builder then refreshes this same view as its options change. Print
+         * and every export format generate their own full data set from this
+         * same resolved scope.
+         *
+         * The preview is the system view of that data set: search, sorting
+         * and pagination only arrange its rows (ReportRecordTable) and are
+         * never passed on to print or export.
          */
         if ($showPreview) {
-            $dataset = app(ReportService::class)->generate($scope['filters'], $request->user());
-            $page = LengthAwarePaginator::resolveCurrentPage();
+            try {
+                $dataset = app(ReportService::class)->generate($scope['filters'], $request->user());
+            } catch (\Throwable $exception) {
+                report($exception);
+                $previewFailed = true;
+            }
 
-            $paginator = new LengthAwarePaginator(
-                $dataset->rows->forPage($page, self::PER_PAGE)->values(),
-                $dataset->count(),
-                self::PER_PAGE,
-                $page,
-                [
-                    'path' => route('reports.index'),
-                    'query' => array_merge($scope['filters']->toQuery(), ['generated' => '1']),
-                ]
-            );
+            if ($dataset !== null) {
+                $table = ReportRecordTable::fromRequest(
+                    $request,
+                    $dataset->columns,
+                    /* "View Record" is offered only for requests this user may actually open. */
+                    RequestRecordAccess::withoutUnviewableLinks(
+                        $dataset->rows,
+                        $request->user(),
+                        $request->session()->get('active_workspace')
+                    ),
+                    route('reports.index'),
+                    array_merge($scope['filters']->toQuery(), ['generated' => '1'])
+                );
+            }
         }
 
         $reportingPeriods = [];
         foreach (ReportingPeriodService::REPORT_PERIODS as $value => $label) {
-            $range = $value === 'custom' ? null : $this->resolveReportingPeriod(
+            /* An unconfigured Previous Semester has no dates to offer, so the builder reports it as not set. */
+            $unavailable = $value === 'previous_semester' && ! app(ReportingPeriodService::class)
+                ->previousSemester($scope['academicPeriods'], $scope['activeAcademicPeriod']);
+
+            $range = ($value === 'custom' || $unavailable) ? null : $this->resolveReportingPeriod(
                 Request::create('/reports', 'GET', ['academic_period' => $value]),
                 $scope['academicPeriods'],
                 $scope['activeAcademicPeriod']
@@ -115,8 +141,10 @@ class ReportController extends Controller
             'selectedReport' => $scope['report'],
             'selectedReportMeta' => ReportCatalogue::definition($scope['report']),
             'showPreview' => $showPreview,
+            'previewFailed' => $previewFailed,
             'dataset' => $dataset,
-            'records' => $paginator,
+            'table' => $table,
+            'records' => $table?->records,
             'reportFilters' => $scope['filters'],
             'exportType' => ReportCatalogue::definition($scope['report'])['export'],
             'from' => $scope['from'],
@@ -685,9 +713,15 @@ class ReportController extends Controller
                         $allowedCategories,
                         true
                     )
-            )
-            ->take(500)
-            ->values();
+            );
+
+        /*
+         * Only the latest 500 are displayed. The page states so whenever
+         * older records exist, so a capped list is never read as the full
+         * trail; nothing is deleted or rewritten.
+         */
+        $totalEvents = $events->count();
+        $events = $events->take(self::AUDIT_DISPLAY_CAP)->values();
 
         $categoryOptions = $auditMode === 'technical'
             ? [
@@ -710,6 +744,7 @@ class ReportController extends Controller
 
         return view('reports.audit', [
             'events' => $events,
+            'totalEvents' => $totalEvents,
             'auditMode' => $auditMode,
             'categoryOptions' => $categoryOptions,
         ]);
@@ -908,11 +943,13 @@ class ReportController extends Controller
 
     public function notifications(Request $request): View
     {
+        /*
+         * Delivery Records lists recipient addresses, mail providers and
+         * provider responses. It is technical administration, so a direct
+         * URL follows the same rule as the navigation: ICTU only.
+         */
         abort_unless(
-            in_array($request->user()?->access_classification, [
-                AccessClassification::SpmuHead,
-                AccessClassification::IctuMaintainer,
-            ], true),
+            $request->user()?->access_classification === AccessClassification::IctuMaintainer,
             403
         );
 

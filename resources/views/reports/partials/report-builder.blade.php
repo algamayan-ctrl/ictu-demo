@@ -274,6 +274,7 @@
             <label class="report-builder-field" for="report-type">
                 <span>Report Type</span>
                 <select id="report-type" name="report" data-report-type>
+                    <option value="all-transactions">All Transactions (General Overview)</option>
                     @foreach($reportGroups as $group => $reports)
                         <optgroup label="{{ $group }}">
                             @foreach($reports as $key => $label)
@@ -428,14 +429,14 @@
                     value="1"
                 >
                     <x-icon name="report-document" size="17" />
-                    <span data-preview-button-label>Preview Report</span>
+                    <span data-preview-button-label>Refresh Preview</span>
                 </button>
             </div>
         </div>
 
         @if(count($reportFilterDefinitions) > 0)
             <section class="report-filters-panel" aria-labelledby="report-filters-heading">
-                <div class="report-filters-heading">
+                <div class="report-filters-heading" data-report-live="filters-heading">
                     <div>
                         <p class="report-filters-title" id="report-filters-heading">
                             <x-icon name="settings" size="15" />
@@ -1197,8 +1198,6 @@
     const borrowerOptions = borrowerPicker?.querySelector('[data-borrower-options]');
     const borrowerMessage = borrowerPicker?.querySelector('[data-borrower-message]');
     const previewForm = document.querySelector('[data-report-preview-form]');
-    const previewButton = previewForm?.querySelector('.report-generate-button');
-    const previewLabel = previewForm?.querySelector('[data-preview-button-label]');
     const dateField =
         previewForm?.querySelector('.report-resolved-period');
 
@@ -1251,6 +1250,15 @@
             '[data-calendar-current-month]'
         );
 
+
+    /*
+     * The builder is replaced when the report type changes and this script
+     * runs again for the new one. Listeners on the document and window are
+     * released then, so a replaced builder leaves nothing behind.
+     */
+    window.reportBuilderListeners?.abort();
+    window.reportBuilderListeners = new AbortController();
+    const builderSignal = { signal: window.reportBuilderListeners.signal };
 
     let activeDateField = null;
     let activeDateTrigger = null;
@@ -1703,6 +1711,7 @@
 
 
             closeDatePicker(false);
+            announceScopeChange();
 
 
             if (borrowerSearch) {
@@ -1754,7 +1763,8 @@
             ) {
                 closeDatePicker();
             }
-        }
+        },
+        builderSignal
     );
 
 
@@ -1771,15 +1781,47 @@
 
                 closeDatePicker(true);
             }
-        }
+        },
+        builderSignal
     );
 
 
     window.addEventListener(
         'resize',
-        positionDatePicker
+        positionDatePicker,
+        builderSignal
     );
-    reportType?.addEventListener('change', () => reportType.form?.submit());
+    /*
+     * A new report type has its own filters, so the live preview replaces
+     * the builder together with the records. Only the scope every report
+     * understands is carried over; the previous report's own filters do not
+     * apply to the new one.
+     */
+    reportType?.addEventListener('change', () => {
+        if (reportType.value === 'all-transactions') {
+            window.location.assign(@json(route('reports.index')));
+            return;
+        }
+        const params = new URLSearchParams();
+        params.set('report', reportType.value);
+        params.set('academic_period', period?.value || 'month');
+        if (isCustomRange() && validRange(appliedStartDate?.value, appliedEndDate?.value)) {
+            params.set('start_date', appliedStartDate.value);
+            params.set('end_date', appliedEndDate.value);
+        }
+        if (division?.value) params.set('division', division.value);
+        if (dependent?.value) params.set('unit', dependent.value);
+        params.set('generated', '1');
+
+        previewForm.dispatchEvent(new CustomEvent('report:type-change', {
+            bubbles: true,
+            detail: { url: `${window.location.pathname}?${params.toString()}` },
+        }));
+    });
+
+    /* Tell the live preview that the report scope changed outside a native change event. */
+    const announceScopeChange = () =>
+        previewForm?.dispatchEvent(new CustomEvent('report:scope-change', { bubbles: true }));
 
     previewForm?.addEventListener('submit', (event) => {
         if (!validRange(appliedStartDate?.value, appliedEndDate?.value)) {
@@ -1788,24 +1830,12 @@
             dateError.hidden = false;
             return;
         }
-        if (previewForm.dataset.previewSubmitting === '1') {
-            event.preventDefault();
-            return;
-        }
-
-        previewForm.dataset.previewSubmitting = '1';
-
-        if (previewButton) {
-            /*
-             * Keep name="generated" value="1" successful for this GET submit.
-             * The dataset flag blocks duplicate submits without disabling the
-             * submitter and accidentally dropping the generated parameter.
-             */
-            previewButton.setAttribute('aria-disabled', 'true');
-            previewButton.style.pointerEvents = 'none';
-        }
-
-        if (previewLabel) previewLabel.textContent = 'Loading Previewâ€¦';
+        /*
+         * The preview refreshes in place; the live preview script owns the
+         * request, so repeated clicks never start duplicate page loads.
+         */
+        event.preventDefault();
+        previewForm.dispatchEvent(new CustomEvent('report:refresh', { bubbles: true }));
     });
 
     /*
@@ -1957,6 +1987,7 @@
              * exists in that scope. Reset immediately to All borrowers.
              */
             setBorrower('', 'All borrowers');
+            announceScopeChange();
         } else {
             setBorrower(
                 selected,
@@ -2075,12 +2106,16 @@
         const option = event.target.closest('[data-borrower-option]');
         if (!option) return;
 
+        const previousBorrower = borrowerValue?.value || '';
+
         setBorrower(
             option.dataset.value || '',
             option.dataset.name || 'All borrowers'
         );
 
         closeBorrowerPicker();
+
+        if ((borrowerValue?.value || '') !== previousBorrower) announceScopeChange();
     });
 
     division?.addEventListener('change', async () => {
@@ -2170,14 +2205,14 @@
 document.addEventListener('click', (event) => {
         if (!borrowerPicker || borrowerPicker.contains(event.target)) return;
         closeBorrowerPicker();
-    });
+    }, builderSignal);
 
     document.addEventListener('keydown', (event) => {
         if (event.defaultPrevented || event.key !== 'Escape' || !borrowerPicker || borrowerMenu?.hidden) return;
 
         closeBorrowerPicker();
         borrowerTrigger?.focus();
-    });
+    }, builderSignal);
 
     applyDivision();
 })();

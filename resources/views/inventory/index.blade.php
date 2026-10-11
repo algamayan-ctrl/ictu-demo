@@ -333,6 +333,24 @@
         </div>
     </div>
 
+    @if($isInventoryAdmin)
+        <dialog id="spmu-inventory-delete-dialog" class="spmu-inventory-delete-dialog" aria-labelledby="spmu-inventory-delete-title">
+            <form method="POST" id="spmu-inventory-delete-form">
+                @csrf
+                @method('DELETE')
+                <h2 id="spmu-inventory-delete-title">Delete Inventory Item</h2>
+                <p>Are you sure you want to delete <strong id="spmu-inventory-delete-name"></strong>? This action cannot be undone.</p>
+                <p class="spmu-inventory-delete-warning">Only unused items can be deleted. Items with transaction history must be deactivated instead.</p>
+                <label for="spmu-inventory-delete-reason">Reason for deletion <span aria-hidden="true">*</span></label>
+                <textarea id="spmu-inventory-delete-reason" name="delete_reason" required minlength="10" maxlength="1000" rows="2" placeholder="Briefly explain the deletion reason."></textarea>
+                <div class="spmu-inventory-delete-buttons">
+                    <button type="button" class="button" data-inventory-delete-cancel>Cancel</button>
+                    <button type="submit" class="button spmu-inventory-delete-confirm">Delete Item</button>
+                </div>
+            </form>
+        </dialog>
+    @endif
+
     @include('inventory.partials.operations-interactions')
 
 @endif

@@ -494,6 +494,15 @@ class ReportFoundationTest extends TestCase
         $sourceRequest = $this->request('ACADEMIC', 'College of Computer Studies', $this->from->copy()->addDay());
         $expectedHref = route('requests.show', $sourceRequest);
 
+        /* The link is offered because the request is at the Head's decision step, so the Head may open it. */
+        \App\Models\ApprovalStep::query()->create([
+            'request_version_id' => $sourceRequest->currentVersion()->firstOrFail()->id,
+            'stage_code' => \App\Enums\ApprovalStage::Spmu,
+            'sequence_no' => 2,
+            'received_at' => $this->from->copy()->addDay(),
+            'decision' => 'RECEIVED',
+        ]);
+
         $this->actingAs($head)
             ->get(route('reports.index', [
                 'report' => 'borrowing',

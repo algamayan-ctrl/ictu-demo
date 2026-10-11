@@ -20,6 +20,7 @@ class ReportingPeriodService
         'week' => 'This Week',
         'month' => 'This Month',
         'semester' => 'Current Semester',
+        'previous_semester' => 'Previous Semester',
         'academic_year' => 'Current Academic Year',
         'last_month' => 'Last Month',
         'quarter' => 'This Quarter',
@@ -48,6 +49,19 @@ class ReportingPeriodService
             ];
         }
 
+        if ($selection === 'previous_semester') {
+            $previous = $this->previousSemester($academicPeriods, $activeAcademicPeriod);
+
+            if ($previous) {
+                return [
+                    Carbon::parse($previous->start_date)->startOfDay(),
+                    Carbon::parse($previous->end_date)->endOfDay(),
+                    $previous,
+                    'previous_semester',
+                ];
+            }
+        }
+
         $today = now();
         $range = match ($selection) {
             'last_month' => [$today->copy()->startOfMonth()->subMonth(), $today->copy()->startOfMonth()->subDay()->endOfDay()],
@@ -59,6 +73,29 @@ class ReportingPeriodService
         return $range
             ? [$range[0], $range[1], null, $selection]
             : $this->resolve($request, $academicPeriods, $activeAcademicPeriod);
+    }
+
+    /**
+     * The configured academic period immediately before the active one: the
+     * latest period that ended before the active period started. Null when no
+     * period is active or none precedes it, so the builder can say the range
+     * is not configured instead of showing another period's records.
+     *
+     * @param  \Illuminate\Support\Collection<int, AcademicPeriod>  $academicPeriods
+     */
+    public function previousSemester($academicPeriods, ?AcademicPeriod $activeAcademicPeriod): ?AcademicPeriod
+    {
+        if (! $activeAcademicPeriod) {
+            return null;
+        }
+
+        $activeStart = Carbon::parse($activeAcademicPeriod->start_date)->startOfDay();
+
+        return $academicPeriods
+            ->filter(fn (AcademicPeriod $period): bool => $period->id !== $activeAcademicPeriod->id
+                && Carbon::parse($period->end_date)->startOfDay()->lt($activeStart))
+            ->sortByDesc(fn (AcademicPeriod $period): int => Carbon::parse($period->end_date)->getTimestamp())
+            ->first();
     }
 
     /**

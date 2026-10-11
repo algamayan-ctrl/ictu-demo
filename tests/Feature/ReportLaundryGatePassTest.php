@@ -26,6 +26,7 @@ use App\Services\ReportService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Tests\Concerns\AssertsReportSystemPreview;
 use Tests\TestCase;
 
 /**
@@ -38,6 +39,7 @@ use Tests\TestCase;
  */
 class ReportLaundryGatePassTest extends TestCase
 {
+    use AssertsReportSystemPreview;
     use RefreshDatabase;
 
     private OrganizationalUnit $unit;
@@ -138,6 +140,13 @@ class ReportLaundryGatePassTest extends TestCase
         $this->assertSame(1, $this->laundry(['linen' => (string) $curtain->id])->count());
         $this->assertSame(1, $this->laundry(['laundry_status' => 'LAUNDRY_COMPLETED'])->count());
         $this->assertSame(2, $this->laundry()->count());
+
+        /* The Reports page shows these same records as the system preview, and exports them. */
+        $this->assertSystemPreviewShows($this->laundry());
+        $this->assertSystemPreviewShows(
+            $this->laundry(['laundry_status' => 'LAUNDRY_COMPLETED']),
+            ['laundry_status' => 'LAUNDRY_COMPLETED']
+        );
     }
 
     /* ------------------------------------------------------------------ */

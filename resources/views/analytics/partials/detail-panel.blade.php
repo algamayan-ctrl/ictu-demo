@@ -147,7 +147,17 @@
  @foreach($detail['table']['rows'] as $row)
  <tr>
  @foreach($row as $cell)
- <td>{{ $cell }}</td>
+ {{-- A cell may be structured: a primary value with a secondary line (e.g. item + unit). --}}
+ <td>
+ @if(is_array($cell))
+ <span class="analytics-cell-primary">{{ $cell['primary'] ?? '' }}</span>
+ @if(filled($cell['secondary'] ?? null))
+ <small class="analytics-cell-secondary" style="display:block;color:var(--text-muted);font-size:11px">{{ $cell['secondary'] }}</small>
+ @endif
+ @else
+ {{ $cell }}
+ @endif
+ </td>
  @endforeach
  </tr>
  @endforeach

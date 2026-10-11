@@ -1,13 +1,11 @@
 @extends('layouts.app', ['title' => 'Reports'])
 
 @section('content')
-
 @include('reports.partials.workspace-styles')
 @include('reports.partials.detail-styles')
-@include('reports.document.styles')
 
 @php
-    $reportCount = $showPreview ? $dataset->count() : 0;
+    $reportCount = ($showPreview && $dataset !== null) ? $dataset->count() : 0;
 
     /*
      * Keep the period explicitly chosen by the user.
@@ -78,7 +76,7 @@
     }
 
     /* REPORT PERIOD AVAILABILITY STATE END */
-    $appliedFilters = $showPreview ? ($dataset->meta['applied_filters'] ?? []) : [];
+    $appliedFilters = ($showPreview && $dataset !== null) ? ($dataset->meta['applied_filters'] ?? []) : [];
     $scopeRows = $showPreview
         ? \App\Reports\ReportScopeFormatter::rows($appliedFilters)
         : [];
@@ -88,6 +86,31 @@
         ...($periodSelection === 'custom' ? ['start_date' => $from->toDateString(), 'end_date' => $to->toDateString()] : []),
         'generated' => 1,
     ]);
+@endphp
+
+@php
+    /*
+     * Summary cards describe the whole report scope, exactly as the builder
+     * produced it; the generated document carries the same figures.
+     */
+    $summaryCards = [];
+
+    if ($showPreview && $dataset !== null) {
+        foreach ($dataset->summary as $label => $value) {
+            $summaryCards[(string) $label] = \App\Reports\ReportSummaryFormatter::display((string) $label, $value);
+        }
+
+        if ($summaryCards === []) {
+            $summaryCards['Total records'] = number_format($dataset->count());
+        }
+    }
+
+    $periodText = $showPreview && $dataset !== null && \App\Reports\ReportCatalogue::periodMode($selectedReport) === 'as_of'
+        ? 'As of '.($dataset->meta['as_of_long'] ?? $to->format('d F Y'))
+        : $from->format('d M Y').' – '.$to->format('d M Y');
+
+    /* Print and export receive the report scope only — never the table's search or sort. */
+    $printUrl = route('reports.print', array_merge(['type' => $selectedReport], $reportFilters->toQuery()));
 @endphp
 
 <div class="reporting-workspace reporting-detail">
@@ -100,10 +123,33 @@
     </section>
 
     <div class="reports-detail-page">
-        @include('reports.partials.report-builder')
+        {{-- Rebuilt in place only when the report type changes: each report has its own filters. --}}
+        <div data-report-live="builder" style="display: contents;">
+            @include('reports.partials.report-builder')
+        </div>
 
-        <section class="content-area">
-            @if($showPreview)
+        <section class="content-area report-results" data-report-results aria-live="polite">
+            <div class="report-results-loading" data-report-results-loading hidden role="status">
+                <span class="report-results-spinner" aria-hidden="true"></span>
+                <span>Loading report records…</span>
+            </div>
+
+            {{-- Replaced in place whenever the builder or the table asks for new records. --}}
+            <div data-report-live="results">
+            @if($previewFailed)
+                <section class="report-no-results report-preview-error" role="alert" aria-labelledby="report-preview-error-title">
+                    <span class="report-no-results-icon" aria-hidden="true"><x-icon name="warning" size="20" /></span>
+                    <div>
+                        <p class="report-preview-label">Report preview</p>
+                        <h3 id="report-preview-error-title">The report could not be generated.</h3>
+                        <p>Nothing was exported. Try again, or change the reporting period or filters. If the problem continues, contact ICTU.</p>
+                        <div class="report-no-results-actions">
+                            <a class="button primary ui-pressable" href="{{ request()->fullUrl() }}">Try Again</a>
+                            <a class="button secondary ui-pressable" href="#report-builder" data-focus-report-builder>Change Period or Filters</a>
+                        </div>
+                    </div>
+                </section>
+            @else
                 <div class="report-preview-bar">
                     <div>
                         <p class="report-preview-label">Report preview</p>
@@ -113,7 +159,7 @@
                                 @if($reportPeriodUnavailable)
                                     Reporting period unavailable
                                 @else
-                                    {{ $from->format('d M Y') }} – {{ $to->format('d M Y') }}
+                                    {{ $periodText }}
                                 @endif
                             </span>
                             <span>{{ number_format($reportCount) }} {{ $reportCount === 1 ? 'record' : 'records' }}</span>
@@ -122,23 +168,23 @@
                         @if(! empty($scopeRows))
                             <p class="report-preview-filters" aria-label="Selected report scope">
                                 @foreach($scopeRows as $scope)
-                                    <span>
-                                        <strong>{{ $scope['label'] }}:</strong>
-                                        {{ $scope['value'] }}
-                                    </span>
-                                    @unless($loop->last)
-                                        
-                                    @endunless
+                                    <span><strong>{{ $scope['label'] }}:</strong> {{ $scope['value'] }}</span>
                                 @endforeach
                             </p>
                         @endif
                     </div>
 
                     @if($reportCount > 0)
-                        <button class="button primary ui-pressable" type="button" data-open-export-options>
-                            <x-icon name="upload" size="16" />
-                            Export / Print
-                        </button>
+                        <div class="report-preview-actions">
+                            <a class="button secondary ui-pressable" href="{{ $printUrl }}" target="_blank" rel="noopener">
+                                <x-icon name="report-document" size="16" />
+                                Print
+                            </a>
+                            <button class="button primary ui-pressable" type="button" data-open-export-options>
+                                <x-icon name="upload" size="16" />
+                                Generate Report
+                            </button>
+                        </div>
                     @endif
                 </div>
 
@@ -153,308 +199,28 @@
                 @endif
 
                 @if($reportCount > 0)
-                    {{-- SYSTEM REPORT PREVIEW START --}}
+                    <div class="report-system-preview" data-report-system-preview data-report-count="{{ $reportCount }}">
 
-                    <div class="report-system-preview"
-                        data-report-system-preview
-                        data-report-count="{{ $reportCount }}">
 
-                        <div class="report-system-summary-grid"
-                            data-report-system-summary
-                            aria-label="Report summary">
-                        </div>
+                        @include('reports.partials.system-records', [
+                            'table' => $table,
+                            'heading' => $selectedReportMeta['label'].' Records',
+                        ])
 
-                        <section class="report-system-records-card"
-                            aria-labelledby="report-system-records-heading">
-
-                            <div class="report-system-records-header">
-
-                                <div>
-                                    <p class="report-system-records-eyebrow">
-                                        System records
-                                    </p>
-
-                                    <h3 id="report-system-records-heading">
-                                        {{ $selectedReportMeta['label'] }} Records
-                                    </h3>
-                                </div>
-
-                                <label class="report-system-search">
-                                    <span class="report-system-search-icon"
-                                        aria-hidden="true">
-                                        ⌕
-                                    </span>
-
-                                    <input type="search"
-                                        data-report-system-search
-                                        placeholder="Search records..."
-                                        autocomplete="off"
-                                        aria-label="Search report records">
-                                </label>
-
-                            </div>
-
-                            <div class="report-system-table-scroll"
-                                data-report-system-table>
-                            </div>
-
-                            <p class="report-system-record-count"
-                                data-report-system-record-count
-                                role="status"
-                                aria-live="polite">
-                            </p>
-
-                        </section>
+                        <p class="report-output-note">
+                            <x-icon name="information" size="16" />
+                            <span>
+                                Print and every export contain all {{ number_format($reportCount) }} {{ $reportCount === 1 ? 'record' : 'records' }} in this report scope.
+                                PDF, Word and Print apply the formal CSPC-SPMU document layout; Excel keeps a structured sheet and CSV contains the data only.
+                            </span>
+                        </p>
                     </div>
-
-
-                    {{-- Formal document: hidden in system view,
-                         retained for Export / Print --}}
-                    <div class="report-print-view"
-                        data-report-print-view
-                        aria-hidden="true">
-
-                        <div class="report-preview-sheet report-preview-sheet--{{ App\Reports\ReportCatalogue::orientation($selectedReport) }}">
-
-                            @include('reports.document.sheet', ['rows' => $records, 'options' => [
-                                'interactive' => true,
-                                'header' => false,
-                                'metadata' => false,
-                            ]])
-
-                        </div>
-                    </div>
-
-                    {{-- SYSTEM REPORT PREVIEW END --}}
-                    @if($records->hasPages())
-                        @php
-                            $recordsTotal = $records->total();
-                            $recordsFirst = $records->firstItem() ?? 0;
-                            $recordsLast = $records->lastItem() ?? 0;
-                            $recordsPerPage = $records->perPage();
-                        @endphp
-
-                        <div class="report-records-footer report-records-footer--inventory-style">
-
-                            <p
-                                class="report-records-summary"
-                                role="status"
-                                aria-live="polite"
-                            >
-                                Showing
-                                {{ number_format($recordsFirst) }}–{{ number_format($recordsLast) }}
-                                of {{ number_format($recordsTotal) }}
-                                {{ $recordsTotal === 1 ? 'record' : 'records' }}
-                            </p>
-
-                            <div class="report-records-controls">
-
-                                <label class="report-per-page-control">
-                                    <select
-                                        aria-label="Records per page"
-                                        data-report-per-page
-                                    >
-                                        @foreach([15, 30, 50] as $pageSize)
-                                            <option
-                                                value="{{ $pageSize }}"
-                                                @selected($recordsPerPage === $pageSize)
-                                            >
-                                                {{ $pageSize }} records per page
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </label>
-
-                                {{ $records
-                                    ->appends(request()->except('page'))
-                                    ->onEachSide(1)
-                                    ->links('reports.partials.report-pagination') }}
-
-                            </div>
-
-                        </div>
-                    @endif
                 @else
-                    <section class="report-no-results {{ $reportPeriodUnavailable ? 'is-period-unavailable' : '' }}" aria-labelledby="report-no-results-title">
-
-    @php
-        $emptyReportContext = strtolower(
-            ($selectedReportMeta['label'] ?? '') . ' ' . ($selectedReport ?? '')
-        );
-
-        $emptyReportIcon =
-            str_contains($emptyReportContext, 'inventory') ||
-            str_contains($emptyReportContext, 'asset') ||
-            str_contains($emptyReportContext, 'utilization')
-                ? 'inventory'
-                : (
-                    str_contains($emptyReportContext, 'return') ||
-                    str_contains($emptyReportContext, 'overdue')
-                        ? 'return'
-                        : (
-                            str_contains($emptyReportContext, 'borrower') ||
-                            str_contains($emptyReportContext, 'accountability')
-                                ? 'borrower'
-                                : (
-                                    str_contains($emptyReportContext, 'audit') ||
-                                    str_contains($emptyReportContext, 'history')
-                                        ? 'history'
-                                        : 'request'
-                                )
-                        )
-                );
-    @endphp
-
-    <div class="report-no-results-inner">
-        @if($reportPeriodUnavailable)
-            <span class="report-period-unavailable-icon" aria-hidden="true">
-                <svg viewBox="0 0 72 72">
-                    <rect
-                        x="14"
-                        y="17"
-                        width="44"
-                        height="40"
-                        rx="5"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.7"
-                    />
-
-                    <path
-                        d="M14 29h44"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.7"
-                    />
-
-                    <path
-                        d="M24 12v10M48 12v10"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.7"
-                        stroke-linecap="round"
-                    />
-
-                    <path
-                        d="M25 38h5M35 38h5M45 38h5M25 47h5M35 47h5"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                    />
-
-                    <circle
-                        cx="51"
-                        cy="51"
-                        r="9"
-                        fill="var(--surface-elevated)"
-                        stroke="currentColor"
-                        stroke-width="1.7"
-                    />
-
-                    <path
-                        d="M47.5 51h7"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.7"
-                        stroke-linecap="round"
-                    />
-                </svg>
-            </span>
-        @endif
-
-        <span class="report-no-results-illustration" aria-hidden="true">
-
-            @if($emptyReportIcon === 'inventory')
-                <svg viewBox="0 0 72 72">
-                    <path class="empty-soft" d="M14 25 36 13l22 12v27L36 64 14 52z"/>
-                    <path class="empty-line" d="M13 24 36 12l23 12v27L36 63 13 51z"/>
-                    <path class="empty-line" d="M13 24 36 37l23-13M36 37v26"/>
-                    <path class="empty-line" d="M25 18 48 31"/>
-                    <circle class="empty-line" cx="54" cy="52" r="8"/>
-                    <path class="empty-line" d="m60 58 6 6"/>
-                </svg>
-
-            @elseif($emptyReportIcon === 'return')
-                <svg viewBox="0 0 72 72">
-                    <path class="empty-soft" d="M20 11h31l8 9v39H20z"/>
-                    <path class="empty-line" d="M19 10h30l9 9v40H19z"/>
-                    <path class="empty-line" d="M49 10v10h9M27 30h22M27 38h17"/>
-                    <path class="empty-line" d="M11 52h25M11 52l7-7M11 52l7 7"/>
-                </svg>
-
-            @elseif($emptyReportIcon === 'borrower')
-                <svg viewBox="0 0 72 72">
-                    <circle class="empty-soft" cx="33" cy="28" r="14"/>
-                    <circle class="empty-line" cx="33" cy="25" r="10"/>
-                    <path class="empty-line" d="M15 60c2-12 9-18 18-18s16 6 18 18"/>
-                    <circle class="empty-line" cx="55" cy="50" r="8"/>
-                    <path class="empty-line" d="m61 56 6 6"/>
-                </svg>
-
-            @elseif($emptyReportIcon === 'history')
-                <svg viewBox="0 0 72 72">
-                    <path class="empty-soft" d="M19 12h31l9 9v39H19z"/>
-                    <path class="empty-line" d="M18 10h31l9 10v40H18zM49 10v11h9"/>
-                    <path class="empty-line" d="M26 31h22M26 39h18M26 47h13"/>
-                    <circle class="empty-line" cx="55" cy="53" r="8"/>
-                    <path class="empty-line" d="M55 49v5l4 2"/>
-                </svg>
-
-            @else
-                <svg viewBox="0 0 72 72">
-                    <path class="empty-soft" d="M19 11h31l9 9v39H19z"/>
-                    <path class="empty-line" d="M18 10h31l9 10v40H18zM49 10v11h9"/>
-                    <path class="empty-line" d="M27 31h22M27 39h19M27 47h12"/>
-                    <circle class="empty-line" cx="53" cy="51" r="8"/>
-                    <path class="empty-line" d="m59 57 6 6"/>
-                    <path class="empty-spark" d="m13 20 1.4 3.2 3.2 1.4-3.2 1.4-1.4 3.2-1.4-3.2-3.2-1.4 3.2-1.4z"/>
-                </svg>
-            @endif
-
-        </span>
-
-        @if($reportPeriodUnavailable)
-
-                            <h3 id="report-no-results-title">
-                                {{ $reportPeriodUnavailableTitle }}
-                            </h3>
-
-                            <p>
-                                {{ $reportPeriodUnavailableMessage }}
-                            </p>
-
-                        @else
-
-                            <h3 id="report-no-results-title">
-                                No records yet.
-                            </h3>
-
-                            <p>
-                                {{ App\Reports\ReportCatalogue::emptyMessage($selectedReport) }}
-                            </p>
-
-                        @endif
-
-    </div>
-
-</section>
+                    @include('reports.partials.preview-empty')
                 @endif
-            @else
-                <section class="report-preview-empty" aria-labelledby="report-preview-empty-heading">
-                    <span class="report-preview-empty-icon" aria-hidden="true">
-                        <x-icon name="report-document" size="19" />
-                    </span>
-                    <div>
-                        <p class="report-preview-label" id="report-preview-empty-heading">Report preview</p>
-                        <p>Choose the report options above, then select Preview Report to review the records here.</p>
-                    </div>
-                </section>
             @endif
-        </section>
 
-        @if($showPreview && $reportCount > 0)
-            <section class="content-area">
+            @if($reportCount > 0 && ! $previewFailed)
                 <p class="report-boundary-note">
                     <x-icon name="information" size="18" />
                     <span>
@@ -462,523 +228,197 @@
                         For analysis, insights, and forecasting, use the Analytics module.
                     </span>
                 </p>
-            </section>
-        @endif
+
+                {{-- The export dialog carries the scope on screen, so it is refreshed with the records. --}}
+                @include('reports.partials.export-options')
+                @include('reports.partials.export-options-script')
+            @endif
+            </div>
+        </section>
     </div>
 </div>
 
-
-
-
-
-@if($showPreview && $reportCount > 0)
-
-{{-- SYSTEM REPORT PREVIEW SCRIPT START --}}
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-
-    const systemPreview =
-        document.querySelector('[data-report-system-preview]');
-
-    const printView =
-        document.querySelector('[data-report-print-view]');
-
-    if (!systemPreview || !printView) {
-        return;
-    }
-
-
-    const summaryContainer =
-        systemPreview.querySelector(
-            '[data-report-system-summary]'
-        );
-
-    const tableContainer =
-        systemPreview.querySelector(
-            '[data-report-system-table]'
-        );
-
-    const searchInput =
-        systemPreview.querySelector(
-            '[data-report-system-search]'
-        );
-
-    const countLabel =
-        systemPreview.querySelector(
-            '[data-report-system-record-count]'
-        );
-
-
-    const tables = [
-        ...printView.querySelectorAll('table')
-    ];
-
-
-    if (!tables.length) {
-        return;
-    }
-
-
-    const cleanText = (value) =>
-        String(value || '')
-            .replace(/\s+/g, ' ')
-            .trim();
-
-
-    // --------------------------------------------------------
-    // Find the detailed records table.
-    // The detailed table normally has the largest header count.
-    // --------------------------------------------------------
-
-    const dataTable = [...tables]
-        .sort((a, b) =>
-            b.querySelectorAll('thead th').length
-            - a.querySelectorAll('thead th').length
-        )[0];
-
-
-    const summaryTable =
-        tables.find((table) =>
-            table !== dataTable
-            && table.querySelectorAll('tr').length
-        );
-
-
-    // --------------------------------------------------------
-    // Summary cards
-    // --------------------------------------------------------
-
-    let summaryCardCount = 0;
-
-
-    const addSummaryCard = (label, value) => {
-
-        const card =
-            document.createElement('article');
-
-        card.className =
-            'report-system-summary-card';
-const content =
-            document.createElement('div');
-
-
-        const name =
-            document.createElement('span');
-
-        name.className =
-            'report-system-summary-label';
-
-        name.textContent =
-            label;
-
-
-        const amount =
-            document.createElement('strong');
-
-        amount.className =
-            'report-system-summary-value';
-
-        amount.textContent =
-            value;
-
-
-        content.append(
-            name,
-            amount
-        );
-
-        card.append(content);
-
-        summaryContainer.appendChild(card);
-
-        summaryCardCount++;
-    };
-
-
-    if (summaryTable) {
-
-        [
-            ...summaryTable.querySelectorAll('tr')
-        ].forEach((row) => {
-
-            const cells = [
-                ...row.querySelectorAll('th, td')
-            ]
-                .map((cell) =>
-                    cleanText(cell.textContent)
-                )
-                .filter(Boolean);
-
-
-            if (cells.length < 2) {
-                return;
-            }
-
-
-            const label =
-                cells[0];
-
-            const value =
-                cells[cells.length - 1];
-
-
-            if (
-                !label
-                || !value
-                || /report summary/i.test(label)
-            ) {
-                return;
-            }
-
-
-            addSummaryCard(
-                label,
-                value
-            );
-        });
-    }
-
-
-    if (!summaryCardCount) {
-
-        addSummaryCard(
-            'Total records',
-            systemPreview.dataset.reportCount || '0'
-        );
-    }
-
-
-    // --------------------------------------------------------
-    // Normal application table
-    // --------------------------------------------------------
-
-    if (!dataTable) {
-        return;
-    }
-
-
-    const systemTable =
-        dataTable.cloneNode(true);
-
-
-    systemTable.classList.add(
-        'report-system-table'
-    );
-
-
-    systemTable.removeAttribute(
-        'style'
-    );
-
-
-    systemTable
-        .querySelectorAll('[style]')
-        .forEach((element) =>
-            element.removeAttribute('style')
-        );
-
-
-    systemTable
-        .querySelectorAll('[width], [height]')
-        .forEach((element) => {
-
-            element.removeAttribute('width');
-            element.removeAttribute('height');
-
-        });
-
-
-    const caption =
-        systemTable.querySelector('caption');
-
-    caption?.remove();
-
-
-    tableContainer.replaceChildren(
-        systemTable
-    );
-
-
-    // --------------------------------------------------------
-    // Search records
-    // --------------------------------------------------------
-
-    const rows = [
-        ...systemTable.querySelectorAll('tbody tr')
-    ];
-
-
-    const updateCount = () => {
-
-        const visible =
-            rows.filter(
-                (row) => !row.hidden
-            ).length;
-
-        const total =
-            rows.length;
-
-
-        if (total === 1) {
-
-            countLabel.textContent =
-                'Showing 1 record';
-
-            return;
-        }
-
-
-        countLabel.textContent =
-            `Showing ${visible} of ${total} records`;
-    };
-
-
-    const filterRows = () => {
-
-        const query =
-            cleanText(
-                searchInput?.value
-            ).toLowerCase();
-
-
-        rows.forEach((row) => {
-
-            const rowText =
-                cleanText(
-                    row.textContent
-                ).toLowerCase();
-
-
-            row.hidden =
-                Boolean(query)
-                && !rowText.includes(query);
-
-        });
-
-
-        updateCount();
-    };
-
-
-    searchInput?.addEventListener(
-        'input',
-        filterRows
-    );
-
-
-    updateCount();
-
-});
-</script>
-{{-- SYSTEM REPORT PREVIEW SCRIPT END --}}
-
-@endif
-@if($showPreview && $reportCount > 0)
-    @include('reports.partials.export-options')
-    @include('reports.partials.export-options-script')
-@endif
-
-{{-- UNIVERSAL SYSTEM RECORDS TABLE SCRIPT START --}}
 <script>
 (() => {
-    const classifyReportTable = (table) => {
-        if (!table || table.dataset.cleanReportTable === '1') {
-            return;
-        }
+    /*
+     * Live report preview.
+     *
+     * The records load with the page. When the builder's period or filters
+     * change, or the table is searched, sorted or paged, only the live
+     * regions are fetched and replaced: one request at a time, the newest
+     * wins, and the address bar keeps the state so a reload, Print and the
+     * exports all describe the records on screen.
+     *
+     * A new report type also replaces the builder, because its filters are
+     * its own. The builder is therefore looked up when needed and its events
+     * are heard on the page, never on a form that may have been replaced.
+     */
+    const page = document.querySelector('.reports-detail-page');
+    const results = document.querySelector('[data-report-results]');
+    const loading = results?.querySelector('[data-report-results-loading]');
+    const builderForm = () => document.querySelector('[data-report-preview-form]');
 
-        const headers =
-            Array.from(table.querySelectorAll('thead th'));
+    if (!page || !results || !builderForm()) return;
 
-        if (!headers.length) {
-            return;
-        }
-
-        const normalise =
-            (value) =>
-                String(value || '')
-                    .toLowerCase()
-                    .replace(/\s+/g, ' ')
-                    .trim();
-
-        const classifyHeader = (header) => {
-            const text = normalise(header.textContent);
-
-            /*
-             * IDs / request numbers / references.
-             */
-            if (
-                /\b(request no|request number|transaction no|transaction number|reference|record no|record number|custody no|custody number)\b/.test(text)
-            ) {
-                return 'report-col-id';
-            }
-
-            /*
-             * People.
-             */
-            if (
-                /\b(borrower|requested by|prepared by|verified by|decided by|approved by|issued by|returned by|reviewed by|created by|updated by|personnel|custodian)\b/.test(text)
-            ) {
-                return 'report-col-person';
-            }
-
-            /*
-             * Organization.
-             */
-            if (
-                /\b(division|office|college|unit|department|organizational unit|organization)\b/.test(text)
-            ) {
-                return 'report-col-organization';
-            }
-
-            /*
-             * Long descriptive columns.
-             */
-            if (
-                /\b(purpose|description|remarks|reason|details|item summary|items|location|finding|notes|comment|justification)\b/.test(text)
-            ) {
-                return 'report-col-wrap';
-            }
-
-            /*
-             * Status / decision fields.
-             */
-            if (
-                /\b(status|decision|verification|outcome|condition|state|result)\b/.test(text)
-            ) {
-                return 'report-col-status';
-            }
-
-            /*
-             * Duration / turnaround.
-             */
-            if (
-                /\b(turnaround|duration|elapsed|processing time|response time)\b/.test(text)
-            ) {
-                return 'report-col-duration';
-            }
-
-            /*
-             * Dates and timestamps.
-             */
-            if (
-                /\b(date|submitted|verified at|decided at|approved at|issued at|returned at|created at|updated at|due|deadline|period start|period end)\b/.test(text)
-            ) {
-                return 'report-col-date';
-            }
-
-            /*
-             * Compact integer/count fields.
-             */
-            if (
-                /\b(version|quantity|qty|count|days|level|offense no|offense number)\b/.test(text)
-            ) {
-                return 'report-col-compact';
-            }
-
-            /*
-             * Monetary / numeric columns.
-             */
-            if (
-                /\b(amount|fee|charge|penalty|total|rate|percentage|percent|utilization)\b/.test(text)
-            ) {
-                return 'report-col-number';
-            }
-
-            return '';
-        };
-
-        headers.forEach((header, index) => {
-            const columnClass =
-                classifyHeader(header);
-
-            if (!columnClass) {
-                return;
-            }
-
-            header.classList.add(columnClass);
-
-            table
-                .querySelectorAll(
-                    `tbody tr > :nth-child(${index + 1})`
-                )
-                .forEach((cell) => {
-                    cell.classList.add(columnClass);
-                });
-        });
-
-        table.dataset.cleanReportTable = '1';
+    const normalise = (url) => {
+        const parsed = new URL(url, window.location.href);
+        return parsed.pathname + parsed.search;
     };
 
+    let currentUrl = normalise(window.location.href);
+    let pendingUrl = null;
+    let controller = null;
+    let timer = null;
 
-    const applyCleanReportTables = () => {
-        document
-            .querySelectorAll(
-                '[data-report-system-table] table'
-            )
-            .forEach(classifyReportTable);
+    const setBusy = (busy) => {
+        results.classList.toggle('is-loading', busy);
+        if (busy) results.setAttribute('aria-busy', 'true');
+        else results.removeAttribute('aria-busy');
+        if (loading) loading.hidden = !busy;
     };
 
-
-    /*
-     * Existing report code builds/clones the system table dynamically.
-     * Apply once immediately...
-     */
-    applyCleanReportTables();
-
-
-    /*
-     * ...then observe the table host so every report type receives
-     * the exact same cleanup after its table is inserted.
-     */
-    document
-        .querySelectorAll('[data-report-system-table]')
-        .forEach((host) => {
-
-            const observer =
-                new MutationObserver(() => {
-                    applyCleanReportTables();
-                });
-
-            observer.observe(
-                host,
-                {
-                    childList: true,
-                    subtree: true,
-                }
-            );
+    /* Inline scripts do not run when inserted as markup, so they are re-created. */
+    const runScripts = (region) => {
+        region.querySelectorAll('script').forEach((stale) => {
+            const fresh = document.createElement('script');
+            fresh.textContent = stale.textContent;
+            stale.replaceWith(fresh);
         });
-})();
-</script>
-{{-- UNIVERSAL SYSTEM RECORDS TABLE SCRIPT END --}}
+    };
 
-{{-- REPORT PAGINATION PER PAGE SCRIPT START --}}
-<script>
-(() => {
-    document
-        .querySelectorAll('[data-report-per-page]')
-        .forEach((select) => {
+    const load = async (url, { force = false, rebuild = false } = {}) => {
+        const target = normalise(url);
 
-            select.addEventListener('change', () => {
-                const url =
-                    new URL(window.location.href);
+        if (!force && target === (pendingUrl ?? currentUrl)) return;
 
-                url.searchParams.set(
-                    'per_page',
-                    select.value
-                );
+        controller?.abort();
+        controller = new AbortController();
+        const request = controller;
+        pendingUrl = target;
+        setBusy(true);
 
-                url.searchParams.delete('page');
-
-                window.location.assign(
-                    url.toString()
-                );
+        try {
+            const response = await fetch(target, {
+                headers: { Accept: 'text/html' },
+                credentials: 'same-origin',
+                signal: request.signal,
             });
 
+            if (!response.ok) throw new Error(`Report preview request failed (${response.status})`);
+
+            const fetched = new DOMParser().parseFromString(await response.text(), 'text/html');
+
+            if (!fetched.querySelector('[data-report-live="results"]')) {
+                throw new Error('Report preview response had no records region');
+            }
+
+            if (rebuild && !fetched.querySelector('[data-report-live="builder"]')) {
+                throw new Error('Report preview response had no builder region');
+            }
+
+            document.querySelectorAll('[data-report-live]').forEach((region) => {
+                /* The builder keeps its controls (and the operator's focus) unless the report type changed. */
+                if (region.dataset.reportLive === 'builder' && !rebuild) return;
+                /* A region inside a builder that was just replaced is already current. */
+                if (!region.isConnected) return;
+                const next = fetched.querySelector(`[data-report-live="${region.dataset.reportLive}"]`);
+                if (!next) return;
+                region.replaceChildren(...Array.from(next.childNodes).map((node) => document.importNode(node, true)));
+                runScripts(region);
+            });
+
+            currentUrl = target;
+            window.history.replaceState(window.history.state, '', target);
+            if (rebuild) document.querySelector('[data-report-type]')?.focus({ preventScroll: true });
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            /* Anything unexpected (expired session, server error) falls back to a normal page load. */
+            window.location.assign(target);
+            return;
+        } finally {
+            if (controller === request) {
+                controller = null;
+                pendingUrl = null;
+                setBusy(false);
+            }
+        }
+    };
+
+    /* The builder's scope as a Reports URL; blank filters are left out. */
+    const builderUrl = () => {
+        const form = builderForm();
+        const params = new URLSearchParams();
+        new FormData(form).forEach((value, key) => {
+            if (typeof value === 'string' && value.trim() !== '') params.set(key, value);
         });
+        if (params.get('academic_period') !== 'custom') {
+            params.delete('start_date');
+            params.delete('end_date');
+        }
+        params.set('generated', '1');
+
+        return `${window.location.pathname}?${params.toString()}`;
+    };
+
+    const validRange = () => {
+        const form = builderForm();
+        if (form.elements.academic_period?.value !== 'custom') return true;
+        const start = form.elements.start_date?.value || '';
+        const end = form.elements.end_date?.value || '';
+        return /^\d{4}-\d{2}-\d{2}$/.test(start) && /^\d{4}-\d{2}-\d{2}$/.test(end) && end >= start;
+    };
+
+    /* Several controls can change together (Clear all, cascading filters): refresh once. */
+    const schedule = ({ force = false } = {}) => {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => {
+            if (validRange()) load(builderUrl(), { force });
+        }, force ? 0 : 200);
+    };
+
+    page.addEventListener('change', (event) => {
+        if (!event.target.closest('[data-report-preview-form]')) return;
+        /* Report Type announces itself below; the picker's search box is not a filter. */
+        if (event.target.matches('[data-report-type], [data-borrower-search]')) return;
+        schedule();
+    });
+    page.addEventListener('report:scope-change', () => schedule());
+    page.addEventListener('report:refresh', () => schedule({ force: true }));
+    page.addEventListener('report:type-change', (event) => {
+        window.clearTimeout(timer);
+        load(event.detail.url, { rebuild: true });
+    });
+
+    /* Table navigation stays on the page. */
+    results.addEventListener('click', (event) => {
+        const link = event.target.closest('a[data-report-table-nav], .report-pagination a');
+        if (!link || event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
+        event.preventDefault();
+        load(link.href);
+    });
+
+    results.addEventListener('submit', (event) => {
+        const tableForm = event.target.closest('form[data-report-table-nav]');
+        if (!tableForm) return;
+        event.preventDefault();
+        const params = new URLSearchParams();
+        new FormData(tableForm).forEach((value, key) => {
+            if (typeof value === 'string' && value.trim() !== '') params.set(key, value);
+        });
+        load(`${tableForm.getAttribute('action') || window.location.pathname}?${params.toString()}`);
+    });
+
+    /* "Change Period or Filters" returns focus to the builder. */
+    results.addEventListener('click', (event) => {
+        if (!event.target.closest('[data-focus-report-builder]')) return;
+        const builder = document.getElementById('report-builder');
+        if (!builder) return;
+        event.preventDefault();
+        builder.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        builder.querySelector('select, input, button')?.focus({ preventScroll: true });
+    });
 })();
 </script>
-{{-- REPORT PAGINATION PER PAGE SCRIPT END --}}
-@endsection
 
 <style>
 /* ACADEMIC PERIOD EMPTY STATE ICON FINAL */
@@ -1023,3 +463,4 @@ const content =
 }
 
 </style>
+@endsection

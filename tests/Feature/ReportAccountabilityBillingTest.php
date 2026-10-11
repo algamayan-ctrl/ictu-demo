@@ -30,10 +30,12 @@ use App\Services\ReportService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Tests\Concerns\AssertsReportSystemPreview;
 use Tests\TestCase;
 
 class ReportAccountabilityBillingTest extends TestCase
 {
+    use AssertsReportSystemPreview;
     use RefreshDatabase;
 
     private OrganizationalUnit $unit;
@@ -132,6 +134,13 @@ class ReportAccountabilityBillingTest extends TestCase
         $this->assertSame(1, $this->generate('accountability-cases', ['accountability_finding' => 'DAMAGED'])->count());
         $this->assertSame(1, $this->generate('accountability-cases', ['accountability_finding' => 'LATE_RETURN'])->count());
         $this->assertSame(1, $this->generate('accountability-cases', ['accountability_status' => 'COMPLIANCE_REQUIRED'])->count());
+
+        /* The Reports page shows these same records as the system preview, and exports them. */
+        $this->assertSystemPreviewShows($this->generate('accountability-cases'));
+        $this->assertSystemPreviewShows(
+            $this->generate('accountability-cases', ['accountability_finding' => 'DAMAGED']),
+            ['accountability_finding' => 'DAMAGED']
+        );
     }
 
     public function test_billing_settlement_report_shows_verified_cashier_payment_and_remaining_balance(): void
@@ -206,6 +215,13 @@ class ReportAccountabilityBillingTest extends TestCase
         $this->assertSame(1, $this->generate('billing-settlement', ['billing_status' => 'ISSUED'])->count());
         $this->assertSame(1, $this->generate('billing-settlement', ['payment_status' => 'PARTIALLY_PAID'])->count());
         $this->assertSame(0, $this->generate('billing-settlement', ['payment_status' => 'PAID'])->count());
+
+        /* The Reports page shows these same records as the system preview, and exports them. */
+        $this->assertSystemPreviewShows($this->generate('billing-settlement'));
+        $this->assertSystemPreviewShows(
+            $this->generate('billing-settlement', ['payment_status' => 'PARTIALLY_PAID']),
+            ['payment_status' => 'PARTIALLY_PAID']
+        );
     }
 
     public function test_new_accountability_reports_use_the_same_rows_for_csv(): void

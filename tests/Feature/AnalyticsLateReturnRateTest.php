@@ -476,7 +476,7 @@ class AnalyticsLateReturnRateTest extends TestCase
             'for' => 'ADMINISTRATION', 'segment' => $this->hrmo(),
         ]));
         $row->assertOk();
-        $row->assertSee($this->hrmo().' · Administrative');
+        $row->assertSee($this->hrmo().' - Administrative');
         $row->assertSee('1 late of 4 completed');
 
         $x = $this->xpath($row->getContent());

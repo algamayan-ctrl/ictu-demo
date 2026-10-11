@@ -15,6 +15,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ConditionalProcessingController;
 use App\Http\Controllers\CustodyController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OperationalAdvisoryController;
 use App\Http\Controllers\DelegationController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\GatePassController;
@@ -100,6 +101,10 @@ Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function 
 
     Route::get('/dashboard', DashboardController::class)
         ->name('dashboard');
+
+    Route::get('/operational-advisory/status', OperationalAdvisoryController::class)
+        ->middleware('throttle:30,1')
+        ->name('operational-advisory.status');
 
     Route::post('/logout', [LoginController::class, 'destroy'])
         ->name('logout');

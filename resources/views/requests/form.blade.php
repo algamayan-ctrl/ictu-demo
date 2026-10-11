@@ -1085,6 +1085,10 @@
 </section>
 @endif
 
+<div class="content-area" style="margin-bottom:12px">
+    @include('shared.operational-advisory', ['compact' => true])
+</div>
+
 <section class="content-area request-form-shell">
 <form
     method="post"
@@ -2950,17 +2954,10 @@ document.addEventListener('DOMContentLoaded', () => {
             state.message = result.message
                 || `SPMU is closed on ${spmuDateLabel(picked)}. Please choose another date.`;
 
-            if (userChange) {
-                // Reject a closed day immediately; Chrome cannot grey out single dates.
-                field.value = '';
-                state.lastValue = '';
-                state.status = 'empty';
-
-                if (field === scheduleDate) spmuSyncReturnMin();
-            } else {
-                // A saved draft value is shown as invalid but never silently cleared.
-                state.status = 'invalid';
-            }
+            // The borrower's selection is never changed or cleared for them: the
+            // date stays visible, marked invalid, with the calendar's explanation
+            // beside it. They cannot continue until they choose another date.
+            state.status = 'invalid';
         }
 
         spmuDateRender(field);

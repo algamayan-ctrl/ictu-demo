@@ -323,6 +323,22 @@ class CustodyController extends Controller
                 || $pickupRescheduleRequestEvent->occurred_at?->gt($custody->pickup_scheduled_at)
             );
 
+        /*
+         * Delayed approval: the request was approved after its originally
+         * suggested pickup date, so no pickup schedule exists yet. This is
+         * shown in the existing schedule card as "Schedule Review Required",
+         * never as a missed pickup.
+         */
+        $pickupScheduleReviewPending = app(CustodyService::class)->pickupScheduleReviewPending($custody);
+        $pickupScheduleReview = $pickupScheduleReviewPending
+            ? AuditEvent::query()
+                ->where('record_type', CustodyTransaction::class)
+                ->where('record_id', $custody->id)
+                ->where('action_code', 'PICKUP_SCHEDULE_REVIEW_REQUIRED')
+                ->latest('occurred_at')
+                ->first()
+            : null;
+
         $preparationIssueEvents = AuditEvent::query()
             ->with('actor')
             ->where('record_type', CustodyTransaction::class)
@@ -420,6 +436,8 @@ class CustodyController extends Controller
             'pickupRescheduleRequested' => $pickupRescheduleRequested,
             'pickupRescheduleAvailable' => $pickupRescheduleAvailable,
             'nextPickupRescheduleAt' => $nextPickupRescheduleAt,
+            'pickupScheduleReviewPending' => $pickupScheduleReviewPending,
+            'pickupScheduleReview' => $pickupScheduleReview,
             'canCancelBorrowing' => $canCancelBorrowing,
             'returnProcessingOpen' => $returnProcessingOpen,
             'returnOperationalNotice' => $returnOperationalNotice,
@@ -506,10 +524,27 @@ class CustodyController extends Controller
             403
         );
 
+        $delayedApprovalReview = $service->pickupScheduleReviewPending($custody);
+
+        $request->validate([
+            'borrower_confirmation_note' => ['nullable', 'string', 'max:200'],
+        ]);
+
         $service->rescheduleMissedPickup(
             $custody,
-            $request->user()
+            $request->user(),
+            $request->boolean('borrower_need_confirmed'),
+            $request->input('borrower_confirmation_note')
         );
+
+        if ($delayedApprovalReview) {
+            return redirect()
+                ->to(route('custody.release.show', $custody).'#pickup-schedule')
+                ->with(
+                    'status',
+                    'Pickup & Issuance was scheduled in the next valid SPMU operating window after your confirmation that the borrower still needs the equipment. The borrower was notified of the schedule.'
+                );
+        }
 
         return redirect()
             ->to(route('custody.release.show', $custody).'#pickup-schedule')

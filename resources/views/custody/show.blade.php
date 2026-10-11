@@ -1099,6 +1099,14 @@
                                 >
                                     Preview
                                 </a>
+                            @elseif($custody->gatePass?->passDocument && ($borrowerGatePassStatus['key'] ?? null) !== 'VOID')
+                                {{-- The borrower is told to bring the generated Gate Pass, so it must be reachable before pickup. --}}
+                                <a
+                                    class="button secondary small ui-pressable"
+                                    href="{{ route('documents.preview', $custody->gatePass->passDocument) }}"
+                                >
+                                    Preview
+                                </a>
                             @endif
                         </div>
                     @endif

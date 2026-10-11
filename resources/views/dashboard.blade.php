@@ -1214,6 +1214,10 @@ a.dashboard-kpi-card:focus-visible {
     @endif
 </section>
 
+@if(in_array($dashboardMode, ['BORROWER', 'SPMU_OFFICER', 'SPMU_HEAD'], true))
+    @include('shared.operational-advisory')
+@endif
+
 <section class="stat-grid dashboard-stat-grid" aria-label="Current totals">
     @foreach($statistics as $label => $value)
         @php

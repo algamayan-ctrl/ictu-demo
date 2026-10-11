@@ -659,7 +659,9 @@ class CustodyService
      */
     public function rescheduleMissedPickup(
         CustodyTransaction $custody,
-        User $spmu
+        User $spmu,
+        bool $borrowerNeedConfirmed = false,
+        ?string $borrowerConfirmationNote = null
     ): void {
         abort_unless(
             $spmu->access_classification === AccessClassification::SpmuOfficer
@@ -669,7 +671,9 @@ class CustodyService
             403
         );
 
-        DB::transaction(function () use ($custody, $spmu): void {
+        $borrowerConfirmationNote = trim((string) $borrowerConfirmationNote);
+
+        DB::transaction(function () use ($custody, $spmu, $borrowerNeedConfirmed, $borrowerConfirmationNote): void {
             $locked = CustodyTransaction::query()
                 ->with(['borrower', 'request.currentVersion', 'lines.requestItem'])
                 ->lockForUpdate()
@@ -696,7 +700,26 @@ class CustodyService
              * A missed pickup is "Pickup Missed - For SPMU Review": SPMU
              * decides directly whether to continue the release, without
              * waiting for the borrower.
+             *
+             * A delayed approval is different: the borrower was never given
+             * a pickup schedule, so SPMU must first confirm the equipment is
+             * still needed. The system has no borrower-side confirmation, so
+             * what is recorded is the Action Officer's own attestation -
+             * never an implied borrower consent.
              */
+            $delayedApprovalReview = $this->pickupScheduleReviewPending($locked);
+
+            if ($delayedApprovalReview && ! $borrowerNeedConfirmed) {
+                throw ValidationException::withMessages([
+                    'borrower_need_confirmed' => 'Confirm that you contacted the borrower and that the equipment is still needed before continuing this release.',
+                ]);
+            }
+
+            if ($delayedApprovalReview && $borrowerConfirmationNote === '') {
+                throw ValidationException::withMessages([
+                    'borrower_confirmation_note' => 'Record how and when the borrower confirmed (for example: phone call at 2:15 PM).',
+                ]);
+            }
 
             $nextStart = $this->operationalCalendar->nextPickupWindow($now);
 
@@ -767,8 +790,22 @@ class CustodyService
                     'same_request_retained' => true,
                     'reservation_released' => false,
                     'preparation_preserved' => (bool) $locked->prepared_at,
-                    'source' => 'MISSED_PICKUP_NEXT_VALID_OPERATIONAL_WINDOW',
-                ]
+                    'source' => $delayedApprovalReview
+                        ? 'DELAYED_APPROVAL_SCHEDULE_REVIEW'
+                        : 'MISSED_PICKUP_NEXT_VALID_OPERATIONAL_WINDOW',
+                ] + ($delayedApprovalReview ? [
+                    // An Action Officer attestation, not a borrower e-confirmation:
+                    // who attested, when, to what statement, and how they say the
+                    // borrower confirmed.
+                    'borrower_need_attested_by_spmu' => true,
+                    'attested_by_user_id' => $spmu->id,
+                    'attested_by_name' => $spmu->full_name,
+                    'attested_at' => $now->toIso8601String(),
+                    'attestation_statement' => 'I contacted the borrower and they confirmed they still need the equipment.',
+                    'borrower_confirmation_note' => mb_substr($borrowerConfirmationNote, 0, 200),
+                    'confirmation_source' => 'SPMU_OFFICER_ATTESTATION',
+                    'borrower_confirmation_recorded_in_system' => false,
+                ] : [])
             );
 
             if ($locked->borrower) {
@@ -781,11 +818,40 @@ class CustodyService
                 $this->notifications->send(
                     'PICKUP_SCHEDULED',
                     collect([$locked->borrower]),
-                    "Pickup and issuance for {$locked->custody_no} has been rescheduled to {$nextStart->format('F j, Y g:i A')} until {$nextEnd->format('g:i A')}. This uses your same approved request; you do not need to submit a new borrowing request. Proceed to SPMU within the new window and bring {$requiredDocuments}.",
+                    $delayedApprovalReview
+                        ? "Pickup and issuance for {$locked->custody_no} is now scheduled for {$nextStart->format('F j, Y g:i A')} until {$nextEnd->format('g:i A')}. An SPMU officer recorded that you were contacted and confirmed you still need the items. Proceed to SPMU within this window and bring {$requiredDocuments}. If that record is not correct, or you no longer need the items, contact SPMU before the pickup time."
+                        : "Pickup and issuance for {$locked->custody_no} has been rescheduled to {$nextStart->format('F j, Y g:i A')} until {$nextEnd->format('g:i A')}. This uses your same approved request; you do not need to submit a new borrowing request. Proceed to SPMU within the new window and bring {$requiredDocuments}.",
                     $locked
                 );
             }
         }, 3);
+    }
+
+    /**
+     * Whether an approved, unreleased transaction is waiting for SPMU to
+     * review its pickup schedule because approval came after the originally
+     * suggested pickup date ("Schedule Review Required").
+     *
+     * No pickup schedule exists in this state, so it is not a missed pickup.
+     * It ends once SPMU sets a schedule through Continue Release.
+     */
+    public function pickupScheduleReviewPending(CustodyTransaction $custody): bool
+    {
+        if ($custody->status !== 'PREPARING_RELEASE'
+            || $custody->released_at
+            || $custody->pickup_scheduled_at
+            || $custody->pickup_expired_at) {
+            return false;
+        }
+
+        $events = AuditEvent::query()
+            ->where('record_type', CustodyTransaction::class)
+            ->where('record_id', $custody->id)
+            ->whereIn('action_code', ['PICKUP_SCHEDULE_REVIEW_REQUIRED', 'PICKUP_RESCHEDULED'])
+            ->pluck('action_code');
+
+        return $events->contains('PICKUP_SCHEDULE_REVIEW_REQUIRED')
+            && ! $events->contains('PICKUP_RESCHEDULED');
     }
 
     public function reportPreparationIssue(

@@ -26,7 +26,7 @@
 
 .gate-pass-browser .gate-pass-toolbar {
     display: grid;
-    grid-template-columns: minmax(0, 2.4fr) minmax(0, .95fr) minmax(0, .9fr);
+    grid-template-columns: minmax(0, 3fr) minmax(180px, 1fr);
     gap: 14px;
     align-items: end;
     padding: 16px 18px;
@@ -53,7 +53,7 @@
 .gate-pass-browser .gate-pass-records-heading h2 { margin: 0 0 6px; color: var(--heading); font-size: 17px; font-weight: 750; }
 .gate-pass-records-heading p { margin: 0; color: var(--text-muted); font-size: 12px; }
 .gate-pass-table-wrap { width: 100%; min-width: 0; overflow-x: auto; }
-.gate-pass-table { width: 100%; min-width: 900px; margin: 0; border-collapse: collapse; }
+.gate-pass-table { width: 100%; min-width: 760px; margin: 0; border-collapse: collapse; }
 .gate-pass-table th {
     padding: 10px 8px;
     color: var(--heading);
@@ -86,8 +86,8 @@
 .gate-pass-destination { overflow-wrap: anywhere; }
 .gate-pass-release-date { white-space: nowrap; }
 .gate-pass-table .status-badge { padding: 4px 10px; border: 0; border-radius: 999px; font-size: 10px; white-space: nowrap; }
-.gate-pass-row-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 136px; }
-.gate-pass-browser .gate-pass-view { flex-shrink: 0; white-space: nowrap; }
+.gate-pass-row-actions { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.gate-pass-browser .gate-pass-view, .gate-pass-browser .gate-pass-file { flex-shrink: 0; white-space: nowrap; }
 
 .gate-pass-more { position: relative; flex: 0 0 auto; }
 .gate-pass-more summary { display: grid; place-items: center; width: 28px; height: 35px; margin-left: auto; color: var(--text-secondary); border-radius: 6px; list-style: none; cursor: pointer; }
@@ -155,4 +155,17 @@ html[data-theme="dark"] .gate-pass-browser { --gate-pass-blue: #72b7f4; }
     .gate-pass-browser .gate-pass-toolbar { grid-template-columns: minmax(0, 1fr); }
     .gate-pass-toolbar > label:first-child { grid-column: auto; }
 }
+/* Compact Gate Pass actions and clear hover/focus labels */
+.gate-pass-browser .gate-pass-table th:last-child,
+.gate-pass-browser .gate-pass-table td:last-child { text-align: center; }
+.gate-pass-browser .gate-pass-row-actions { display: flex; justify-content: center; align-items: center; flex-wrap: nowrap; gap: 7px; overflow: visible; }
+.gate-pass-browser .gate-pass-icon-action { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; width: 36px; height: 36px; box-sizing: border-box; padding: 0; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-elevated); color: var(--gate-pass-blue); text-decoration: none; cursor: pointer; transition: background-color .15s ease, border-color .15s ease; }
+.gate-pass-browser .gate-pass-icon-action svg { display: block; flex-shrink: 0; color: inherit; stroke: currentColor; }
+.gate-pass-browser .gate-pass-icon-action:hover,
+.gate-pass-browser .gate-pass-icon-action:focus-visible { background: var(--info-bg); border-color: var(--gate-pass-blue); color: var(--gate-pass-blue); }
+.gate-pass-browser .gate-pass-icon-action:focus-visible { outline: 2px solid var(--gate-pass-blue); outline-offset: 2px; }
+.gate-pass-browser .gate-pass-icon-action::after { content: attr(data-tooltip); pointer-events: none; position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%) translateY(3px); white-space: nowrap; padding: 6px 9px; background: #172d49; color: #fff; border-radius: 5px; font-size: 11px; font-weight: 600; line-height: 1.25; opacity: 0; visibility: hidden; transition: opacity .12s ease, transform .12s ease; z-index: 30; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
+.gate-pass-browser .gate-pass-icon-action:hover::after,
+.gate-pass-browser .gate-pass-icon-action:focus-visible::after { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+.gate-pass-browser .gate-pass-table-wrap { padding-top: 10px; margin-top: -10px; }
 </style>

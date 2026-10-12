@@ -85,6 +85,24 @@
  ];
  }
 
+ /*
+ * Weight 15 - accountability still open. returns() counts cases opened in
+ * the selected period that remain unresolved; silent at zero like overdue.
+ */
+ if (($returns['open_cases'] ?? 0) > 0) {
+ $openCaseCount = (int) $returns['open_cases'];
+
+ $priorityRows[] = [
+ 'weight' => 15,
+ 'tone' => 'warning',
+ 'icon' => 'accountability',
+ 'title' => 'Unresolved accountability',
+ 'text' => $openCaseCount.' accountability '.($openCaseCount === 1 ? 'case' : 'cases')
+ .' opened in this period '.($openCaseCount === 1 ? 'remains' : 'remain').' unresolved.',
+ 'href' => AnalyticsDetailLink::to('card', 'overview', $periodSelection, $division, $unit, ['for' => 'returns.issues']),
+ ];
+ }
+
  /* Weight 20 - inventory risk, only while there is one. */
  if ($lowAvailability['count'] > 0) {
  $priorityRows[] = [
@@ -115,7 +133,7 @@
  'tone' => 'neutral',
  'icon' => 'check-circle',
  'title' => 'Inventory availability',
- 'text' => 'No item type is currently below the availability threshold.',
+ 'text' => 'No item type is currently at or below '.$lowAvailabilityPercent.'% usable stock.',
  'href' => null,
  ];
  }
@@ -142,7 +160,8 @@
  'title' => 'Return compliance',
  'text' => $returns['on_time'].' of '.$returns['completed'].' completed '
  .($returns['completed'] === 1 ? 'return was' : 'returns were').' on time ('
- .$returns['on_time_rate'].'%).',
+ .$returns['on_time_rate'].'%); '.$returns['late'].' '
+ .($returns['late'] === 1 ? 'was' : 'were').' late.',
  'href' => AnalyticsDetailLink::to(
  'card',
  'overview',
@@ -213,7 +232,7 @@
  </a>
 </div>
 
-@include('analytics.partials.overview-highlights')
+
 
 {{-- Priority signals --------------------------------------------------- --}}
 @if($detail)
@@ -225,7 +244,7 @@
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="lightbulb" size="15" /></span>
  <div>
  <h2>Priority Insights</h2>
- <p>Key operational signals for the selected period and current state.</p>
+ <p>Shows what needs attention now and how returns performed this period.</p>
  </div>
  </header>
 
@@ -255,6 +274,8 @@
  </ul>
  </div>
 </section>
+
+@include('analytics.partials.overview-highlights')
 
 {{-- Cross-tab executive summary -------------------------------------- --}}
 <section class="analytics-card analytics-summary-shell">
@@ -317,22 +338,7 @@
  </div>
  </dl>
  </a>
-<a class="analytics-summary-card" href="{{ route('analytics.index', $carry + ['section' => 'predictive']) }}">
- <span class="analytics-summary-icon" aria-hidden="true"><x-icon name="calendar-clock" size="16" /></span>
- <span class="analytics-summary-title">Forecast &amp; Planning</span>
- <span class="analytics-summary-arrow" aria-hidden="true"><x-icon name="chevron-right" size="14" /></span>
 
- <dl class="analytics-summary-metrics">
- <div>
- <dt>Next-window requests</dt>
- <dd>{{ ($forecastSummary['available'] ?? false) ? number_format((int) ($forecastSummary['forecast'] ?? 0)) : '—' }}</dd>
- </div>
- <div>
- <dt>Direction</dt>
- <dd>{{ ($forecastSummary['available'] ?? false) ? ucfirst((string) ($forecastSummary['direction'] ?? 'steady')) : 'Insufficient history' }}</dd>
- </div>
- </dl>
- </a>
 
 
  </div>
@@ -458,15 +464,15 @@
 
             'note' =>
                 $approvalSamples > 0
-                    ? 'Based on '
+                    ? 'Filing to final approval, from '
                         .$approvalSamples
-                        .' completed approval '
+                        .' approved '
                         .(
                             $approvalSamples === 1
-                                ? 'sample'
-                                : 'samples'
+                                ? 'request'
+                                : 'requests'
                         )
-                    : 'No completed approval timing samples in this scope',
+                    : 'No request filed in this period has been approved yet',
 
             'icon' =>
                 'approval',
@@ -483,15 +489,15 @@
 
             'note' =>
                 $releaseSamples > 0
-                    ? 'Based on '
+                    ? 'Final approval to release, from '
                         .$releaseSamples
-                        .' completed release '
+                        .' released '
                         .(
                             $releaseSamples === 1
-                                ? 'sample'
-                                : 'samples'
+                                ? 'request'
+                                : 'requests'
                         )
-                    : 'No completed release timing samples in this scope',
+                    : 'No request filed in this period has been released yet',
 
             'icon' =>
                 'release',
@@ -508,11 +514,11 @@
 
             'note' =>
                 $pendingCount === 0
-                    ? 'No requests currently awaiting approval in this scope'
+                    ? 'No requests are awaiting approval right now'
                     : (
                         $pendingCount === 1
-                            ? '1 request currently awaiting approval'
-                            : $pendingCount.' requests currently awaiting approval'
+                            ? '1 request in review right now, from any period'
+                            : $pendingCount.' requests in review right now, from any period'
                     ),
 
             'icon' =>
@@ -534,7 +540,7 @@
                     : (
                         $oldestPendingMinutes === null
                             ? 'Pending age is not available'
-                            : 'Age of the longest currently pending approval'
+                            : 'Time since filing of the longest-waiting request'
                     ),
 
             'icon' =>
@@ -815,8 +821,7 @@
                 </h2>
 
                 <p>
-                    Processing time and current approval workload
-                    for the selected reporting scope.
+                    Shows approval times and requests awaiting action.
                 </p>
 
             </div>
@@ -909,10 +914,11 @@
         </svg>
 
         <span>
-            These values use timestamps recorded by the system
-            within the selected scope. They are operational
-            analytics and are separate from the formal
-            manual-versus-system KPI evaluation used in the study.
+            Averages cover requests filed in the selected period,
+            using timestamps recorded by the system. Pending figures
+            are current. These are operational analytics, separate
+            from the formal manual-versus-system KPI evaluation used
+            in the study.
         </span>
 
     </div>
@@ -1392,3 +1398,165 @@ html[data-theme="dark"]
 </style>
 
 {{-- OPERATIONAL PERFORMANCE POLISH V3 END --}}
+
+{{-- SPMU OVERVIEW SMART UI V4 : presentation only; original data/cards/links preserved --}}
+<style>
+.analytics-page .spmu-smart-accordion > header {display:flex;align-items:center;gap:10px;min-height:57px;padding:11px 15px!important;cursor:pointer;}
+.analytics-page .spmu-smart-accordion > header > div {min-width:0;flex:1;}
+.analytics-page .spmu-smart-accordion > header h2 {margin:0;}
+.analytics-page .spmu-smart-accordion > header p {margin:2px 0 0;}
+.analytics-page .spmu-smart-toggle {appearance:none;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;min-width:32px;margin-left:auto;padding:0;border:1px solid var(--border,#d4dfeb);border-radius:9px;background:var(--surface-elevated,#fff);color:#235c9a;cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
+.analytics-page .spmu-smart-toggle:hover,.analytics-page .spmu-smart-accordion > header:hover .spmu-smart-toggle {background:#e9f3ff;border-color:#91bcea;color:#115bba;}
+.analytics-page .spmu-smart-toggle:focus-visible {outline:2px solid #1769dc;outline-offset:2px;}
+.analytics-page .spmu-smart-toggle svg {display:block;width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.analytics-page .spmu-smart-accordion[data-smart-open="false"] > :not(header) {display:none!important;}
+.analytics-page .spmu-smart-accordion[data-smart-open="false"] {padding-bottom:0!important;min-height:0!important;}
+/* Preserve visual identity; tighten the most space-consuming overview-only rows. */
+.analytics-page .overview-leader-grid {gap:10px;padding:11px;}
+.analytics-page .overview-leader-card {gap:6px;padding:12px;}
+.analytics-page .overview-leader-value {padding-top:3px;}
+.analytics-page .overview-leader-scope {padding:0 11px 9px;}
+@media (max-width: 900px) {.analytics-page .overview-leader-grid {grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media (max-width: 540px) {.analytics-page .overview-leader-grid {grid-template-columns:1fr;}}
+</style>
+<script>
+(function () {
+  function setup() {
+    const root = document.querySelector('.analytics-page');
+    if (!root) return;
+    const configs = [
+      {selector: 'section.analytics-card', title: 'Priority Insights', open: true},
+      {selector: 'section.analytics-summary-shell', title: 'Analytics Summary', open: false},
+      {selector: '.analytics-operational-performance', title: 'Operational Performance', open: false}
+    ];
+    const svgUp = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>';
+    const svgDown = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+    configs.forEach(function(cfg, i) {
+      const element = Array.from(root.querySelectorAll(cfg.selector)).find(function(el) {
+        const h = el.querySelector(':scope > header h2');
+        return h && h.textContent.trim() === cfg.title;
+      });
+      if (!element || element.dataset.smartReady) return;
+      const header = element.querySelector(':scope > header');
+      if (!header || !Array.from(element.children).some(function(c){return c!==header;})) return;
+      element.classList.add('spmu-smart-accordion');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'spmu-smart-toggle';
+      const id = 'overview-smart-' + i;
+      button.setAttribute('aria-controls', id);
+      const panelNodes = Array.from(element.children).filter(function(n){return n!==header;});
+      if (panelNodes.length === 1 && !panelNodes[0].id) panelNodes[0].id = id;
+      else button.removeAttribute('aria-controls');
+      function change(open) {
+        element.dataset.smartOpen = String(open);
+        button.setAttribute('aria-expanded', String(open));
+        button.setAttribute('aria-label', (open?'Collapse ':'Expand ') + cfg.title);
+        button.title = (open?'Collapse ':'Expand ') + cfg.title;
+        button.innerHTML = open ? svgUp : svgDown;
+      }
+      header.appendChild(button);
+      change(cfg.open);
+      button.addEventListener('click', function(e) {e.stopPropagation();change(element.dataset.smartOpen!=='true');});
+      header.addEventListener('click', function(e) {
+        if (e.target.closest('a,button,input,select')) return;
+        change(element.dataset.smartOpen!=='true');
+      });
+      element.dataset.smartReady = '1';
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
+  else setup();
+})();
+</script>
+{{-- SPMU OVERVIEW PLAIN CHEVRON COMPACT V5 --}}
+<style>
+/* Presentation-only: keep original Analytics visuals, links, and accordion JS. */
+.analytics-page .spmu-smart-accordion > header {
+    min-height: 0 !important;
+    padding: 9px 14px !important;
+    gap: 8px !important;
+}
+.analytics-page .spmu-smart-accordion > header p { margin-top: 1px !important; }
+/* Chevron-only. The full header remains interactive; no separate button card. */
+.analytics-page .spmu-smart-toggle,
+.analytics-page .spmu-smart-toggle:hover,
+.analytics-page .spmu-smart-accordion > header:hover .spmu-smart-toggle {
+    display: inline-grid !important;
+    place-items: center !important;
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    margin-left: auto !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #285d93 !important;
+    opacity: 1 !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+}
+.analytics-page .spmu-smart-toggle svg {
+    display: block !important;
+    width: 19px !important;
+    height: 19px !important;
+    min-width: 19px !important;
+    min-height: 19px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    stroke: currentColor !important;
+    fill: none !important;
+    stroke-width: 2.25 !important;
+    pointer-events: none !important;
+}
+.analytics-page .spmu-smart-toggle:hover { color: #1268cc !important; }
+.analytics-page .spmu-smart-toggle:focus-visible {
+    outline: 2px solid #1769dc !important;
+    outline-offset: 2px !important;
+    border-radius: 4px !important;
+}
+/* Reduce gaps without affecting other Analytics tabs. */
+.analytics-page .spmu-smart-accordion[data-smart-open="false"] { min-height: 0 !important; }
+.analytics-page .overview-leader-grid { gap: 9px !important; padding: 10px !important; }
+.analytics-page .overview-leader-card { padding: 11px !important; gap: 5px !important; }
+.analytics-page .overview-leader-scope { padding: 0 10px 8px !important; }
+@media (max-width: 640px) {
+    .analytics-page .spmu-smart-accordion > header { padding: 10px 12px !important; }
+}
+</style>
+<style>
+/* SPMU ANALYTICS OVERVIEW EQUAL SPACING */
+
+/* Consistent vertical spacing for Overview only */
+.analytics-page:has(.spmu-smart-accordion) {
+    row-gap: 14px !important;
+}
+
+/* Remove extra margin causing uneven spacing */
+.analytics-page:has(.spmu-smart-accordion)
+.analytics-operational-performance {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* Keep accordion headers compact */
+.analytics-page .spmu-smart-accordion > header {
+    min-height: 0 !important;
+    padding: 10px 14px !important;
+}
+
+/* Keep collapsed sections at natural height */
+.analytics-page
+.spmu-smart-accordion[data-smart-open="false"] {
+    min-height: 0 !important;
+}
+
+/* Preserve equal spacing on smaller screens */
+@media (max-width: 768px) {
+    .analytics-page:has(.spmu-smart-accordion) {
+        row-gap: 12px !important;
+    }
+}
+</style>

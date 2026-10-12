@@ -77,12 +77,16 @@ function mount({ paginated = false, recordsPresent = true } = {}) {
  * code. This test now covers only the empty/populated branching that is
  * still current.
  */
-test('the page branches between empty and populated laundry-case states', () => {
+test('the page keeps active and completed laundry records in one workspace', () => {
     assert.match(page, /\$hasLaundryCases = \$jobs->total\(\) > 0;/);
-    assert.match(page, /@if\(\$hasLaundryCases\)\s+<section class="card laundry-toolbar"/);
-    assert.match(page, /@else\s+<section class="card laundry-empty-card"/);
+    assert.match(page, /\$hasCompletedCases = \$completedJobs->total\(\) > 0;/);
+    assert.match(page, /@if\(\$hasLaundryCases\)\s+<section class="card record-browser-toolbar laundry-toolbar"/);
+    assert.match(page, /<h2 id="laundry-cases-title">Active Laundry Cases<\/h2>/);
+    assert.match(page, /<div class="laundry-completed-block" id="completed-laundry-cases" data-completed-laundry>/);
+    assert.match(page, /<h2 id="completed-laundry-title">Completed Laundry Cases<\/h2>/);
     assert.match(page, /No active laundry cases need action\./);
-    assert.match(page, /Ongoing linen cases will appear here after physical release/);
+    assert.match(page, /Finished cases will stay visible here for record review\./);
+    assert.doesNotMatch(page, /Completed Records/);
 });
 
 test('detail view uses the accomplished form as one record instead of tracking wet signatures separately', () => {
@@ -140,9 +144,10 @@ test('flow card stays within the content width and reflows without widening the 
     assert.match(styles, /\.laundry-table-wrap \{[^}]*overflow-x: auto/);
 });
 
-test('case table preserves live data, current statuses and protected navigation', () => {
-    assert.match(page, /route\('laundry\.completed'\)/);
+test('case tables preserve live data, current statuses and protected navigation', () => {
+    assert.doesNotMatch(page, /route\('laundry\.completed'\)/);
     assert.match(page, /route\('laundry\.show', \$job\)/);
+    assert.match(page, /@foreach\(\$completedJobs as \$job\)/);
     assert.match(page, /@foreach\(\$jobs as \$job\)/);
     assert.match(page, /\{\{ \$jobs->links\('partials\.pagination'\) \}\}/);
     assert.match(page, /<x-status-badge :status="\$job->status" :label="\$statusText"/);
@@ -156,9 +161,11 @@ test('case table preserves live data, current statuses and protected navigation'
     assert.doesNotMatch(page, /Juan Dela Cruz|CSPC Foundation Day 2026|CUS-2026/);
 });
 
-test('filters are read-only and their pagination scope is explicit', () => {
-    assert.match(page, /Search, status, and sort apply to the cases on this page\./);
+test('filters are read-only and both active and completed queues keep local controls', () => {
+    assert.match(page, /data-laundry-search/);
+    assert.match(page, /data-completed-search/);
     assert.match(page, /type="button" data-laundry-reset/);
+    assert.match(page, /type="button" data-completed-reset/);
     assert.match(page, /role="status" aria-live="polite"/);
     assert.doesNotMatch(page, /<form|->(?:save|update|create|delete)\(/);
     assert.doesNotMatch(interactions, /fetch\(|XMLHttpRequest|\.submit\(|requestSubmit\(|location\./);

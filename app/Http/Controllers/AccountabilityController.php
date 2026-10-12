@@ -1231,8 +1231,22 @@ class AccountabilityController extends Controller
 
                 $incident->update([
                     'status' => 'RESOLVED',
+                    'resolved_by_user_id' => $request->user()->id,
+                    'resolved_at' => now(),
                     'remarks' => trim($existingRemarks.($existingRemarks !== '' ? "\n" : '').$resolutionNote),
                 ]);
+
+                /*
+                 * A cleared finding leaves nothing to count as an offense.
+                 * The violation detected from it at the return is dismissed
+                 * here, in the same transaction and under the same incident
+                 * lock, so it can never be confirmed afterwards.
+                 */
+                $dismissedViolations = $policy->dismissPendingViolationsForClearedFinding(
+                    $incident,
+                    $request->user(),
+                    $data['resolution_remarks']
+                );
 
                 $liftedRestrictionId = (int) BorrowerRestriction::query()
                     ->where('incident_id', $incident->id)
@@ -1259,6 +1273,8 @@ class AccountabilityController extends Controller
                         'status' => 'RESOLVED',
                         'resolution_outcome' => 'FINDING_CLEARED',
                         'head_signature_snapshot_id' => $headSignature->id,
+                        'resolved_by_user_id' => $request->user()->id,
+                        'pending_violations_dismissed' => $dismissedViolations,
                     ]
                 );
 

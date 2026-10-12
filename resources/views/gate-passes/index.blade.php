@@ -9,24 +9,6 @@
         'custody.returns',
     ]);
 
-    /*
-     * Keep Gate Pass filters stable even when a particular stage currently has
-     * zero records. These keys mirror GatePass::workflowStatus().
-     */
-    $statuses = collect([
-        ['key' => 'PENDING', 'label' => 'Pending Gate Pass'],
-        ['key' => 'PICKUP_SCHEDULING', 'label' => 'For Pickup Scheduling'],
-        ['key' => 'ITEM_PREPARATION', 'label' => 'For Item Preparation'],
-        ['key' => 'PICKUP_SCHEDULED', 'label' => 'Pickup Scheduled'],
-        ['key' => 'READY_FOR_RELEASE', 'label' => 'Ready for Release'],
-        ['key' => 'PREPARING_RELEASE', 'label' => 'Preparing for Release'],
-        ['key' => 'PICKUP_EXPIRED', 'label' => 'Pickup Missed'],
-        ['key' => 'READY_FOR_PRINTING', 'label' => 'Approved / Ready for Release'],
-        ['key' => 'AWAITING_PHYSICAL_RETURN', 'label' => 'Awaiting Physical Return'],
-        ['key' => 'AWAITING_ACCOMPLISHED_GATE_PASS', 'label' => 'Awaiting Accomplished Gate Pass'],
-        ['key' => 'VERIFIED', 'label' => 'Recorded'],
-        ['key' => 'VOID', 'label' => 'Voided'],
-    ]);
 @endphp
 
 @include('gate-passes.partials.index-styles')
@@ -36,7 +18,7 @@
         <div>
             <p class="eyebrow">SPMU Action Officer</p>
             <h1>Gate Pass</h1>
-            <p>Manage generated Gate Passes and accomplished scans for off-campus borrowing.</p>
+            <p>Review accomplished Gate Passes uploaded and recorded by the SPMU Action Officer after return.</p>
         </div>
     </section>
 
@@ -46,14 +28,6 @@
                         <span class="search-input-icon" aria-hidden="true"><x-icon name="search" size="17" /></span>
                         <input id="gate-pass-search" type="search" placeholder="Request, borrower, custody, destination..." data-gate-pass-search autocomplete="off">
                     </span>
-                </label>
-                <label for="gate-pass-status">Status
-                    <select id="gate-pass-status" data-gate-pass-status>
-                        <option value="">All statuses</option>
-                        @foreach($statuses as $status)
-                            <option value="{{ $status['key'] }}">{{ $status['label'] }}</option>
-                        @endforeach
-                    </select>
                 </label>
                 <label for="gate-pass-sort">Sort
                     <select id="gate-pass-sort" data-gate-pass-sort>
@@ -66,15 +40,15 @@
     @if($gatePasses->isEmpty())
         <section class="card gate-pass-empty-card" aria-labelledby="gate-pass-empty-title">
             @include('gate-passes.partials.empty-illustration')
-            <h2 id="gate-pass-empty-title">No Gate Pass records yet.</h2>
-            <p>Off-campus borrowing records will appear here<br>once an approved request requires a Gate Pass.</p>
+            <h2 id="gate-pass-empty-title">No recorded Gate Passes yet.</h2>
+            <p>Accomplished Gate Passes will appear after their copies have been uploaded and recorded by SPMU.</p>
         </section>
     @else
 
 
         <section class="card gate-pass-records-card" aria-labelledby="gate-pass-records-title">
             <div class="gate-pass-records-heading">
-                <h2 id="gate-pass-records-title">Gate Pass Records</h2>
+                <h2 id="gate-pass-records-title">Recorded Gate Passes</h2>
                 <p data-gate-pass-count role="status" aria-live="polite">Showing 1 to {{ min(10, $gatePasses->count()) }} of {{ $gatePasses->count() }} records</p>
             </div>
             <div class="gate-pass-table-wrap">
@@ -84,7 +58,7 @@
                             <th scope="col">Request No.</th>
                             <th scope="col">Borrower</th>
                             <th scope="col">Event / Use Location</th>
-                            <th scope="col">Release Date</th>
+                            <th scope="col">Recorded Date</th>
                             <th scope="col">Status</th>
                             <th scope="col">Actions</th>
                         </tr>
@@ -95,8 +69,8 @@
                         @endforeach
                         <tr class="gate-pass-filter-empty" data-gate-pass-empty hidden>
                             <td colspan="6">
-                                <strong>No Gate Pass records match your filters.</strong>
-                                <p>Try another search or status.</p>
+                                <strong>No recorded Gate Passes match your search.</strong>
+                                <p>Try another search term.</p>
                                 <button class="button secondary small link-button" type="button" data-gate-pass-reset>Clear filters</button>
                             </td>
                         </tr>

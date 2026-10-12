@@ -182,12 +182,13 @@
 
  $noUsageTotal = (int) $slowMoving['never_moved'];
 
- /* Peak: weekday/hour context complements the main monthly seasonal trend. */
+ /* Peak: the weekday and hour requests were filed on, beside the main trend. */
  $peakHighest = $peak['available'] ? (int) collect($peak['days'])->max('count') : 0;
 
  /*
- | A semester/year view is already monthly, so that existing trend becomes
- | the seasonal planning view instead of adding a second duplicate chart.
+ | A semester/year view is already monthly, so the existing trend is titled
+ | as the monthly view instead of adding a second duplicate chart. It shows
+ | recorded filings only; nothing is projected.
  */
  $seasonalTrend = ($trend['granularity'] ?? null) === 'month';
  $trendTitle = $seasonalTrend ? 'Monthly Borrowing Trend' : 'Borrowing Demand Trend';
@@ -211,7 +212,7 @@
  <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="requests" size="19" /></span>
  <span class="analytics-kpi-card-label">Requests Filed</span>
  <strong class="analytics-kpi-card-value">{{ $totals['requests'] }}</strong>
- <span class="analytics-kpi-card-note">Valid borrowing requests</span>
+ <span class="analytics-kpi-card-note">Filed; excludes drafts, cancelled and expired</span>
  @include('analytics.partials.period-delta', ['comparison' => $totalsComparison['requests'], 'deltaClass' => 'analytics-kpi-card-meta'])
  </a>
 
@@ -244,7 +245,7 @@
  <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="users" size="19" /></span>
  <span class="analytics-kpi-card-label">Active Borrowing Units</span>
  <strong class="analytics-kpi-card-value">{{ $totals['active_units'] }}</strong>
- <span class="analytics-kpi-card-note">Units with borrowing activity</span>
+ <span class="analytics-kpi-card-note">Units that filed at least one request</span>
  </a>
 </div>
 
@@ -413,7 +414,7 @@
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="clipboard-check" size="15" /></span>
  <div>
  <h2>Request Outcomes</h2>
- <p>Current workflow outcome of all requests filed in the selected period, including those later cancelled or expired.</p>
+ <p>Shows the current status of requests filed in this period, including those later cancelled or expired.</p>
  </div>
  <a class="analytics-card-open" href="{{ $outcomeLink() }}" aria-label="View Request Outcomes details"><x-icon name="chevron-right" size="15" /></a>
  </header>
@@ -507,7 +508,7 @@
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="box" size="15" /></span>
  <div>
  <h2>Equipment Demand &amp; Actual Usage</h2>
- <p>Requested items with release and fulfillment context.</p>
+ <p>Shows the most requested items and how much was actually released.</p>
  </div>
  <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.requested-items']) }}" aria-label="View Equipment Demand and Actual Usage details"><x-icon name="chevron-right" size="15" /></a>
  </header>
@@ -542,7 +543,7 @@
  [$row['requests'] === 1 ? 'Request' : 'Requests', (string) $row['requests']],
  ['Requested quantity', $qty($row['quantity'])],
  ['Released quantity', $qty($row['released_quantity'])],
- ['Fulfillment', $row['fulfillment'] === null ? 'Not available' : $row['fulfillment'].'%'],
+ ['Released vs requested', $row['fulfillment'] === null ? 'Not available' : $row['fulfillment'].'%'],
  ]) }}"
  aria-label="View Details for {{ $row['name'] }}"
  >
@@ -557,7 +558,7 @@
  </span>
  <span class="analytics-rank-value">
  {{ $row['requests'] }} {{ $row['requests'] === 1 ? 'request' : 'requests' }}
- <small>{{ $qty($row['quantity']) }} requested @if($row['fulfillment'] !== null) - {{ $row['fulfillment'] }}% fulfilled @endif</small>
+ <small>{{ $qty($row['quantity']) }} requested - {{ $qty($row['released_quantity']) }} released</small>
  </span>
  </a>
  </li>
@@ -692,7 +693,7 @@
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="clock" size="15" /></span>
  <div>
  <h2>Peak Borrowing Days</h2>
- <p>Borrowing requests filed by day of week, with the busiest filing hour shown as supporting context.</p>
+ <p>Shows which days of the week borrowing requests were filed on.</p>
  </div>
  <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.peak']) }}" aria-label="View Peak Borrowing Days details"><x-icon name="chevron-right" size="15" /></a>
  </header>

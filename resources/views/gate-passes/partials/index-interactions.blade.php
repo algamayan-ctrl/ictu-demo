@@ -71,7 +71,7 @@
 
     const render = () => {
         const terms = search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
-        const selectedStatus = status.value;
+        const selectedStatus = status?.value || '';
         const oldestFirst = sort.value === 'oldest';
         const matches = [...records].sort((left, right) => {
             const difference = Number(left.dataset.date || 0) - Number(right.dataset.date || 0);
@@ -125,7 +125,7 @@
 
     const filter = () => { page = 1; render(); };
     search.addEventListener('input', filter);
-    status.addEventListener('change', filter);
+    status?.addEventListener('change', filter);
     sort.addEventListener('change', filter);
     pagination.addEventListener('click', event => {
         const target = event.target.closest('[data-gate-pass-page]');
@@ -139,7 +139,7 @@
     });
     root.querySelector('[data-gate-pass-reset]')?.addEventListener('click', () => {
         search.value = '';
-        status.value = '';
+        if (status) status.value = '';
         sort.value = 'newest';
         filter();
         search.focus();

@@ -364,3 +364,16 @@
     .notification-delivery-bulk-bar { grid-template-columns: 1fr; }
     .notification-delivery-bulk-bar label { white-space: normal; }
 }
+
+/* SPMU-COMPACT-DELIVERY-REPORTS START */
+@media screen {
+  .notification-delivery-heading { margin-bottom: 14px !important; }
+  .notification-delivery-heading h1 { font-size: 21px !important; }
+  .notification-delivery-area { gap: 10px !important; }
+  .notification-delivery-toolbar { padding: 11px 13px !important; }
+  .notification-delivery-table-toolbar { min-height: 46px !important; padding: 7px 13px !important; }
+  .notification-delivery-table-heading h2 { font-size: 15px !important; }
+  .notification-delivery-table th { font-size: 10.5px !important; padding-top: 9px !important; padding-bottom: 9px !important; }
+  .notification-delivery-table td { font-size: 12px !important; padding-top: 7px !important; padding-bottom: 7px !important; }
+}
+/* SPMU-COMPACT-DELIVERY-REPORTS END */

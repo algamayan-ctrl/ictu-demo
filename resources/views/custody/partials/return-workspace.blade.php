@@ -184,7 +184,7 @@
                                 <span>The physical return is already recorded and ready for accountability review.</span>
                             </div>
                             <a class="button secondary small ui-pressable return-navigation-action" href="{{ route('accountability.index') }}">
-                                <span>View Accountability</span>
+                                <span style="color: inherit !important;">View Accountability</span>
                             </a>
                         </div>
                     @endif
@@ -446,3 +446,4 @@
 @endif
 
 @include('custody.partials.return-process-interactions')
+

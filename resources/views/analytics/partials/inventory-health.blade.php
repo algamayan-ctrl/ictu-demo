@@ -5,7 +5,9 @@
  | Everything on this tab is current-state. It deliberately does not follow
  | the reporting period, because stock is where it is today regardless of
  | which month is being reviewed; the two exceptions are Utilization and
- | Stock Coverage, which need a usage window and say so.
+ | Coverage Detail, which show releases recorded in the period and say so.
+ | Nothing on this tab is a forecast: no usage rate, projected days of stock
+ | or risk band is derived from the release history.
  |
  | Every figure comes from InventoryService through AnalyticsService, the
  | same authoritative availability rule the Inventory module and Reports
@@ -16,12 +18,13 @@
  | Available means available to allocate: approved reservations are already
  | removed from that figure. The serviceable stock partition is therefore:
  |
- | Available + Reserved + On Custody + In Laundry + Incident
+ | Available + Reserved + On Custody + In Laundry + Incident / Unavailable
  |
- | Maintenance sits outside this partition because an item whose catalogue
- | condition is DAMAGED_MAINTENANCE carries no serviceable total until it is
- | restored. This keeps the same physical unit from appearing in two KPI
- | states at once.
+ | The last state is incident-held units plus units on a maintenance hold;
+ | InventoryService removes both from Available. A whole item whose catalogue
+ | condition is DAMAGED_MAINTENANCE sits outside this partition because it
+ | carries no serviceable total until it is restored. This keeps the same
+ | physical unit from appearing in two states at once.
  */
  use App\Support\AnalyticsDetailLink;
 
@@ -45,7 +48,8 @@
  ['key' => 'reserved', 'label' => 'Reserved', 'value' => (float) $totals['allocated']],
  ['key' => 'custody', 'label' => 'On Custody', 'value' => (float) $totals['on_custody']],
  ['key' => 'laundry', 'label' => 'In Laundry', 'value' => (float) $totals['laundry']],
- ['key' => 'incident', 'label' => 'Incident / Unavailable', 'value' => (float) $totals['incident']],
+ /* Incident-held units plus maintenance holds: both are removed from Available. */
+ ['key' => 'incident', 'label' => 'Incident / Unavailable', 'value' => (float) $totals['incident'] + (float) ($totals['condition_hold'] ?? 0)],
  ];
 
  $composition = array_map(function (array $row) use ($serviceable): array {
@@ -126,7 +130,7 @@
 
 <p class="analytics-inventory-scope-note" role="note">
  <x-icon name="information" size="14" aria-hidden="true" />
- <span><strong>Current stock scope:</strong> inventory totals are institution-wide and do not change with Division, Office / College / Unit, or Borrower. Utilization and Stock Coverage below still use the selected reporting period.</span>
+ <span><strong>Current stock scope:</strong> inventory totals are institution-wide and do not change with Division, Office / College / Unit, or Borrower. Utilization and Coverage Detail below show releases recorded in the selected reporting period.</span>
 </p>
 
 {{-- Availability and composition ---------------------------------------- --}}
@@ -138,7 +142,7 @@
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="inventory" size="15" /></span>
  <div>
  <h2>Inventory Availability</h2>
- <p>Usable share of each item's serviceable stock, tightest first.</p>
+ <p>Shows how much usable stock remains for each item.</p>
  </div>
  <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.availability']) }}" aria-label="View Inventory Availability details"><x-icon name="chevron-right" size="15" /></a>
  </header>
@@ -210,6 +214,7 @@
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="box" size="15" /></span>
  <div>
  <h2>Current Inventory Distribution</h2>
+ <p>Shows where serviceable inventory units are currently assigned.</p>
  </div>
  <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.distribution']) }}" aria-label="View Current Inventory Distribution details"><x-icon name="chevron-right" size="15" /></a>
  </header>
@@ -260,10 +265,10 @@
 
  {{-- Maintenance is the one condition bucket outside serviceable stock. --}}
  <dl class="analytics-dist-aside">
- @if($totals['maintenance'] > 0)
+ @if(($totals['maintenance_outside'] ?? 0) > 0)
  <div>
  <dt>Outside serviceable stock</dt>
- <dd>{{ $num((float) $totals['maintenance']) }} units are damaged or under maintenance and carry no serviceable total.</dd>
+ <dd>{{ $num((float) $totals['maintenance_outside']) }} units belong to items under maintenance and are not counted as serviceable.</dd>
  </div>
  @endif
  </dl>
@@ -281,7 +286,7 @@
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="warning" size="15" /></span>
  <div>
  <h2>Inventory Risk Watch</h2>
- <p>Current low availability with period-based stock coverage context.</p>
+ <p>Highlights items with low available stock.</p>
  </div>
  @if($lowAvailability['count'] > 0)
  <span class="analytics-count-pill">{{ $lowAvailability['count'] }}</span>
@@ -309,11 +314,7 @@
  <span class="analytics-watch-sub">
  {{ $num($row['available']) }} of {{ $num($row['stock']) }} units available
  @if($coverageRow)
- @if(! $coverageRow['sufficient'])
- - coverage: insufficient history
- @elseif($coverageRow['coverage_days'] !== null)
- - {{ $coverageRow['coverage_days'] }} days coverage
- @endif
+ - {{ $num($coverageRow['released']) }} released this period
  @endif
  </span>
  </span>
@@ -336,7 +337,7 @@
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="custody" size="15" /></span>
  <div>
  <h2>Utilization</h2>
- <p>Quantity of equipment physically released during this period.</p>
+ <p>Shows the quantity of items released during the selected period.</p>
  </div>
  <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.utilization']) }}" aria-label="View Utilization details"><x-icon name="chevron-right" size="15" /></a>
  </header>
@@ -393,6 +394,7 @@
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="settings" size="15" /></span>
  <div>
  <h2>Operational Inventory Status</h2>
+ <p>Shows units currently in laundry, under maintenance, or held by an open case.</p>
  </div>
  <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.operational']) }}" aria-label="View Operational Inventory Status details"><x-icon name="chevron-right" size="15" /></a>
  </header>
@@ -423,9 +425,9 @@
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="clock" size="15" /></span>
  <div>
  <h2>Coverage Detail</h2>
- <p>Supporting release-history detail for Inventory Risk Watch.</p>
+ <p>Shows available stock and supporting transaction history.</p>
  </div>
- <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.coverage']) }}" aria-label="View Stock Coverage and Risk details"><x-icon name="chevron-right" size="15" /></a>
+ <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.coverage']) }}" aria-label="View Coverage Detail"><x-icon name="chevron-right" size="15" /></a>
  </header>
 
  <div class="analytics-card-body">
@@ -433,7 +435,7 @@
  <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="clock" size="19" /></span>
  <span>
- <strong>Insufficient release history.</strong>
+ <strong>No release history for this period.</strong>
  {{ $coverage['summary'] }}
  </span>
  </p>
@@ -443,35 +445,26 @@
  <li>
  <a
  href="{{ AnalyticsDetailLink::to('coverage', 'inventory', $periodSelection, null, null, ['item' => $row['item_id']]) }}"
- aria-label="View coverage details for {{ $row['name'] }}"
+ aria-label="View stock and release history for {{ $row['name'] }}: {{ $num($row['available']) }} available now, {{ $num($row['released']) }} released this period"
  >
  <span class="analytics-coverage-main">
  <span class="analytics-coverage-name">{{ $row['name'] }}</span>
  <span class="analytics-coverage-sub">
- {{ $num($row['available']) }} available
- @if($row['sufficient'])
- - {{ $row['per_day'] }} per day
- @endif
+ {{ $num($row['available']) }} of {{ $num($row['stock']) }} available now
  </span>
  </span>
 
  <span class="analytics-coverage-figure">
  {{--
- Rate, coverage and risk stand or fall
- together: a number beside "insufficient
- history" would invite the reader to do
- the division themselves.
+ Recorded history only: what went out in
+ the period and in how many releases. No
+ rate, projected days or risk band is
+ derived from it.
  --}}
- @if(! $row['sufficient'])
- <small class="analytics-tag">Insufficient history</small>
- @elseif($row['risk'] === null)
- <small class="analytics-tag">No recent consumption</small>
- @else
- <strong>{{ $row['days_cover'] }}<small>d</small></strong>
- <small class="analytics-tag {{ $row['risk'] === 'High' ? 'is-critical' : ($row['risk'] === 'Medium' ? 'is-attention' : 'is-positive') }}">
- {{ $row['risk'] }}
+ <strong>{{ $num($row['released']) }}</strong>
+ <small class="analytics-tag">
+ released in {{ $row['releases'] }} {{ $row['releases'] === 1 ? 'release' : 'releases' }}
  </small>
- @endif
  </span>
  </a>
  </li>
@@ -482,8 +475,7 @@
 
  @if($coverageRows !== [])
  <footer class="analytics-card-foot">
- An estimate, not a probability. High is under {{ $coverage['thresholds']['high'] }} days,
- Medium up to {{ $coverage['thresholds']['medium'] }}.
+ Stock is the current count. Released quantities are for the selected period.
  </footer>
  @endif
  </section>

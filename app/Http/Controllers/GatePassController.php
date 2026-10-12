@@ -15,6 +15,10 @@ class GatePassController extends Controller
 
         return view('gate-passes.index', [
             'gatePasses' => GatePass::query()
+                // This archive shows only completed, uploaded and recorded copies.
+                // Generated Gate Passes remain accessible from Request Records.
+                ->where('status', 'VERIFIED')
+                ->whereNotNull('accomplished_file_id')
                 ->with([
                     'custody.borrower',
                     'custody.request.currentVersion',

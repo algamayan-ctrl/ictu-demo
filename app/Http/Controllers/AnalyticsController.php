@@ -35,7 +35,6 @@ class AnalyticsController extends Controller
  'demand' => 'Demand & Utilization',
  'inventory' => 'Inventory Health',
  'returns' => 'Borrowing & Return Performance',
- 'predictive' => 'Forecast & Planning',
  ];
 
  /**
@@ -49,7 +48,6 @@ class AnalyticsController extends Controller
  'demand' => 'demand-usage',
  'inventory' => 'inventory-health',
  'returns' => 'borrowing-returns',
- 'predictive' => 'predictive',
  ];
 
  /**
@@ -60,7 +58,8 @@ class AnalyticsController extends Controller
  public const SECTION_ALIASES = [
  'borrowers' => 'returns',
  'equipment' => 'demand',
- 'forecast' => 'predictive',
+ 'forecast' => 'overview',
+  'predictive' => 'overview',
  ];
 
  public function __invoke(
@@ -355,11 +354,9 @@ class AnalyticsController extends Controller
  * or rankings.
  */
  $demandSummary = $analytics->demandTotals($from, $to, $division, $unit, $borrower);
- $peakSummary = $analytics->peakBorrowing($from, $to, $division, $unit);
+ $peakSummary = $analytics->peakBorrowing($from, $to, $division, $unit, $borrower);
  $inventorySummary = $analytics->inventory($inventory);
  $processingSummary = $analytics->processingPerformance($from, $to, $division, $unit, $borrower);
-            $forecastSummary = $forecasts->demand($analytics, $from, $to, $division, $unit);
-
  return [
  'overview' => $overview,
  'groups' => $groups,
@@ -379,7 +376,6 @@ class AnalyticsController extends Controller
  'inventorySummary' => $inventorySummary,
  'processingSummary' => $processingSummary,
  'overviewTrend' => $analytics->trend($from, $to, $division, $unit, $periodSelection, $borrower),
-                'forecastSummary' => $forecastSummary,
  ];
  }
 
@@ -396,13 +392,14 @@ class AnalyticsController extends Controller
  'outcomes' => $analytics->requestOutcomes($from, $to, $division, $unit, $borrower),
  'trend' => $analytics->trend($from, $to, $division, $unit, $periodSelection, $borrower),
  'requested' => $analytics->requestedEquipment($from, $to, $division, $unit, 10, $borrower),
- 'fulfillment' => $analytics->demandFulfillment($from, $to, $division, $unit, 5, $borrower),
+ /* Same depth as `requested`, so every item the card lists has its release figure. */
+ 'fulfillment' => $analytics->demandFulfillment($from, $to, $division, $unit, 10, $borrower),
  'released' => $analytics->equipment($from, $to, $division, $unit, 10, $borrower),
  'processing' => $analytics->processingPerformance($from, $to, $division, $unit, $borrower),
  'slowMoving' => $analytics->slowMovingItems($from, $to, 10, $division, $unit),
  'groups' => $analytics->borrowerGroups($from, $to, $division, $unit),
  'units' => $analytics->unitRankings($from, $to, $division, $unit),
- 'peak' => $analytics->peakBorrowing($from, $to, $division, $unit),
+ 'peak' => $analytics->peakBorrowing($from, $to, $division, $unit, $borrower),
  ];
  }
 
@@ -411,7 +408,7 @@ class AnalyticsController extends Controller
  'inventory' => $analytics->inventory($inventory),
  'lowAvailability' => $analytics->lowAvailability($inventory, 10),
  'released' => $analytics->equipment($from, $to, $division, $unit, 5, $borrower),
- /* Quiet items are reported on Demand & Utilization, not here. */
+ /* Current stock beside the period's recorded releases; nothing is projected. */
  'coverage' => $analytics->stockCoverage($inventory, $from, $to, 10, $division, $unit),
  ];
  }

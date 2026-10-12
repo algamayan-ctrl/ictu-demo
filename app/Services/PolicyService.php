@@ -473,6 +473,12 @@ class PolicyService
             'Only the SPMU Head may confirm administrative offenses.'
         );
 
+        if ($incident->findingWasCleared()) {
+            throw ValidationException::withMessages([
+                'count_as_offense' => 'The SPMU Head already cleared this property finding. A cleared finding cannot be confirmed as an administrative offense.',
+            ]);
+        }
+
         $preview = $this->incidentOffensePreview($incident);
 
         if (! $preview['is_eligible']) {
@@ -632,11 +638,26 @@ class PolicyService
             $effectiveTo,
             $allowedSanctions
         ): ?Sanction {
+            /*
+             * Lock the property findings behind this violation before the
+             * violation itself - the same order the Head's Clear decision
+             * uses (incident, then violation). A Clear and a Confirm for the
+             * same transaction therefore run one after the other, and the
+             * second one always sees the first one's result.
+             */
+            $propertyFindings = $this->lockedPropertyFindingsFor($violation);
+
             $locked = BorrowerViolation::query()->lockForUpdate()->findOrFail($violation->id);
 
             if ($locked->status !== 'PENDING_REVIEW') {
                 throw ValidationException::withMessages([
                     'decision' => 'This violation has already been reviewed.',
+                ]);
+            }
+
+            if ($decision === 'CONFIRMED' && $this->everyFindingWasCleared($propertyFindings)) {
+                throw ValidationException::withMessages([
+                    'decision' => 'The SPMU Head already cleared the property finding for this borrowing transaction. A cleared finding cannot be confirmed as an administrative offense.',
                 ]);
             }
 
@@ -661,6 +682,113 @@ class PolicyService
 
             return $this->applyConfirmedDecision($locked, $spmuHead, $remarks, $sanctionCode, $customSanctionLabel, $effectiveTo, $allowedSanctions);
         }, 3);
+    }
+
+    /**
+     * The SPMU Head cleared a property finding: close the administrative
+     * violation that was detected from that same finding and is still
+     * waiting for review, so a cleared finding can never be confirmed as an
+     * offense afterwards.
+     *
+     * Only a PENDING_REVIEW property-accountability violation is touched,
+     * and only when no other finding on the same borrowing transaction
+     * still supports it (another open case, or one the Head confirmed). A
+     * violation that was already CONFIRMED or DISMISSED, its sanction, and
+     * any late-return violation are historical decisions and are left
+     * exactly as they are.
+     *
+     * Call inside the transaction that holds the lock on $incident.
+     *
+     * @return int number of violations dismissed
+     */
+    public function dismissPendingViolationsForClearedFinding(Incident $incident, User $spmuHead, ?string $reason = null): int
+    {
+        if (! $incident->custody_transaction_id || ! $incident->findingWasCleared()) {
+            return 0;
+        }
+
+        $hasRemainingBasis = Incident::query()
+            ->where('custody_transaction_id', $incident->custody_transaction_id)
+            ->whereKeyNot($incident->id)
+            ->where('status', '!=', 'VOID_CORRECTION')
+            ->lockForUpdate()
+            ->get()
+            ->contains(fn (Incident $other): bool => ! $other->findingWasCleared());
+
+        if ($hasRemainingBasis) {
+            return 0;
+        }
+
+        $dismissed = 0;
+
+        BorrowerViolation::query()
+            ->where('custody_transaction_id', $incident->custody_transaction_id)
+            ->where('violation_source', 'PROPERTY_ACCOUNTABILITY')
+            ->where('status', 'PENDING_REVIEW')
+            ->lockForUpdate()
+            ->get()
+            ->each(function (BorrowerViolation $violation) use ($incident, $spmuHead, $reason, &$dismissed): void {
+                $remarks = 'Dismissed automatically: the SPMU Head cleared the property finding ('.$incident->incident_no.') this violation was detected from.';
+
+                $violation->update([
+                    'status' => 'DISMISSED',
+                    'reviewed_by_user_id' => $spmuHead->id,
+                    'reviewed_at' => now(),
+                    'review_remarks' => $remarks,
+                ]);
+
+                $this->audit->record(
+                    'BORROWING_VIOLATION_DISMISSED',
+                    $violation,
+                    reason: $reason,
+                    before: ['status' => 'PENDING_REVIEW'],
+                    after: [
+                        'status' => 'DISMISSED',
+                        'cause' => 'PROPERTY_FINDING_CLEARED',
+                        'incident_id' => $incident->id,
+                        'incident_no' => $incident->incident_no,
+                        'explanation' => $remarks,
+                        'sanction_recorded' => false,
+                    ]
+                );
+
+                $dismissed++;
+            });
+
+        return $dismissed;
+    }
+
+    /**
+     * Row-locked property findings on the borrowing transaction a
+     * property-accountability violation was detected from. Voided
+     * corrections are not findings. Empty for any other violation source.
+     *
+     * @return \Illuminate\Support\Collection<int, Incident>
+     */
+    private function lockedPropertyFindingsFor(BorrowerViolation $violation)
+    {
+        if ($violation->violation_source !== 'PROPERTY_ACCOUNTABILITY' || ! $violation->custody_transaction_id) {
+            return collect();
+        }
+
+        return Incident::query()
+            ->where('custody_transaction_id', $violation->custody_transaction_id)
+            ->where('status', '!=', 'VOID_CORRECTION')
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get();
+    }
+
+    /**
+     * True only when there is at least one finding and the Head cleared all
+     * of them - nothing is left that the violation could be confirmed on.
+     *
+     * @param  \Illuminate\Support\Collection<int, Incident>  $findings
+     */
+    private function everyFindingWasCleared($findings): bool
+    {
+        return $findings->isNotEmpty()
+            && $findings->every(fn (Incident $finding): bool => $finding->findingWasCleared());
     }
 
     /**

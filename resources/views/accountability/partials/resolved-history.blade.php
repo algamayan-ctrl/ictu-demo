@@ -191,6 +191,8 @@
                         <option value="all">All outcomes</option>
                         <option value="Resolved - Paid">Resolved - Paid</option>
                         <option value="Resolved - No Charge">Resolved - No Charge</option>
+                        <option value="Resolved - Finding Cleared">Resolved - Finding Cleared</option>
+                        <option value="Resolved - Accountability Settled">Resolved - Accountability Settled</option>
                         <option value="Resolved">Resolved</option>
                         <option value="Waived">Waived</option>
                         <option value="Void">Void</option>

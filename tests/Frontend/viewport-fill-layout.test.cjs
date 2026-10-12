@@ -51,9 +51,11 @@ test('Gate Pass records: the empty panel grows, populated toolbar/table does not
     assert.match(gatePassStyles, /\.gate-pass-browser > \.gate-pass-empty-card \{ flex: 1 1 auto; \}/);
 });
 
-test('Laundry Operations: the empty panel grows, populated toolbar/table does not', () => {
+test('Laundry Operations: active empty state stays compact so completed records remain visible below', () => {
     assert.match(laundryStyles, /\.laundry-operations \{[\s\S]*?display:\s*flex;[\s\S]*?flex-direction:\s*column;[\s\S]*?flex:\s*1 1 auto;/);
-    assert.match(laundryStyles, /\.laundry-operations > \.laundry-empty-card \{ flex: 1 1 auto; \}/);
+    assert.doesNotMatch(laundryStyles, /\.laundry-operations > \.laundry-empty-card \{ flex: 1 1 auto; \}/);
+    assert.match(laundryStyles, /\.laundry-inline-empty \{[^}]*min-height:\s*104px;/);
+    assert.match(laundryStyles, /\.laundry-completed-block \{[^}]*margin-top:\s*18px;/);
 });
 
 test('Release & Return Oversight: the empty panel grows, populated toolbar/list does not', () => {

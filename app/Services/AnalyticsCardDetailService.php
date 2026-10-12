@@ -624,15 +624,15 @@ class AnalyticsCardDetailService
  'value' => null,
  'context' => 'Request turnaround and pending workload',
  'note' => $this->periodNote($scope)
- .' Approval and release averages use only requests that reached both timestamps. '
- .'Pending age is a current snapshot of requests in the selected filing cohort that have not reached final approval.',
+ .' Approval and release averages use only requests filed in this period that reached both timestamps. '
+ .'Pending approval and its age are a current count of requests still in review, whenever they were filed.',
  'stats' => [
  ['label' => 'Avg filing to approval', 'value' => $duration($processing['approval_minutes'])],
  ['label' => 'Avg approval to release', 'value' => $duration($processing['release_minutes'])],
  ['label' => 'Pending approval', 'value' => $processing['pending_count']],
  ['label' => 'Oldest pending', 'value' => $duration($processing['oldest_pending_minutes'])],
  ],
- 'empty' => ! $processing['available'] ? 'No filed requests are available for processing analysis in this period.' : null,
+ 'empty' => ! $processing['available'] ? 'No filed requests are available for processing analysis in this period, and none are awaiting approval.' : null,
  'reports_url' => AnalyticsDrilldown::borrowing(
  $scope['period'], $scope['division'], $scope['unit']
  ),
@@ -735,7 +735,7 @@ class AnalyticsCardDetailService
  private function peak(array $scope): array
  {
  $peak = $this->analytics->peakBorrowing(
- $scope['from'], $scope['to'], $scope['division'], $scope['unit']
+ $scope['from'], $scope['to'], $scope['division'], $scope['unit'], $scope['borrower'] ?? null
  );
 
  /*
@@ -995,20 +995,22 @@ class AnalyticsCardDetailService
  $rows = $coverage['items'] ?? [];
 
  return [
- 'title' => 'Stock Coverage & Risk',
- 'value' => count($rows),
- 'value_label' => 'items assessed',
- 'context' => 'How long current stock lasts at observed demand',
- 'note' => 'Coverage divides usable stock by the demand rate observed in the selected '
- .'window. It is only calculated for an item with enough recorded movement over a '
- .'long enough window; below that it is withheld rather than projected from a '
- .'handful of releases. '.$this->periodNote($scope),
- 'stats' => [
- ['label' => 'Minimum window (days)', 'value' => AnalyticsService::STOCK_COVERAGE_MINIMUM_WINDOW_DAYS],
- ['label' => 'Minimum releases', 'value' => AnalyticsService::STOCK_COVERAGE_MINIMUM_RELEASES],
+ 'title' => 'Coverage Detail',
+ 'value' => $coverage['total'] ?? count($rows),
+ 'value_label' => 'items released in this period',
+ 'context' => 'Available stock and release history',
+ 'note' => 'Available stock is the current count for each item. Released quantity and '
+ .'release transactions are those recorded in the selected period. No usage rate '
+ .'or future shortage is estimated from them. '.$this->periodNote($scope),
+ 'stats' => array_map(
+ static fn (array $row): array => [
+ 'label' => $row['name'],
+ 'value' => ($row['available'] + 0).' available - '.($row['released'] + 0).' released',
  ],
+ array_slice($rows, 0, 4)
+ ),
  'empty' => $rows === []
- ? ($coverage['summary'] ?? 'Not enough recorded movement to calculate stock coverage yet.')
+ ? ($coverage['summary'] ?? 'No equipment was released during this period.')
  : null,
  ];
  }

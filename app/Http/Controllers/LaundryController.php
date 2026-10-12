@@ -26,24 +26,40 @@ class LaundryController extends Controller
     {
         $this->authorizeSpmuActionOfficer($request);
 
+        $activeJobs = LaundryJob::query()
+            ->with([
+                'custody.borrower',
+                'custody.request',
+                'latestEvidence.file',
+                'lines.custodyLine.requestItem.inventoryItem.unit',
+            ])
+            ->where('status', '!=', 'LAUNDRY_COMPLETED')
+            ->orderByRaw(
+                "CASE
+                    WHEN status = 'FOR_LAUNDRY' THEN 1
+                    WHEN status = 'TURNED_OVER_TO_LAUNDRY' THEN 2
+                    ELSE 3
+                END"
+            )
+            ->latest('updated_at')
+            ->paginate(20, ['*'], 'active_page');
+
+        $completedJobs = LaundryJob::query()
+            ->with([
+                'custody.borrower.organizationalUnit',
+                'custody.request',
+                'latestEvidence.file',
+                'lines.custodyLine.requestItem.inventoryItem.unit',
+                'lines.custodyLine.returnLines',
+            ])
+            ->where('status', 'LAUNDRY_COMPLETED')
+            ->latest('completed_at')
+            ->paginate(20, ['*'], 'completed_page')
+            ->fragment('completed-laundry-cases');
+
         return view('laundry.index', [
-            'jobs' => LaundryJob::query()
-                ->with([
-                    'custody.borrower',
-                    'custody.request',
-                    'latestEvidence.file',
-                    'lines.custodyLine.requestItem.inventoryItem.unit',
-                ])
-                ->where('status', '!=', 'LAUNDRY_COMPLETED')
-                ->orderByRaw(
-                    "CASE
-                        WHEN status = 'FOR_LAUNDRY' THEN 1
-                        WHEN status = 'TURNED_OVER_TO_LAUNDRY' THEN 2
-                        ELSE 3
-                    END"
-                )
-                ->latest('updated_at')
-                ->paginate(20),
+            'jobs' => $activeJobs,
+            'completedJobs' => $completedJobs,
         ]);
     }
 

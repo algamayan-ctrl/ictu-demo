@@ -85,7 +85,7 @@
  <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="warning" size="19" /></span>
  <span class="analytics-kpi-card-label">Currently Overdue</span>
  <strong class="analytics-kpi-card-value">{{ $returns['overdue'] }}</strong>
- <span class="analytics-kpi-card-note">Still out past the return date</span>
+ <span class="analytics-kpi-card-note">Still out past the return date, as of today</span>
  </a>
 
  <a
@@ -95,7 +95,7 @@
  <span class="analytics-kpi-card-icon" aria-hidden="true"><x-icon name="accountability" size="19" /></span>
  <span class="analytics-kpi-card-label">Open Accountability</span>
  <strong class="analytics-kpi-card-value">{{ $returns['open_cases'] }}</strong>
- <span class="analytics-kpi-card-note">Cases opened in the selected period that remain unresolved.</span>
+ <span class="analytics-kpi-card-note">Opened in this period, still unresolved</span>
  </a>
 </div>
 
@@ -400,7 +400,7 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
 
  <div>
  <h2>Return Outcome</h2>
- <p>Completed returns only.</p>
+ <p>Shows how many completed returns were made on time.</p>
  </div>
 
  <a
@@ -518,7 +518,7 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="users" size="15" /></span>
  <div>
  <h2>Late Return Patterns</h2>
- <p>Late-return share among completed returns in the selected period.</p>
+ <p>Shows the share of completed returns that came back late, by division and unit.</p>
  </div>
  <a class="analytics-card-open" href="{{ $lateRateLink('division') }}" aria-label="View Late Return Patterns details"><x-icon name="chevron-right" size="15" /></a>
  </header>
@@ -622,7 +622,7 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="warning" size="15" /></span>
  <div>
  <h2>Current Overdue Exposure</h2>
- <p>Current overdue cases with aging context.</p>
+ <p>Shows borrowings that have passed their expected return date.</p>
  </div>
  @if($currentOverdue['total'] > $currentOverdue['shown'])
  <a class="analytics-card-action" href="{{ AnalyticsDetailLink::to('follow-up', 'returns', $periodSelection, $division, $unit) }}">
@@ -713,7 +713,7 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="box" size="15" /></span>
  <div>
  <h2>Return Condition</h2>
- <p>Recorded at return inspection, by quantity received.</p>
+ <p>Shows the condition of items recorded at return inspection, by quantity.</p>
  </div>
  <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'returns', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'returns.condition']) }}" aria-label="View Return Condition details"><x-icon name="chevron-right" size="15" /></a>
  </header>

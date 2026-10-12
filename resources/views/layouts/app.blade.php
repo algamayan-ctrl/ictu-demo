@@ -1123,6 +1123,138 @@
 }
 </style>
 <!-- GLOBAL APP NOTICE ALIGNMENT END -->
+<!-- SPMU COMPACT CONSISTENCY V2 START -->
+<style id="spmu-compact-consistency-v2">
+@media screen and (min-width: 1050px) {
+    /* Sidebar: 42px links, consistent icons, existing active/hover colors. */
+    .app-shell:not(.ictu-workspace-shell) .sidebar-nav { gap: 4px !important; }
+    .app-shell:not(.ictu-workspace-shell) .sidebar-nav > a {
+        min-height: 42px !important;
+        max-height: 42px !important;
+        height: 42px !important;
+        padding: 0 12px !important;
+        gap: 10px !important;
+        border-radius: 11px !important;
+        font-size: 12.5px !important;
+        line-height: 1.2 !important;
+    }
+    .app-shell:not(.ictu-workspace-shell) .sidebar-nav > a .nav-label {
+        font-size: 12.5px !important;
+        line-height: 1.2 !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
+    .app-shell:not(.ictu-workspace-shell) .sidebar-nav > a .nav-icon {
+        flex: 0 0 18px !important;
+        width: 18px !important;
+        min-width: 18px !important;
+        height: 18px !important;
+    }
+    .app-shell:not(.ictu-workspace-shell) .sidebar-nav > a .nav-icon svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+    html[data-sidebar-state="collapsed"] .app-shell:not(.ictu-workspace-shell) .sidebar-nav > a {
+        justify-content: center !important;
+        padding: 0 !important;
+        gap: 0 !important;
+    }
+    html[data-sidebar-state="collapsed"] .app-shell:not(.ictu-workspace-shell) .sidebar-nav > a .nav-label {
+        display: none !important;
+    }
+
+    /* Shared page hierarchy; leaves the top bar, table data and functionality intact. */
+    .app-shell .app-main { padding-top: 18px !important; padding-bottom: 28px !important; min-width: 0; }
+    .app-shell .app-main > .page-heading { margin-bottom: 14px !important; }
+    .app-shell .app-main > .page-heading h1 { font-size: 20px !important; line-height: 1.22 !important; }
+    .app-shell .app-main > .page-heading p:not(.eyebrow) { font-size: 12px !important; line-height: 1.4 !important; }
+    .app-shell .app-main > .page-heading .eyebrow { font-size: 10px !important; }
+    .app-shell .app-main > .content-area { margin-top: 12px; min-width: 0; }
+    .app-shell .app-main .content-grid { gap: 12px; }
+    .app-shell .app-main .content-area > .card { padding: 15px !important; }
+    .app-shell .app-main .card-header { gap: 10px; margin-bottom: 10px; }
+
+    /* Borrower, Action Officer and Head dashboards only. */
+    .app-shell .app-main .dashboard-page-shell .dashboard-heading { margin-bottom: 12px !important; }
+    .app-shell .app-main .dashboard-page-shell .dashboard-heading h1 { font-size: 20px !important; }
+    .app-shell .app-main .dashboard-page-shell .dashboard-heading p:not(.eyebrow) { font-size: 12px !important; }
+    .app-shell .app-main .dashboard-page-shell .dashboard-kpi-card {
+        min-height: 112px !important; padding: 13px 15px !important;
+    }
+    .app-shell .app-main .dashboard-page-shell .dashboard-primary-queue-row {
+        padding-top: 9px !important; padding-bottom: 9px !important;
+    }
+
+    /* Ordinary screen tables (not PDF/print previews): same comfortable density. */
+    .app-shell .app-main .content-area > .table-wrap > table thead th {
+        padding-top: 9px !important; padding-bottom: 9px !important; font-size: 11px !important;
+    }
+    .app-shell .app-main .content-area > .table-wrap > table tbody td {
+        padding-top: 10px !important; padding-bottom: 10px !important;
+        font-size: 12.5px !important; line-height: 1.35 !important;
+    }
+
+    /* Request Records and Release & Return filters, without touching date validation. */
+    .app-shell .app-main .record-browser-toolbar,
+    .app-shell .app-main .operational-browser-toolbar {
+        padding: 12px !important; gap: 10px !important; margin-bottom: 12px !important;
+    }
+    .app-shell .app-main .record-browser-toolbar label,
+    .app-shell .app-main .operational-browser-toolbar label { font-size: 12px !important; }
+    .app-shell .app-main .record-browser-toolbar input,
+    .app-shell .app-main .record-browser-toolbar select,
+    .app-shell .app-main .operational-browser-toolbar input,
+    .app-shell .app-main .operational-browser-toolbar select {
+        font-size: 12px !important; min-height: 36px !important;
+    }
+    .app-shell .app-main .record-browser-toolbar + .table-wrap > table th,
+    .app-shell .app-main .record-browser-toolbar + .table-wrap > table td {
+        padding-top: 9px !important; padding-bottom: 9px !important; font-size: 12px !important;
+    }
+
+    /* Operational Audit screen only: text/readability with shorter rows. */
+    .app-shell.ictu-audit-shell .app-main .spmu-operational-audit-area { gap: 10px !important; }
+    .app-shell.ictu-audit-shell .app-main .spmu-operational-audit-area .ictu-audit-filter-grid {
+        padding: 12px !important; gap: 10px !important;
+    }
+    .app-shell.ictu-audit-shell .app-main .spmu-operational-audit-area .ictu-audit-table-toolbar {
+        min-height: 46px !important; padding: 8px 12px !important;
+    }
+    .app-shell.ictu-audit-shell .app-main .spmu-operational-audit-area .ictu-audit-table-heading h1 {
+        font-size: 14px !important;
+    }
+    .app-shell.ictu-audit-shell .app-main .spmu-operational-audit-area .ictu-audit-table th {
+        font-size: 10.5px !important; padding: 9px 10px !important;
+    }
+    .app-shell.ictu-audit-shell .app-main .spmu-operational-audit-area .ictu-audit-table td {
+        height: 49px !important; padding: 7px 10px !important;
+        font-size: 11.5px !important; line-height: 1.32 !important;
+    }
+    .app-shell.ictu-audit-shell .app-main .spmu-operational-audit-area .ictu-audit-expanded-row td {
+        height: auto !important;
+    }
+    .app-shell.ictu-audit-shell .app-main .spmu-operational-audit-area .ictu-audit-view-button {
+        min-height: 32px !important; font-size: 11px !important;
+    }
+
+    /* Operational Configuration: don't stretch two small groups to viewport height. */
+    .app-shell .app-main > .operational-config-hub {
+        flex: 0 0 auto !important; margin-top: 12px !important;
+    }
+    .app-shell .app-main .operational-config-group { gap: 10px !important; margin-bottom: 14px !important; }
+    .app-shell .app-main .operational-config-grid { gap: 12px !important; }
+    .app-shell .app-main .operational-config-card {
+        min-height: 72px !important; padding: 13px 16px !important; gap: 12px !important;
+    }
+
+    /* Calendar: compact controls, never compress the actual event grid. */
+    .app-shell .app-main .borrowing-calendar .calendar-toolbar { gap: 10px !important; }
+    .app-shell .app-main .borrowing-calendar .calendar-month-title { font-size: 15px !important; }
+}
+</style>
+<!-- SPMU COMPACT CONSISTENCY V2 END -->
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -2299,3 +2431,4 @@ html.spmu-session-ended body {
 @endauth
 </body>
 </html>
+

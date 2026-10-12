@@ -4,7 +4,7 @@
     $fileTitle = trim((string) ($file->original_name ?? '')) ?: 'Document';
 @endphp
 
-<section class="page-heading">
+<section class="page-heading spmu-file-preview-heading">
     <div>
         <p class="eyebrow">Document preview</p>
         <h1>{{ $fileTitle }}</h1>
@@ -15,7 +15,7 @@
     </a>
 </section>
 
-<section class="content-area">
+<section class="content-area spmu-file-preview-area">
     @if($historicalDocument ?? null)
         <div class="callout warning" role="note">
             <strong>Historical version — not valid for current use.</strong>
@@ -38,4 +38,15 @@
         :compact-header="true"
     />
 </section>
+<style>
+/* SPMU-COMPACT-FILE-PREVIEW START */
+@media screen {
+  .spmu-file-preview-heading { margin-bottom: 10px !important; }
+  .spmu-file-preview-heading h1 { font-size: 21px !important; }
+  .spmu-file-preview-area { margin-top: 0 !important; }
+  .spmu-file-preview-area .callout { margin-bottom: 12px !important; padding: 12px 14px !important; }
+  .spmu-file-preview-area .scanned-document-card { padding: 0 !important; }
+}
+/* SPMU-COMPACT-FILE-PREVIEW END */
+</style>
 @endsection

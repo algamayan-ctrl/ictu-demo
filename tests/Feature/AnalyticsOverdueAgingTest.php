@@ -534,7 +534,7 @@ class AnalyticsOverdueAgingTest extends TestCase
 
         /* The aging bands live inside Current Overdue Exposure, with current case links. */
         $this->assertStringContainsString('Current Overdue Exposure', $card->textContent);
-        $this->assertStringContainsString('Current overdue cases with aging context.', $card->textContent);
+        $this->assertStringContainsString('Shows borrowings that have passed their expected return date.', $card->textContent);
         $this->assertSame(0, $x->query('//h2[normalize-space(text())="Overdue Aging"]')->length);
         $this->assertSame(4, $x->query('.//a[contains(@class,"analytics-followup-row")]', $card)->length);
         $this->assertStringContainsString('36 days overdue', $card->textContent);

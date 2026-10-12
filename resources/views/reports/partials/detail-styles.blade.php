@@ -2040,3 +2040,37 @@ dialog.report-options-dialog[open] > form::after {
   }
 }
 </style>
+
+<style>
+/* SPMU-COMPACT-REPORTS START */
+/* Screen UI only. Formal printed/exported report sheets are not changed. */
+@media screen {
+  .reporting-workspace.reporting-detail .page-heading { margin-bottom: 14px !important; }
+  .reporting-workspace.reporting-detail .page-heading h1 { font-size: 21px !important; }
+  .reporting-workspace.reporting-detail .reports-detail-page { gap: 12px !important; }
+  .reporting-workspace.reporting-detail .report-builder-card { padding: 18px 20px !important; }
+  .reporting-workspace.reporting-detail .report-builder-primary { gap: 12px !important; margin-top: 10px !important; }
+  .reporting-workspace.reporting-detail .report-filters-panel { margin-top: 12px !important; padding: 12px 14px !important; gap: 10px !important; }
+  .reporting-workspace.reporting-detail .report-filter-grid { gap: 12px !important; }
+  .reporting-workspace.reporting-detail .report-builder-card .report-description { margin-top: 12px !important; }
+  .reporting-workspace.reporting-detail .report-preview-bar { margin-bottom: 8px !important; }
+  .reporting-workspace.reporting-detail .report-system-preview { gap: 12px !important; }
+  .reporting-workspace.reporting-detail .report-system-summary-grid { gap: 10px !important; }
+  .reporting-workspace.reporting-detail .report-system-summary-card { min-height: 78px !important; padding: 12px 14px !important; gap: 10px !important; }
+  .reporting-workspace.reporting-detail .report-system-records-card { padding: 14px !important; }
+  .reporting-workspace.reporting-detail .report-system-records-header { margin-bottom: 10px !important; }
+  .reporting-workspace.reporting-detail .report-system-table th { padding-top: 10px !important; padding-bottom: 10px !important; font-size: 11px !important; }
+  .reporting-workspace.reporting-detail .report-system-table td { padding-top: 10px !important; padding-bottom: 10px !important; font-size: 12px !important; line-height: 1.4 !important; }
+  .reporting-workspace.reporting-detail .report-output-card,
+  .reporting-workspace.reporting-detail .report-generator-card { padding: 18px 20px !important; }
+  .reporting-workspace.reporting-detail .report-output-header { margin-bottom: 12px !important; }
+  .reporting-workspace.reporting-detail .all-transactions-filters { padding: 14px 16px !important; }
+}
+@media screen and (max-width: 700px) {
+  .reporting-workspace.reporting-detail .report-builder-card,
+  .reporting-workspace.reporting-detail .report-output-card,
+  .reporting-workspace.reporting-detail .report-generator-card { padding: 14px !important; }
+  .reporting-workspace.reporting-detail .report-system-summary-card { min-height: 72px !important; }
+}
+/* SPMU-COMPACT-REPORTS END */
+</style>

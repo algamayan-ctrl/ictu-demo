@@ -541,27 +541,25 @@ class AnalyticsDetailService
  return null;
  }
 
- $stats = [
- ['label' => 'Current usable stock', 'value' => $row['available']],
- ['label' => 'Observed usage window', 'value' => $coverage['window_days'].' days'],
- ['label' => 'Release events observed', 'value' => $row['releases']],
- ];
-
- if ($row['sufficient']) {
- $stats[] = ['label' => 'Average daily usage', 'value' => $row['per_day']];
- $stats[] = ['label' => 'Estimated days of coverage', 'value' => $row['days_cover'] ?? '—'];
- $stats[] = ['label' => 'Risk classification', 'value' => ($row['risk'] ?? '—').' Risk'];
- }
-
+ /*
+ * Recorded facts only: what is usable now and what the custody records
+ * show went out in the period. No usage rate, projected days of stock
+ * or risk band is derived from them.
+ */
  return [
  'title' => $row['name'],
- 'value' => $row['sufficient'] ? ($row['days_cover'] ?? 0) : null,
- 'value_label' => $row['sufficient'] ? 'estimated days of coverage' : null,
- 'context' => 'Stock coverage estimate',
- 'note' => $row['sufficient']
- ? 'Estimated days current usable stock can support at the observed release rate.'
- : 'Not enough release history to estimate stock coverage for this item.',
- 'stats' => $stats,
+ 'value' => $row['available'],
+ 'value_label' => 'units available now',
+ 'context' => 'Available stock and release history',
+ 'note' => 'Available stock is the current count. Released quantity and release '
+ .'transactions are those recorded in the selected reporting period.',
+ 'stats' => [
+ ['label' => 'Current usable stock', 'value' => $row['available']],
+ ['label' => 'Serviceable stock', 'value' => $row['stock']],
+ ['label' => 'Released in this period', 'value' => $row['released']],
+ ['label' => 'Release transactions', 'value' => $row['releases']],
+ ['label' => 'Reporting period', 'value' => $coverage['window_days'].' days'],
+ ],
  'reports_url' => AnalyticsDrilldown::utilization(
  $scope['period'], null, null, ['equipment' => $row['item_id']]
  ),

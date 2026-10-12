@@ -400,7 +400,7 @@ class AnalyticsLateReturnRateTest extends TestCase
         $card = $this->card($html);
 
         $this->assertStringContainsString('Late Return Patterns', $card->textContent);
-        $this->assertStringContainsString('Late-return share among completed returns in the selected period.', $card->textContent);
+        $this->assertStringContainsString('Shows the share of completed returns that came back late, by division and unit.', $card->textContent);
 
         $panels = $x->query('.//div[contains(@class,"analytics-laterate-panel")]', $card);
         $this->assertSame(2, $panels->length);

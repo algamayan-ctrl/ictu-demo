@@ -13,7 +13,6 @@ use App\Reports\ReportCatalogue;
 use App\Services\ReportService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -291,66 +290,6 @@ class ReportSystemPreviewTest extends TestCase
         $this->assertSame(0, AuditEvent::query()->where('action_code', 'report.exported')->count());
     }
 
-    /* ------------------------------------------------------------------ */
-    /* Official CSPC-F-SPMU-22                                             */
-    /* ------------------------------------------------------------------ */
-
-    public function test_official_preview_and_every_official_format_carry_the_same_requests(): void
-    {
-        $requests = [
-            $this->request('OFP-001', '2026-09-03 08:00:00'),
-            $this->request('OFP-002', '2026-09-11 13:45:00'),
-            $this->request('OFP-003', '2026-09-28 16:10:00'),
-        ];
-        $this->request('OFP-OUT', '2026-10-02 09:00:00');
-        $this->step($requests[0], 2, 'RECEIVED');
-        $query = ['from' => '2026-09-01', 'to' => '2026-09-30'];
-
-        $preview = $this->asHead()->get(route('reports.official.equipment', $query + ['per_page' => 100]))->assertOk();
-        $previewNumbers = collect($preview->viewData('table')->records->items())->pluck('control_no')->all();
-        $this->assertSame(['OFP-001', 'OFP-002', 'OFP-003'], $previewNumbers);
-        $preview->assertSee('href="'.e(route('requests.show', $requests[0])).'"', false);
-        $preview->assertDontSee('OFP-OUT', false);
-
-        $csv = $this->asHead()->get(route('reports.official.equipment.export', $query + ['format' => 'csv']))->assertOk();
-        $lines = preg_split('/\r?\n/', trim(substr($csv->getContent(), 3)));
-        $this->assertStringContainsString('Month of September 2026', $lines[1]);
-        $records = array_slice($lines, array_search('', $lines, true) + 2);
-        $csvNumbers = array_map(fn (string $line): string => str_getcsv($line)[0], $records);
-        $this->assertSame($previewNumbers, $csvNumbers);
-
-        $xlsx = $this->asHead()->get(route('reports.official.equipment.export', $query + ['format' => 'xlsx']))->assertOk();
-        $strings = $this->sharedStrings($xlsx->getContent());
-        foreach ($previewNumbers as $number) {
-            $this->assertStringContainsString('<t>'.$number.'</t>', $strings);
-        }
-        $this->assertStringNotContainsString('OFP-OUT', $strings);
-
-        $print = $this->asHead()->get(route('reports.official.equipment.export', $query + ['format' => 'print']))->assertOk();
-        foreach ($previewNumbers as $number) {
-            $print->assertSee($number, false);
-        }
-        $print->assertDontSee('OFP-OUT', false);
-        $print->assertSee('class="institutional-head"', false);
-        // Signatures and the form footer are one unbreakable block, so the footer never prints on a page of its own.
-        $this->assertMatchesRegularExpression('#<div class="closing">\s*<section class="signatures">.*?</section>\s*<footer class="footer">.*?</footer>\s*</div>#s', $print->getContent());
-
-        $this->assertSame(3, AuditEvent::query()->where('action_code', 'OFFICIAL_REPORT_GENERATED')->count());
-    }
-
-    public function test_official_preview_search_never_narrows_the_generated_document(): void
-    {
-        $this->request('OFP-101', '2026-09-03 08:00:00');
-        $this->request('OFP-102', '2026-09-04 08:00:00');
-        $query = ['from' => '2026-09-01', 'to' => '2026-09-30'];
-
-        $preview = $this->asHead()->get(route('reports.official.equipment', $query + ['search' => 'OFP-102']))->assertOk();
-        $this->assertSame(1, $preview->viewData('table')->records->total());
-        $preview->assertSee('href="'.e(route('reports.official.equipment.export', ['format' => 'print'] + $query)).'"', false);
-        $preview->assertSee('href="'.e(route('reports.official.equipment.export', ['format' => 'pdf'] + $query)).'"', false);
-        $preview->assertDontSee('export/pdf?from=2026-09-01&amp;to=2026-09-30&amp;search', false);
-    }
-
     public function test_reports_opens_on_all_transactions_across_all_dates_by_default(): void
     {
         $this->request('DEF-001', '2026-09-04 09:00:00');
@@ -383,7 +322,7 @@ class ReportSystemPreviewTest extends TestCase
         $page->assertDontSee('Institutional form', false);
         $page->assertDontSee('Open Official Form', false);
         $page->assertDontSee('Official SPMU form', false);
-        $page->assertDontSee(route('reports.official.equipment'), false);
+        $page->assertDontSee('/reports/official/equipment', false);
         $page->assertDontSee('Republic of the Philippines', false);
         $page->assertDontSee('doc-sheet', false);
 
@@ -394,37 +333,8 @@ class ReportSystemPreviewTest extends TestCase
         $page->assertSee('id="report-options"', false);
         $page->assertSee('Refresh Preview', false);
 
-        // The official template itself is untouched and still generated on request.
-        $this->asHead()->get(route('reports.official.equipment', ['from' => '2026-09-01', 'to' => '2026-09-30']))->assertOk();
-    }
-
-    public function test_official_preview_back_link_only_returns_to_reports(): void
-    {
-        $reportsUrl = route('reports.index', ['report' => 'returns', 'academic_period' => 'month', 'generated' => 1], false);
-
-        $this->asHead()->get(route('reports.official.equipment', ['from' => '2026-09-01', 'to' => '2026-09-30', 'back' => $reportsUrl]))
-            ->assertOk()
-            ->assertSee('href="'.e($reportsUrl).'"', false)
-            ->assertSee('name="back" value="'.e($reportsUrl).'"', false);
-
-        $fallback = e(route('reports.index', ['academic_period' => 'custom', 'start_date' => '2026-09-01', 'end_date' => '2026-09-30']));
-        foreach (['https://evil.example/reports', '//evil.example/reports', '/reportsX?x=1', '/reports/official/equipment', '/reports\\evil'] as $foreign) {
-            $this->asHead()->get(route('reports.official.equipment', ['from' => '2026-09-01', 'to' => '2026-09-30', 'back' => $foreign]))
-                ->assertOk()
-                ->assertSee('href="'.$fallback.'"', false)
-                ->assertDontSee('evil.example', false);
-        }
-    }
-
-    public function test_official_preview_without_an_active_revision_explains_instead_of_failing(): void
-    {
-        DB::table('report_form_templates')->update(['status' => 'ARCHIVED']);
-
-        $this->asHead()->get(route('reports.official.equipment', ['from' => '2026-09-01', 'to' => '2026-09-30']))
-            ->assertOk()
-            ->assertSee('No Active form revision.', false)
-            ->assertSee(route('policies.report-forms.index'), false)
-            ->assertDontSee('Generate Official Report', false);
+        // The retired institutional form is no longer served at all.
+        $this->asHead()->get('/reports/official/equipment?from=2026-09-01&to=2026-09-30')->assertNotFound();
     }
 
     /* ------------------------------------------------------------------ */
@@ -465,13 +375,12 @@ class ReportSystemPreviewTest extends TestCase
             'borrowing' => route('reports.index', ['report' => 'borrowing'] + $scope),
             'approval' => route('reports.index', ['report' => 'approval'] + $scope),
             'gate-pass' => route('reports.index', ['report' => 'gate-pass'] + $scope),
-            'official' => route('reports.official.equipment', ['from' => '2026-09-01', 'to' => '2026-09-30', 'per_page' => 100]),
         ];
 
         foreach ($pages as $name => $url) {
             $page = $this->asHead()->get($url)->assertOk();
             $rows = collect($page->viewData('table')->records->items());
-            $numberKey = $name === 'official' ? 'control_no' : 'request_no';
+            $numberKey = 'request_no';
 
             $this->assertCount(5, $rows, $name);
 

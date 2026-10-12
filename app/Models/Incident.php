@@ -26,6 +26,91 @@ class Incident extends Model
         ];
     }
 
+    /** Prefix of the line the SPMU Head's decision appends to the remarks. */
+    public const HEAD_DECISION_PREFIX = 'SPMU Head decision:';
+
+    public const HEAD_DECISION_CLEARED = 'Finding cleared.';
+
+    public const HEAD_DECISION_CONFIRMED = 'Accountability confirmed.';
+
+    /** Prefix of the line the final accountability resolution appends to the remarks. */
+    public const FINAL_RESOLUTION_PREFIX = 'SPMU Head/Admin final accountability resolution:';
+
+    /**
+     * The SPMU Head's most recent decision line, exactly as it was recorded
+     * with the decision. Null when no such line exists; nothing is inferred.
+     */
+    public function headDecisionNote(): ?string
+    {
+        $note = collect(preg_split('/\R/', trim((string) $this->remarks)) ?: [])
+            ->map(fn ($line): string => trim((string) $line))
+            ->filter(fn (string $line): bool => str_starts_with($line, self::HEAD_DECISION_PREFIX))
+            ->last();
+
+        return $note !== null ? trim(substr($note, strlen(self::HEAD_DECISION_PREFIX))) : null;
+    }
+
+    /**
+     * The Head reviewed the finding and cleared it: the case closed with no
+     * accountability. This is a different outcome from a confirmed case that
+     * was later settled, although both end in the RESOLVED status.
+     */
+    public function findingWasCleared(): bool
+    {
+        return in_array($this->status, ['RESOLVED', 'CLOSED'], true)
+            && str_starts_with((string) $this->headDecisionNote(), self::HEAD_DECISION_CLEARED);
+    }
+
+    /** The Head confirmed accountability for this finding. */
+    public function accountabilityWasConfirmed(): bool
+    {
+        return str_starts_with((string) $this->headDecisionNote(), self::HEAD_DECISION_CONFIRMED);
+    }
+
+    /**
+     * The reason the Head recorded with that decision, without the decision
+     * label. Null when none is on record.
+     */
+    public function headDecisionReason(): ?string
+    {
+        $note = $this->headDecisionNote();
+
+        if ($note === null) {
+            return null;
+        }
+
+        foreach ([self::HEAD_DECISION_CLEARED, self::HEAD_DECISION_CONFIRMED] as $label) {
+            if (str_starts_with($note, $label)) {
+                $note = trim(substr($note, strlen($label)));
+                break;
+            }
+        }
+
+        return $note !== '' ? $note : null;
+    }
+
+    /**
+     * When the case actually reached its final outcome.
+     *
+     * The recorded resolution time is used when there is one. Older records
+     * were closed before that field was written on every path; for those the
+     * fallback is, in order, the Head's decision time when that decision was
+     * itself the final one (a cleared finding), then the record's last
+     * update. Nothing is written back.
+     */
+    public function resolutionMoment(): ?\DateTimeInterface
+    {
+        if ($this->resolved_at !== null) {
+            return $this->resolved_at;
+        }
+
+        if ($this->findingWasCleared() && $this->head_decided_at !== null) {
+            return $this->head_decided_at;
+        }
+
+        return $this->updated_at;
+    }
+
     public function borrower(): BelongsTo
     {
         return $this->belongsTo(User::class, 'borrower_user_id');

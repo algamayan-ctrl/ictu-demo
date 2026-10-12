@@ -106,4 +106,15 @@
         }
     }
 </style>
+<style>
+/* SPMU-COMPACT-DOCUMENT-PREVIEW START */
+@media screen {
+  .document-preview-heading { margin-bottom: 10px !important; }
+  .document-preview-heading h1 { font-size: 21px !important; margin-bottom: 4px !important; }
+  .document-preview-heading .document-preview-reference-line { gap: 4px 8px !important; font-size: 11.5px !important; }
+  .document-preview-area { margin-top: 0 !important; }
+  .document-preview-area .scanned-document-card { padding: 0 !important; }
+}
+/* SPMU-COMPACT-DOCUMENT-PREVIEW END */
+</style>
 @endsection

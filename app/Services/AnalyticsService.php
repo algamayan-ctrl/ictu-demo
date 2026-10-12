@@ -84,39 +84,12 @@ class AnalyticsService
  }
 
  /**
- * Estimated days of stock coverage below which an item is flagged.
- *
- * Centralised so the thresholds cannot drift between the service and a
- * template. These are planning bands, not probabilities.
- */
- public const STOCKOUT_RISK_HIGH_DAYS = 30;
-
- public const STOCKOUT_RISK_MEDIUM_DAYS = 60;
-
- /**
  * Requests needed before a weekday or hour peak is reported.
  *
  * Below this, the busiest bucket is an artefact of a handful of
  * records rather than a pattern anyone should plan around.
  */
  public const PEAK_MINIMUM_OBSERVATIONS = 10;
-
- /**
- * The shortest observation window a usage rate may be drawn from.
- *
- * Dividing a few releases by a three-day window produces a daily rate
- * that looks precise and means nothing. Two weeks is the floor.
- */
- public const STOCK_COVERAGE_MINIMUM_WINDOW_DAYS = 14;
-
- /**
- * Separate release events an item needs before its usage rate is used.
- *
- * One isolated release is an event, not a rate. Projecting days of
- * coverage from it would dress a single data point up as a trend, so
- * the item reports insufficient history instead.
- */
- public const STOCK_COVERAGE_MINIMUM_RELEASES = 3;
 
  public function __construct(
  private readonly ReturnMetricsService $returnMetrics,
@@ -1193,6 +1166,8 @@ class AnalyticsService
  ->selectRaw('MIN(request_items.inventory_item_id) AS item_id')
  ->orderByDesc('requests')
  ->orderByDesc('quantity')
+ /* Ties are broken by name so this ranking and demandFulfillment() agree. */
+ ->orderBy('request_items.description_snapshot')
  ->limit($limit)
  ->get();
 
@@ -1315,6 +1290,7 @@ class AnalyticsService
  ->selectRaw('SUM(request_items.requested_quantity) AS requested_quantity')
  ->orderByDesc('requests')
  ->orderByDesc('requested_quantity')
+ ->orderBy('request_items.description_snapshot')
  ->limit($limit)
  ->get();
 
@@ -1372,10 +1348,21 @@ class AnalyticsService
  /**
  * Compact request-processing performance for management monitoring.
  *
- * Durations use elapsed clock time because the system does not currently
- * persist a separate service-hours calendar for KPI analytics. Only rows
- * with both endpoints are averaged; pending age is a current snapshot and
- * therefore is kept separate from the period-completed averages.
+ * Two readings with two scopes, and they are never mixed:
+ *
+ * AVERAGES describe requests filed in the selected period. Approval time
+ * runs from the filing of the current version (submitted_at, or created_at
+ * for legacy rows) to final_approved_at; approval-to-release runs from
+ * final_approved_at to the custody's released_at. Only rows that hold both
+ * endpoints, in order, are averaged. Durations are elapsed clock time
+ * because the system keeps no separate service-hours calendar for KPIs.
+ *
+ * PENDING is a current snapshot: every filed request that is in review
+ * right now under the same Division / Unit / Borrower filters, whenever it
+ * was filed. Limiting it to the period would hide a request filed before
+ * the period that is still waiting and cap its age at the period's length.
+ * A request returned for revision is waiting on the borrower, not on an
+ * approver, so it is not pending approval.
  *
  * @return array<string,mixed>
  */
@@ -1390,7 +1377,6 @@ class AnalyticsService
  ->leftJoin('custody_transactions', 'custody_transactions.request_id', '=', 'borrowing_requests.id')
  ->get([
  'borrowing_requests.id',
- 'borrowing_requests.status',
  'borrowing_requests.created_at',
  'borrowing_requests.final_approved_at',
  'request_versions.submitted_at',
@@ -1399,8 +1385,6 @@ class AnalyticsService
 
  $approvalMinutes = [];
  $releaseMinutes = [];
- $pendingAges = [];
- $now = Carbon::now();
 
  foreach ($rows as $row) {
  $filedAt = $row->submitted_at ?: $row->created_at;
@@ -1415,20 +1399,16 @@ class AnalyticsService
  if ($approved && $released && $released->greaterThanOrEqualTo($approved)) {
  $releaseMinutes[] = $approved->diffInMinutes($released);
  }
-
- $status = $row->status instanceof RequestStatus
- ? $row->status
- : RequestStatus::tryFrom((string) $row->status);
- $isOpenForApproval = $approved === null
- && $status !== null
- && $status->isOpen()
- && $status !== RequestStatus::FinalApprovedAwaitingDownload
- && $status !== RequestStatus::ApprovedReadyForRelease;
-
- if ($filed && $isOpenForApproval) {
- $pendingAges[] = $filed->diffInMinutes($now);
  }
- }
+
+ $now = Carbon::now();
+ $pendingAges = $this->pendingApprovalScope($division, $unit, $borrower)
+ ->selectRaw('COALESCE(request_versions.submitted_at, borrowing_requests.created_at) AS filed_at')
+ ->get()
+ ->pluck('filed_at')
+ ->filter()
+ ->map(fn ($filedAt): float => max(0, Carbon::parse($filedAt)->diffInMinutes($now)))
+ ->all();
 
  $average = static fn (array $values): ?float => $values === []
  ? null
@@ -1445,8 +1425,56 @@ class AnalyticsService
  'release_samples' => count($releaseMinutes),
  'pending_count' => count($pendingAges),
  'oldest_pending_minutes' => $oldestPending,
- 'available' => $rows->isNotEmpty(),
+ 'available' => $rows->isNotEmpty() || $pendingAges !== [],
  ];
+ }
+
+ /**
+ * Filed requests that are awaiting an approver right now.
+ *
+ * The In Review group of RequestOutcomes, so this figure and the Request
+ * Outcomes card cannot define "in review" differently. No reporting-period
+ * condition: this is today's queue. SIGNED is not produced by the current
+ * workflow and counts only when its version was actually submitted.
+ */
+ private function pendingApprovalScope(?string $division, ?string $unit, ?int $borrower = null): Builder
+ {
+ $inReview = array_values(array_filter(
+ RequestOutcomes::statusesFor('in_review'),
+ static fn (RequestStatus $status): bool => $status !== RequestStatus::Signed
+ ));
+
+ $query = BorrowingRequest::query()
+ ->join('request_versions', function ($join): void {
+ $join->on('request_versions.request_id', '=', 'borrowing_requests.id')
+ ->on('request_versions.version_no', '=', 'borrowing_requests.current_version_no');
+ })
+ ->whereNull('borrowing_requests.final_approved_at')
+ ->where(function ($pending) use ($inReview): void {
+ $pending
+ ->whereIn('borrowing_requests.status', array_map(
+ static fn (RequestStatus $status): string => $status->value,
+ $inReview
+ ))
+ ->orWhere(function ($signed): void {
+ $signed->where('borrowing_requests.status', RequestStatus::Signed->value)
+ ->whereNotNull('request_versions.submitted_at');
+ });
+ });
+
+ if ($division !== null && $division !== '' && $division !== 'all') {
+ $query->where('request_versions.division_code', $division);
+ }
+
+ if ($unit !== null && $unit !== '' && $unit !== 'all') {
+ $query->where('request_versions.office_unit', $unit);
+ }
+
+ if ($borrower !== null) {
+ $query->where('borrowing_requests.borrower_user_id', $borrower);
+ }
+
+ return $query;
  }
 
  /* ------------------------------------------------------------------ */
@@ -1846,10 +1874,15 @@ class AnalyticsService
  $buckets[$key] = ['label' => $this->bucketLabel($cursor, $periodSelection), 'count' => 0];
  }
 
+ /*
+ * Month buckets step from the first of the month. Adding a month to a
+ * period that starts on the 29th-31st overflows past the shorter month
+ * after it, which silently dropped that month from the trend.
+ */
  $cursor = match ($periodSelection) {
  'week' => $cursor->addDay(),
  'month' => $cursor->addWeek(),
- default => $cursor->addMonth(),
+ default => $cursor->copy()->startOfMonth()->addMonth(),
  };
 
  $guard++;
@@ -1989,6 +2022,14 @@ class AnalyticsService
  'incident' => 0.0,
  'attention' => 0.0,
  'laundry' => 0.0,
+ /*
+ * Units the SPMU Head placed on a maintenance hold. They are not
+ * incident-held, yet InventoryService removes them from Available,
+ * so they are their own part of serviceable stock.
+ */
+ 'condition_hold' => 0.0,
+ /* Whole items catalogued as under maintenance: no serviceable total at all. */
+ 'maintenance_outside' => 0.0,
  ];
 
  /*
@@ -2019,6 +2060,7 @@ class AnalyticsService
  $totals['on_custody'] += (float) ($balance['borrowed'] ?? 0);
  $maintenance = (float) ($balance['damaged_maintenance'] ?? 0);
  $incident = (float) ($balance['incident'] ?? 0);
+ $conditionHold = (float) ($balance['condition_hold'] ?? 0);
  $terminalIncidentStates = (float) ($balance['lost'] ?? 0)
  + (float) ($balance['stolen'] ?? 0)
  + (float) ($balance['destroyed'] ?? 0);
@@ -2027,14 +2069,20 @@ class AnalyticsService
  $totals['laundry'] += (float) ($balance['laundry'] ?? 0);
  $totals['incident'] += $incident;
  $totals['problem'] += $incident;
+ $totals['condition_hold'] += $conditionHold;
+ $totals['maintenance_outside'] += $item->condition_code === 'DAMAGED_MAINTENANCE'
+ ? (float) ($balance['total'] ?? 0)
+ : 0.0;
 
  /*
- * Maintenance and lost/stolen/destroyed are breakdowns of the
- * incident quantity for a normal SERVICEABLE item. `max()` also
- * covers the legacy whole-item maintenance condition without
- * stacking the same quantity on top of an incident again.
+ * Lost/stolen/destroyed and incident maintenance are breakdowns of
+ * the incident quantity, so they are not added to it again. A
+ * condition hold is different stock - held with no incident - and
+ * is added: taking only the larger of the two under-counted an
+ * item that had both. `max()` still covers the legacy whole-item
+ * maintenance condition without stacking it on an incident.
  */
- $itemAttention = max($incident, $maintenance, $terminalIncidentStates);
+ $itemAttention = max($incident + $conditionHold, $maintenance, $terminalIncidentStates);
  $totals['attention'] += $itemAttention;
 
  $stock = (float) ($balance['serviceable_total'] ?? 0);
@@ -2286,9 +2334,10 @@ class AnalyticsService
  CarbonInterface $from,
  CarbonInterface $to,
  ?string $division,
- ?string $unit
+ ?string $unit,
+ ?int $borrower = null
  ): array {
- $timestamps = $this->requestScope($from, $to, $division, $unit)
+ $timestamps = $this->requestScope($from, $to, $division, $unit, $borrower)
  ->selectRaw('COALESCE(request_versions.submitted_at, borrowing_requests.created_at) AS filed_at')
  ->get()
  ->pluck('filed_at')
@@ -2567,33 +2616,6 @@ class AnalyticsService
  /* Section J - Stock coverage */
  /* ------------------------------------------------------------------ */
 
- /**
- * An approximate reading of how long current stock would last.
- *
- * average daily usage = quantity released in the period / days in the period
- * estimated days cover = usable availability now / average daily usage
- *
- * MINIMUM HISTORY
- * ---------------
- * The arithmetic will produce a number from any input, which is exactly
- * why it is guarded. A rate drawn from a window shorter than
- * STOCK_COVERAGE_MINIMUM_WINDOW_DAYS, or from fewer than
- * STOCK_COVERAGE_MINIMUM_RELEASES separate releases, describes a couple
- * of events rather than a pattern. In that case the item reports
- * insufficient history and no daily rate, coverage or risk band is
- * produced at all - a wrong-looking "High Risk" is worse than an honest
- * blank. The rule lives here so no template can reimplement it.
- *
- * This remains an estimate wherever it does appear. It assumes usage
- * continues at the observed rate, which no borrowing pattern guarantees,
- * and it carries no probability because the data does not support one.
- *
- * Usable availability is InventoryService's borrower_available: stock
- * that is physically usable and not already reserved for another approved
- * request. This keeps planning figures consistent with allocation rules.
- *
- * @return array<string, mixed>
- */
  /* ------------------------------------------------------------------ */
  /* Section F2 - Return performance detail */
  /* ------------------------------------------------------------------ */
@@ -3275,6 +3297,30 @@ class AnalyticsService
  ];
  }
 
+ /* ------------------------------------------------------------------ */
+ /* Section J - Stock and release history */
+ /* ------------------------------------------------------------------ */
+
+ /**
+ * Current usable stock beside the period's recorded release history.
+ *
+ * Descriptive only. Each row states recorded facts about an item that was
+ * physically released in the period: what is usable right now
+ * (InventoryService's borrower_available, the figure allocation uses) and
+ * what the custody records show went out - the quantity and the number of
+ * separate release transactions.
+ *
+ * Nothing here is divided into a usage rate, projected into days of
+ * remaining stock or graded into a risk band. Forecasting is outside the
+ * Analytics scope, and a projection drawn from a handful of releases reads
+ * as a measurement it is not. An item with no release in the period has no
+ * history to show and is left out rather than listed at zero.
+ *
+ * Rows are ordered by the least usable stock first, then by the larger
+ * released quantity, then by name, so the order is stable.
+ *
+ * @return array<string, mixed>
+ */
  public function stockCoverage(
  InventoryService $inventoryService,
  CarbonInterface $from,
@@ -3284,7 +3330,6 @@ class AnalyticsService
  ?string $unit = null
  ): array {
  $days = max(1, (int) Carbon::parse($from)->startOfDay()->diffInDays(Carbon::parse($to)->startOfDay()) + 1);
- $windowSufficient = $days >= self::STOCK_COVERAGE_MINIMUM_WINDOW_DAYS;
 
  $usageQuery = DB::table('custody_lines')
  ->join('custody_transactions', 'custody_transactions.id', '=', 'custody_lines.custody_transaction_id')
@@ -3313,6 +3358,7 @@ class AnalyticsService
  ->select('request_items.inventory_item_id AS item_id')
  ->selectRaw('SUM(custody_lines.actual_released_quantity) AS quantity')
  ->selectRaw('COUNT(DISTINCT custody_transactions.id) AS releases')
+ ->selectRaw('MAX(custody_transactions.released_at) AS last_released_at')
  ->get()
  ->keyBy('item_id');
 
@@ -3327,104 +3373,38 @@ class AnalyticsService
  foreach ($items as $item) {
  $activity = $usage->get($item->id);
  $released = (float) ($activity->quantity ?? 0);
- $releases = (int) ($activity->releases ?? 0);
 
  if ($released <= 0) {
  continue;
  }
 
  $balance = $balances[$item->id] ?? [];
- $available = (float) ($balance['borrower_available'] ?? $balance['current_available'] ?? 0);
- $sufficient = $windowSufficient && $releases >= self::STOCK_COVERAGE_MINIMUM_RELEASES;
- $perDay = $sufficient ? $released / $days : null;
- $cover = ($perDay !== null && $perDay > 0) ? $available / $perDay : null;
 
  $rows[] = [
  'item_id' => $item->id,
  'name' => $item->unique_description,
- 'available' => $available + 0,
+ 'available' => (float) ($balance['borrower_available'] ?? $balance['current_available'] ?? 0) + 0,
+ 'stock' => (float) ($balance['serviceable_total'] ?? 0) + 0,
  'released' => $released + 0,
- 'releases' => $releases,
- 'sufficient' => $sufficient,
- 'per_day' => $perDay === null ? null : round($perDay, 2),
- 'days_cover' => $cover === null ? null : (int) floor($cover),
- 'risk' => $sufficient ? $this->stockoutRisk($cover) : null,
+ 'releases' => (int) ($activity->releases ?? 0),
+ 'last_released_at' => $activity->last_released_at ?? null,
  ];
  }
 
- usort($rows, fn (array $a, array $b): int => ($a['days_cover'] ?? PHP_INT_MAX) <=> ($b['days_cover'] ?? PHP_INT_MAX));
+ usort($rows, fn (array $a, array $b): int => [$a['available'], -$a['released'], $a['name']]
+ <=> [$b['available'], -$b['released'], $b['name']]);
 
- $measured = array_values(array_filter($rows, fn (array $row): bool => $row['sufficient']));
- $atRisk = array_values(array_filter($measured, fn (array $row): bool => $row['risk'] === 'High'));
- $insufficient = count($rows) - count($measured);
+ $count = count($rows);
 
  return [
- 'available' => $measured !== [],
+ 'available' => $rows !== [],
  'window_days' => $days,
- 'window_sufficient' => $windowSufficient,
+ 'total' => $count,
  'items' => array_slice($rows, 0, $limit),
- 'measured' => count($measured),
- 'insufficient' => $insufficient,
- 'high_risk' => count($atRisk),
- 'thresholds' => [
- 'high' => self::STOCKOUT_RISK_HIGH_DAYS,
- 'medium' => self::STOCKOUT_RISK_MEDIUM_DAYS,
- ],
- 'requirement' => [
- 'window_days' => self::STOCK_COVERAGE_MINIMUM_WINDOW_DAYS,
- 'releases' => self::STOCK_COVERAGE_MINIMUM_RELEASES,
- ],
- 'summary' => $this->coverageSentence($rows, $measured, $atRisk, $windowSufficient),
+ 'summary' => $rows === []
+ ? 'No equipment was released during this period, so there is no release history to show.'
+ : $count.' '.($count === 1 ? 'item was' : 'items were').' released during this period.',
  ];
- }
-
- /**
- * @param list<array<string, mixed>> $rows
- * @param list<array<string, mixed>> $measured
- * @param list<array<string, mixed>> $atRisk
- */
- private function coverageSentence(
- array $rows,
- array $measured,
- array $atRisk,
- bool $windowSufficient
- ): string {
- if ($rows === []) {
- return 'No equipment was released during this period, so stock coverage cannot be estimated yet.';
- }
-
- if (! $windowSufficient) {
- return 'The selected period is shorter than '
- .self::STOCK_COVERAGE_MINIMUM_WINDOW_DAYS
- .' days, which is too short to draw a usage rate from. Choose a longer reporting period.';
- }
-
- if ($measured === []) {
- return 'No equipment has been released often enough to estimate stock coverage yet. '
- .'An item needs at least '.self::STOCK_COVERAGE_MINIMUM_RELEASES
- .' separate releases in the period before a usage rate is projected from it.';
- }
-
- return $atRisk === []
- ? 'No equipment is estimated to run short within '
- .self::STOCKOUT_RISK_HIGH_DAYS.' days at the observed usage rate.'
- : count($atRisk).' '.(count($atRisk) === 1 ? 'item is' : 'items are')
- .' estimated to last under '.self::STOCKOUT_RISK_HIGH_DAYS
- .' days at the observed usage rate.';
- }
-
- /** High | Medium | Low, or null when usage gives no reading. */
- private function stockoutRisk(?float $daysCover): ?string
- {
- if ($daysCover === null) {
- return null;
- }
-
- return match (true) {
- $daysCover < self::STOCKOUT_RISK_HIGH_DAYS => 'High',
- $daysCover <= self::STOCKOUT_RISK_MEDIUM_DAYS => 'Medium',
- default => 'Low',
- };
  }
 
  /* ------------------------------------------------------------------ */

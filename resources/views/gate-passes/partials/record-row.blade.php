@@ -8,9 +8,7 @@
     $statusLabel = $statusMeta['label'];
     $statusTone = $statusMeta['tone'];
     $statusKey = $statusMeta['key'];
-    $releasedAt = $gatePass->guard_signed_at ?: $custody?->released_at;
-    $hasFinalDocument = in_array($gatePass->status, ['READY_FOR_PRINTING', 'VERIFIED'], true) && $gatePass->passDocument;
-    $hasMoreActions = $hasFinalDocument || $gatePass->accomplishedFile;
+    $recordedAt = $gatePass->verified_at ?: $gatePass->uploaded_at;
     $search = implode(' ', [
         $requestRecord?->request_no,
         $custody?->custody_no,
@@ -26,30 +24,22 @@
     <td><strong>{{ $borrower?->full_name ?: '—' }}</strong><small>{{ $borrower?->organizationalUnit?->unit_name ?: '—' }}</small></td>
     <td class="gate-pass-destination"><strong>{{ $gatePass->purpose ?: '—' }}</strong><small>{{ $destination }}</small></td>
     <td class="gate-pass-release-date">
-        @if($releasedAt)
-            <time datetime="{{ $releasedAt->toIso8601String() }}">{{ $releasedAt->format('M d, Y') }}</time>
+        @if($recordedAt)
+            <time datetime="{{ $recordedAt->toIso8601String() }}">{{ $recordedAt->format('M d, Y') }}</time>
         @else
-            <span title="Physical release has not been recorded">—</span>
+            <span title="Recording date unavailable">—</span>
         @endif
     </td>
     <td><x-status-badge :status="$statusKey" :label="$statusLabel" title="{{ $statusLabel }}" /></td>
     <td>
         <div class="gate-pass-row-actions">
-            <a class="button secondary small ui-pressable gate-pass-view" href="{{ route('gate-passes.show', $gatePass) }}"><span>View Record</span></a>
-            @if($hasMoreActions)
-                <details class="gate-pass-more" name="gate-pass-record-actions">
-                    <summary aria-label="More actions for {{ $requestRecord?->request_no ?: 'Gate Pass #'.$gatePass->id }}">
-                        <svg width="16" height="20" viewBox="0 0 20 24" fill="currentColor" aria-hidden="true"><circle cx="10" cy="5" r="1.5" /><circle cx="10" cy="12" r="1.5" /><circle cx="10" cy="19" r="1.5" /></svg>
-                    </summary>
-                    <div class="gate-pass-more-links">
-                        @if($hasFinalDocument)
-                            <a href="{{ route('documents.preview', $gatePass->passDocument) }}">Preview</a>
-                        @endif
-                        @if($gatePass->accomplishedFile)
-                            <a href="{{ route('files.preview', $gatePass->accomplishedFile, false) }}">Preview</a>
-                        @endif
-                    </div>
-                </details>
+            <a class="gate-pass-icon-action" href="{{ route('gate-passes.show', $gatePass) }}" aria-label="View Record" data-tooltip="View Record">
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.06 12a10.94 10.94 0 0 1 19.88 0 10.94 10.94 0 0 1-19.88 0Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </a>
+            @if($gatePass->accomplishedFile)
+                <a class="gate-pass-icon-action" href="{{ route('files.preview', $gatePass->accomplishedFile, false) }}" aria-label="View Accomplished Gate Pass" data-tooltip="View Upload">
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg>
+                </a>
             @endif
         </div>
     </td>

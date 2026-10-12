@@ -20,7 +20,7 @@
  <div>
  <p class="eyebrow">Borrowing insights</p>
  <h1>Analytics</h1>
- <p>Understand borrowing activity, equipment usage, returns, and planning signals at a glance.</p>
+ <p>Understand borrowing activity, equipment usage, inventory, and returns at a glance.</p>
  </div>
 </section>
 

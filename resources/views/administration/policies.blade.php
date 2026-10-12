@@ -236,42 +236,7 @@
 </section>
 @endif
 
-@if(!$configurationSection)
-<section class="content-area operational-config-hub">
-    {{-- REPORT FORM CONFIGURATION CARD START --}}
-    <div class="operational-config-group">
-        <h2 class="operational-config-group-title">
-            Documents &amp; reports
-        </h2>
 
-        <div class="operational-config-grid operational-config-grid-2">
-            <a
-                class="operational-config-card ui-pressable"
-                href="{{ route('policies.report-forms.index') }}"
-            >
-                <span
-                    class="operational-config-card-icon"
-                    aria-hidden="true"
-                >
-                    <x-icon name="report-document" size="24" />
-                </span>
-
-                <span class="operational-config-card-text">
-                    <strong>
-                        Report Form Configuration
-                    </strong>
-
-                    <span>
-                        Official report layouts, signatories,
-                        form details, and revisions
-                    </span>
-                </span>
-            </a>
-        </div>
-    </div>
-    {{-- REPORT FORM CONFIGURATION CARD END --}}
-</section>
-@endif
 
 @if($configurationSection === 'transaction-schedule')
     @include('administration.partials.transaction-schedule')

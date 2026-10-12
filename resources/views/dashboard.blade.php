@@ -1280,10 +1280,6 @@ a.dashboard-kpi-card:focus-visible {
     @endif
 </section>
 
-@if(in_array($dashboardMode, ['SPMU_OFFICER', 'SPMU_HEAD'], true))
-    @include('shared.operational-advisory', ['compact' => $dashboardMode !== 'BORROWER'])
-@endif
-
 <section class="stat-grid dashboard-stat-grid" aria-label="Current totals">
     @foreach($statistics as $label => $value)
         @php
@@ -1316,8 +1312,9 @@ a.dashboard-kpi-card:focus-visible {
 {{--
 SPMU_BORROWER_ADVISORY_AFTER_KPIS_V1
 : dashboard overview before operational notice. --}}
-@if($dashboardMode === 'BORROWER')
-    @include('shared.operational-advisory')
+{{-- SPMU_ADVISORY_ALL_DASHBOARDS_AFTER_KPI_V3: Welcome > KPIs > advisory > operational cards. --}}
+@if(in_array($dashboardMode, ['BORROWER', 'SPMU_OFFICER', 'SPMU_HEAD'], true))
+    @include('shared.operational-advisory', ['compact' => $dashboardMode !== 'BORROWER'])
 @endif
 
 @php

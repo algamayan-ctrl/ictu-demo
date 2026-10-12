@@ -8,7 +8,21 @@
     and $row to already be set by the caller.
 --}}
 @if($incident)
-    <dl class="resolved-history-facts">
+    @php
+        /*
+         * Only what was actually recorded with the Head's decision is shown.
+         * A record that carries no decision line keeps its plain final status;
+         * no finding, disposition or reason is filled in for it.
+         */
+        $headDisposition = match (true) {
+            $incident->findingWasCleared() => 'Finding Cleared',
+            $incident->accountabilityWasConfirmed() => 'Accountability Confirmed',
+            default => null,
+        };
+        $headDecisionReason = $headDisposition ? $incident->headDecisionReason() : null;
+        $relatedSanction = $row['related_sanction'] ?? null;
+    @endphp
+    <dl class="resolved-history-facts" data-resolved-incident-facts>
         <div>
             <dt>Incident</dt>
             <dd>{{ $incident->incident_no ?: '—' }}</dd>
@@ -21,10 +35,45 @@
             <dt>Custody</dt>
             <dd>{{ $incident->custody?->custody_no ?: '—' }}</dd>
         </div>
-        <div>
-            <dt>Final Status</dt>
-            <dd><x-status-badge :status="$incident->status" /></dd>
-        </div>
+        @if($incident->reported_at)
+            <div>
+                <dt>Date Reported</dt>
+                <dd>{{ $incident->reported_at->format('d M Y') }}</dd>
+            </div>
+        @endif
+        @if($headDisposition)
+            <div data-head-disposition>
+                <dt>SPMU Head Decision</dt>
+                <dd>
+                    {{ $headDisposition }}
+                    @if($incident->head_decided_at)
+                        &middot; {{ $incident->head_decided_at->format('d M Y') }}
+                    @endif
+                </dd>
+            </div>
+            @if($headDecisionReason)
+                <div data-head-decision-reason>
+                    <dt>Reason Recorded</dt>
+                    <dd>{{ $headDecisionReason }}</dd>
+                </div>
+            @endif
+        @else
+            <div>
+                <dt>Final Status</dt>
+                <dd><x-status-badge :status="$incident->status" /></dd>
+            </div>
+        @endif
+        @if($relatedSanction)
+            <div data-related-sanction>
+                <dt>Administrative Sanction</dt>
+                <dd>
+                    Offense {{ $relatedSanction->offense_no }} &middot; {{ $relatedSanction->sanction_label }}
+                    @if($relatedSanction->confirmed_at)
+                        &middot; recorded {{ $relatedSanction->confirmed_at->format('d M Y') }}
+                    @endif
+                </dd>
+            </div>
+        @endif
         @if($incident->rslddp_attachment_file_id)
             <div>
                 <dt>Accomplished RSLDDP</dt>

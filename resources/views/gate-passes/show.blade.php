@@ -148,7 +148,7 @@
                         <strong>Prepared.</strong>
                         <p>The Guard on Duty completes the printed Gate Pass at campus exit.</p>
                         <div class="inline-actions top-gap">
-                            <a class="button secondary ui-pressable" href="{{ route('documents.preview', $gatePass->passDocument) }}">Preview</a>
+                            <a class="button secondary ui-pressable" href="{{ route('documents.preview', $gatePass->passDocument) }}">View Generated Gate Pass</a>
                         </div>
                     </div>
                 @endif
@@ -195,7 +195,7 @@
                     <strong>Recorded.</strong>
                     @if($gatePass->accomplishedFile)
                         <div class="inline-actions top-gap">
-                            <a class="button secondary small ui-pressable" href="{{ route('files.preview', $gatePass->accomplishedFile) }}">Preview</a>
+                            <a class="button secondary small ui-pressable" href="{{ route('files.preview', $gatePass->accomplishedFile) }}">View Accomplished Copy</a>
                         </div>
                     @endif
                 </div>

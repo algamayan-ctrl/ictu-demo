@@ -25,16 +25,21 @@
         ->count();
     $resolvedCount = $resolvedHistory->count();
 
-    $outstandingBalance = (float) $openBillings->sum(function ($billing): float {
-        $verifiedPayments = $billing->payments
-            ->where('status', 'VERIFIED')
-            ->sum(fn ($payment): float => (float) $payment->amount);
+    $obligationService = app(\App\Services\BorrowerObligationService::class);
 
-        return max(0, (float) $billing->total_amount - $verifiedPayments);
-    });
+    /* Remaining unpaid balance - the same figure the dashboard overview uses. */
+    $outstandingBalance = $obligationService->outstandingBalance($openBillings);
 
     $activeRestrictionCount = $activeRestrictions->count();
-    $borrowingStatus = $activeRestrictionCount > 0 ? 'Restricted' : 'Clear';
+
+    /*
+     * Decided by the same rule that accepts or blocks a new borrowing
+     * request, so this card never reads "Clear" while a request would be
+     * refused for an open case or unpaid billing that carries no restriction.
+     */
+    $borrowingStatusState = $obligationService->borrowingStatus((int) auth()->id());
+    $borrowingStatus = $borrowingStatusState['label'];
+    $borrowingBlocked = $borrowingStatus !== 'Clear';
 
     /*
      * Every overview card is a real drill-down even when its value is zero.
@@ -75,7 +80,7 @@
         $summaryCards[] = ['warning', 'warning', (string) $needsActionCount, 'Needs My Action', 'Your response is required', route('accountability.index', ['focus' => 'action']).'#current-obligations', 'action'];
     }
     $summaryCards[] = [$outstandingBalance > 0 ? 'orange' : 'blue', 'coins', 'PHP '.number_format($outstandingBalance, 2), 'Amount Due', $outstandingBalance > 0 ? 'Unpaid billing balance' : 'No payment due', route('accountability.index', ['focus' => 'payment']).'#current-obligations', 'payment'];
-    $summaryCards[] = [$activeRestrictionCount > 0 ? 'warning' : 'success', $activeRestrictionCount > 0 ? 'lock' : 'check-circle', $borrowingStatus, 'Borrowing Status', $activeRestrictionCount > 0 ? 'Restriction in effect' : 'No active restriction', route('accountability.index', ['focus' => 'status']).'#current-obligations', 'status'];
+    $summaryCards[] = [$borrowingBlocked ? 'warning' : 'success', $borrowingBlocked ? 'lock' : 'check-circle', $borrowingStatus, 'Borrowing Status', $borrowingStatusState['note'], route('accountability.index', ['focus' => $activeRestrictionCount > 0 || ! $borrowingBlocked ? 'status' : 'active']).'#current-obligations', 'status'];
 @endphp
 
 @include('accountability.partials.obligations-styles')

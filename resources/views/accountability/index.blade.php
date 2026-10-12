@@ -3576,9 +3576,14 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                             </td>
                             <td>{{ $sanction->academicPeriod?->academic_year }} {{ $sanction->academicPeriod?->term_name }}</td>
                             <td>
-                                {{ optional($sanction->effective_from)->format('d M Y') ?: '—' }}
-                                @if($sanction->effective_to)
-                                    <small>to {{ $sanction->effective_to->format('d M Y') }}</small>
+                                {{-- Only a borrowing suspension runs for a period. Any other action is a record of a decision, not a duration. --}}
+                                @if($sanction->sanction_code === 'BORROWING_SUSPENSION')
+                                    {{ optional($sanction->effective_from)->format('d M Y') ?: '—' }}
+                                    @if($sanction->effective_to)
+                                        <small>to {{ $sanction->effective_to->format('d M Y') }}</small>
+                                    @endif
+                                @else
+                                    <span data-sanction-recorded-on>Recorded on {{ optional($sanction->confirmed_at ?: $sanction->effective_from)->format('d M Y') ?: '—' }}</span>
                                 @endif
                             </td>
                             @php
@@ -3609,6 +3614,9 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                     <a class="table-action accountability-sanction-notice" href="{{ route('documents.preview', $sanctionNotice) }}">
                                         <span>View Notice</span>
                                     </a>
+                                @elseif($sanction->sanction_code !== 'BORROWING_SUSPENSION')
+                                    {{-- A printed notice is issued only for a borrowing suspension; none exists or is required here. --}}
+                                    <span class="accountability-row-none" data-sanction-no-document>No document issued</span>
                                 @else
                                     <span class="accountability-row-none">—</span>
                                 @endif

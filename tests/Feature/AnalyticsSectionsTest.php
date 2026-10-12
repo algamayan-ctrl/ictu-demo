@@ -151,7 +151,7 @@ class AnalyticsSectionsTest extends TestCase
             ->get(route('analytics.index', ['section' => 'equipment', 'academic_period' => 'month']))
             ->assertOk()
             ->assertSee('Equipment Demand & Actual Usage')
-            ->assertSee('Requested items with release and fulfillment context.')
+            ->assertSee('Shows the most requested items and how much was actually released.')
             ->assertSee('No requested items were recorded during this period.')
             ->assertSeeInOrder([
                 '<span class="analytics-kpi-card-label">Requested Quantity</span>',

@@ -267,6 +267,8 @@ class AnalyticsRestructureTest extends TestCase
 
         $overview->assertOk();
         $overview->assertSee('1 of 2 completed returns were on time', false);
+        /* The compliance row states the late returns beside the on-time ones. */
+        $overview->assertSee('1 was late.', false);
 
         $detail = $this->actingAs($this->spmuHead())->get(route('analytics.index', [
             'section' => 'overview',
@@ -450,66 +452,7 @@ class AnalyticsRestructureTest extends TestCase
         $this->assertStringContainsString('No equipment was released', $coverage['summary']);
     }
 
-    public function test_a_single_isolated_release_does_not_produce_a_risk_classification(): void
-    {
-        /*
-         * One release is an event, not a usage rate. Projecting days of
-         * coverage from it would dress a single data point up as a trend.
-         */
-        $item = $this->item('Monoblock Chair', 300);
-
-        $this->releaseOnce($item, 30, $this->from->copy()->addDays(2));
-
-        $coverage = $this->coverage();
-
-        $this->assertFalse($coverage['available'], 'Nothing could be measured.');
-        $this->assertCount(1, $coverage['items']);
-
-        $row = $coverage['items'][0];
-
-        $this->assertFalse($row['sufficient']);
-        $this->assertSame(1, $row['releases']);
-        $this->assertNull($row['per_day']);
-        $this->assertNull($row['days_cover']);
-        $this->assertNull($row['risk']);
-        $this->assertSame(1, $coverage['insufficient']);
-        $this->assertSame(0, $coverage['high_risk']);
-    }
-
-    public function test_two_releases_are_still_below_the_minimum(): void
-    {
-        $item = $this->item('Monoblock Chair', 300);
-
-        $this->releaseOnce($item, 10, $this->from->copy()->addDays(2));
-        $this->releaseOnce($item, 10, $this->from->copy()->addDays(6));
-
-        $row = $this->coverage()['items'][0];
-
-        $this->assertFalse($row['sufficient']);
-        $this->assertNull($row['risk']);
-    }
-
-    public function test_a_window_shorter_than_the_minimum_blocks_every_item(): void
-    {
-        $item = $this->item('Monoblock Chair', 300);
-
-        foreach ([1, 2, 3] as $offset) {
-            $this->releaseOnce($item, 10, $this->from->copy()->addDays($offset));
-        }
-
-        /* A five-day window cannot support a daily rate however many releases. */
-        $coverage = $this->coverage(
-            $this->from->copy(),
-            $this->from->copy()->addDays(4)->endOfDay()
-        );
-
-        $this->assertFalse($coverage['window_sufficient']);
-        $this->assertFalse($coverage['available']);
-        $this->assertNull($coverage['items'][0]['risk']);
-        $this->assertStringContainsString('too short', $coverage['summary']);
-    }
-
-    public function test_sufficient_history_produces_a_rate_coverage_and_risk_band(): void
+    public function test_coverage_states_current_stock_beside_the_recorded_release_history(): void
     {
         $item = $this->item('Monoblock Chair', 300);
 
@@ -520,71 +463,87 @@ class AnalyticsRestructureTest extends TestCase
 
         $coverage = $this->coverage();
 
-        $this->assertTrue($coverage['window_sufficient']);
         $this->assertTrue($coverage['available']);
-        $this->assertSame(1, $coverage['measured']);
-        $this->assertSame(0, $coverage['insufficient']);
+        $this->assertSame(30, $coverage['window_days']);
+        $this->assertSame(1, $coverage['total']);
 
         $row = $coverage['items'][0];
 
-        $this->assertTrue($row['sufficient']);
+        $this->assertSame($item->id, $row['item_id']);
+        $this->assertEquals(300, $row['stock']);
+        /* 300 serviceable less the 30 still out. */
+        $this->assertEquals(270, $row['available']);
+        $this->assertEquals(30, $row['released']);
         $this->assertSame(3, $row['releases']);
-        $this->assertSame(30.0, $row['released']);
-        /* 30 released over 30 days is 1 per day. */
-        $this->assertSame(1.0, $row['per_day']);
-        /* 300 serviceable less 30 still out = 270 usable, at 1 per day. */
-        $this->assertSame(270, $row['days_cover']);
-        $this->assertSame('Low', $row['risk']);
     }
 
-    public function test_the_risk_band_follows_the_estimated_coverage(): void
+    public function test_coverage_never_projects_a_rate_days_of_stock_or_a_risk_band(): void
     {
-        /* 90 released from a catalogue of 90 leaves 0 usable: High risk. */
+        /*
+         * Forecasting is outside the Analytics scope. Whatever the release
+         * history looks like - one release or many - the reading stays a
+         * statement of recorded facts and carries no derived projection.
+         */
         $item = $this->item('Monoblock Chair', 90);
 
         foreach ([2, 10, 18] as $offset) {
             $this->releaseOnce($item, 30, $this->from->copy()->addDays($offset));
         }
 
-        $row = $this->coverage()['items'][0];
-
-        $this->assertTrue($row['sufficient']);
-        $this->assertSame(0, $row['days_cover']);
-        $this->assertSame('High', $row['risk']);
-        $this->assertSame(1, $this->coverage()['high_risk']);
-    }
-
-    public function test_zero_usable_stock_with_no_usage_rate_is_never_divided_by_zero(): void
-    {
-        /*
-         * stockoutRisk() is the only place a coverage figure becomes a band,
-         * and it must refuse a null reading rather than inventing one.
-         */
-        $method = new \ReflectionMethod(AnalyticsService::class, 'stockoutRisk');
-
-        $this->assertNull($method->invoke($this->analytics, null));
-        $this->assertSame('High', $method->invoke($this->analytics, 0.0));
-        $this->assertSame('Medium', $method->invoke($this->analytics, 45.0));
-        $this->assertSame('Low', $method->invoke($this->analytics, 120.0));
-    }
-
-    public function test_the_minimum_history_rule_is_declared_in_the_service(): void
-    {
-        $this->assertSame(14, AnalyticsService::STOCK_COVERAGE_MINIMUM_WINDOW_DAYS);
-        $this->assertSame(3, AnalyticsService::STOCK_COVERAGE_MINIMUM_RELEASES);
-
         $coverage = $this->coverage();
 
-        $this->assertSame(
-            ['window_days' => 14, 'releases' => 3],
-            $coverage['requirement']
-        );
+        foreach (['per_day', 'days_cover', 'risk', 'sufficient'] as $projected) {
+            $this->assertArrayNotHasKey($projected, $coverage['items'][0]);
+        }
+
+        foreach (['high_risk', 'thresholds', 'requirement', 'measured', 'insufficient'] as $projected) {
+            $this->assertArrayNotHasKey($projected, $coverage);
+        }
+
+        /* All 90 are out, and that is stated as the current count, not graded. */
+        $this->assertEquals(0, $coverage['items'][0]['available']);
+        $this->assertEquals(90, $coverage['items'][0]['released']);
     }
 
-    public function test_stockout_risk_thresholds_live_in_the_service(): void
+    public function test_a_single_release_is_reported_as_history_not_withheld(): void
     {
-        $this->assertSame(30, AnalyticsService::STOCKOUT_RISK_HIGH_DAYS);
-        $this->assertSame(60, AnalyticsService::STOCKOUT_RISK_MEDIUM_DAYS);
+        $item = $this->item('Monoblock Chair', 300);
+
+        $this->releaseOnce($item, 30, $this->from->copy()->addDays(2));
+
+        $row = $this->coverage()['items'][0];
+
+        $this->assertSame(1, $row['releases']);
+        $this->assertEquals(30, $row['released']);
+        $this->assertEquals(270, $row['available']);
+    }
+
+    public function test_coverage_counts_only_releases_inside_the_reporting_period(): void
+    {
+        $item = $this->item('Monoblock Chair', 300);
+
+        $this->releaseOnce($item, 10, $this->from->copy()->addDays(2));
+        /* Released the month before: current stock reflects it, the period history does not. */
+        $this->releaseOnce($item, 40, $this->from->copy()->subDays(10));
+
+        $row = $this->coverage()['items'][0];
+
+        $this->assertEquals(10, $row['released']);
+        $this->assertSame(1, $row['releases']);
+        $this->assertEquals(250, $row['available']);
+    }
+
+    public function test_coverage_lists_the_tightest_current_stock_first(): void
+    {
+        $roomy = $this->item('Folding Table', 100);
+        $tight = $this->item('Sound System', 4);
+
+        $this->releaseOnce($roomy, 5, $this->from->copy()->addDays(2));
+        $this->releaseOnce($tight, 3, $this->from->copy()->addDays(3));
+
+        $names = array_column($this->coverage()['items'], 'name');
+
+        $this->assertSame(['Sound System', 'Folding Table'], $names);
     }
 
     /* ------------------------------------------------------------------ */
@@ -907,7 +866,7 @@ class AnalyticsRestructureTest extends TestCase
         $response->assertDontSee('View source records', false);
     }
 
-    public function test_coverage_detail_withholds_a_rate_without_enough_history(): void
+    public function test_coverage_detail_states_recorded_history_and_projects_nothing(): void
     {
         $item = $this->item('Monoblock Chair', 300);
 
@@ -923,15 +882,16 @@ class AnalyticsRestructureTest extends TestCase
         $response->assertOk();
 
         /*
-         * The panel explains the requirement and withholds the derived
-         * figures. "Risk classification" and "Estimated days of coverage" are
-         * stat labels the detail only emits once the history is sufficient,
-         * so their absence is what proves the guard held.
+         * The panel restates what is recorded - current stock and the
+         * period's releases - and derives no rate, projected days of stock
+         * or risk band from it.
          */
-        $response->assertSee('Insufficient history', false);
-        $response->assertSee('Not enough release history to estimate stock coverage for this item.', false);
+        $response->assertSee('Available stock and release history', false);
+        $response->assertSee('Released in this period', false);
+        $response->assertSee('Release transactions', false);
         $response->assertDontSee('Risk classification', false);
         $response->assertDontSee('Estimated days of coverage', false);
+        $response->assertDontSee('Average daily usage', false);
     }
 
     public function test_an_unknown_detail_key_renders_the_section_without_a_panel(): void

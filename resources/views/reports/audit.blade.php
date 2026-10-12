@@ -241,7 +241,7 @@
     };
 @endphp
 
-<section class="page-heading ictu-audit-page-heading" aria-labelledby="ictu-audit-page-title">
+<section class="page-heading ictu-audit-page-heading{{ $isOperationalAudit ? ' spmu-operational-audit-heading' : '' }}" aria-labelledby="ictu-audit-page-title">
     <div>
         <p class="eyebrow">{{ $isOperationalAudit ? 'SPMU operational audit' : 'ICTU technical audit' }}</p>
         <h1 id="ictu-audit-page-title">{{ $isOperationalAudit ? 'Operational Audit Trail' : 'Technical Audit Trail' }}</h1>
@@ -249,7 +249,7 @@
     </div>
 </section>
 
-<section class="content-area ictu-audit-area" aria-label="{{ $isOperationalAudit ? 'SPMU operational audit trail' : 'ICTU technical audit trail' }}">
+<section class="content-area ictu-audit-area{{ $isOperationalAudit ? ' spmu-operational-audit-area' : '' }}" aria-label="{{ $isOperationalAudit ? 'SPMU operational audit trail' : 'ICTU technical audit trail' }}">
     <span class="visually-hidden">{{ $isOperationalAudit ? 'SPMU operational oversight' : 'ICTU system administration' }}</span>
     <section class="card ictu-audit-filter-card" aria-label="Audit trail filters">
         <form id="audit-filter-form" method="GET" action="{{ route('reports.audit') }}">

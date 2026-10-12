@@ -6,6 +6,7 @@ use App\Models\BillingStatement;
 use App\Models\BorrowerRestriction;
 use App\Models\Incident;
 use App\Models\OverdueCase;
+use App\Models\Sanction;
 use Illuminate\Support\Collection;
 
 /**
@@ -98,10 +99,57 @@ class BorrowerObligationService
             'processing' => $rowCollection->where('action_state', self::ACTION_PROCESSING)->count(),
             'resolved_count' => $resolvedHistory->count(),
             'billings' => $openBillings->count(),
-            'billing_total' => (float) $openBillings->sum('total_amount'),
+            'billing_total' => $this->outstandingBalance($openBillings),
             'restrictions' => $activeRestrictions->count(),
             'property_cases' => $openIncidents->count(),
             'late_returns' => $openOverdueCases->count(),
+        ];
+    }
+
+    /**
+     * What is still unpaid across these open billings: each billed total
+     * less its VERIFIED payments, never below zero. The one definition of
+     * "Amount Due" for the borrower dashboard overview and My Obligations;
+     * no billing amount is changed.
+     */
+    public function outstandingBalance(Collection $openBillings): float
+    {
+        return (float) $openBillings->sum(function ($billing): float {
+            $verifiedPayments = (float) $billing->payments
+                ->where('status', 'VERIFIED')
+                ->sum(fn ($payment): float => (float) $payment->amount);
+
+            return max(0, (float) $billing->total_amount - $verifiedPayments);
+        });
+    }
+
+    /**
+     * The Borrowing Status shown to the borrower, decided by the same rule
+     * that accepts or blocks a new borrowing request (blockingReasons()).
+     * "Clear" is only ever shown when a request would actually be accepted.
+     *
+     * @return array{eligible: bool, restricted: bool, label: string, note: string, reasons: list<string>}
+     */
+    public function borrowingStatus(int $borrowerUserId): array
+    {
+        [, , , $activeRestrictions] = $this->filterOpenRecords($this->recordsForBorrower($borrowerUserId));
+        $reasons = $this->blockingReasons($borrowerUserId);
+        $restricted = $activeRestrictions->isNotEmpty();
+
+        return [
+            'eligible' => $reasons === [],
+            'restricted' => $restricted,
+            'label' => match (true) {
+                $restricted => 'Restricted',
+                $reasons !== [] => 'On Hold',
+                default => 'Clear',
+            },
+            'note' => match (true) {
+                $restricted => 'Restriction in effect',
+                $reasons !== [] => 'Open obligation blocks borrowing',
+                default => 'No active restriction',
+            },
+            'reasons' => $reasons,
         ];
     }
 
@@ -1051,7 +1099,17 @@ class BorrowerObligationService
             ->reject(fn (Incident $incident): bool => in_array($incident->id, $billedIncidentIds, true))
             ->map(fn (Incident $incident): array => [
                 'key' => 'incident-'.$incident->id,
-                'outcome' => 'Resolved',
+                /*
+                 * Both end in the RESOLVED status but are different outcomes:
+                 * the Head cleared the finding, or accountability was
+                 * confirmed and then settled. A record that carries neither
+                 * decision stays plainly "Resolved"; nothing is inferred.
+                 */
+                'outcome' => match (true) {
+                    $incident->findingWasCleared() => 'Resolved - Finding Cleared',
+                    $incident->accountabilityWasConfirmed() => 'Resolved - Accountability Settled',
+                    default => 'Resolved',
+                },
                 'tone' => 'success',
                 'borrower' => $incident->borrower,
                 'reference' => $incident->incident_no ?: ($incident->custody?->custody_no ?? '-'),
@@ -1059,9 +1117,36 @@ class BorrowerObligationService
                 'case' => null,
                 'incident' => $incident,
                 'payment' => null,
-                'resolved_at' => $incident->updated_at,
+                'resolved_at' => $incident->resolutionMoment(),
             ])
             ->values();
+
+        /*
+         * The administrative sanction recorded for the same borrowing
+         * transaction as a property case, when there is one. Read-only, and
+         * scoped to the incidents already in hand, so a borrower's history
+         * can only ever show that borrower's own sanction.
+         */
+        $propertyRows = $rows->concat($unbilledPropertyIncidents)->filter(fn (array $row): bool => $row['incident'] !== null);
+        $sanctionsByCustody = $propertyRows->isEmpty()
+            ? collect()
+            : Sanction::query()
+                ->with('violation')
+                ->whereHas('violation', fn ($query) => $query
+                    ->where('violation_source', 'PROPERTY_ACCOUNTABILITY')
+                    ->whereIn('custody_transaction_id', $propertyRows->pluck('incident.custody_transaction_id')->filter()->unique()->values()))
+                ->whereIn('borrower_user_id', $propertyRows->pluck('incident.borrower_user_id')->filter()->unique()->values())
+                ->get()
+                ->keyBy(fn (Sanction $sanction): string => $sanction->borrower_user_id.':'.$sanction->violation->custody_transaction_id);
+
+        $withSanction = fn (array $row): array => $row + [
+            'related_sanction' => $row['incident']
+                ? $sanctionsByCustody->get($row['incident']->borrower_user_id.':'.$row['incident']->custody_transaction_id)
+                : null,
+        ];
+
+        $rows = $rows->map($withSanction);
+        $unbilledPropertyIncidents = $unbilledPropertyIncidents->map($withSanction);
 
         return $rows
             ->concat($unbilledLateReturns)

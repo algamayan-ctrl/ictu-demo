@@ -25,9 +25,9 @@ class OperationalAdvisoryService
      */
     public function snapshot(?CarbonImmutable $referenceDate = null): array
     {
-        $today = ($referenceDate ?? CarbonImmutable::now('Asia/Manila'))
-            ->setTimezone('Asia/Manila')
-            ->startOfDay();
+        $now = ($referenceDate ?? CarbonImmutable::now('Asia/Manila'))
+            ->setTimezone('Asia/Manila');
+        $today = $now->startOfDay();
 
         // One bounded range fetch: no query per day and no change to availability rules.
         $profiles = $this->calendar->profilesForRange($today, $today->addDays(self::LOOKAHEAD_DAYS));
@@ -76,7 +76,35 @@ class OperationalAdvisoryService
             }
         }
 
+        // Use the authoritative Operational Calendar hours.
+        $beforeOpening = false;
+        $afterClosing = false;
+
+        if ($todayAllowed) {
+            [$opensAt, $closesAt] = $this->calendar->operatingWindow(
+                OperationalCalendarService::PICKUP,
+                $today->toDateString(),
+                $current['profile']
+            );
+
+            $beforeOpening = $opensAt !== null
+                && $now->lt($opensAt);
+
+            $afterClosing = $closesAt !== null
+                && $now->gte($closesAt);
+        }
+
         [$tone, $badge, $message] = match (true) {
+            $todayAllowed && $afterClosing => [
+                'closed',
+                'Closed for Today',
+                'On-site transactions have ended for today. Online requests remain available.'
+            ],
+            $todayAllowed && $beforeOpening => [
+                'normal',
+                'Opens Later Today',
+                'On-site transactions have not started yet. Online requests remain available.'
+            ],
             $todayAllowed && $specialToday => ['special', $normallyClosedToday ? 'Special Opening' : 'Open Today', $normallyClosedToday
                 ? 'Special opening today. On-site transactions are available.'
                 : 'On-site transactions follow a special schedule today.'],
@@ -95,7 +123,7 @@ class OperationalAdvisoryService
             'reason' => $specialToday ? $this->publicReason($current['profile']['reason'] ?? null) : null,
             'hours' => $todayAllowed ? $this->hours($current['profile']) : null,
             'upcoming' => $this->upcomingSpecial($days, $closureEnd + 1, $routine),
-            'next_available' => $todayAllowed ? null : $nextAvailable,
+            'next_available' => ($todayAllowed && ! $afterClosing) ? null : $nextAvailable,
         ];
     }
 

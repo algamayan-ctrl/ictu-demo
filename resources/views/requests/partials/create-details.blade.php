@@ -36,6 +36,14 @@
                 @enderror
             </label>
 
+            @if($isExternalBorrower ?? false)
+                <label>
+                    Company / Agency / Institution
+                    <input id="external-company-name" value="{{ $externalCompanyName }}" readonly required aria-describedby="external-affiliation-help">
+                    <small class="field-help" id="external-affiliation-help">This affiliation comes from your SAO-approved registration and is saved with this request.</small>
+                    @error('affiliation')<small class="field-error">{{ $message }}</small>@enderror
+                </label>
+            @else
             @php
                 $requestingUnitOptions = $requestingUnitOptions ?? [];
                 $hasMultipleRequestingUnits = count($requestingUnitOptions) > 1;
@@ -110,6 +118,7 @@
                     <small class="field-error">{{ $message }}</small>
                 @enderror
             </label>
+            @endif
         </div>
     </div>
 

@@ -34,19 +34,58 @@ class GoogleAuthTest extends TestCase
     }
 
     /** Pretend Google returned this verified profile. */
-    private function fakeGoogleUser(string $email, string $name = 'Google Person'): void
+    private function fakeGoogleUser(string $email, string $name = 'Google Person', ?bool $verified = true, string $subject = '1234567890'): void
     {
+        // Existing-login fixtures represent a prior password-confirmed link,
+        // never an identity created by the callback under test.
+        if ($local = User::query()->whereRaw('LOWER(email) = ?', [strtolower($email)])->first()) {
+            \App\Models\OauthIdentity::query()->create(['user_id' => $local->id, 'provider' => 'google', 'subject' => $subject ?: 'previous-subject']);
+        }
         $socialiteUser = (new SocialiteUser)->map([
-            'id' => '1234567890',
+            'id' => $subject,
             'name' => $name,
             'email' => $email,
             'avatar' => 'https://example.test/avatar.png',
         ]);
+        $socialiteUser->setRaw(['sub' => $subject, 'email' => $email, 'email_verified' => $verified]);
 
         $provider = Mockery::mock(Provider::class);
         $provider->shouldReceive('user')->andReturn($socialiteUser);
 
         Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
+    }
+
+    public function test_unverified_google_email_cannot_authenticate_an_existing_account(): void
+    {
+        $user = User::factory()->create(['email' => 'unverified@cspc.edu.ph']);
+        $this->fakeGoogleUser($user->email, verified: false);
+        $this->get(route('auth.google.callback'))->assertRedirect(route('home'))->assertSessionHasErrors('google');
+        $this->assertGuest();
+    }
+
+    public function test_missing_google_email_verification_cannot_authenticate_an_existing_account(): void
+    {
+        $user = User::factory()->create(['email' => 'missing@cspc.edu.ph']);
+        $this->fakeGoogleUser($user->email, verified: null);
+        $this->get(route('auth.google.callback'))->assertRedirect(route('home'))->assertSessionHasErrors('google');
+        $this->assertGuest();
+    }
+
+    public function test_missing_google_subject_cannot_authenticate_an_existing_account(): void
+    {
+        $user = User::factory()->create(['email' => 'subject@cspc.edu.ph']);
+        $this->fakeGoogleUser($user->email, subject: '');
+        $this->get(route('auth.google.callback'))->assertRedirect(route('home'))->assertSessionHasErrors('google');
+        $this->assertGuest();
+    }
+
+    public function test_provider_exception_details_cannot_expose_oauth_secrets_in_logs(): void
+    {
+        \Illuminate\Support\Facades\Log::spy();
+        Socialite::shouldReceive('driver')->with('google')->andThrow(new \RuntimeException('client_secret=DO-NOT-LOG token=PRIVATE'));
+        $this->get(route('auth.google.callback'))->assertRedirect(route('home'))->assertSessionHasErrors('google');
+        \Illuminate\Support\Facades\Log::shouldHaveReceived('warning')->with('Google sign-in failed.', ['exception' => \RuntimeException::class])->once();
+        $this->assertGuest();
     }
 
     /* ------------------------------------------------------------------ */
@@ -66,7 +105,7 @@ class GoogleAuthTest extends TestCase
         $this->assertSame('BORROWER', session('active_workspace'));
     }
 
-    public function test_login_page_hides_the_google_button_when_oauth_is_not_configured(): void
+    public function test_login_page_keeps_google_option_visible_when_configuration_is_pending(): void
     {
         config(['services.google.client_id' => '', 'services.google.client_secret' => '', 'services.google.redirect' => '']);
 
@@ -74,14 +113,14 @@ class GoogleAuthTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Email')
-            ->assertDontSee('Sign in with Google');
+            ->assertSee('Continue with Google');
     }
 
     public function test_login_page_shows_the_google_button_when_configured(): void
     {
         $this->get('/login')
             ->assertOk()
-            ->assertSee('Sign in with Google')
+            ->assertSee('Continue with Google')
             ->assertSee('Keep me signed in');
     }
 
@@ -92,7 +131,8 @@ class GoogleAuthTest extends TestCase
     public function test_google_redirect_route_sends_the_visitor_to_google(): void
     {
         $this->get(route('auth.google.redirect'))
-            ->assertRedirectContains('accounts.google.com');
+            ->assertRedirectContains('accounts.google.com')
+            ->assertRedirectContains('prompt=select_account');
     }
 
     public function test_google_redirect_is_refused_when_oauth_is_not_configured(): void
@@ -185,13 +225,12 @@ class GoogleAuthTest extends TestCase
     /* Rejections                                                          */
     /* ------------------------------------------------------------------ */
 
-    public function test_unknown_google_email_is_rejected_and_provisions_nobody(): void
+    public function test_unknown_google_email_opens_registration_without_provisioning_privileges(): void
     {
         $this->fakeGoogleUser('student.not.registered@my.cspc.edu.ph');
 
         $this->get(route('auth.google.callback'))
-            ->assertRedirect(route('home'))
-            ->assertSessionHasErrors('google');
+            ->assertRedirect(route('register', ['source' => 'google']));
 
         $this->assertGuest();
         $this->assertSame(0, User::query()->count());
@@ -428,10 +467,10 @@ class GoogleAuthTest extends TestCase
 
         $user = User::factory()->create(['password' => 'correct-password']);
         $this->from('/')->post('/login', ['email' => $user->email, 'password' => 'wrong-password'])
-            ->assertRedirect('/')->assertSessionHasErrors('email');
+            ->assertRedirect('/')->assertSessionHasErrors('password');
         $this->withCookie(config('session.cookie'), session()->getId());
         $this->get('/')->assertOk()->assertSeeInOrder([
-            'class="landing-shell"', 'class="login-card"', 'The supplied credentials are invalid or the account is not active.',
+            'class="landing-shell"', 'class="login-card"', 'Incorrect password. Please try again.',
         ], false);
         $this->assertGuest();
     }

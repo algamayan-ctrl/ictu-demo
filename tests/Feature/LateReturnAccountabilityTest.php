@@ -125,7 +125,7 @@ class LateReturnAccountabilityTest extends TestCase
             return;
         }
 
-        $bytes = "\x89PNG\r\n\x1a\n".'late-return-signature-'.$user->id;
+        $bytes = \Tests\Support\EvidenceFixtures::signatureBytes('late-return-signature-'.$user->id);
         $path = 'tests/signatures/'.$user->id.'/signature.png';
 
         \Illuminate\Support\Facades\Storage::disk('local')->put($path, $bytes);
@@ -1299,12 +1299,16 @@ class LateReturnAccountabilityTest extends TestCase
 
         $this->assertSame('WAIVED', $billing->fresh()->status);
 
-        $this->withSession(['active_workspace' => 'SPMU'])
+        $response = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
             ->get(route('accountability.index', ['view' => 'resolved']))
-            ->assertOk()
-            ->assertSee('Waived')
-            ->assertDontSee('Resolved - Paid');
+            ->assertOk();
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($response->getContent());
+        $rows = (new \DOMXPath($dom))->query('//*[@data-resolved-history-row]');
+        $this->assertSame(1, $rows->length);
+        $this->assertSame('Waived', $rows->item(0)->getAttribute('data-outcome'));
+        $this->assertStringNotContainsString('Resolved - Paid', $rows->item(0)->textContent);
     }
 
     public function test_resolved_history_shows_a_zero_state_when_nothing_is_closed(): void

@@ -120,7 +120,7 @@ class AnalyticsSectionsTest extends TestCase
             ->assertSee('On Custody')
             ->assertSee('Overdue')
             ->assertSee('Available Stock')
-            ->assertDontSee('Borrowing Demand Trend')
+            ->assertSee('Borrowing Demand Trend')
             ->assertSee('Priority Insights');
     }
 
@@ -224,42 +224,20 @@ class AnalyticsSectionsTest extends TestCase
         }
     }
 
-    public function test_forecast_withholds_numbers_without_enough_history(): void
+    public function test_legacy_forecast_bookmark_shows_only_recorded_scheduled_demand(): void
     {
         $this->request('ACADEMIC', 'College of Computer Studies', Carbon::create(2026, 4, 5, 10));
-
-        $this->actingAs($this->spmuHead())
-            ->get(route('analytics.index', ['section' => 'forecast', 'academic_period' => 'month']))
-            ->assertOk()
-            /* The outlook notice moved into Forecast Readiness; the state is still stated. */
-            ->assertSee('Forecast unavailable')
-            ->assertSee('Scheduled Demand')
-            ->assertSee('Forecast Methodology')
-            /* A withheld forecast must not still show headline predictions. */
-            ->assertDontSee('Expected Requests')
-            ->assertDontSee('Busiest Unit');
+        $this->actingAs($this->spmuHead())->get(route('analytics.index', ['section' => 'forecast', 'academic_period' => 'month']))
+            ->assertOk()->assertSee('Scheduled Demand')->assertDontSee('Forecast unavailable')->assertDontSee('Forecast Methodology');
     }
 
-    public function test_forecast_shows_predictions_once_history_supports_them(): void
+    public function test_dense_history_cannot_enable_predictive_output(): void
     {
-        foreach ([
-            [Carbon::create(2026, 3, 10, 10), 6],
-            [Carbon::create(2026, 2, 10, 10), 4],
-            [Carbon::create(2026, 1, 10, 10), 2],
-        ] as [$when, $count]) {
-            for ($i = 0; $i < $count; $i++) {
-                $this->request('ACADEMIC', 'College of Computer Studies', $when->copy()->addHours($i));
-            }
+        foreach ([Carbon::create(2026, 3, 10, 10), Carbon::create(2026, 2, 10, 10), Carbon::create(2026, 1, 10, 10)] as $when) {
+            for ($i = 0; $i < 6; $i++) { $this->request('ACADEMIC', 'College of Computer Studies', $when->copy()->addHours($i)); }
         }
-
-        $this->actingAs($this->spmuHead())
-            ->get(route('analytics.index', ['section' => 'forecast', 'academic_period' => 'month']))
-            ->assertOk()
-            ->assertSee('Forecasted Demand')
-            ->assertSee('Projected requests for the next period')
-            ->assertSee('Borrowing Demand Outlook')
-            ->assertSee('Forecast Methodology')
-            ->assertDontSee('Not enough historical data to generate a reliable forecast.');
+        $this->actingAs($this->spmuHead())->get(route('analytics.index', ['section' => 'forecast', 'academic_period' => 'month']))
+            ->assertOk()->assertSee('Scheduled Demand')->assertDontSee('Forecasted Demand')->assertDontSee('Projected requests')->assertDontSee('Forecast Methodology');
     }
 
     public function test_switching_section_preserves_the_reporting_period_and_filters(): void

@@ -45,6 +45,7 @@
     data-spmu-inventory-row
     data-search="{{ $searchText }}"
     data-category="{{ strtolower($categoryName) }}"
+    data-eligibility="{{ $item->off_campus_allowed ? 'off-campus' : 'on-campus' }}"
     data-status="{{ $item->active ? 'active' : 'inactive' }}"
 >
     <td>

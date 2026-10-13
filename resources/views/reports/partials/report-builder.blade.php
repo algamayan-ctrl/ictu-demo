@@ -428,7 +428,7 @@
                     value="1"
                 >
                     <x-icon name="report-document" size="17" />
-                    <span data-preview-button-label>Preview Report</span>
+                    <span data-preview-button-label>Apply filters</span>
                 </button>
             </div>
         </div>
@@ -2452,6 +2452,11 @@ document.addEventListener('click', (event) => {
 }
 
 /* COLLAPSIBLE REPORT FILTERS FINAL END */
+
+/* Consistent compact report controls; preserve date-picker behavior. */
+.report-builder-card :is(.report-builder-field select, .report-borrower-trigger, .report-date-input, .report-generate-button) {
+    height: 44px !important; min-height: 44px !important; box-sizing: border-box;
+}
 </style>
 
 

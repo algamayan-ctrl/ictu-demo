@@ -107,3 +107,7 @@ Check `/up`, authenticated access using a designated rehearsal account, a protec
 ## Production recovery warning
 
 Production restoration is a controlled incident/change procedure, not a normal Docker restart. Obtain ICTU authority, preserve the failed-state evidence, identify the approved recovery point, and restore database plus `storage/app/private` together. Do not run destructive volume/database replacement steps until the approved RPO/RTO, destination, encryption/key access, and responsible operator have been confirmed.
+
+##13October2026 isolated rehearsal
+
+The authorized batch restored72 actual application-schema tables on owned local MariaDB11.4.12, verifying a synthetic request, reviewed external company, linked Google identity, and private evidence SHA256 after restoration. Receipt: project workspace `sprint1/batch02/recovery-result.json`; dump and fixture files remain outside the repository. A missing required `needed_from` fixture field was corrected before the successful rehearsal. This is not a production/Cloud restore, encryption/off-site-copy proof, or an approved RPO/RTO/retention schedule.

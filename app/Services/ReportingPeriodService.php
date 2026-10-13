@@ -27,6 +27,21 @@ class ReportingPeriodService
         'custom' => 'Custom Range',
     ];
 
+    /** Existing next-window display convention, independent of any prediction. */
+    public function nextScheduledWindow(\Carbon\CarbonInterface $from, \Carbon\CarbonInterface $to): array
+    {
+        $start = Carbon::parse($from)->startOfDay();
+        $end = Carbon::parse($to)->endOfDay();
+        if ($start->year === $end->year && $start->month === $end->month
+            && $start->isSameDay($start->copy()->startOfMonth()) && $end->isSameDay($end->copy()->endOfMonth())) {
+            $next = $start->copy()->addMonth()->startOfMonth();
+            return [$next, $next->copy()->endOfMonth()->endOfDay()];
+        }
+        $days = max(1, (int) $start->diffInDays($end->copy()->startOfDay()) + 1);
+        $next = $end->copy()->addDay()->startOfDay();
+        return [$next, $next->copy()->addDays($days - 1)->endOfDay()];
+    }
+
     /** Report-only ranges; the shared Analytics resolver keeps its existing behavior. */
     public function resolveForReport(Request $request, $academicPeriods, ?AcademicPeriod $activeAcademicPeriod): array
     {

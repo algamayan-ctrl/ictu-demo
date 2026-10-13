@@ -79,7 +79,8 @@ function mount({ paginated = false, recordsPresent = true } = {}) {
  */
 test('the page branches between empty and populated laundry-case states', () => {
     assert.match(page, /\$hasLaundryCases = \$jobs->total\(\) > 0;/);
-    assert.match(page, /@if\(\$hasLaundryCases\)\s+<section class="card laundry-toolbar"/);
+    assert.match(page, /@if\(\$hasLaundryCases\)\s+<section class="card laundry-cases-card"/);
+    assert.ok(page.indexOf('aria-label="Laundry case filters"') < page.indexOf('@if($hasLaundryCases)'), 'filters remain available above both empty and populated states');
     assert.match(page, /@else\s+<section class="card laundry-empty-card"/);
     assert.match(page, /No active laundry cases need action\./);
     assert.match(page, /Ongoing linen cases will appear here after physical release/);

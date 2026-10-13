@@ -41,7 +41,8 @@ class InventoryService
     public function availability(
         InventoryItem $item,
         CarbonInterface $from,
-        CarbonInterface $to
+        CarbonInterface $to,
+        bool $lockCurrentBalances = false
     ): array {
         /*
         |--------------------------------------------------------------------------
@@ -103,6 +104,7 @@ class InventoryService
                 ) AS quantity
                 '
             )
+            ->when($lockCurrentBalances, fn ($query) => $query->lockForUpdate())
             ->value('quantity');
 
         /*
@@ -157,6 +159,7 @@ class InventoryService
                 ) AS quantity
                 '
             )
+            ->when($lockCurrentBalances, fn ($query) => $query->lockForUpdate())
             ->value('quantity');
 
 
@@ -234,6 +237,7 @@ class InventoryService
                 ) AS quantity
                 '
             )
+            ->when($lockCurrentBalances, fn ($query) => $query->lockForUpdate())
             ->value('quantity');
 
 
@@ -314,6 +318,7 @@ class InventoryService
                 ) AS quantity
                 '
             )
+            ->when($lockCurrentBalances, fn ($query) => $query->lockForUpdate())
             ->value('quantity');
 
 
@@ -357,6 +362,7 @@ class InventoryService
                     'CANCELLED',
                 ]
             )
+            ->when($lockCurrentBalances, fn ($query) => $query->lockForUpdate())
             ->sum(
                 'return_lines.quantity_received'
             );
@@ -451,6 +457,7 @@ class InventoryService
                 ) AS quantity
                 '
             )
+            ->when($lockCurrentBalances, fn ($query) => $query->lockForUpdate())
             ->value('quantity');
 
         $laundry = $legacyLaundry + $currentLaundry;
@@ -508,12 +515,13 @@ class InventoryService
             ->groupBy(
                 'incident_lines.disposition_state'
             )
+            ->when($lockCurrentBalances, fn ($query) => $query->lockForUpdate())
             ->pluck(
                 'quantity',
                 'disposition_state'
             );
 
-        $incidentClosures = $this->incidentClosureStateTotals([$item->id])[$item->id] ?? [];
+        $incidentClosures = $this->incidentClosureStateTotals([$item->id], $lockCurrentBalances)[$item->id] ?? [];
 
         $incidentStates = $incidentStates->mapWithKeys(
             fn ($quantity, $state): array => [
@@ -538,7 +546,7 @@ class InventoryService
         |
         */
 
-        $conditionHold = $this->conditionHoldTotals([$item->id])[$item->id] ?? 0.0;
+        $conditionHold = $this->conditionHoldTotals([$item->id], $lockCurrentBalances)[$item->id] ?? 0.0;
 
 
         /*
@@ -1002,7 +1010,7 @@ class InventoryService
      * @param  list<int>  $ids
      * @return array<int, array<string, float>>
      */
-    private function incidentClosureStateTotals(array $ids): array
+    private function incidentClosureStateTotals(array $ids, bool $lockCurrentBalances = false): array
     {
         if ($ids === []) {
             return [];
@@ -1023,6 +1031,7 @@ class InventoryService
                 'line.from_state AS state'
             )
             ->selectRaw('COALESCE(SUM(line.quantity), 0) AS quantity')
+            ->when($lockCurrentBalances, fn ($query) => $query->lockForUpdate())
             ->get();
 
         $states = [];
@@ -1043,7 +1052,7 @@ class InventoryService
      * @param  list<int>  $ids
      * @return array<int, float>
      */
-    private function conditionHoldTotals(array $ids): array
+    private function conditionHoldTotals(array $ids, bool $lockCurrentBalances = false): array
     {
         if ($ids === []) {
             return [];
@@ -1057,6 +1066,7 @@ class InventoryService
             ->groupBy('line.inventory_item_id')
             ->select('line.inventory_item_id AS item_id')
             ->selectRaw('COALESCE(SUM(line.quantity), 0) AS quantity')
+            ->when($lockCurrentBalances, fn ($query) => $query->lockForUpdate())
             ->pluck('quantity', 'item_id');
 
         $closed = DB::table('inventory_transaction_lines as line')
@@ -1070,6 +1080,7 @@ class InventoryService
             ->groupBy('line.inventory_item_id')
             ->select('line.inventory_item_id AS item_id')
             ->selectRaw('COALESCE(SUM(line.quantity), 0) AS quantity')
+            ->when($lockCurrentBalances, fn ($query) => $query->lockForUpdate())
             ->pluck('quantity', 'item_id');
 
         $totals = [];
@@ -1600,7 +1611,8 @@ class InventoryService
             ]);
 
 
-            foreach ($version->items as $requestItem) {
+            // Concurrent approvals lock shared stock in a consistent order.
+            foreach ($version->items->sortBy('inventory_item_id') as $requestItem) {
                 /*
                  * Lock the inventory item so that another simultaneous
                  * approval cannot over-allocate the same inventory.
@@ -1616,10 +1628,14 @@ class InventoryService
                  * Recalculate availability using the exact requested
                  * borrowing period.
                  */
+                // Under MariaDB REPEATABLE READ, ordinary aggregates can
+                // retain a pre-lock snapshot. Approval must use current
+                // locking reads after acquiring this item's stock lock.
                 $balance = $this->availability(
                     $item,
                     $reservationStart,
-                    $version->return_due_at
+                    $version->return_due_at,
+                    lockCurrentBalances: true
                 );
 
 

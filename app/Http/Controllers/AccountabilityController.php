@@ -2387,7 +2387,7 @@ class AccountabilityController extends Controller
             'resolution_remarks' => ['required', 'string', 'max:2000'],
             'resolution_outcome' => [$incident->official_disposition ? 'required' : 'nullable', 'in:MONETARY_SETTLEMENT,REPAIR,REPLACEMENT,RETURN_RECOVERY,OTHER'],
             'rslddp_attachment' => ['required', 'file', 'mimes:pdf,png,jpg,jpeg,webp', 'max:5120'],
-            'f2f_processing_completed' => [$isDirectF2fResolution ? 'required' : 'nullable', 'accepted'],
+            'f2f_processing_completed' => [$isDirectF2fResolution ? 'required' : 'sometimes', 'accepted'],
         ]);
 
         if (! $isDirectF2fResolution && $incident->status !== 'RSLDDP_FOR_RESOLUTION') {

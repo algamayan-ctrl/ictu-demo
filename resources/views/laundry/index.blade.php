@@ -77,6 +77,7 @@
                     </select>
                 </label>
                 @if($jobs->hasPages())
+                    <small>Search, status, and sort apply to the cases on this page.</small>
                 @endif
             </section>
 

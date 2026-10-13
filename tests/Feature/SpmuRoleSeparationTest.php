@@ -55,7 +55,7 @@ class SpmuRoleSeparationTest extends TestCase
             )
             ->assertOk()
             ->assertSee(
-                'Release & Return Oversight'
+                'Request Transaction Oversight'
             )
             ->assertDontSee(
                 'Save Pickup Schedule'

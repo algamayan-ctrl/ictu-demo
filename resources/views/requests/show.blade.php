@@ -22,6 +22,8 @@
         && $borrowingRequest->status === App\Enums\RequestStatus::UnderSpmu;
     $actionOfficerStep = $v->approvalSteps->firstWhere('sequence_no', 1);
     $actionOfficerVerified = $actionOfficerStep?->decision === 'VERIFIED';
+    $rejectionStep = $v->approvalSteps->first(fn ($step) => $step->stage_code === App\Enums\ApprovalStage::Spmu
+        && $step->sequence_no === 2 && $step->decision === 'REJECTED');
     $actionOfficerDocumentsVerified = $actionOfficerVerified
         && $currentDocs->isNotEmpty()
         && $currentDocs->every(
@@ -169,6 +171,15 @@
                 <li>{{ $error }}</li>
             @endforeach
         </ul>
+    </div>
+</section>
+@endif
+
+@if($borrowingRequest->status === App\Enums\RequestStatus::Rejected && filled($rejectionStep?->remarks))
+<section class="content-area">
+    <div class="callout danger">
+        <strong>Rejection reason</strong>
+        <p>{{ $rejectionStep->remarks }}</p>
     </div>
 </section>
 @endif
@@ -509,6 +520,9 @@
                 >
                     @csrf
 
+                    @if($canVerify || $canDecide)
+                        <input type="hidden" name="reviewed_version_id" value="{{ $v->id }}">
+                    @endif
                     <input type="hidden" name="decision" value="" data-verification-decision>
                     <input type="hidden" name="remarks" value="{{ old('remarks') }}" data-verification-remarks>
                     <input type="hidden" name="confirm_e_signature" value="" data-verification-e-signature>
@@ -723,8 +737,8 @@
                 </div>
 
                 <div class="spmu-left-borrowing-cell">
-                    <span>Office / College / Unit</span>
-                    <strong>{{ $borrowingRequest->borrower->organizationalUnit?->unit_name ?: '—' }}</strong>
+                    <span>{{ $v->isExternalAffiliation() ? 'Company / Agency / Institution' : 'Office / College / Unit' }}</span>
+                    <strong>{{ $v->affiliationLabel() }}</strong>
                 </div>
 
                 <div class="spmu-left-borrowing-cell">
@@ -794,8 +808,8 @@
 
             <div class="borrower-fact-grid">
                 <div>
-                    <span>Office / College / Unit</span>
-                    <strong>{{ $borrowingRequest->borrower->organizationalUnit?->unit_name ?: '&mdash;' }}</strong>
+                    <span>{{ $v->isExternalAffiliation() ? 'Company / Agency / Institution' : 'Office / College / Unit' }}</span>
+                    <strong>{{ $v->affiliationLabel() }}</strong>
                 </div>
                 <div>
                     <span>Location</span>
@@ -825,12 +839,15 @@
                 $awaitingItemDecision = $v->items->every(
                     fn ($item) => $item->approved_quantity === null
                 );
+                $itemDecisionNote = $borrowingRequest->status === App\Enums\RequestStatus::Rejected
+                    ? 'Request rejected'
+                    : ($awaitingItemDecision ? 'Awaiting SPMU review' : 'Approved quantities');
             @endphp
 
             <h2 class="borrower-card-title">
                 <span class="borrower-card-icon" aria-hidden="true"><x-icon name="box" size="20" /></span>
                 Requested Items
-                <span class="borrower-card-note">{{ $awaitingItemDecision ? 'Awaiting SPMU review' : 'Approved quantities' }}</span>
+                <span class="borrower-card-note">{{ $itemDecisionNote }}</span>
             </h2>
 
             <div class="borrower-item-list">
@@ -931,13 +948,26 @@
     </article>
 
     @if($borrowingRequest->custody && $borrowingRequest->final_approved_at)
-        @php
-            // Once items are physically released, "proceed to SPMU for
-            // pickup" is stale instruction - the documents remain here only
-            // for reference from that point on.
-            $physicalReleaseComplete = (bool) $custody?->released_at;
-        @endphp
-            @endif
+        <article class="card">
+            <div class="card-header">
+                <div>
+                    <p class="eyebrow">Approved documents</p>
+                    <h2>Borrowing documents</h2>
+                </div>
+            </div>
+            @forelse($operationalDocuments as $document)
+                <div class="evidence-row">
+                    <div>
+                        <strong>{{ str($document->document_type)->replace('_', ' ')->title() }}</strong>
+                        <small>{{ $document->document_no }}</small>
+                    </div>
+                    <a class="button secondary small ui-pressable" href="{{ route('documents.preview', $document) }}">Preview</a>
+                </div>
+            @empty
+                <div class="empty-state"><strong>No current approved document is available.</strong></div>
+            @endforelse
+        </article>
+    @endif
 </div>
 @elseif($isOperationalRequestLayout)
     @include('requests.partials.operational-details')
@@ -955,8 +985,8 @@
             <dt>Borrower</dt>
             <dd>{{ $borrowingRequest->borrower->full_name }}</dd>
 
-            <dt>Office / College / Unit</dt>
-            <dd>{{ $borrowingRequest->borrower->organizationalUnit?->unit_name ?: '—' }}</dd>
+            <dt>{{ $v->isExternalAffiliation() ? 'Company / Agency / Institution' : 'Office / College / Unit' }}</dt>
+            <dd>{{ $v->affiliationLabel() }}</dd>
 
             <dt>Event Details</dt>
             <dd>{{ $v->purpose_event }}</dd>

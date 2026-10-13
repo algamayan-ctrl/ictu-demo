@@ -27,14 +27,24 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
+use Tests\Support\EvidenceFixtures;
 
 class CompleteWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    // Model a fresh sign-in for each integration actor after fixture date
+    // jumps, without disabling the separately tested idle-timeout middleware.
+    public function actingAs(\Illuminate\Contracts\Auth\Authenticatable $user, $guard = null)
+    {
+        $this->withSession(['last_user_activity_at' => now()->timestamp]);
+        return parent::actingAs($user, $guard);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake('local');
         $this->seed(DatabaseSeeder::class);
 
         // Physical pickup/release and return transactions require a complete
@@ -107,8 +117,8 @@ class CompleteWorkflowTest extends TestCase
         );
 
         /*
-         * Borrower Slip is generated during SPMU physical preparation,
-         * before issuance. No online borrower acknowledgement is required.
+         * Borrower Slip generated at approval remains valid through physical
+         * preparation. No online borrower acknowledgement is required.
          */
         $this->assertDatabaseHas('generated_documents', [
             'subject_type' => CustodyTransaction::class,
@@ -554,8 +564,10 @@ class CompleteWorkflowTest extends TestCase
             'status' => RequestStatus::Draft,
         ]);
 
-        $scheduleDate = now()->addDays(2)->startOfDay();
-        $returnDate = now()->addDays(3)->startOfDay();
+        // Match the first approved period exactly; unrelated offsets can
+        // stop overlapping when the calendar fixture skips closed days.
+        $scheduleDate = $firstVersion->needed_from->copy()->startOfDay();
+        $returnDate = $firstVersion->return_due_at->copy()->startOfDay();
 
         $secondVersion = $secondRequest->versions()->create([
             'version_no' => 1,
@@ -605,10 +617,11 @@ class CompleteWorkflowTest extends TestCase
          * The second request must NOT reach ApprovedReadyForRelease -- it
          * must not overbook the item.
          */
-        $this->assertNotSame(
-            RequestStatus::ApprovedReadyForRelease,
+        $this->assertSame(
+            RequestStatus::ReturnedForRevision,
             $secondRequest->fresh()->status
         );
+        $this->assertDatabaseHas('audit_events', ['action_code' => 'SPMU_RESERVATION_CONFLICT']);
 
         /*
          * The first request's allocation is untouched: still 40, still
@@ -1421,9 +1434,8 @@ class CompleteWorkflowTest extends TestCase
         int $returnDays = 3
     ): array {
         /*
-         * Request submission is only permitted on an open SPMU operational
-         * day; anchor the clock so this helper does not depend on which
-         * weekday the test suite happens to run.
+         * Online submission is always available. Anchor the fixture time;
+         * physical needed-from/pickup dates are resolved separately below.
          */
         $this->travelTo(
             app(\App\Services\OperationalCalendarService::class)
@@ -1483,6 +1495,18 @@ class CompleteWorkflowTest extends TestCase
                 ->copy()
                 ->addDay()
                 ->startOfDay();
+
+        // Both dates must be open, including the remaining window needed by
+        // missed-pickup continuation. A Friday pickup cannot imply Saturday use.
+        $calendar = app(\App\Services\OperationalCalendarService::class);
+        while (! $calendar->isOpenDate($scheduleDate)
+            || ! $calendar->isOpenFor(\App\Services\OperationalCalendarService::PICKUP, $scheduleDate->copy()->subDay())) {
+            $scheduleDate = $calendar->nextOpenDate(
+                \App\Services\OperationalCalendarService::REQUEST,
+                $scheduleDate->copy()->addDay(),
+                true
+            )->startOfDay();
+        }
 
         $returnDate =
             $scheduleDate
@@ -1723,8 +1747,8 @@ class CompleteWorkflowTest extends TestCase
         $version,
         User $borrower
     ): void {
-        $bytes =
-            '%PDF-1.4 current-workflow-test';
+        $bytes = EvidenceFixtures::pdfBytes('Synthetic current workflow letter');
+        Storage::disk('local')->put('tests/request-supporting-documents/'.$request->id.'/signed-approved-request-letter.pdf', $bytes);
 
         $file =
             StoredFile::create([
@@ -1807,7 +1831,7 @@ class CompleteWorkflowTest extends TestCase
      */
     private function registerSignature(User $user): void
     {
-        $bytes = "\x89PNG\r\n\x1a\n".'signature-ink-'.$user->id;
+        $bytes = EvidenceFixtures::signatureBytes('Synthetic signature '.$user->id);
         $path = 'tests/signatures/'.$user->id.'/signature.png';
 
         // SignatureService::snapshot() reads these bytes back from disk, so

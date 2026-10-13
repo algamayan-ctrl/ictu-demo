@@ -32,6 +32,8 @@ class AnalyticsRecordsController extends Controller
             403
         );
 
+        \App\Support\AnalyticsFilters::validate($request);
+
         $academicPeriods = AcademicPeriod::query()
             ->orderByRaw("CASE WHEN status = 'ACTIVE' THEN 0 ELSE 1 END")
             ->orderByDesc('start_date')
@@ -52,7 +54,9 @@ class AnalyticsRecordsController extends Controller
             $division = 'all';
         }
 
-        $unitOptions = $analytics->unitOptions($from, $to);
+        $scheduledScope = $request->input('for') === 'scheduled.summary';
+        [$scopeFrom, $scopeTo] = $scheduledScope ? $periods->nextScheduledWindow($from, $to) : [$from, $to];
+        $unitOptions = $scheduledScope ? $analytics->scheduledUnitOptions($scopeFrom, $scopeTo) : $analytics->unitOptions($from, $to);
         $unit = (string) $request->input('unit', 'all');
         $selectableUnits = $division === 'all'
             ? $unitOptions->flatten()->unique()->sort()->values()->all()
@@ -69,8 +73,8 @@ class AnalyticsRecordsController extends Controller
         $borrowerFilter = null;
 
         if ($borrower > 0) {
-            $exists = $analytics
-                ->requestScope($from, $to, $divisionFilter, $unitFilter)
+            $exists = ($scheduledScope ? $analytics->scheduledRequestScope($scopeFrom, $scopeTo, $divisionFilter, $unitFilter)
+                : $analytics->requestScope($from, $to, $divisionFilter, $unitFilter))
                 ->where('borrowing_requests.borrower_user_id', $borrower)
                 ->exists();
 

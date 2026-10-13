@@ -22,6 +22,7 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
+use Tests\Support\EvidenceFixtures;
 
 /**
  * Functional coverage for RequestWorkflowService::
@@ -38,6 +39,7 @@ class PreparationDiscrepancyCancellationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake('local');
         $this->seed(DatabaseSeeder::class);
 
         OperationalWeeklySchedule::query()
@@ -335,7 +337,8 @@ class PreparationDiscrepancyCancellationTest extends TestCase
 
     private function attachApprovedRequestLetter(BorrowingRequest $request, $version, User $borrower): void
     {
-        $bytes = '%PDF-1.4 preparation-discrepancy-test';
+        $bytes = EvidenceFixtures::pdfBytes('Synthetic preparation discrepancy letter');
+        Storage::disk('local')->put('tests/request-supporting-documents/'.$request->id.'/signed-approved-request-letter.pdf', $bytes);
 
         $file = StoredFile::create([
             'uploaded_by_user_id' => $borrower->id,
@@ -368,7 +371,7 @@ class PreparationDiscrepancyCancellationTest extends TestCase
             return;
         }
 
-        $bytes = "\x89PNG\r\n\x1a\n".'signature-ink-'.$user->id;
+        $bytes = EvidenceFixtures::signatureBytes('Synthetic signature '.$user->id);
         $path = 'tests/signatures/'.$user->id.'/signature.png';
 
         Storage::disk('local')->put($path, $bytes);

@@ -6,6 +6,8 @@ use App\Http\Controllers\AnalyticsRecordsController;
 use App\Http\Controllers\AdministrationController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Auth\BorrowerRegistrationController;
+use App\Http\Controllers\BorrowerRegistrationReviewController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\SessionActivityController;
@@ -39,6 +41,9 @@ Route::get('/', function () {
  })->name('home');
 
 Route::middleware('guest')->group(function (): void {
+    Route::get('/register', [BorrowerRegistrationController::class, 'create'])->name('register');
+    Route::post('/register', [BorrowerRegistrationController::class, 'store'])
+        ->middleware('throttle:5,1')->name('register.store');
     /*
      * Pending institutional accounts verify mailbox ownership by OTP.
      * ICTU creates the account; the account holder supplies only the code
@@ -83,12 +88,21 @@ Route::middleware('guest')->group(function (): void {
         ->middleware('throttle:10,1')
         ->name('auth.google.redirect');
 
-    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])
-        ->middleware('throttle:10,1')
-        ->name('auth.google.callback');
 });
 
-Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function (): void {
+// Login and linking share the stateful callback; linking requires a password-
+// confirmed, expiring session created by the authenticated POST route below.
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])
+    ->middleware('throttle:10,1')->name('auth.google.callback');
+
+Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 'idle'])->group(function (): void {
+    Route::post('/profile/google/link', [GoogleAuthController::class, 'link'])
+        ->middleware('throttle:5,1')->name('auth.google.link');
+    Route::middleware('workspace:SPMU')->group(function (): void {
+        Route::get('/registrations', [BorrowerRegistrationReviewController::class, 'index'])->name('registrations.index');
+        Route::get('/registrations/{registration}', [BorrowerRegistrationReviewController::class, 'show'])->name('registrations.show');
+        Route::post('/registrations/{registration}/decision', [BorrowerRegistrationReviewController::class, 'decide'])->name('registrations.decide');
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -691,11 +705,20 @@ Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function 
 
     Route::prefix('administration')
         ->name('administration.')
-        ->middleware('workspace:ICTU')
+        ->middleware('workspace:SPMU,ICTU')
         ->group(function (): void {
+            // UserPolicy narrows SPMU access to Admin and operational targets.
+            Route::resource('users', UserAdministrationController::class)
+                ->except(['show', 'destroy']);
 
             Route::patch('/users/{user}/deactivate', [UserAdministrationController::class, 'deactivate'])
                 ->name('users.deactivate');
+        });
+
+    Route::prefix('administration')
+        ->name('administration.')
+        ->middleware('workspace:ICTU')
+        ->group(function (): void {
 
             Route::patch('/users/{user}/reactivate', [UserAdministrationController::class, 'reactivate'])
                 ->name('users.reactivate');
@@ -703,9 +726,6 @@ Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function 
             // Correct only unused, unverified registration mistakes; never delete operational history.
             Route::delete('/users/{user}/pending', [UserAdministrationController::class, 'deletePendingRegistration'])
                 ->name('users.delete-pending');
-
-            Route::resource('users', UserAdministrationController::class)
-                ->except(['show', 'destroy']);
 
             Route::post('/users/{user}/resend-email-verification-otp', [UserAdministrationController::class, 'resendEmailVerification'])
                 ->middleware('throttle:5,1')

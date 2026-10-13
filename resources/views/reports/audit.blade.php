@@ -228,6 +228,9 @@
         <p class="eyebrow">{{ $isOperationalAudit ? 'SPMU operational audit' : 'ICTU technical audit' }}</p>
         <h1 id="ictu-audit-page-title">{{ $isOperationalAudit ? 'Operational Audit Trail' : 'Technical Audit Trail' }}</h1>
         <p>{{ $isOperationalAudit ? 'Review significant SPMU operational actions and record changes for accountability and traceability.' : 'Review account, authentication, configuration, security, and other technical system activities.' }}</p>
+        @if(($totalVisibleEvents ?? $events->count()) > $events->count())
+            <p role="status">Showing latest {{ $events->count() }} of {{ $totalVisibleEvents }} total records.</p>
+        @endif
     </div>
 </section>
 
@@ -428,7 +431,7 @@
                                 </time>
                             </td>
                             <td class="ictu-audit-action-cell">
-                                <button class="ictu-audit-view-button" type="button"
+                                <button class="ictu-audit-view-button button secondary small ui-pressable disclosure-trigger" type="button"
                                         data-audit-details-toggle
                                         aria-expanded="false"
                                         aria-controls="audit-detail-{{ $event->id }}">

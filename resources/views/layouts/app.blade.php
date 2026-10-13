@@ -1145,7 +1145,6 @@
                     ['dashboard', 'dashboard', 'Dashboard', 'dashboard'],
                     ['approvals.index', 'approvals.*', 'For Approval', 'approval'],
                     ['requests.index', 'requests.*', 'Request Records', 'requests'],
-                    ['custody.index', 'custody.*', 'Release & Return', 'custody'],
                     ['inventory.index', 'inventory.*', 'Inventory', 'inventory'],
                     ['calendar.index', 'calendar.*', 'Operations Calendar', 'calendar'],
                     ['accountability.index', 'accountability.*', 'Accountability', 'accountability'],
@@ -1153,10 +1152,12 @@
                     ['reports.index', 'reports.index', 'Reports', 'report-document'],
                     ['reports.audit', 'reports.audit', 'Operational Audit Trail', 'reports'],
                     ['policies.index', 'policies.*', 'Configuration', 'settings'],
+                    ['administration.users.index', 'administration.users.*', 'User Accounts', 'users'],
                 ]
                 : [
                     ['dashboard', 'dashboard', 'Dashboard', 'dashboard'],
                     ['verifications.index', 'verifications.*', 'For Verification', 'approval'],
+                    ['registrations.index', 'registrations.*', 'Borrower Registrations', 'users'],
                     ['requests.index', 'requests.*', 'Request Records', 'requests'],
                     ['custody.release.index', 'custody.release.*', 'Release', 'upload'],
                     ['custody.return.index', 'custody.return.*', 'Return', 'custody'],
@@ -1390,7 +1391,7 @@
     @endunless
     {{-- LOGIN PORTAL HEADER VISIBILITY END --}}
     <main id="main-content" tabindex="-1">
-        @unless(request()->routeIs('home', 'login'))
+        @unless(($inlinePageNotices ?? false) || request()->routeIs('home', 'login'))
         @if(session('status'))<div class="notice success" role="status"><x-icon name="success" /><div>{{ session('status') }}</div></div>@endif
         @if($errors->any())<div class="notice error" role="alert"><x-icon name="error" /><div><strong>Please correct the following:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>@endif
         @endunless

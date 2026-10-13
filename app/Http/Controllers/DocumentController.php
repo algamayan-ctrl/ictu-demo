@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Enums\UserRole;
 use App\Models\BillingStatement;
 use App\Models\BorrowerRestriction;
+use App\Models\BorrowerRegistration;
+use App\Models\CustodyTransaction;
 use App\Models\EvidenceSubmission;
 use App\Models\GeneratedDocument;
 use App\Models\GatePass;
@@ -18,6 +20,7 @@ use App\Models\StoredFile;
 use App\Models\UserSignature;
 use App\Services\ProtectedFileService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -98,6 +101,18 @@ class DocumentController extends Controller
 
         $borrowingRequest = $document->version?->request;
         $user = $request->user();
+
+        // A version owned by one borrower must not authorize a controlled
+        // document whose custody subject belongs to a different transaction.
+        if ($borrowingRequest && $document->subject_type === CustodyTransaction::class) {
+            $custody = CustodyTransaction::query()->find($document->subject_id);
+            abort_unless(
+                $custody
+                    && (int) $custody->request_id === (int) $borrowingRequest->getKey()
+                    && (int) $custody->borrower_user_id === (int) $borrowingRequest->borrower_user_id,
+                403
+            );
+        }
 
         $billingBorrowerId = $document->subject_type === BillingStatement::class
             ? BillingStatement::query()
@@ -321,6 +336,14 @@ class DocumentController extends Controller
             || ($operationalEvidence && $isSpmu)
             || ($isTemplateSource && ($isSpmu || $isIctu))
             || $isIctu;
+
+        if ((string) $file->classification === 'BORROWER_REGISTRATION_ID') {
+            $registration = BorrowerRegistration::query()->where('valid_id_file_id', $file->id)->first();
+            $allowed = $registration && (
+                ((int) $registration->user_id === (int) $user->id && $uploadedByCurrentUser)
+                || Gate::forUser($user)->allows('view', $registration)
+            );
+        }
 
         abort_unless($allowed, 403);
 

@@ -622,7 +622,7 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="warning" size="15" /></span>
  <div>
  <h2>Current Overdue Exposure</h2>
- <p>Current overdue cases with aging context.</p>
+ <p>Aging counts open return days after the due date, using the Admin Transaction Schedule. Current backlog is not limited to the reporting period.</p>
  </div>
  @if($currentOverdue['total'] > $currentOverdue['shown'])
  <a class="analytics-card-action" href="{{ AnalyticsDetailLink::to('follow-up', 'returns', $periodSelection, $division, $unit) }}">
@@ -658,7 +658,7 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
  <strong>
  {{ $case['days_overdue'] === null
  ? 'Overdue'
- : $case['days_overdue'].' '.($case['days_overdue'] === 1 ? 'day' : 'days').' overdue' }}
+ : $case['days_overdue'].' '.($case['days_overdue'] === 1 ? 'open return day' : 'open return days').' overdue' }}
  </strong>
  </span>
  </a>
@@ -670,7 +670,7 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
 
  @if($overdueAging['available'])
  <div class="analytics-card-body">
- <ul class="analytics-aging-bands" aria-label="Currently overdue borrowings by days past due">
+ <ul class="analytics-aging-bands" aria-label="Currently overdue borrowings by open return days past due">
  @foreach($overdueAging['groups'] as $row)
  <li class="{{ $row['count'] === 0 ? 'is-none' : '' }}">
  <a

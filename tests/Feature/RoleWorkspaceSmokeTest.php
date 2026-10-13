@@ -45,13 +45,16 @@ class RoleWorkspaceSmokeTest extends TestCase
             '/calendar',
             '/requests',
             '/approvals',
-            '/custody',
             '/accountability',
             '/reports',
             '/reports/notifications',
             '/administration',
             '/administration/settings',
         ]);
+
+        $this->actingAs($this->workspaceUser(UserRole::Spmu))
+            ->get('/custody')
+            ->assertRedirect(route('requests.index'));
     }
 
     public function test_ictu_workspace_pages_render(): void
@@ -78,11 +81,11 @@ class RoleWorkspaceSmokeTest extends TestCase
                 'hide' => ['For Approval', 'User Accounts', 'Laundry'],
             ],
             UserRole::Spmu->value => [
-                'see' => ['For Approval', 'Inventory', 'Release & Return', 'Analytics', 'Reports', 'Configuration'],
-                'hide' => ['User Accounts', 'Audit Trail', 'Delivery Records', 'Laundry'],
+                'see' => ['For Approval', 'Request Records', 'Inventory', 'Analytics', 'Reports', 'Configuration', 'User Accounts'],
+                'hide' => ['Release & Return', 'Release', 'Return', 'Technical Audit Trail', 'Delivery Records', 'Laundry'],
             ],
             UserRole::Ictu->value => [
-                'see' => ['User Accounts', 'Configuration', 'Audit Trail', 'Delivery Records'],
+                'see' => ['User Accounts', 'System Configuration', 'Technical Audit Trail', 'Delivery Records'],
                 'hide' => ['Borrowing Calendar', 'For Approval', 'Laundry'],
             ],
         ];
@@ -96,25 +99,39 @@ class RoleWorkspaceSmokeTest extends TestCase
                 ->get('/dashboard')
                 ->assertOk();
 
-            foreach ($labels['see'] as $label) {
-                $response->assertSee($label);
-            }
-
-            foreach ($labels['hide'] as $label) {
-                $response->assertDontSee($label);
-            }
+            $this->assertNavigationLabels($response, $labels['see'], $labels['hide']);
         }
 
         $actionOfficer = User::query()
             ->where('access_classification', AccessClassification::SpmuOfficer->value)
             ->firstOrFail();
 
-        $this->withSession(['active_workspace' => UserRole::Spmu->value])
+        $response = $this->withSession(['active_workspace' => UserRole::Spmu->value])
             ->actingAs($actionOfficer)
             ->get('/dashboard')
-            ->assertOk()
-            ->assertSee('Laundry')
-            ->assertDontSee('User Accounts');
+            ->assertOk();
+        $this->assertNavigationLabels($response,
+            ['For Verification', 'Borrower Registrations', 'Release', 'Return', 'Laundry'],
+            ['User Accounts', 'For Approval', 'Release & Return']
+        );
+    }
+
+    private function assertNavigationLabels(\Illuminate\Testing\TestResponse $response, array $see, array $hide): void
+    {
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($response->getContent());
+        $xpath = new \DOMXPath($dom);
+        $labels = [];
+        foreach ($xpath->query('//nav[@aria-label="Primary navigation"]/a/@aria-label') as $label) {
+            $labels[] = $label->nodeValue;
+        }
+        $this->assertNotEmpty($labels, 'The actual primary navigation must be rendered.');
+        foreach ($see as $label) {
+            $this->assertContains($label, $labels);
+        }
+        foreach ($hide as $label) {
+            $this->assertNotContains($label, $labels);
+        }
     }
 
     /** @param array<int, string> $paths */

@@ -7,7 +7,7 @@
 
 <section class="page-heading ictu-users-heading" aria-labelledby="ictu-institutional-heading">
     <div>
-        <p class="eyebrow">ICTU identity administration</p>
+        <p class="eyebrow">Account administration</p>
         <h1 id="ictu-institutional-heading">Institutional user accounts</h1>
         <p>Manage official CSPC identities, organizational assignments, access, and account status.</p>
     </div>
@@ -115,7 +115,7 @@
                         $classificationLabel = $user->access_classification?->label() ?? 'Not assigned';
                         $accountStatus = $user->account_status?->value ?? 'ACTIVE';
                         $isOwnAccount = auth()->id() === $user->id;
-                        $canDeactivate = $accountStatus === 'ACTIVE' && ! $isOwnAccount;
+                        $canDeactivate = $accountStatus === 'ACTIVE' && auth()->user()->can('deactivate', $user);
                         $isRestricted = $user->activeRestrictions()->exists();
                         $personnelType = match ($user->employment_type?->value) {
                             'FACULTY' => 'Faculty', 'EMPLOYEE' => 'Employee', 'STAFF' => 'Staff', default => null,
@@ -157,8 +157,14 @@
                         <td><div class="ictu-user-status-stack">
                             <x-status-badge :status="$user->account_status ?? 'ACTIVE'" />
                             @if($user->hasVerifiedInstitutionalEmail())
+                                @if($user->borrowerRegistration)
+                                    <x-status-badge :status="$user->borrowerRegistration->status->value" :label="'Registration: '.ucfirst(strtolower($user->borrowerRegistration->status->value))" />
+                                @endif
                                 <x-status-badge status="EMAIL_VERIFIED" label="Email verified" />
                             @else
+                                @if($user->borrowerRegistration)
+                                    <x-status-badge :status="$user->borrowerRegistration->status->value" :label="'Registration: '.ucfirst(strtolower($user->borrowerRegistration->status->value))" />
+                                @endif
                                 <x-status-badge status="EMAIL_PENDING" label="OTP pending" />
                             @endif
                             @if($isRestricted)
@@ -265,18 +271,40 @@ document.addEventListener('DOMContentLoaded', () => {
     nextPage?.addEventListener('click', () => {
         if (currentPage < Math.ceil(filteredRows.length / pageSize)) { currentPage += 1; renderPage(); }
     });
-    // The confirmation happens at click time, before the application-wide
-    // duplicate-submit handler locks state-changing forms on submit.
+    const dialog = document.getElementById('user-deactivation-confirmation');
+    let pendingDeactivation = null;
+    // Confirm before the shared submit handler locks a state-changing form.
     document.querySelectorAll('[data-ictu-deactivate-form] button:not(:disabled)').forEach(button => {
         button.addEventListener('click', event => {
-            const form = button.closest('form');
-            const name = form?.dataset.userName || 'this account';
-            if (!window.confirm(`Deactivate ${name}? Portal access will be disabled, but all records will be retained. Reactivate through Manage User.`)) {
-                event.preventDefault();
-            }
+            event.preventDefault();
+            pendingDeactivation = button.closest('form');
+            document.getElementById('deactivation-account-name').textContent = pendingDeactivation.dataset.userName;
+            dialog.showModal();
         });
     });
+    document.getElementById('confirm-user-deactivation').addEventListener('click', () => {
+        const form = pendingDeactivation;
+        dialog.close();
+        if (form) form.requestSubmit();
+    });
+    dialog.addEventListener('close', () => { pendingDeactivation = null; });
+    document.getElementById('cancel-user-deactivation').addEventListener('click', () => dialog.close());
     applyFilters();
 });
 </script>
+<dialog id="user-deactivation-confirmation" class="user-deactivation-dialog" aria-labelledby="deactivation-dialog-heading" aria-describedby="deactivation-dialog-description">
+    <h2 id="deactivation-dialog-heading">Deactivate account?</h2>
+    <p id="deactivation-dialog-description">Portal access for <strong id="deactivation-account-name"></strong> will be disabled. All account and transaction records will be retained.</p>
+    <div class="user-deactivation-dialog-actions"><button id="cancel-user-deactivation" class="button secondary" type="button" autofocus>Cancel</button><button id="confirm-user-deactivation" class="button danger" type="button">Confirm deactivation</button></div>
+</dialog>
+<style>
+.user-deactivation-dialog { width: min(480px, calc(100vw - 36px)); padding: 24px; color: var(--text); background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+.user-deactivation-dialog::backdrop { background: rgba(7, 27, 53, .45); }
+.user-deactivation-dialog h2 { margin: 0 0 12px; color: var(--heading); font-size: 18px; }
+.user-deactivation-dialog p { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+.user-deactivation-dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.user-deactivation-dialog-actions form { margin: 0; }
+#user-deactivation-confirmation .button.danger { color: #fff; background: var(--danger-action); border-color: var(--danger-action); }
+#user-deactivation-confirmation .button.danger:hover { background: var(--danger-action-hover); border-color: var(--danger-action-hover); }
+</style>
 @endsection

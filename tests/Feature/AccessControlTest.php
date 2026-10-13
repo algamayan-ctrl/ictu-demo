@@ -48,7 +48,7 @@ class AccessControlTest extends TestCase
         $this->post('/login', [
             'email' => $user->email,
             'password' => 'correct-horse-battery-staple',
-        ])->assertSessionHasErrors('email');
+        ])->assertSessionHasErrors('password');
 
         $this->assertGuest();
     }

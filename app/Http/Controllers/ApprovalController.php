@@ -67,6 +67,7 @@ class ApprovalController extends Controller
 
         $rules = [
             'decision' => ['required', Rule::in(['VERIFIED', 'RETURNED_FOR_REVISION'])],
+            'reviewed_version_id' => ['nullable', 'integer', 'min:1'],
             'remarks' => [
                 Rule::requiredIf(
                     fn (): bool => strtoupper((string) $request->input('decision'))
@@ -100,7 +101,8 @@ class ApprovalController extends Controller
             $request->user(),
             $data['decision'],
             $data['remarks'] ?? null,
-            $request->boolean('confirm_e_signature')
+            $request->boolean('confirm_e_signature'),
+            isset($data['reviewed_version_id']) ? (int) $data['reviewed_version_id'] : null
         );
 
         return redirect()->route('verifications.index')->with(
@@ -131,6 +133,7 @@ class ApprovalController extends Controller
                 'required',
                 Rule::in(['APPROVED', 'REJECTED', 'RETURNED_FOR_REVISION']),
             ],
+            'reviewed_version_id' => ['nullable', 'integer', 'min:1'],
             'remarks' => [
                 Rule::requiredIf(
                     fn (): bool => in_array(
@@ -177,10 +180,13 @@ class ApprovalController extends Controller
             $request->user(),
             $data['decision'],
             $data['remarks'] ?? null,
-            $request->boolean('confirm_e_signature')
+            $request->boolean('confirm_e_signature'),
+            isset($data['reviewed_version_id']) ? (int) $data['reviewed_version_id'] : null
         );
 
-        $message = match ($data['decision']) {
+        $savedDecision = $borrowingRequest->fresh()->status === RequestStatus::ReturnedForRevision
+            ? 'RETURNED_FOR_REVISION' : $data['decision'];
+        $message = match ($savedDecision) {
             'APPROVED' => 'Verified request E-signed and approved by the authorized SPMU Head signatory. The approved quantity is reserved, the Borrower Slip and applicable Gate Pass were generated, and the Action Officer may proceed with pickup preparation.',
             'RETURNED_FOR_REVISION' => 'Request returned for revision. No inventory allocation was created.',
             default => 'Request rejected. No inventory allocation was created.',

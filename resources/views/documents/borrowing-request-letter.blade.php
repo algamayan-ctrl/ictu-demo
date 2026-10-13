@@ -393,8 +393,8 @@
         </tr>
         <tr>
             <td class="half">
-                <span class="field-label">Office / College / Unit</span>
-                <span class="field-value">{{ $borrowingRequest->accountableUnit->unit_name }}</span>
+                <span class="field-label">{{ $version->isExternalAffiliation() ? 'Company / Agency / Institution' : 'Office / College / Unit' }}</span>
+                <span class="field-value">{{ $version->affiliationLabel() }}</span>
             </td>
             <td class="half">
                 <span class="field-label">Represented Organization</span>

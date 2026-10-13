@@ -342,7 +342,7 @@ class PickupAutoCancellationTest extends TestCase
         $this->assertAllocationStillActiveAndUnrestored($request->currentVersion);
     }
 
-    public function test_spmu_head_can_still_cancel_via_the_same_route_while_pickup_is_missed(): void
+    public function test_spmu_head_cannot_replace_sao_cancellation_while_pickup_is_missed(): void
     {
         [$custody, , $request] = $this->preparingReleaseCustody(
             'HEADCANCELDURING',
@@ -359,15 +359,14 @@ class PickupAutoCancellationTest extends TestCase
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($spmuHead)
             ->post(route('requests.cancel', $request), ['reason' => 'SPMU decided the borrowing can no longer be fulfilled.'])
-            ->assertSessionHasNoErrors();
+            ->assertForbidden();
 
-        $this->assertSame(RequestStatus::Cancelled, $request->fresh()->status);
-        $this->assertSame('CANCELLED', $custody->fresh()->status);
-        $this->assertDatabaseHas('request_cancellations', [
+        $this->assertSame(RequestStatus::ApprovedReadyForRelease, $request->fresh()->status);
+        $this->assertSame('PREPARING_RELEASE', $custody->fresh()->status);
+        $this->assertDatabaseMissing('request_cancellations', [
             'request_id' => $request->id,
-            'status' => 'CONFIRMED',
-            'reviewed_by_user_id' => $spmuHead->id,
         ]);
+        $this->assertAllocationStillActiveAndUnrestored($request->currentVersion);
     }
 
     public function test_regular_spmu_action_officer_can_cancel_a_missed_pickup_without_delegation(): void

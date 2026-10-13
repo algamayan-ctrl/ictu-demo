@@ -67,16 +67,14 @@ class ReportController extends Controller
         }
 
         $scope = $this->resolveScope($request, $request->input('report'));
-        $showPreview = $request->boolean('generated');
+        $showPreview = true;
         $dataset = null;
         $paginator = null;
 
         /*
-         * Opening Reports is intentionally configuration-first. The report is
-         * generated only when the operator submits the builder, so a direct
-         * visit does not imply a report has been reviewed or is ready to
-         * export. CSV and print still generate their own full data sets from
-         * this same resolved scope.
+         * Show actual records for the resolved scope on first load. Rendering
+         * does not record approval or imply that an operator reviewed them.
+         * CSV and print resolve the same filters independently.
          */
         if ($showPreview) {
             $dataset = app(ReportService::class)->generate($scope['filters'], $request->user());
@@ -686,8 +684,10 @@ class ReportController extends Controller
                         true
                     )
             )
-            ->take(500)
             ->values();
+
+        $totalVisibleEvents = $events->count();
+        $events = $events->take(500)->values();
 
         $categoryOptions = $auditMode === 'technical'
             ? [
@@ -710,6 +710,7 @@ class ReportController extends Controller
 
         return view('reports.audit', [
             'events' => $events,
+            'totalVisibleEvents' => $totalVisibleEvents,
             'auditMode' => $auditMode,
             'categoryOptions' => $categoryOptions,
         ]);

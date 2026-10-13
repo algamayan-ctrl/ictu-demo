@@ -96,8 +96,8 @@ class ApprovalDecisionReport implements ReportBuilder
                     '_borrower_user_id' => (int) $request->borrower_user_id,
                     '_verification' => $verificationState,
                     '_decision' => $decisionState,
-                    '_division_code' => (string) ($version?->division_code ?? ''),
-                    '_office_unit' => (string) ($version?->office_unit ?? ''),
+                    '_division_code' => \App\Support\ReportAffiliation::divisionCode($version),
+                    '_office_unit' => \App\Support\ReportAffiliation::employeeUnit($version),
                     '_link' => route('requests.show', $request),
                     '_tone_verification' => match ($verificationState) {
                         'VERIFIED' => 'positive',
@@ -115,10 +115,8 @@ class ApprovalDecisionReport implements ReportBuilder
 
                     'request_no' => (string) $request->request_no,
                     'borrower' => (string) ($request->borrower?->full_name ?? ''),
-                    'division' => $version?->division_code
-                        ? OrganizationalStructure::label($version->division_code)
-                        : '',
-                    'office_unit' => (string) ($version?->office_unit ?? ''),
+                    'division' => \App\Support\ReportAffiliation::division($version),
+                    'office_unit' => \App\Support\ReportAffiliation::display($version),
                     'version_no' => (string) ($version?->version_no ?? ''),
                     'submitted_at' => $this->dateTime($version?->submitted_at ?: $request->created_at),
                     'verification' => $this->verificationLabel($verificationState),
@@ -165,7 +163,7 @@ class ApprovalDecisionReport implements ReportBuilder
                 ['key' => 'request_no', 'label' => 'Request No.'],
                 ['key' => 'borrower', 'label' => 'Borrower'],
                 ['key' => 'division', 'label' => 'Division'],
-                ['key' => 'office_unit', 'label' => 'Office / College / Unit'],
+                ['key' => 'office_unit', 'label' => 'Office / Unit / External Company'],
                 ['key' => 'version_no', 'label' => 'Version', 'align' => 'numeric'],
                 ['key' => 'submitted_at', 'label' => 'Submitted'],
                 ['key' => 'verification', 'label' => 'AO Verification', 'badge' => true],

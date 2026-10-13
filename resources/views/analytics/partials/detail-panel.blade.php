@@ -147,7 +147,14 @@
  @foreach($detail['table']['rows'] as $row)
  <tr>
  @foreach($row as $cell)
- <td>{{ $cell }}</td>
+ <td>
+ @if(is_array($cell))
+ <strong>{{ $cell['primary'] ?? '' }}</strong>
+ @if(filled($cell['secondary'] ?? null))<small class="text-muted">{{ $cell['secondary'] }}</small>@endif
+ @else
+ {{ $cell }}
+ @endif
+ </td>
  @endforeach
  </tr>
  @endforeach

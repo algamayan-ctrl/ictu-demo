@@ -32,6 +32,7 @@ class DocumentService
         private DocumentTemplateDefinitionService $templateDefinitions,
         private DocumentTemplateRenderer $templateRenderer,
         private OfficeDraftTemplateRenderer $officeDrafts,
+        private DocumentAffiliationService $affiliations,
     ) {}
 
     /**
@@ -97,11 +98,13 @@ class DocumentService
             );
         }
 
+        // Validate/render the saved affiliation before invalidating any existing copy.
+        $html = $this->borrowerSlipHtml($custody);
         $this->supersede($custody, 'BORROWER_SLIP', 'Replaced by the latest controlled operational copy.');
 
         return $this->saveHtml(
             'BORROWER_SLIP',
-            $this->borrowerSlipHtml($custody),
+            $html,
             $custody->request->currentVersion,
             $custody::class,
             $custody->id,
@@ -113,6 +116,7 @@ class DocumentService
     private function borrowerSlipHtml(CustodyTransaction $custody, bool $documentShell = true, int $pageNumber = 1, int $pageCount = 1): string
     {
         $version = $custody->request->currentVersion;
+        $affiliation = $this->affiliations->resolve($version);
         $borrower = $custody->request->borrower;
         $approval = $this->approvalSignatory($version);
 
@@ -278,16 +282,29 @@ HTML;
         $inlineHeader = $documentShell ? '' : '<div class="borrower-page-header-inline">'.$pageHeader.'</div>';
         $inlineFooter = $documentShell ? '' : '<div class="borrower-page-footer-inline">'.$pageFooter.'</div>';
 
+        $classification = <<<HTML
+    <div class="borrower-classification">
+        <span class="borrower-box checked">✓</span> Employee
+        <span class="borrower-others"><span class="borrower-box"></span> Others <span class="borrower-others-line"></span></span>
+    </div>
+HTML;
+        if ($affiliation['is_external']) {
+            $externalLabel = e($affiliation['others_label']);
+            $classification = <<<HTML
+    <div class="borrower-classification">
+        <span class="borrower-employee-choice"><span class="borrower-box"></span> Employee</span>
+        <span class="borrower-others external-choice"><span class="borrower-other-choice"><span class="borrower-box checked">✓</span> Others</span> <span class="borrower-others-line external-affiliation">{$externalLabel}</span></span>
+    </div>
+HTML;
+        }
+
         $body = <<<HTML
 <section class="borrower-slip-rev4{$layoutClass}">
     {$inlineHeader}
 
     <div class="borrower-date">Date: <span>{$formDate}</span></div>
 
-    <div class="borrower-classification">
-        <span class="borrower-box checked">✓</span> Employee
-        <span class="borrower-others"><span class="borrower-box"></span> Others <span class="borrower-others-line"></span></span>
-    </div>
+{$classification}
 
     <table class="borrower-section-headings">
         <tr>
@@ -347,7 +364,7 @@ HTML;
         <strong class="section-label">NOTE:</strong>
         <ol>
             <li>Students are not allowed to borrow equipment/materials. The instructor shall receive the item/s and sign as the borrower.</li>
-            <li>Releasing and returning of items are within school days ONLY from 1:00 to 4:00 in the afternoon.</li>
+            <li>Pickup and return follow the Admin Transaction Schedule, including special-date changes. Check the current schedule before visiting SPMU.</li>
         </ol>
     </div>
 
@@ -575,6 +592,11 @@ HTML;
 </style>
 CSS;
 
+        if ($affiliation['is_external']) {
+            // Extend only the existing Others line for the saved 255-character agency.
+            $rev4Css .= '<style>.borrower-employee-choice, .borrower-others.external-choice, .borrower-other-choice { display: inline-block; vertical-align: top; } .borrower-others-line.external-affiliation { width: 430pt; height: auto; min-height: 7pt; vertical-align: top; line-height: 9pt; white-space: normal; word-wrap: break-word; }</style>';
+        }
+
         if (! $documentShell) {
             $packetCss = str_replace('@page { size: A4 landscape; margin: 70pt 16pt 30pt; }', '', $rev4Css);
 
@@ -668,12 +690,16 @@ CSS;
             );
         }
 
+        // Resolve/render saved affiliation before invalidating an existing controlled copy.
+        $html = $type === 'LAUNDRY_FORM'
+            ? $this->laundryFormHtml($custody)
+            : $this->gatePassHtml($custody);
         $this->supersede($custody, $type, 'Replaced by the latest generated physical form.');
 
         if ($type === 'LAUNDRY_FORM') {
             return $this->saveHtml(
                 'LAUNDRY_FORM',
-                $this->laundryFormHtml($custody),
+                $html,
                 $custody->request->currentVersion,
                 $custody::class,
                 $custody->id,
@@ -684,7 +710,7 @@ CSS;
 
         return $this->saveHtml(
             'GATE_PASS',
-            $this->gatePassHtml($custody),
+            $html,
             $custody->request->currentVersion,
             $custody::class,
             $custody->id,
@@ -696,6 +722,7 @@ CSS;
     private function gatePassHtml(CustodyTransaction $custody, bool $documentShell = true, int $pageNumber = 1, int $pageCount = 1): string
     {
         $version = $custody->request->currentVersion;
+        $affiliation = $this->affiliations->resolve($version);
         $borrower = $custody->request->borrower;
         $gatePass = $custody->gatePass;
         $templateConfig = $this->templateDefinitions->resolve('GATE_PASS');
@@ -731,6 +758,9 @@ CSS;
             : '<div class="gp-logo-fallback">CSPC</div>';
 
         $borrowerName = e((string) $borrower->full_name);
+        $bearerAffiliation = $affiliation['is_external']
+            ? '<div class="gp-signature-affiliation">'.e($affiliation['display_label']).'</div>'
+            : '';
         $purpose = e((string) ($version?->purpose_event ?: ''));
         $custodyNumber = e((string) $custody->custody_no);
         $formDate = $custody->scheduled_release_at
@@ -850,7 +880,7 @@ HTML;
             <td>
                 <div class="gp-signature-label">{$bearerLabel}</div>
                 <div class="gp-signature-line">{$borrowerSignature}</div>
-                <div class="gp-signature-name">{$borrowerName}</div>
+                <div class="gp-signature-name">{$borrowerName}</div>{$bearerAffiliation}
             </td>
             <td></td>
         </tr></table>
@@ -960,6 +990,10 @@ HTML;
 </style>
 CSS;
 
+        if ($affiliation['is_external']) {
+            $css .= '<style>.gp-signature-affiliation { margin-top: 2pt; text-align: center; font-size: 6.4pt; line-height: 1.2; word-wrap: break-word; }</style>';
+        }
+
         if (! $documentShell) {
             $packetCss = str_replace('@page { size: A4 portrait; margin: 72pt 34pt 38pt; }', '', $css);
             return $packetCss.$body;
@@ -990,6 +1024,7 @@ CSS;
         $version = $custody->request->currentVersion;
         $borrower = $custody->request->borrower;
         $templateConfig = $this->templateDefinitions->resolve('LAUNDRY_FORM');
+        $affiliation = $this->affiliations->resolve($version);
 
         $formCode = e($templateConfig['form_code']);
         $documentTitle = e($templateConfig['title']);
@@ -1016,12 +1051,13 @@ CSS;
             ? '<img src="data:image/jpeg;base64,'.base64_encode((string) file_get_contents($logoPath)).'" alt="CSPC logo">'
             : '<div class="lf-logo-fallback">CSPC</div>';
 
-        $requestingOffice = e((string) (
+        $requestingOffice = e($affiliation['is_external'] ? $affiliation['display_label'] : (string) (
             $version?->office_unit
             ?: $version?->represented_program_department
             ?: $borrower?->organizationalUnit?->unit_name
             ?: ''
         ));
+        $requestingAffiliationClass = $affiliation['is_external'] ? ' lf-external-affiliation' : '';
         $requestNumber = e((string) $custody->request->request_no);
         $borrowerName = e((string) $borrower->full_name);
 
@@ -1118,7 +1154,7 @@ HTML;
     <table class="lf-request-meta">
         <tr>
             <td class="lf-meta-label">{$requestingOfficeLabel}</td>
-            <td class="lf-meta-value">{$requestingOffice}</td>
+            <td class="lf-meta-value{$requestingAffiliationClass}">{$requestingOffice}</td>
             <td class="lf-meta-gap"></td>
             <td class="lf-meta-label lf-request-no-label">{$requestNoLabel}</td>
             <td class="lf-meta-value lf-request-no-value">{$requestNumber}</td>
@@ -1210,6 +1246,10 @@ HTML;
     .lf-footer-right { position: absolute; right: 0; top: 5pt; width: 40%; text-align: right; }
 </style>
 CSS;
+
+        if ($affiliation['is_external']) {
+            $css .= '<style>.lf-request-meta .lf-external-affiliation { word-wrap: break-word; }</style>';
+        }
 
         if (! $documentShell) {
             $packetCss = str_replace('@page { size: A4 portrait; margin: 72pt 34pt 38pt; }', '', $css);

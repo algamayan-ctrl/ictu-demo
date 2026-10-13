@@ -80,7 +80,8 @@ class ItemPreparationStep2ContractTest extends TestCase
         $this->assertStringContainsString('Physical Release is unavailable while an inventory discrepancy is under review.', $release);
         $this->assertStringContainsString("'PICKUP_HELD_FOR_PREPARATION_ISSUE'", $custodySource);
         $this->assertStringContainsString('borrower_missed_pickup', $custodySource);
-        $this->assertStringContainsString('$this->custody->hasPreparationExceptionPendingRelease($locked)', $workflowSource);
+        $this->assertStringContainsString('$this->hasPreparationExceptionPendingRelease($locked)', $custodySource);
+        $this->assertStringNotContainsString('public function cancelMissedPickups(', $workflowSource);
     }
 
     #[Test]

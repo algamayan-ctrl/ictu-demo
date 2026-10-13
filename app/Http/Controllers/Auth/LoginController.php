@@ -99,7 +99,7 @@ class LoginController extends Controller
                 ->route('account.verification.show', ['email' => $email])
                 ->with(
                     'status',
-                    'Your account is pending verification. Enter the 6-digit OTP sent to your CSPC email address.'
+                    'Your account is pending verification. Enter the 6-digit OTP sent to your registered email address.'
                 );
         }
 

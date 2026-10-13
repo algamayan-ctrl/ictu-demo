@@ -12,16 +12,17 @@
                  ],
     "license":  "MIT",
     "require":  {
-                    "php":  "^8.3",
-                    "barryvdh/laravel-dompdf":  "^3.1",
-                    "laravel/framework":  "^13.17",
-                    "laravel/socialite":  "^5.31",
-                    "laravel/tinker":  "^3.0",
-                    "setasign/fpdf":  "1.8.6",
-                    "setasign/fpdi": "2.6.8",
-                    "phpoffice/phpspreadsheet":  "^5.9",
-                    "phpoffice/phpword":  "^1.4"
-                },
+        "php": "^8.3",
+        "barryvdh/laravel-dompdf": "^3.1",
+        "laravel/framework": "^13.17",
+        "laravel/socialite": "^5.31",
+        "laravel/tinker": "^3.0",
+        "league/flysystem-aws-s3-v3": "^3.25",
+        "phpoffice/phpspreadsheet": "^5.9",
+        "phpoffice/phpword": "^1.4",
+        "setasign/fpdf": "1.8.6",
+        "setasign/fpdi": "2.6.8"
+    },
     "require-dev":  {
                         "fakerphp/faker":  "^1.23",
                         "laravel/pail":  "^1.2.5",

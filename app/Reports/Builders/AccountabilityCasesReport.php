@@ -11,6 +11,7 @@ use App\Reports\ReportCatalogue;
 use App\Reports\ReportDataset;
 use App\Reports\ReportFilters;
 use App\Support\OrganizationalStructure;
+use App\Support\ReportAffiliation;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -111,6 +112,12 @@ class AccountabilityCasesReport implements ReportBuilder
                 findingCode: (string) $incident->incident_type,
                 statusCode: (string) $incident->status,
                 caseTypeCode: 'PROPERTY',
+                affiliation: [
+                    'division' => ReportAffiliation::division($version),
+                    'company_or_unit' => ReportAffiliation::display($version),
+                    'employee_division' => ReportAffiliation::divisionCode($version),
+                    'employee_unit' => ReportAffiliation::employeeUnit($version),
+                ],
             ));
         }
 
@@ -141,6 +148,12 @@ class AccountabilityCasesReport implements ReportBuilder
                 findingCode: 'LATE_RETURN',
                 statusCode: (string) $overdue->status,
                 caseTypeCode: 'LATE_RETURN',
+                affiliation: [
+                    'division' => ReportAffiliation::division($version),
+                    'company_or_unit' => ReportAffiliation::display($version),
+                    'employee_division' => ReportAffiliation::divisionCode($version),
+                    'employee_unit' => ReportAffiliation::employeeUnit($version),
+                ],
             ));
         }
 
@@ -151,7 +164,7 @@ class AccountabilityCasesReport implements ReportBuilder
             )
             ->when(
                 $unit !== null,
-                fn (Collection $rows): Collection => $rows->filter(fn (array $row): bool => strcasecmp($row['office_unit'], (string) $unit) === 0)
+                fn (Collection $rows): Collection => $rows->filter(fn (array $row): bool => strcasecmp($row['_employee_unit'], (string) $unit) === 0)
             )
             ->when(
                 $finding !== null,
@@ -175,6 +188,7 @@ class AccountabilityCasesReport implements ReportBuilder
             ->values()
             ->map(fn (array $row): array => collect($row)->except([
                 '_division_code',
+                '_employee_unit',
                 '_finding_code',
                 '_status_code',
                 '_case_type_code',
@@ -189,7 +203,7 @@ class AccountabilityCasesReport implements ReportBuilder
                 ['key' => 'custody_no', 'label' => 'Custody No.'],
                 ['key' => 'borrower', 'label' => 'Borrower'],
                 ['key' => 'division', 'label' => 'Division'],
-                ['key' => 'office_unit', 'label' => 'Office / College / Unit'],
+                ['key' => 'office_unit', 'label' => 'Office / Unit / External Company'],
                 ['key' => 'case_type', 'label' => 'Case Type', 'badge' => true],
                 ['key' => 'finding', 'label' => 'Finding'],
                 ['key' => 'affected_item', 'label' => 'Affected Item'],
@@ -227,9 +241,11 @@ class AccountabilityCasesReport implements ReportBuilder
         string $findingCode,
         string $statusCode,
         string $caseTypeCode,
+        ?array $affiliation = null,
     ): array {
         return [
-            '_division_code' => (string) ($division ?? ''),
+            '_division_code' => $affiliation['employee_division'] ?? (string) ($division ?? ''),
+            '_employee_unit' => $affiliation['employee_unit'] ?? $officeUnit,
             '_finding_code' => $findingCode,
             '_status_code' => $statusCode,
             '_case_type_code' => $caseTypeCode,
@@ -238,8 +254,8 @@ class AccountabilityCasesReport implements ReportBuilder
             'case_reference' => $caseReference,
             'custody_no' => $custodyNo,
             'borrower' => $borrowerName,
-            'division' => $division ? OrganizationalStructure::label($division) : '',
-            'office_unit' => $officeUnit,
+            'division' => $affiliation['division'] ?? ($division ? OrganizationalStructure::label($division) : ''),
+            'office_unit' => $affiliation['company_or_unit'] ?? $officeUnit,
             'case_type' => $caseType,
             'finding' => $finding,
             'affected_item' => $affectedItem,

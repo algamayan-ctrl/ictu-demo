@@ -95,7 +95,7 @@
         <div>
             <p class="eyebrow">Formal reporting</p>
             <h1>Reports</h1>
-            <p>Preview official operational reports, then print or export the exact records you reviewed.</p>
+            <p>View operational records, apply filters, then print or export the selected report.</p>
         </div>
     </section>
 
@@ -106,7 +106,7 @@
             @if($showPreview)
                 <div class="report-preview-bar">
                     <div>
-                        <p class="report-preview-label">Report preview</p>
+                        <p class="report-preview-label">Report records</p>
                         <h2 class="report-preview-title">{{ $selectedReportMeta['label'] }}</h2>
                         <div class="report-preview-meta">
                             <span>
@@ -435,6 +435,7 @@
                             </p>
 
                         @endif
+                        <a class="button secondary small ui-pressable" href="#report-builder">Change Period or Filters</a>
 
     </div>
 
@@ -459,7 +460,7 @@
                     <x-icon name="information" size="18" />
                     <span>
                         All reports are based on official operational records.
-                        For analysis, insights, and forecasting, use the Analytics module.
+                        For descriptive analysis and scheduled demand, use the Analytics module.
                     </span>
                 </p>
             </section>

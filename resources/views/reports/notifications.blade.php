@@ -394,6 +394,7 @@
                                                         @endif
                                                     </dd>
                                                 </div>
+                                                <div><dt>Recorded Status</dt><dd>{{ $delivery->delivery_status }}</dd></div>
                                                 <div><dt>Provider</dt><dd>{{ filled($delivery->provider) ? $delivery->provider : 'Not recorded' }}</dd></div>
                                                 <div><dt>Attempt</dt><dd>#{{ $delivery->attempt_no ?: 1 }}</dd></div>
                                                 <div class="notification-delivery-detail-response"><dt>Provider Response</dt><dd>{{ $providerResponse !== '' ? $providerResponse : 'No provider response recorded.' }}</dd></div>

@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\DB;
 use Mockery\MockInterface;
 use RuntimeException;
 use Tests\TestCase;
+use Tests\Support\EvidenceFixtures;
 
 class BatchOneReliabilityTest extends TestCase
 {
@@ -142,12 +143,7 @@ class BatchOneReliabilityTest extends TestCase
                         'The database Draft must survive a failed supporting-document write.',
 
                     'approved_request_letter' =>
-                        UploadedFile::fake()
-                            ->create(
-                                'approved-request-letter.pdf',
-                                10,
-                                'application/pdf'
-                            ),
+                        UploadedFile::fake()->createWithContent('approved-request-letter.pdf', EvidenceFixtures::pdfBytes('Synthetic readable request letter')),
 
                     'item_ids' =>
                         [
@@ -256,12 +252,7 @@ class BatchOneReliabilityTest extends TestCase
                         0,
 
                     'approved_request_letter' =>
-                        UploadedFile::fake()
-                            ->create(
-                                'signed-approved-request-letter.pdf',
-                                10,
-                                'application/pdf'
-                            ),
+                        UploadedFile::fake()->createWithContent('signed-approved-request-letter.pdf', EvidenceFixtures::pdfBytes('Synthetic readable request letter')),
 
                     'item_ids' =>
                         [
@@ -766,12 +757,7 @@ class BatchOneReliabilityTest extends TestCase
                         'test-replace-letter-v1',
 
                     'approved_request_letter' =>
-                        UploadedFile::fake()
-                            ->create(
-                                'signed-approved-v1.pdf',
-                                10,
-                                'application/pdf'
-                            ),
+                        UploadedFile::fake()->createWithContent('signed-approved-v1.pdf', EvidenceFixtures::pdfBytes('Synthetic readable request letter')),
                 ]
             )
             ->assertSessionHasNoErrors();
@@ -821,12 +807,7 @@ class BatchOneReliabilityTest extends TestCase
                         'test-replace-letter-v2',
 
                     'approved_request_letter' =>
-                        UploadedFile::fake()
-                            ->create(
-                                'signed-approved-v2.pdf',
-                                10,
-                                'application/pdf'
-                            ),
+                        UploadedFile::fake()->createWithContent('signed-approved-v2.pdf', EvidenceFixtures::pdfBytes('Synthetic readable request letter')),
                 ]
             )
             ->assertSessionHasNoErrors();

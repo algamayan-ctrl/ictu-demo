@@ -12,6 +12,7 @@
         const search = document.getElementById('spmu-inventory-search');
         const category = document.getElementById('spmu-inventory-category');
         const status = document.getElementById('spmu-inventory-status');
+        const eligibility = document.getElementById('spmu-inventory-eligibility');
         const noResults = document.getElementById('spmu-inventory-no-results');
         const footer = document.getElementById('spmu-inventory-footer');
         const pagination = document.getElementById('spmu-inventory-pagination');
@@ -30,6 +31,7 @@
             const query = (search?.value || '').trim().toLowerCase();
             const selected = (category?.value || '').trim().toLowerCase();
             const selectedStatus = (status?.value || 'active').trim().toLowerCase();
+            const selectedEligibility = eligibility?.value || '';
 
             return rows.filter((row) => {
                 const matchesSearch = !query || (row.dataset.search || '').includes(query);
@@ -37,7 +39,8 @@
                 const matchesStatus = selectedStatus === 'all'
                     || (row.dataset.status || 'active') === selectedStatus;
 
-                return matchesSearch && matchesCategory && matchesStatus;
+                const matchesEligibility = !selectedEligibility || row.dataset.eligibility === selectedEligibility;
+                return matchesSearch && matchesCategory && matchesStatus && matchesEligibility;
             });
         };
 
@@ -183,6 +186,10 @@
         });
 
         status?.addEventListener('change', () => {
+            currentPage = 1;
+            render();
+        });
+        eligibility?.addEventListener('change', () => {
             currentPage = 1;
             render();
         });

@@ -1177,7 +1177,7 @@ a.dashboard-kpi-card:focus-visible {
         ],
         'SPMU_HEAD' => [
             'For Approval' => ['approval', 'info', route('approvals.index'), 'Awaiting final approval'],
-            'Active Custodies' => ['custody', 'info', route('custody.index', ['kpi' => 'active_custodies']), 'Ongoing custody transactions'],
+            'Active Custodies' => ['custody', 'info', route('requests.index', ['kpi' => 'active_custodies']), 'Ongoing custody transactions'],
             'Open Accountability Cases' => ['requests', 'warning', route('accountability.index'), 'Unresolved accountability matters'],
             'Active Restrictions' => ['lock', 'warning', route('accountability.index', ['view' => 'restrictions']).'#accountability-cases-section', 'Restrictions currently in effect'],
         ],
@@ -1503,7 +1503,7 @@ a.dashboard-kpi-card:focus-visible {
                             : 'Nearest due/overdue active custody transactions.' }}
                     </p>
                 </div>
-                <a class="dashboard-view-all" href="{{ route('custody.index') }}">View all </a>
+                <a class="dashboard-view-all" href="{{ $dashboardMode === 'SPMU_HEAD' ? route('requests.index') : route('custody.index') }}">View all </a>
             </div>
 
             <div class="dashboard-watch-list">
@@ -1533,7 +1533,7 @@ a.dashboard-kpi-card:focus-visible {
                                 <x-status-badge :status="$watchWorkflow['key']" :label="$watchWorkflow['label']" />
                             @endif
                         </div>
-                        <a class="button secondary small ui-pressable" href="{{ route('custody.show', $watchCustody) }}"><span>View</span></a>
+                        <a class="button secondary small ui-pressable" href="{{ $dashboardMode === 'SPMU_HEAD' ? route('requests.show', $watchCustody->request) : route('custody.show', $watchCustody) }}"><span>View</span></a>
                     </div>
                 @endforeach
             </div>

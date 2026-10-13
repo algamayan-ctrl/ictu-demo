@@ -183,7 +183,7 @@
         <!-- LOGIN CARD LOGO SWAP END -->
 <h1 id="landing-login-title">Welcome to SPMU-ACPMP</h1>
 
-            <p>Sign in using your authorized CSPC account.</p>
+            <p>Sign in using your authorized SPMU-ACPMP account.</p>
         </div>
 
 
@@ -292,6 +292,7 @@
 
 
             {{-- REMEMBER ME --}}
+            @error('registration')<div class="login-error" role="alert">{{ $message }}</div>@enderror
             <label class="login-remember">
                 <input
                     type="checkbox"
@@ -319,12 +320,7 @@
             </button>
 
 
-            {{--
-                GOOGLE SIGN-IN
-                Rendered only when the server is configured, so a local or
-                offline demo never shows a button that cannot work.
-            --}}
-            @if(filled(config('services.google.client_id')) && filled(config('services.google.client_secret')) && filled(config('services.google.redirect')))
+            {{-- Keep the requested Google action visible; the route reports missing configuration honestly. --}}
                 <div class="login-alt-divider">
                     <span>or</span>
                 </div>
@@ -343,10 +339,10 @@
                     </span>
 
                     <span>
-                        Sign in with Google
+                        Continue with Google
                     </span>
                 </a>
-            @endif
+            <p class="mt-3"><a href="{{ route('register') }}">Don't have an account yet? Sign up</a></p>
 
 
             @error('google')
@@ -363,7 +359,7 @@
                 </div>
 
                 <p>
-                    For employees, faculty, and staff.
+                    For CSPC employees and approved external borrowers.
                 </p>
 
                 <p>

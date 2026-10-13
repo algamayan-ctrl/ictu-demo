@@ -208,7 +208,7 @@ class PolicyService
      */
     public function autoConfirmLateReturnViolation(BorrowerViolation $violation, User $actor): ?Sanction
     {
-        if ($violation->violation_source !== 'LATE_RETURN' || $violation->status !== 'PENDING_REVIEW') {
+        if ($violation->violation_source !== 'LATE_RETURN') {
             return null;
         }
 

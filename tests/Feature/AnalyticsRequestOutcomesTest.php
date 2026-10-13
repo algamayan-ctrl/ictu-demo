@@ -440,7 +440,7 @@ class AnalyticsRequestOutcomesTest extends TestCase
 
         $page->assertOk();
         $page->assertSee('Request Outcomes');
-        $page->assertSee('Current workflow outcome of requests filed in the selected period.');
+        $page->assertSee('Current workflow outcome of all requests filed in the selected period, including those later cancelled or expired.');
 
         $x = $this->xpath($page->getContent());
 
@@ -461,8 +461,8 @@ class AnalyticsRequestOutcomesTest extends TestCase
         $rows = $x->query('//ol[contains(@class,"analytics-outcome-legend")]/li');
         $this->assertSame(6, $rows->length);
         $this->assertSame(2, $x->query('//ol[contains(@class,"analytics-outcome-legend")]/li/a')->length);
-        $this->assertStringContainsString('3 · 75%', preg_replace('/\s+/', ' ', $rows->item(0)->textContent));
-        $this->assertStringContainsString('0 · 0%', preg_replace('/\s+/', ' ', $rows->item(1)->textContent));
+        $this->assertStringContainsString('3 - 75%', preg_replace('/\s+/', ' ', $rows->item(0)->textContent));
+        $this->assertStringContainsString('0 - 0%', preg_replace('/\s+/', ' ', $rows->item(1)->textContent));
 
         /* The whole card opens the outcomes detail. */
         $card = $x->query('//section[contains(@class,"analytics-outcomes")]')->item(0);

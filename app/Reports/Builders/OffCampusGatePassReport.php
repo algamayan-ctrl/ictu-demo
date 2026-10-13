@@ -122,8 +122,8 @@ class OffCampusGatePassReport implements ReportBuilder
                     '_off_campus' => $isOffCampus,
                     '_student_activity' => $isStudentActivity,
                     '_gate_pass_status' => $gatePassState,
-                    '_division_code' => (string) ($version?->division_code ?? ''),
-                    '_office_unit' => (string) ($version?->office_unit ?? ''),
+                    '_division_code' => \App\Support\ReportAffiliation::divisionCode($version),
+                    '_office_unit' => \App\Support\ReportAffiliation::employeeUnit($version),
                     '_link' => route('requests.show', $request),
                     '_tone_gate_pass_status' => match ($gatePassState) {
                         'VERIFIED' => 'positive',
@@ -135,10 +135,8 @@ class OffCampusGatePassReport implements ReportBuilder
                     'request_no' => (string) $request->request_no,
                     'custody_no' => (string) ($custody?->custody_no ?? ''),
                     'borrower' => (string) ($request->borrower?->full_name ?? ''),
-                    'division' => $version?->division_code
-                        ? OrganizationalStructure::label($version->division_code)
-                        : '',
-                    'office_unit' => (string) ($version?->office_unit ?? ''),
+                    'division' => \App\Support\ReportAffiliation::division($version),
+                    'office_unit' => \App\Support\ReportAffiliation::display($version),
                     'purpose_event' => (string) ($version?->purpose_event ?? ''),
                     'off_campus' => $isOffCampus ? 'Yes' : 'No',
                     'location' => (string) ($version?->location ?? ''),
@@ -193,7 +191,7 @@ class OffCampusGatePassReport implements ReportBuilder
                 ['key' => 'custody_no', 'label' => 'Custody No.'],
                 ['key' => 'borrower', 'label' => 'Borrower'],
                 ['key' => 'division', 'label' => 'Division'],
-                ['key' => 'office_unit', 'label' => 'Office / College / Unit'],
+                ['key' => 'office_unit', 'label' => 'Office / Unit / External Company'],
                 ['key' => 'purpose_event', 'label' => 'Activity / Purpose'],
                 ['key' => 'off_campus', 'label' => 'Off-Campus'],
                 ['key' => 'location', 'label' => 'Destination / Location'],

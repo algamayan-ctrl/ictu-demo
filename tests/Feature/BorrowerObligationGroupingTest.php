@@ -496,6 +496,15 @@ class BorrowerObligationGroupingTest extends TestCase
     public function test_my_obligations_shows_the_four_grouped_summary_cards(): void
     {
         $borrower = $this->borrower();
+        $custody = $this->custody($borrower, now()->addDays(3));
+        $incident = $this->incident($borrower, $custody, 'BILLING_PENDING');
+        $billing = $this->billing($borrower, 'ISSUED');
+        $billing->lines()->create([
+            'incident_id' => $incident->id,
+            'line_type' => 'PROPERTY_ACCOUNTABILITY_CHARGE',
+            'description' => 'Synthetic unpaid obligation',
+            'amount' => 500,
+        ]);
 
         $response = $this->withSession(['active_workspace' => 'BORROWER'])
             ->actingAs($borrower)
@@ -506,9 +515,28 @@ class BorrowerObligationGroupingTest extends TestCase
             ->assertSee('Needs My Action')
             ->assertSee('Amount Due')
             ->assertSee('Borrowing Status')
-            ->assertSee('No unresolved obligations')
+            ->assertSee($billing->billing_no)
+            ->assertDontSee('No unresolved obligations')
             ->assertDontSee('Overdue Returns')
             ->assertDontSee('Open Billings')
             ->assertDontSee('Active Restrictions');
+        $this->assertSame(4, substr_count($response->getContent(), 'class="ob-summary-card '));
+        $this->assertSame(1, $this->obligations->overview($borrower->id)['needs_action']);
+    }
+
+    public function test_empty_obligations_omit_the_redundant_action_card_and_show_the_clear_state(): void
+    {
+        $borrower = $this->borrower();
+        $response = $this->withSession(['active_workspace' => 'BORROWER'])
+            ->actingAs($borrower)
+            ->get(route('accountability.index'))
+            ->assertOk()
+            ->assertSee('No current obligations.')
+            ->assertSee('Active Obligations')
+            ->assertSee('Amount Due')
+            ->assertSee('Borrowing Status');
+        $this->assertSame(3, substr_count($response->getContent(), 'class="ob-summary-card '));
+        $this->assertStringNotContainsString('<span class="ob-summary-label">Needs My Action</span>', $response->getContent());
+        $this->assertSame(0, $this->obligations->overview($borrower->id)['count']);
     }
 }

@@ -6,6 +6,7 @@ use App\Enums\AccessClassification;
 use App\Enums\AccountStatus;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
+use App\Services\UserRoleAssignmentService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,7 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
 
     private function ictu(): User
     {
-        return User::factory()->create([
+        $actor = User::factory()->create([
             'email' => 'ictu.integration@cspc.edu.ph',
             'access_classification' => AccessClassification::IctuMaintainer,
             'account_status' => AccountStatus::Active,
@@ -39,6 +40,9 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
                 ->firstOrFail()
                 ->id,
         ]);
+        app(UserRoleAssignmentService::class)->synchronize($actor, AccessClassification::IctuMaintainer);
+
+        return $actor;
     }
 
     private function formPayload(array $overrides = []): array
@@ -245,7 +249,7 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
                 'password' => 'Complex!Pass2026',
             ]
         )
-            ->assertSessionHasErrors('email');
+            ->assertRedirect(route('account.verification.show', ['email' => $pending->email]));
 
         $this->assertGuest();
     }

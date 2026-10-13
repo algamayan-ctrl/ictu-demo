@@ -18,7 +18,7 @@ use App\Models\RequestVersion;
 use App\Models\UnitOfMeasure;
 use App\Models\User;
 use App\Services\AnalyticsService;
-use App\Services\ForecastService;
+use App\Services\ReportingPeriodService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -254,11 +254,11 @@ class AnalyticsServiceTest extends TestCase
         /* Week 5 (29-30): deliberately empty - trailing. */
     }
 
-    public function test_scheduled_demand_uses_the_inclusive_forecast_end_without_leaking_next_day_records(): void
+    public function test_scheduled_demand_uses_the_inclusive_scheduled_end_without_leaking_next_day_records(): void
     {
         $selectedFrom = Carbon::create(2026, 10, 1)->startOfDay();
         $selectedTo = Carbon::create(2026, 10, 31)->endOfDay();
-        [$forecastFrom, $forecastTo] = app(ForecastService::class)->forecastWindow($selectedFrom, $selectedTo);
+        [$forecastFrom, $forecastTo] = app(ReportingPeriodService::class)->nextScheduledWindow($selectedFrom, $selectedTo);
         $filedAt = Carbon::create(2026, 10, 20, 10);
 
         $this->request(

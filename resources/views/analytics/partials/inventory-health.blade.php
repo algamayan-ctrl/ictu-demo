@@ -68,8 +68,6 @@
  ['key' => 'incident', 'icon' => 'warning', 'label' => 'Incident / Unavailable', 'value' => (float) $totals['problem'], 'note' => 'Units held by an open case'],
  ];
 
- $coverageRows = array_slice($coverage['items'], 0, 5);
- $coverageByItem = collect($coverage['items'] ?? [])->keyBy('item_id');
 @endphp
 
 {{-- Current position ---------------------------------------------------- --}}
@@ -126,7 +124,7 @@
 
 <p class="analytics-inventory-scope-note" role="note">
  <x-icon name="information" size="14" aria-hidden="true" />
- <span><strong>Current stock scope:</strong> inventory totals are institution-wide and do not change with Division, Office / College / Unit, or Borrower. Utilization and Stock Coverage below still use the selected reporting period.</span>
+ <span><strong>Current stock scope:</strong> inventory totals are institution-wide and do not change with Division, Office / College / Unit, or Borrower. Utilization below uses observed releases in the selected reporting period.</span>
 </p>
 
 {{-- Availability and composition ---------------------------------------- --}}
@@ -280,8 +278,8 @@
  <header class="analytics-card-head">
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="warning" size="15" /></span>
  <div>
- <h2>Inventory Risk Watch</h2>
- <p>Current low availability with period-based stock coverage context.</p>
+ <h2>Inventory Availability Watch</h2>
+ <p>Current low availability from recorded stock.</p>
  </div>
  @if($lowAvailability['count'] > 0)
  <span class="analytics-count-pill">{{ $lowAvailability['count'] }}</span>
@@ -305,16 +303,8 @@
  >
  <span class="analytics-watch-main">
  <span class="analytics-watch-name">{{ $row['name'] }}</span>
- @php $coverageRow = $coverageByItem->get($row['item_id']); @endphp
  <span class="analytics-watch-sub">
  {{ $num($row['available']) }} of {{ $num($row['stock']) }} units available
- @if($coverageRow)
- @if(! $coverageRow['sufficient'])
- - coverage: insufficient history
- @elseif($coverageRow['coverage_days'] !== null)
- - {{ $coverageRow['coverage_days'] }} days coverage
- @endif
- @endif
  </span>
  </span>
  <span class="analytics-watch-figure">
@@ -416,77 +406,6 @@
  </p>
  </section>
 
- <section
- data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.coverage']) }}"
- class="analytics-card">
- <header class="analytics-card-head">
- <span class="analytics-card-mark" aria-hidden="true"><x-icon name="clock" size="15" /></span>
- <div>
- <h2>Coverage Detail</h2>
- <p>Supporting release-history detail for Inventory Risk Watch.</p>
- </div>
- <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.coverage']) }}" aria-label="View Stock Coverage and Risk details"><x-icon name="chevron-right" size="15" /></a>
- </header>
-
- <div class="analytics-card-body">
- @if($coverageRows === [])
- <p class="analytics-blank is-visualization-empty">
- <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="clock" size="19" /></span>
- <span>
- <strong>Insufficient release history.</strong>
- {{ $coverage['summary'] }}
- </span>
- </p>
- @else
- <ul class="analytics-coverage">
- @foreach($coverageRows as $row)
- <li>
- <a
- href="{{ AnalyticsDetailLink::to('coverage', 'inventory', $periodSelection, null, null, ['item' => $row['item_id']]) }}"
- aria-label="View coverage details for {{ $row['name'] }}"
- >
- <span class="analytics-coverage-main">
- <span class="analytics-coverage-name">{{ $row['name'] }}</span>
- <span class="analytics-coverage-sub">
- {{ $num($row['available']) }} available
- @if($row['sufficient'])
- - {{ $row['per_day'] }} per day
- @endif
- </span>
- </span>
-
- <span class="analytics-coverage-figure">
- {{--
- Rate, coverage and risk stand or fall
- together: a number beside "insufficient
- history" would invite the reader to do
- the division themselves.
- --}}
- @if(! $row['sufficient'])
- <small class="analytics-tag">Insufficient history</small>
- @elseif($row['risk'] === null)
- <small class="analytics-tag">No recent consumption</small>
- @else
- <strong>{{ $row['days_cover'] }}<small>d</small></strong>
- <small class="analytics-tag {{ $row['risk'] === 'High' ? 'is-critical' : ($row['risk'] === 'Medium' ? 'is-attention' : 'is-positive') }}">
- {{ $row['risk'] }}
- </small>
- @endif
- </span>
- </a>
- </li>
- @endforeach
- </ul>
- @endif
- </div>
-
- @if($coverageRows !== [])
- <footer class="analytics-card-foot">
- An estimate, not a probability. High is under {{ $coverage['thresholds']['high'] }} days,
- Medium up to {{ $coverage['thresholds']['medium'] }}.
- </footer>
- @endif
- </section>
 </div>
 
 
@@ -538,12 +457,8 @@
 
     const CARD_PAIRS = [
         [
-            'Inventory Risk Watch',
+            'Inventory Availability Watch',
             'Utilization'
-        ],
-        [
-            'Operational Inventory Status',
-            'Coverage Detail'
         ]
     ];
 

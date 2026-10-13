@@ -3,21 +3,27 @@
 namespace App\Services;
 
 use App\Enums\AccessClassification;
+use App\Enums\AccountStatus;
 use App\Enums\ApprovalStage;
 use App\Enums\RequestStatus;
 use App\Enums\UserRole;
+use App\Models\Allocation;
 use App\Models\ApprovalStep;
 use App\Models\AuditEvent;
 use App\Models\BorrowingRequest;
 use App\Models\CustodyTransaction;
 use App\Models\GatePass;
 use App\Models\GeneratedDocument;
+use App\Models\InventoryItem;
 use App\Models\RequestCancellation;
 use App\Models\RequestStatusHistory;
 use App\Models\RequestSupportingDocument;
+use App\Models\SignatureSnapshot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class RequestWorkflowService
@@ -100,7 +106,7 @@ class RequestWorkflowService
     }
 
     /**
-     * Submit the borrower's request to the SPMU Action Officer.
+     * Submit to Admin on-campus, or Action Officer verification off-campus.
      *
      * Submission and Action Officer verification never approve the request or
      * reserve inventory. Only the later SPMU Head decision can do either.
@@ -144,6 +150,11 @@ class RequestWorkflowService
                 $request,
                 $borrower
             ): void {
+                // A route-bound or preloaded draft may be stale after another submit/edit.
+                // Serialize the signing action on the request header and reload its version.
+                $request = BorrowingRequest::query()->lockForUpdate()->findOrFail($request->id);
+                abort_unless($request->borrower_user_id === $borrower->id
+                    && in_array($request->status, [RequestStatus::Draft, RequestStatus::ReturnedForRevision], true), 403);
                 $request->loadMissing([
                     'currentVersion.items.inventoryItem',
                     'currentVersion.supportingDocuments',
@@ -368,7 +379,9 @@ class RequestWorkflowService
                             ? AccessClassification::SpmuOfficer->value
                             : AccessClassification::SpmuHead->value
                     )
-                    ->get();
+                    ->get()
+                    ->filter(fn (User $recipient) => $recipient->hasVerifiedInstitutionalEmail()
+                        && $recipient->hasApprovedRegistration() && $recipient->hasRole(UserRole::Spmu));
 
                 $this->notifications->send(
                     'REQUEST_SUBMITTED',
@@ -396,7 +409,8 @@ class RequestWorkflowService
         User $officer,
         string $decision,
         ?string $remarks,
-        bool $signatureConfirmed
+        bool $signatureConfirmed,
+        ?int $reviewedVersionId = null
     ): void {
         $decision = strtoupper($decision);
 
@@ -432,7 +446,8 @@ class RequestWorkflowService
             ]);
         }
 
-        DB::transaction(function () use ($request, $officer, $decision, $remarks): void {
+        $expectedVersionNo = $request->current_version_no;
+        DB::transaction(function () use ($request, $officer, $decision, $remarks, $expectedVersionNo, $reviewedVersionId): void {
             $request = BorrowingRequest::query()
                 ->lockForUpdate()
                 ->findOrFail($request->id);
@@ -440,6 +455,12 @@ class RequestWorkflowService
             if ($request->status !== RequestStatus::UnderSpmu) {
                 throw ValidationException::withMessages([
                     'decision' => 'This request is no longer awaiting Action Officer verification.',
+                ]);
+            }
+
+            if ($request->current_version_no !== $expectedVersionNo) {
+                throw ValidationException::withMessages([
+                    'decision' => 'The request version changed. Refresh the request and review the corrected version before deciding.',
                 ]);
             }
 
@@ -451,6 +472,11 @@ class RequestWorkflowService
             ]);
 
             $version = $request->currentVersion;
+            if ($reviewedVersionId !== null && (int) $version?->id !== $reviewedVersionId) {
+                throw ValidationException::withMessages([
+                    'decision' => 'The request version changed. Refresh the request and review the corrected version before deciding.',
+                ]);
+            }
             $step = $version?->approvalSteps
                 ->where('sequence_no', 1)
                 ->first(fn ($item) => $item->stage_code === ApprovalStage::Spmu);
@@ -485,13 +511,6 @@ class RequestWorkflowService
                     $remarks
                 );
 
-                $this->notifications->send(
-                    'REQUEST_RETURNED_FOR_REVISION',
-                    collect([$request->borrower]),
-                    "Request {$request->request_no} was returned by the SPMU Action Officer for correction. Reason: {$remarks}",
-                    $request
-                );
-
                 $this->audit->record(
                     'SPMU_ACTION_OFFICER_VERIFICATION',
                     $step,
@@ -501,6 +520,14 @@ class RequestWorkflowService
                         'approval_granted' => false,
                         'reservation_created' => false,
                     ]
+                );
+
+                // A failed decision audit must abort before attempting a borrower notice.
+                $this->notifications->send(
+                    'REQUEST_RETURNED_FOR_REVISION',
+                    collect([$request->borrower]),
+                    "Request {$request->request_no} was returned by the SPMU Action Officer for correction. Reason: {$remarks}",
+                    $request
                 );
 
                 return;
@@ -546,19 +573,6 @@ class RequestWorkflowService
                 'decision' => 'RECEIVED',
             ]);
 
-            $heads = User::query()
-                ->where('account_status', 'ACTIVE')
-                ->where('access_classification', AccessClassification::SpmuHead->value)
-                ->get();
-
-            $this->notifications->send(
-                'REQUEST_VERIFIED',
-                $heads,
-                "Request {$request->request_no} was verified by the SPMU Action Officer and is ready for the SPMU Head's decision.",
-                $request,
-                ['SYSTEM', 'EMAIL']
-            );
-
             $this->audit->record(
                 'SPMU_ACTION_OFFICER_VERIFICATION',
                 $step,
@@ -570,6 +584,22 @@ class RequestWorkflowService
                     'signature_snapshot_id' => $signatureSnapshot->id,
                 ]
             );
+
+            $heads = User::query()
+                ->where('account_status', 'ACTIVE')
+                ->where('access_classification', AccessClassification::SpmuHead->value)
+                ->get()
+                ->filter(fn (User $recipient) => $recipient->hasVerifiedInstitutionalEmail()
+                    && $recipient->hasApprovedRegistration() && $recipient->hasRole(UserRole::Spmu));
+
+            $this->notifications->send(
+                'REQUEST_VERIFIED',
+                $heads,
+                "Request {$request->request_no} was verified by the SPMU Action Officer and is ready for the SPMU Head's decision.",
+                $request,
+                ['SYSTEM', 'EMAIL']
+            );
+
         }, 3);
     }
 
@@ -593,7 +623,8 @@ class RequestWorkflowService
         User $approver,
         string $decision,
         ?string $remarks,
-        bool $signatureConfirmed
+        bool $signatureConfirmed,
+        ?int $reviewedVersionId = null
     ): void {
         $decision = strtoupper($decision);
 
@@ -687,12 +718,15 @@ class RequestWorkflowService
             ]);
         }
 
+        $expectedVersionNo = $request->current_version_no;
         DB::transaction(
             function () use (
                 $request,
                 $approver,
                 $decision,
-                $remarks
+                $remarks,
+                $expectedVersionNo,
+                $reviewedVersionId
             ): void {
                 $request = BorrowingRequest::query()
                     ->lockForUpdate()
@@ -703,6 +737,25 @@ class RequestWorkflowService
                         'decision' => 'This request is no longer awaiting the SPMU Head decision.',
                     ]);
                 }
+
+                if ($request->current_version_no !== $expectedVersionNo) {
+                    throw ValidationException::withMessages([
+                        'decision' => 'The request version changed. Refresh the request and review the corrected version before deciding.',
+                    ]);
+                }
+
+                // Recheck a bound actor after waiting for the request lock.
+                $approver = User::query()->lockForUpdate()->findOrFail($approver->id);
+                abort_unless(
+                    $approver->account_status === AccountStatus::Active
+                        && $approver->primaryWorkspace() === UserRole::Spmu->value
+                        && $approver->hasRole(UserRole::Spmu)
+                        && ($approver->access_classification === AccessClassification::SpmuHead
+                            || ($approver->access_classification === AccessClassification::SpmuOfficer
+                                && $approver->activeDelegationFor(UserRole::Spmu->value))),
+                    403,
+                    'The current account no longer has active final approval authority.'
+                );
 
                 $request->loadMissing([
                     'borrower',
@@ -717,6 +770,12 @@ class RequestWorkflowService
                     throw ValidationException::withMessages([
                         'decision' =>
                             'The current request version could not be found.',
+                    ]);
+                }
+
+                if ($reviewedVersionId !== null && (int) $version->id !== $reviewedVersionId) {
+                    throw ValidationException::withMessages([
+                        'decision' => 'The request version changed. Refresh the request and review the corrected version before deciding.',
                     ]);
                 }
 
@@ -798,15 +857,6 @@ class RequestWorkflowService
                         $remarks
                     );
 
-                    $this->notifications->send(
-                        'REQUEST_REJECTED',
-                        collect([
-                            $request->borrower,
-                        ]),
-                        "Request {$request->request_no} was rejected by SPMU. Reason: {$remarks}",
-                        $request
-                    );
-
                     $this->audit->record(
                         'SPMU_REQUEST_DECISION',
                         $step,
@@ -819,6 +869,15 @@ class RequestWorkflowService
                             'reservation_created' =>
                                 false,
                         ]
+                    );
+
+                    $this->notifications->send(
+                        'REQUEST_REJECTED',
+                        collect([
+                            $request->borrower,
+                        ]),
+                        "Request {$request->request_no} was rejected by SPMU. Reason: {$remarks}",
+                        $request
                     );
 
                     return;
@@ -907,6 +966,29 @@ class RequestWorkflowService
                  * Approval requires the complete current
                  * supporting-document set.
                  */
+                $affiliation = app(DocumentAffiliationService::class)->resolve($version);
+                if ($affiliation['is_external']) {
+                    if (! $affiliation['company_name'] || $version->division_code !== null
+                        || $version->office_unit !== null || $request->accountable_unit_id !== null) {
+                        throw ValidationException::withMessages([
+                            'affiliation' => 'The saved external request needs a reviewed company and must not have a CSPC division, office or accountable unit assignment. Return it for correction before approval.',
+                        ]);
+                    }
+                    $this->validateApprovalEvidenceSnapshot(
+                        $version->borrowerSignature,
+                        $request->borrower_user_id,
+                        'BORROWER_REQUEST_CERTIFICATION',
+                        $version
+                    );
+                    if ($version->off_campus) {
+                        $this->validateApprovalEvidenceSnapshot(
+                            SignatureSnapshot::find($verificationStep->signature_snapshot_id),
+                            (int) $verificationStep->approver_user_id,
+                            'SPMU_REQUEST_VERIFICATION',
+                            $verificationStep
+                        );
+                    }
+                }
                 $this->validateRequiredSupportingDocuments(
                     $version
                 );
@@ -1012,15 +1094,6 @@ class RequestWorkflowService
                         $reason
                     );
 
-                    $this->notifications->send(
-                        'REQUEST_RETURNED_FOR_REVISION',
-                        collect([
-                            $request->borrower,
-                        ]),
-                        "Request {$request->request_no} was returned because the approved quantity cannot currently be allocated for the selected schedule. {$reason}",
-                        $request
-                    );
-
                     $this->audit->record(
                         'SPMU_RESERVATION_CONFLICT',
                         $step,
@@ -1033,6 +1106,14 @@ class RequestWorkflowService
                             'reservation_created' =>
                                 false,
                         ]
+                    );
+
+                    $this->notifications->send(
+                        'REQUEST_RETURNED_FOR_REVISION',
+                        collect([$request->borrower]),
+                        "Request {$request->request_no} was returned because the approved quantity cannot currently be allocated for the selected schedule. {$reason}",
+                        $request,
+                        deferEmailUntilCommit: true
                     );
 
                     return;
@@ -1255,13 +1336,29 @@ class RequestWorkflowService
                     ]
                 );
 
+                $this->audit->record(
+                    'SPMU_REQUEST_DECISION',
+                    $step,
+                    reason: $remarks,
+                    after: [
+                        'decision' => 'APPROVED',
+                        'reservation_created' => true,
+                        'request_id' => $request->id,
+                        'request_version_id' => $version->id,
+                        'signer_user_id' => $approver->id,
+                        'signature_snapshot_id' => $signatureSnapshot->id,
+                        'signed_at' => $signatureSnapshot->captured_at?->toIso8601String(),
+                    ]
+                );
+
                 $this->notifications->send(
                     'REQUEST_APPROVED',
                     collect([
                         $request->borrower,
                     ]),
                     "Your borrowing request {$request->request_no} has been approved. Pickup is scheduled for {$automaticPickupWindow['start']->format('F j, Y g:i A')} to {$automaticPickupWindow['end']->format('g:i A')}. Please preview and print your Borrower Slip before pickup, together with any other required form shown in your request.",
-                    $request
+                    $request,
+                    deferEmailUntilCommit: true
                 );
 
                 $actionOfficers = User::query()
@@ -1274,36 +1371,8 @@ class RequestWorkflowService
                     $actionOfficers,
                     "Request {$request->request_no} was approved. Pickup is scheduled for {$automaticPickupWindow['start']->format('F j, Y g:i A')} to {$automaticPickupWindow['end']->format('g:i A')}. Prepare the approved items for release.",
                     $request,
-                    ['SYSTEM', 'EMAIL']
-                );
-
-                $this->audit->record(
-                    'SPMU_REQUEST_DECISION',
-                    $step,
-                    reason:
-                        $remarks,
-                    after: [
-                        'decision' =>
-                            'APPROVED',
-
-                        'reservation_created' =>
-                            true,
-
-                        'request_id' =>
-                            $request->id,
-
-                        'request_version_id' =>
-                            $version->id,
-
-                        'signer_user_id' =>
-                            $approver->id,
-
-                        'signature_snapshot_id' =>
-                            $signatureSnapshot->id,
-
-                        'signed_at' =>
-                            $signatureSnapshot->captured_at?->toIso8601String(),
-                    ]
+                    ['SYSTEM', 'EMAIL'],
+                    deferEmailUntilCommit: true
                 );
             },
             3
@@ -1326,72 +1395,11 @@ class RequestWorkflowService
     public function cancel(
         BorrowingRequest $request,
         User $actor,
-        string $reason
+        string $reason,
+        ?int $reviewedVersionId = null
     ): void {
-        if (
-            $request->borrower_user_id !== $actor->id
-            && ! $actor->hasRole(UserRole::Spmu)
-        ) {
-            abort(403);
-        }
-
-        $request->loadMissing([
-            'borrower',
-            'currentVersion',
-            'custody.gatePass',
-        ]);
-
-        if ($request->custody?->released_at) {
-            throw ValidationException::withMessages([
-                'cancel' =>
-                    'Items have already been physically released. Use the Return process on the Expected Return Date instead of cancellation.',
-            ]);
-        }
-
-        if (in_array($request->status, [
-            RequestStatus::Cancelled,
-            RequestStatus::Expired,
-            RequestStatus::Rejected,
-        ], true)) {
-            throw ValidationException::withMessages([
-                'cancel' => 'This request is already closed.',
-            ]);
-        }
-
-        /*
-         * A missed pickup is "Pickup Missed - For SPMU Review": only SPMU may
-         * decide to continue the release or cancel the borrowing at this
-         * stage, never the borrower. This does not affect borrower
-         * cancellation at any other stage (pickup_expired_at is null
-         * everywhere else).
-         */
-        $isBorrowerActor = $request->borrower_user_id === $actor->id && ! $actor->hasRole(UserRole::Spmu);
-        $pickupMissedPendingReview = (bool) $request->custody?->pickup_expired_at
-            && ! $request->custody?->released_at;
-
-        if ($isBorrowerActor && $pickupMissedPendingReview) {
-            throw ValidationException::withMessages([
-                'cancel' => 'This missed pickup is under SPMU review. SPMU will decide whether to continue the release or cancel the borrowing.',
-            ]);
-        }
-
-        /*
-         * A regular Action Officer has cancellation authority only for the
-         * operational missed-pickup review. Other unreleased cancellations
-         * retain the existing Head/Admin or formally delegated AO boundary.
-         */
-        $isPlainActionOfficer = $actor->access_classification === AccessClassification::SpmuOfficer
-            && $actor->activeDelegationFor('SPMU') === null;
-
-        if ($isPlainActionOfficer && ! $pickupMissedPendingReview) {
-            abort(403, 'A regular Action Officer may cancel only a borrowing that is in Pickup Missed - For SPMU Review.');
-        }
-
         $afterReservation = $request->status === RequestStatus::ApprovedReadyForRelease;
-
-        // No second SPMU confirmation is required while nothing has been
-        // physically released. Cancellation is effective immediately.
-        $this->finalizeCancellation($request, $actor, $reason, $afterReservation);
+        $this->finalizeCancellation($request, $actor, $reason, $afterReservation, reviewedVersionId: $reviewedVersionId);
     }
 
     /**
@@ -1514,8 +1522,12 @@ class RequestWorkflowService
         bool $afterReservation,
         string $notificationEventCode = 'REQUEST_CANCELLED',
         ?string $notificationMessage = null,
-        string $auditActionCode = 'REQUEST_CANCELLED'
+        string $auditActionCode = 'REQUEST_CANCELLED',
+        ?int $reviewedVersionId = null
     ): void {
+        $reason = trim($reason);
+        validator(['reason' => $reason], ['reason' => ['required', 'string', 'max:1000']])->validate();
+        $boundVersionNo = $request->current_version_no;
         DB::transaction(function () use (
             $request,
             $actor,
@@ -1523,8 +1535,69 @@ class RequestWorkflowService
             $afterReservation,
             $notificationEventCode,
             $notificationMessage,
-            $auditActionCode
+            $auditActionCode,
+            $reviewedVersionId,
+            $boundVersionNo
         ): void {
+            // Root lock serializes duplicate cancellation and current approval.
+            $request = BorrowingRequest::query()->lockForUpdate()->findOrFail($request->id);
+            $actor = User::query()->lockForUpdate()->findOrFail($actor->id);
+            $version = $request->versions()->where('version_no', $request->current_version_no)->lockForUpdate()->first();
+            // Approval reads joined reservation/custody rows while holding
+            // stock locks. Acquire the same stock locks before child locks.
+            if ($version) {
+                InventoryItem::query()->whereIn('id', $version->items()->pluck('inventory_item_id'))
+                    ->orderBy('id')->lockForUpdate()->get();
+            }
+            $custody = $request->custody()->lockForUpdate()->first();
+            $request->setRelation('currentVersion', $version);
+            $request->setRelation('custody', $custody);
+            abort_unless($actor->account_status === AccountStatus::Active
+                && $actor->hasVerifiedInstitutionalEmail() && $actor->hasApprovedRegistration(), 403);
+
+            // Preserve the Head's separate explicit preparation-discrepancy authority.
+            if ($auditActionCode === 'PREPARATION_UNABLE_TO_FULFILL') {
+                abort_unless($actor->access_classification === AccessClassification::SpmuHead
+                    && $actor->hasRole(UserRole::Spmu), 403);
+                if (! $custody || $custody->prepared_at || $custody->status !== 'PREPARING_RELEASE') {
+                    throw ValidationException::withMessages(['preparation_issue' => 'This preparation transaction has changed. Reload its current record.']);
+                }
+            } else {
+                Gate::forUser($actor)->authorize('cancel', $request);
+            }
+
+            if (! $request->status->isOpen() || $custody?->closed_at) {
+                throw ValidationException::withMessages(['cancel' => 'This request is already closed.']);
+            }
+            if (! $version || (int) $boundVersionNo !== (int) $request->current_version_no
+                || ($reviewedVersionId !== null && $reviewedVersionId !== (int) $version->id)) {
+                throw ValidationException::withMessages(['cancel' => 'The request version has changed. Reload and review the current request before cancelling.']);
+            }
+            if ($custody && ((int) $custody->request_version_id !== (int) $version->id
+                || (int) $custody->borrower_user_id !== (int) $request->borrower_user_id)) {
+                throw ValidationException::withMessages(['cancel' => 'The custody owner or version does not match this request. Review the inconsistent record before cancelling.']);
+            }
+            if ($custody?->released_at) {
+                throw ValidationException::withMessages(['cancel' => 'Items have already been physically released. Use the Return process instead of cancellation.']);
+            }
+            if ($custody?->pickup_expired_at && $actor->access_classification === AccessClassification::BorrowerOnly) {
+                throw ValidationException::withMessages(['cancel' => 'This missed pickup is under SAO review. Only SAO can confirm its cancellation.']);
+            }
+            if ($custody?->pickup_expired_at && $custody->status !== 'PREPARING_RELEASE') {
+                throw ValidationException::withMessages(['cancel' => 'The missed-pickup transaction has changed. Reload its current record.']);
+            }
+
+            $items = $version->items()->orderBy('id')->lockForUpdate()->get();
+            $version->setRelation('items', $items);
+            $allocations = Allocation::query()->whereIn('request_item_id', $items->pluck('id'))->orderBy('id')->lockForUpdate()->get()->keyBy('request_item_id');
+            $issuedLine = $custody?->lines()->lockForUpdate()->get()->contains(fn ($line) => (float) $line->actual_released_quantity > 0);
+            if ($issuedLine || $allocations->contains(fn ($allocation) => (float) $allocation->released_quantity > 0)) {
+                throw ValidationException::withMessages(['cancel' => 'Issued quantities are already recorded. Use the Return process instead of cancellation.']);
+            }
+            foreach ($items as $item) {
+                $item->setRelation('allocation', $allocations->get($item->id));
+            }
+            $afterReservation = $request->status === RequestStatus::ApprovedReadyForRelease;
             if ($afterReservation) {
                 $this->inventory->restore(
                     $request,
@@ -1723,11 +1796,26 @@ class RequestWorkflowService
         return $count;
     }
 
-    /**
-     * Verify that the current request version contains
-     * all supporting documents required for submission, verification, or
-     * approval.
-     */
+    /** Validate immutable ink and the recorded signing action for this exact version/step. */
+    private function validateApprovalEvidenceSnapshot(?SignatureSnapshot $snapshot, int $signerId, string $purpose, Model $signedRecord): void
+    {
+        if (! $snapshot || $snapshot->signer_user_id !== $signerId
+            || $snapshot->purpose_code !== $purpose
+            || (int) $snapshot->file?->uploaded_by_user_id !== $signerId
+            || ! hash_equals((string) $snapshot->sha256, (string) $snapshot->file?->sha256)
+            || ! AuditEvent::query()->where('action_code', 'E_SIGNATURE_APPLIED')
+                ->where('actor_user_id', $signerId)
+                ->where('record_type', $signedRecord::class)
+                ->where('record_id', $signedRecord->getKey())
+                ->where('after_json->signature_snapshot_id', $snapshot->id)->exists()) {
+            throw ValidationException::withMessages([
+                'signature' => 'The reviewed request needs its own valid borrower and applicable SAO E-signature evidence before approval.',
+            ]);
+        }
+        app(SubmissionEvidenceService::class)->verifiedBytes($snapshot->file, 'signature', imageOnly: true);
+    }
+
+    /** Validate current supporting documents required for submission, verification and approval. */
     private function validateRequiredSupportingDocuments(
         $version
     ): void {
@@ -1738,7 +1826,18 @@ class RequestWorkflowService
                     'is_current',
                     true
                 )
+                ->with('file')
                 ->get();
+
+        foreach ($documents as $document) {
+            $field = $document->isPermissionToConduct() ? 'permission_to_conduct_letter' : 'approved_request_letter';
+            if ((int) $document->request_id !== (int) $version->request_id
+                || (int) $document->uploaded_by_user_id !== (int) $version->request->borrower_user_id
+                || (int) $document->file?->uploaded_by_user_id !== (int) $version->request->borrower_user_id) {
+                throw ValidationException::withMessages([$field => 'The supporting document does not belong to this borrower and request version. Upload it again.']);
+            }
+            app(SubmissionEvidenceService::class)->verifiedBytes($document->file, $field);
+        }
 
         $hasRequestLetter =
             $documents->contains(

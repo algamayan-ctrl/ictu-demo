@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'SPMU-ACPMP'),
 
     'seed_demo_users' => (bool) env('SEED_DEMO_USERS', false),
 

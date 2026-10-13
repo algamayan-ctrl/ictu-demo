@@ -23,6 +23,7 @@ use App\Services\CustodyService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -527,6 +528,14 @@ class CompleteWorkflowTest extends TestCase
      */
     public function test_overlapping_requests_exceeding_stock_do_not_overbook(): void
     {
+        /*
+         * A fixed Monday. The second request below is dated two and three
+         * days from now; started on a real Thursday those were a Saturday
+         * and a Sunday, when SPMU is closed, so it was refused for its dates
+         * before the stock check this test is about could run.
+         */
+        $this->travelTo(Carbon::create(2026, 10, 12, 9, 0, 0, config('app.timezone')));
+
         $item = InventoryItem::where('unique_description', 'Round Table')->firstOrFail();
         $stock = (float) $item->total_quantity;
         $this->assertGreaterThan(40, $stock, 'Test assumes at least 41 units of Round Table are seeded.');
@@ -633,6 +642,14 @@ class CompleteWorkflowTest extends TestCase
      */
     public function test_release_is_blocked_after_pickup_window_expiry_until_rescheduled(): void
     {
+        /*
+         * A fixed Monday, so the approved dates, the generated pickup window
+         * and the rescheduled window all fall inside one working week. Started
+         * on a real Wednesday, no pickup day remained before the approved
+         * Items Needed From date and Continue Release was correctly refused.
+         */
+        $this->travelTo(Carbon::create(2026, 10, 12, 9, 0, 0, config('app.timezone')));
+
         [$borrower, $spmu, $spmuOfficer, $request, $version] =
             $this->approvedRequest(2, 'BR-SCENARIO-L-001', 'Round Table', 5);
 

@@ -312,6 +312,8 @@ class DocumentController extends Controller
             [
                 'PAPER_EVIDENCE',
                 'PAYMENT_EVIDENCE',
+                /* The scanned Cashier receipt the Action Officer records for a payment. */
+                'CSPC_CASHIER_PAID_RECEIPT',
                 'INCIDENT_EVIDENCE',
                 'REQUEST_SUPPORTING_DOCUMENT',
             ],

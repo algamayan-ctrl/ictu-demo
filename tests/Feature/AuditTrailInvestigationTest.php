@@ -17,6 +17,7 @@ use App\Services\ProtectedFileService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -46,17 +47,26 @@ class AuditTrailInvestigationTest extends TestCase
         parent::setUp();
 
         // These tests change data; they must only ever run on the isolated test database.
-        $this->assertSame('sqlite', config('database.default'));
-        $this->assertSame(':memory:', config('database.connections.sqlite.database'));
+        /*
+         * Tests\TestCase has already refused any database that is not provably
+         * disposable, before RefreshDatabase rebuilt it. Asserted again here so
+         * the requirement stays visible beside tests that rewrite audit history.
+         */
+        $this->assertDisposableTestDatabase();
 
         $this->seed(DatabaseSeeder::class);
         Storage::fake('local');
 
-        $this->travelTo(
-            app(OperationalCalendarService::class)
-                ->nextOpenDate(OperationalCalendarService::REQUEST, now(), true)
-                ->setTime(9, 0)
-        );
+        /*
+         * A fixed Monday, 09:00. requestPayload() derives its dates from the
+         * clock (pickup two days on, Items Needed From the day after, return
+         * the day after that), and the operational calendar closes weekends.
+         * From a Monday those land on Wednesday, Thursday and Friday. Started
+         * from the real date instead, the return date fell on a Saturday
+         * whenever the suite ran on a Tuesday or Wednesday and the request
+         * was correctly refused as "SPMU is closed".
+         */
+        $this->travelTo(Carbon::create(2026, 10, 12, 9, 0, 0, config('app.timezone')));
 
         $this->borrower = $this->classificationUser(AccessClassification::BorrowerOnly);
         $this->officer = $this->classificationUser(AccessClassification::SpmuOfficer);

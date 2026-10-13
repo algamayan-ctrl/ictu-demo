@@ -230,9 +230,7 @@ class AuditRecoveryService
 
         $conflicts = [];
 
-        foreach (array_unique(array_merge(array_keys($before), array_keys($after))) as $key) {
-            $key = (string) $key;
-
+        foreach ($this->orderedSnapshotKeys($module, $before, $after) as $key) {
             if (in_array($key, self::IGNORED_SNAPSHOT_KEYS, true)) {
                 continue;
             }
@@ -293,6 +291,48 @@ class AuditRecoveryService
         $result['allowed'] = $result['blocker'] === null;
 
         return $result;
+    }
+
+    /**
+     * The snapshot's field names in one fixed order.
+     *
+     * The order a snapshot's keys come back in belongs to the database, not
+     * to the record: a text column returns them as written, a native JSON
+     * column returns them re-sorted. Fields are therefore listed in the
+     * record's own declared order (its model's fillable list), and any field
+     * outside that list follows alphabetically, so the same event reads the
+     * same everywhere.
+     *
+     * @param  class-string<Model>  $module
+     * @param  array<int|string, mixed>  $before
+     * @param  array<int|string, mixed>  $after
+     * @return list<string>
+     */
+    private function orderedSnapshotKeys(string $module, array $before, array $after): array
+    {
+        $keys = array_values(array_unique(array_map(
+            'strval',
+            array_merge(array_keys($before), array_keys($after))
+        )));
+
+        $declared = array_flip((new $module)->getFillable());
+
+        usort($keys, function (string $a, string $b) use ($declared): int {
+            $aDeclared = isset($declared[$a]);
+            $bDeclared = isset($declared[$b]);
+
+            if ($aDeclared && $bDeclared) {
+                return $declared[$a] <=> $declared[$b];
+            }
+
+            if ($aDeclared !== $bDeclared) {
+                return $aDeclared ? -1 : 1;
+            }
+
+            return strcmp($a, $b);
+        });
+
+        return $keys;
     }
 
     /** @return class-string<Model>|null */

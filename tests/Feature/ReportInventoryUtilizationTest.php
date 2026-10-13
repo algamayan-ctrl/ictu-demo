@@ -413,7 +413,8 @@ class ReportInventoryUtilizationTest extends TestCase
     /** A request approved at the record level but never carried into custody. */
     private function approvedOnly(InventoryItem $item, int $quantity): void
     {
-        [$version] = $this->requestAndVersion('ACADEMIC', 'College of Computer Studies', RequestStatus::ApprovedReadyForRelease);
+        /* requestAndVersion() returns [request, version, borrower]; the item belongs to the version. */
+        [, $version] = $this->requestAndVersion('ACADEMIC', 'College of Computer Studies', RequestStatus::ApprovedReadyForRelease);
 
         RequestItem::query()->create([
             'request_version_id' => $version->id,

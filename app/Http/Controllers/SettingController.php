@@ -25,6 +25,8 @@ class SettingController extends Controller
         'billing_statement_template_version',
         'laundry_form_template_version',
         'gate_pass_template_version',
+        /* Internal one-time bootstrap marker (spmu:bootstrap); never a setting to edit. */
+        'reference_data_bootstrap',
     ];
 
     public function index(Request $request): View

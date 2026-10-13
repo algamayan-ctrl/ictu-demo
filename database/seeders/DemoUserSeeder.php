@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\UserRoleAssignmentService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class DemoUserSeeder extends Seeder
 {
@@ -18,6 +19,21 @@ class DemoUserSeeder extends Seeder
     public function run(UserRoleAssignmentService $roleAssignments): void
     {
         if (! config('app.seed_demo_users')) {
+            return;
+        }
+
+        /*
+         * Demo accounts share a password that is published in this file.
+         * A production environment never receives them, whatever
+         * SEED_DEMO_USERS says: the flag is skipped, loudly, and the rest of
+         * the seeding is left to finish.
+         */
+        if (app()->environment('production')) {
+            $message = 'SEED_DEMO_USERS is enabled in a production environment. Demo accounts were NOT created. Remove SEED_DEMO_USERS from this environment.';
+
+            Log::warning($message);
+            $this->command?->warn($message);
+
             return;
         }
         foreach ($this->accounts() as [$classification, $email, $employeeNo, $name, $unitCode, $employment]) {

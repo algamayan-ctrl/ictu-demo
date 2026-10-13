@@ -35,8 +35,12 @@ class AuditRecoveryTest extends TestCase
         parent::setUp();
 
         // These tests change data; they must only ever run on the isolated test database.
-        $this->assertSame('sqlite', config('database.default'));
-        $this->assertSame(':memory:', config('database.connections.sqlite.database'));
+        /*
+         * Tests\TestCase has already refused any database that is not provably
+         * disposable, before RefreshDatabase rebuilt it. Asserted again here so
+         * the requirement stays visible beside tests that rewrite audit history.
+         */
+        $this->assertDisposableTestDatabase();
 
         $this->seed(DatabaseSeeder::class);
 
@@ -488,7 +492,8 @@ class AuditRecoveryTest extends TestCase
             'row' => collect((array) DB::table('users')->where('id', $account->id)->first())
                 ->except(['designation', 'updated_at'])
                 ->all(),
-            'roles' => DB::table('user_roles')->where('user_id', $account->id)->orderBy('id')->get()->map(fn ($row) => (array) $row)->all(),
+            /* user_roles has no id column; its key is (user_id, role_id, assigned_at). */
+            'roles' => DB::table('user_roles')->where('user_id', $account->id)->orderBy('role_id')->orderBy('assigned_at')->get()->map(fn ($row) => (array) $row)->all(),
             'units' => $account->fresh()->authorizedOrganizationalUnits()->pluck('organizational_units.id')->sort()->values()->all(),
             'sessions' => DB::table('sessions')->where('user_id', $account->id)->count(),
             'reset_tokens' => DB::table('password_reset_tokens')->count(),
@@ -544,6 +549,97 @@ class AuditRecoveryTest extends TestCase
 
         $this->revertAs($this->ictu, $deactivation)->assertSessionHasErrors('revert');
         $this->assertSame('INACTIVE', $account->fresh()->account_status->value);
+    }
+
+    /**
+     * The order a snapshot's keys come back in belongs to the database: a
+     * text column keeps them as written, MySQL's native JSON type re-sorts
+     * them by length. The page must read the same either way.
+     */
+    public function test_the_field_lists_keep_one_order_however_the_database_returns_the_snapshot_keys(): void
+    {
+        $item = $this->createInventoryItem('Order Canopy', 9);
+
+        $this->updateInventory($item, [
+            'unique_description' => 'Order Canopy Wrong',
+            'specification' => 'Wrong specification',
+            'category_id' => DB::table('inventory_categories')->where('id', '!=', $item->category_id)->value('id'),
+            'unit_id' => DB::table('units_of_measure')->where('id', '!=', $item->unit_id)->value('id'),
+            'borrowable' => 0,
+            'laundry_required' => 1,
+            'provisional' => 1,
+        ]);
+        $event = $this->latestEvent('INVENTORY_ITEM_UPDATED', $item->id);
+
+        $expectedSkipped = 'Not restored by this action: Category Id, Unit Id, Borrowable, Laundry Required, Provisional.';
+        $orderings = [
+            'as written' => fn (array $snapshot): array => $snapshot,
+            'reversed' => fn (array $snapshot): array => array_reverse($snapshot, true),
+            'alphabetical' => function (array $snapshot): array {
+                ksort($snapshot);
+
+                return $snapshot;
+            },
+            /* What MySQL's native JSON type does: shorter keys first, then by name. */
+            'by key length' => function (array $snapshot): array {
+                uksort($snapshot, fn (string $a, string $b): int => [strlen($a), $a] <=> [strlen($b), $b]);
+
+                return $snapshot;
+            },
+        ];
+
+        $before = $event->before_json;
+        $after = $event->after_json;
+
+        foreach ($orderings as $label => $reorder) {
+            DB::table('audit_events')->where('id', $event->id)->update([
+                'before_json' => json_encode($reorder($before)),
+                'after_json' => json_encode($reorder($after)),
+            ]);
+
+            $this->as($this->head)
+                ->get(route('reports.audit', ['record_type' => 'InventoryItem', 'record_id' => $item->id]))
+                ->assertOk()
+                ->assertSee($expectedSkipped)
+                /* The restorable fields keep their order too: name, then specification. */
+                ->assertSeeInOrder(['<strong>Item Name</strong>', '<strong>Specification</strong>'], false);
+
+            /* The same content, whatever the order: nothing was dropped or added. */
+            $stored = AuditEvent::query()->findOrFail($event->id);
+            $this->assertEquals($before, $stored->before_json, "Snapshot content changed for the [{$label}] ordering.");
+            $this->assertEquals($after, $stored->after_json, "Snapshot content changed for the [{$label}] ordering.");
+        }
+
+        /* A reordered snapshot still reverts exactly the two eligible fields. */
+        $this->revertAs($this->head, $event)->assertSessionHasNoErrors();
+
+        $item->refresh();
+        $this->assertSame('Order Canopy', $item->unique_description);
+        $this->assertNull($item->specification);
+        $this->assertFalse($item->borrowable);
+        $this->assertTrue($item->laundry_required);
+    }
+
+    public function test_fields_the_record_does_not_declare_are_listed_last_in_alphabetical_order(): void
+    {
+        $item = $this->createInventoryItem('Order Lectern', 4);
+
+        $this->updateInventory($item, ['unique_description' => 'Order Lectern Wrong', 'borrowable' => 0]);
+        $event = $this->latestEvent('INVENTORY_ITEM_UPDATED', $item->id);
+
+        /* Two fields no model declares, written ahead of the declared ones. */
+        $before = ['zeta_note' => 'a', 'alpha_note' => 'a'] + $event->before_json;
+        $after = ['zeta_note' => 'b', 'alpha_note' => 'b'] + $event->after_json;
+
+        DB::table('audit_events')->where('id', $event->id)->update([
+            'before_json' => json_encode($before),
+            'after_json' => json_encode($after),
+        ]);
+
+        $this->as($this->head)
+            ->get(route('reports.audit', ['record_type' => 'InventoryItem', 'record_id' => $item->id]))
+            ->assertOk()
+            ->assertSee('Not restored by this action: Borrowable, Alpha Note, Zeta Note.');
     }
 
     private function revertAs(User $user, AuditEvent $event): \Illuminate\Testing\TestResponse

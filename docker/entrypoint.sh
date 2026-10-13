@@ -24,7 +24,10 @@ php artisan view:cache
 
 if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
     php artisan migrate --force
-    php artisan db:seed --force
+    # Seeds reference data once on a new database. On a database that is
+    # already initialized or in use it seeds nothing, so a restart can never
+    # recreate edited inventory or reset organizational units and roles.
+    php artisan spmu:bootstrap
 fi
 
 exec "$@"

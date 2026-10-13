@@ -44,8 +44,12 @@ class NotificationReliabilityTest extends TestCase
         parent::setUp();
 
         // Isolated database and in-memory mailer only; no real email can leave.
-        $this->assertSame('sqlite', config('database.default'));
-        $this->assertSame(':memory:', config('database.connections.sqlite.database'));
+        /*
+         * Tests\TestCase has already refused any database that is not provably
+         * disposable, before RefreshDatabase rebuilt it. Asserted again here so
+         * the requirement stays visible beside tests that rewrite audit history.
+         */
+        $this->assertDisposableTestDatabase();
         $this->assertSame('array', config('mail.default'));
 
         $this->seed(DatabaseSeeder::class);

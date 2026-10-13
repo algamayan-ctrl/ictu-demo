@@ -16,6 +16,7 @@ use App\Services\OperationalCalendarService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -38,11 +39,16 @@ class OffCampusGatePassWorkflowTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         Storage::fake('local');
 
-        $this->travelTo(
-            app(OperationalCalendarService::class)
-                ->nextOpenDate(OperationalCalendarService::REQUEST, now(), true)
-                ->setTime(9, 0)
-        );
+        /*
+         * A fixed Monday, 09:00. requestPayload() derives its dates from the
+         * clock (pickup two days on, Items Needed From the day after, return
+         * the day after that), and the operational calendar closes weekends.
+         * From a Monday those land on Wednesday, Thursday and Friday. Started
+         * from the real date instead, the return date fell on a Saturday
+         * whenever the suite ran on a Tuesday or Wednesday and every request
+         * here was correctly refused as "SPMU is closed".
+         */
+        $this->travelTo(Carbon::create(2026, 10, 12, 9, 0, 0, config('app.timezone')));
 
         $this->borrower = $this->classificationUser(AccessClassification::BorrowerOnly);
         $this->officer = $this->classificationUser(AccessClassification::SpmuOfficer);

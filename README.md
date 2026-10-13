@@ -49,7 +49,9 @@ docker compose up -d --build
 docker compose ps
 ```
 
-With `RUN_MIGRATIONS=true`, the container entrypoint applies migrations and idempotent reference seeders, then refreshes configuration, route, and view caches. Do not repeat those commands after a normal start.
+With `RUN_MIGRATIONS=true`, the container entrypoint applies migrations and, on a new database only, seeds the reference data once (`php artisan spmu:bootstrap`), then refreshes configuration, route, and view caches. Do not repeat those commands after a normal start.
+
+The seeders themselves are not safe to repeat: run again on a database that is in use, `php artisan db:seed` recreates opening inventory items that were renamed or deleted and resets organizational units and roles. Never run it by hand on a database with real data. After first-time setup, set `RUN_MIGRATIONS=false` in `.env.docker` and apply migrations explicitly when updating; see `docs/DEPLOYMENT-ICTU.md`.
 
 Open:
 

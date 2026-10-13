@@ -17,6 +17,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Protected Files Disk
+    |--------------------------------------------------------------------------
+    |
+    | The disk NEW protected files are written to: borrower documents,
+    | signatures, evidence, generated controlled documents and profile
+    | pictures. It is deliberately separate from the default disk above, so
+    | framework defaults and temporary processing never move with it.
+    |
+    | Every stored_files row records the disk it was written to, and reads
+    | always follow that recorded disk. Changing this value therefore never
+    | moves, re-points or hides a file that already exists.
+    |
+    | Localhost keeps "local". A Laravel Cloud environment with a private
+    | bucket attached sets PROTECTED_FILES_DISK=s3.
+    |
+    */
+
+    'protected_disk' => env('PROTECTED_FILES_DISK', 'local'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |
@@ -56,7 +77,14 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
+            /*
+             * Private object storage for protected files. Objects are written
+             * private and are only ever served through the application's
+             * authorized controllers, never by a bucket URL. A failed
+             * operation throws, so a write can never fail unnoticed.
+             */
+            'visibility' => 'private',
+            'throw' => true,
             'report' => false,
         ],
 

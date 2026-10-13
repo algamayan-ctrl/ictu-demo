@@ -27,7 +27,7 @@ Copy `.env.docker.example` to the protected, untracked `.env.docker` file. Do no
 | `GOOGLE_ALLOWED_DOMAINS` | Required deployment policy when Google sign-in is enabled | Set to `cspc.edu.ph` for CSPC production. The variable supports a comma-separated list only when ICTU has an approved institutional exception. |
 | `MAIL_*` | Required for production email delivery | Use the approved institutional SMTP service and sender identity. |
 | `SEED_DEMO_USERS` | Required | Set `false` in production. |
-| `RUN_MIGRATIONS` | Environment-specific | `true` lets the entrypoint run migrations and idempotent master/reference seeders; set `false` only for a planned maintenance/recovery procedure. |
+| `RUN_MIGRATIONS` | Environment-specific | `true` makes the entrypoint run migrations on every container start and seed the reference data once, on a new database only (`php artisan spmu:bootstrap`). Use `true` for the first start, then set `false` once the system is in use and apply migrations explicitly. See "Initialization and repeat seeding" below. |
 
 The Google OAuth domain allow-list is an additional CSPC production control. It does not create accounts or assign roles: Google proves identity, while the pre-existing active local user record still controls access.
 
@@ -45,7 +45,42 @@ docker compose up -d --build
 docker compose ps
 ```
 
-With `RUN_MIGRATIONS=true`, the app container applies migrations and idempotent reference/master seeders, including the organizational master data. Seeders do not overwrite later inventory/configuration changes. The same entrypoint has already refreshed configuration, route, and view caches.
+With `RUN_MIGRATIONS=true`, the app container applies migrations and then runs `php artisan spmu:bootstrap`, which seeds the reference/master data, including the organizational master data, once. The same entrypoint has already refreshed configuration, route, and view caches.
+
+### Initialization and repeat seeding
+
+`spmu:bootstrap` is the only seeding the entrypoint performs, and it seeds a database at most once:
+
+| State of the database | What `spmu:bootstrap` does |
+|---|---|
+| Already initialized (its completion marker is present) | Nothing. |
+| No marker, but already in use (it has accounts, borrowing requests, or audit history) | Seeds nothing and records the marker, so the existing data is kept exactly as it is. |
+| New and unused | Seeds the reference data and records the marker in one transaction. If anything fails, nothing is kept and the next start tries again. |
+
+The marker is the internal `reference_data_bootstrap` row in `system_settings`. It is not shown on the settings screens. Do not edit or delete it: without it, a database with no accounts yet would be seeded again.
+
+Running the seeders directly is a different matter. `php artisan db:seed` ignores the marker, and the seeders are **not** all safe to run again once staff have edited the data:
+
+| Data | Effect of seeding again |
+|---|---|
+| Opening inventory items | An item that was renamed or deleted is created again with its opening quantity, so stock is overstated. An item whose name and category are unchanged is left alone, including its quantity. |
+| Organizational units | Names, parent units, and the active flag are reset to the seeded hierarchy. |
+| Roles | Role names and active flags are reset. |
+| System settings | Not changed. Existing values are kept. |
+| Demo accounts | Never created when `APP_ENV=production`, even if `SEED_DEMO_USERS` is `true`; a warning is logged instead. |
+
+Do not run `php artisan db:seed` against a database that is in use.
+
+### `RUN_MIGRATIONS` by situation
+
+| Situation | Setting | What to run |
+|---|---|---|
+| First-time local setup (`.env.docker` created by `tools/prepare-docker-local.ps1`) | `true` | Nothing by hand. The first `docker compose up -d --build` migrates and initializes the database, including the demo accounts when `SEED_DEMO_USERS=true`. |
+| First start of a production Docker deployment | `true` | Nothing by hand for migrations and reference data; then create the first ICTU account as described below. |
+| Any later start or update, local or production | `false` | `docker compose exec app php artisan migrate --force` when an update brings migrations. Nothing else. |
+| Laravel Cloud staging | Not used | Follow `LARAVEL-CLOUD-FIRST-DEPLOY.md`; the Docker entrypoint does not run there. |
+
+Leaving `RUN_MIGRATIONS=true` after the first start no longer reseeds anything, but it does apply pending migrations automatically on every restart. Setting it to `false` keeps schema changes a deliberate step taken during a planned update.
 
 7. Create the first real ICTU account:
 
@@ -96,7 +131,7 @@ No automated backup service is included in this deployment architecture. `backup
    ```
 
    `--force-recreate` is mandatory, not optional. The `app` and `scheduler` containers run a baked image with no live source mount: after any code change, `docker compose up -d --build` alone can leave a stale container running against a newer image without visibly failing. A verified incident (a stale image left `spmu:process-deadlines` failing on every scheduled run for over a week with no symptom besides accumulating log errors) confirms this is a real, not theoretical, risk. Confirm `docker compose ps` shows both containers freshly recreated and healthy, and that `migrate:status` shows no pending migration, before continuing.
-5. With `RUN_MIGRATIONS=true`, the entrypoint performs the required migration/seed and cache refresh steps automatically on container start; the `migrate:status` check above confirms this completed.
+5. The entrypoint refreshes the caches on every container start. With `RUN_MIGRATIONS=false` (the setting for a system in use), run `docker compose exec app php artisan migrate --force` and repeat the `migrate:status` check. With `RUN_MIGRATIONS=true`, the entrypoint migrates automatically on the restart; it does not seed an initialized database again. See "Initialization and repeat seeding" above.
 6. Check `/up`, sign-in, scheduler and queue logs, database health, protected-storage write access, LibreOffice document runtime, email, and one non-destructive role test.
 7. Record the release and validation as an ICTU technical operation/change record.
 

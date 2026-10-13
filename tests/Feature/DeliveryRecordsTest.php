@@ -37,8 +37,12 @@ class DeliveryRecordsTest extends TestCase
         parent::setUp();
 
         // These tests change data and send mail; only the isolated database and the in-memory mailer are allowed.
-        $this->assertSame('sqlite', config('database.default'));
-        $this->assertSame(':memory:', config('database.connections.sqlite.database'));
+        /*
+         * Tests\TestCase has already refused any database that is not provably
+         * disposable, before RefreshDatabase rebuilt it. Asserted again here so
+         * the requirement stays visible beside tests that rewrite audit history.
+         */
+        $this->assertDisposableTestDatabase();
         $this->assertSame('array', config('mail.default'));
 
         $this->seed(DatabaseSeeder::class);

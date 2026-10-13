@@ -5,9 +5,61 @@ namespace Tests;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Cache;
+use RuntimeException;
 
 abstract class TestCase extends BaseTestCase
 {
+    /**
+     * Refuse to touch any database that is not provably disposable.
+     *
+     * This runs before the testing traits do. RefreshDatabase wipes and
+     * rebuilds the configured database as its first act, so a check made
+     * later, inside a test's own setUp(), comes after the damage.
+     *
+     * Allowed without further ceremony: the in-memory SQLite database the
+     * suite is configured for. Any other database (a MySQL or MariaDB server,
+     * or an SQLite file) is allowed only when all of these hold:
+     *
+     *  - the environment is "testing";
+     *  - SPMU_TEST_DATABASE names that exact database, so someone chose it
+     *    on purpose for this run;
+     *  - its name contains "test", so it cannot be a database that was named
+     *    for real use.
+     *
+     * APP_ENV=testing alone is never enough: an environment pointed at a
+     * live or staging database by mistake still fails all three.
+     */
+    protected function setUpTraits()
+    {
+        $this->assertDisposableTestDatabase();
+
+        return parent::setUpTraits();
+    }
+
+    protected function assertDisposableTestDatabase(): void
+    {
+        $connection = (string) config('database.default');
+        $driver = (string) config("database.connections.{$connection}.driver");
+        $database = (string) config("database.connections.{$connection}.database");
+
+        if (! $this->app->environment('testing')) {
+            throw new RuntimeException('Tests refuse to run outside the "testing" environment (current: '.$this->app->environment().').');
+        }
+
+        if ($driver === 'sqlite' && $database === ':memory:') {
+            return;
+        }
+
+        $optIn = (string) (getenv('SPMU_TEST_DATABASE') ?: '');
+
+        if ($optIn === '' || $optIn !== $database || stripos($database, 'test') === false) {
+            throw new RuntimeException(
+                "Tests refuse to run against the [{$connection}] database \"{$database}\": the suite rebuilds its database from nothing. "
+                .'Use the in-memory SQLite database, or set SPMU_TEST_DATABASE to the exact name of a disposable database whose name contains "test".'
+            );
+        }
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

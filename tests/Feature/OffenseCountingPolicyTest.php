@@ -318,6 +318,49 @@ class OffenseCountingPolicyTest extends TestCase
         $this->assertSame('WRITTEN_REPRIMAND', $sanction->sanction_code);
     }
 
+    public function test_delayed_encoding_of_an_on_time_non_linen_return_does_not_detect_late_offense(): void
+    {
+        $borrower = $this->borrower();
+        $custody = $this->custodyFor($borrower);
+        $return = ReturnTransaction::query()->create([
+            'return_no' => 'RET-PHYSICAL-'.fake()->unique()->numberBetween(1000, 9999),
+            'custody_transaction_id' => $custody->id,
+            'received_by_user_id' => $this->head->id,
+            'return_type' => 'NORMAL',
+            'received_at' => now(), // Later encoding time.
+            'physical_return_date' => $custody->due_at->toDateString(),
+            'physical_return_source' => 'SIGNED_RETURN_ACKNOWLEDGMENT',
+            'status' => 'INSPECTED',
+        ]);
+
+        $detected = app(PolicyService::class)->detectFromConfirmedReturn($custody, $return, $this->head);
+
+        $this->assertNull($detected['late_return']);
+        $this->assertDatabaseCount('sanctions', 0);
+    }
+
+    public function test_detected_late_return_remains_pending_until_head_decides(): void
+    {
+        $borrower = $this->borrower();
+        $custody = $this->custodyFor($borrower);
+        $return = ReturnTransaction::query()->create([
+            'return_no' => 'RET-PENDING-'.fake()->unique()->numberBetween(1000, 9999),
+            'custody_transaction_id' => $custody->id,
+            'received_by_user_id' => $this->head->id,
+            'return_type' => 'OVERDUE',
+            'received_at' => now(),
+            'physical_return_date' => now()->toDateString(),
+            'physical_return_source' => 'AO_SAME_DAY',
+            'status' => 'INSPECTED',
+        ]);
+
+        $detected = app(PolicyService::class)->detectFromConfirmedReturn($custody, $return, $this->head);
+
+        $this->assertNotNull($detected['late_return']);
+        $this->assertSame('PENDING_REVIEW', $detected['late_return']->status);
+        $this->assertDatabaseCount('sanctions', 0);
+    }
+
     public function test_repeated_late_return_detection_keeps_the_existing_sanction(): void
     {
         $borrower = $this->borrower();

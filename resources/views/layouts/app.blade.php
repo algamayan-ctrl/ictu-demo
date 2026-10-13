@@ -1255,6 +1255,74 @@
 }
 </style>
 <!-- SPMU COMPACT CONSISTENCY V2 END -->
+<style>
+/* SIDEBAR ACTION BADGES START - soft, compact, readable counters */
+.sidebar-nav > a { position: relative; }
+.sidebar-nav > a .sidebar-action-count {
+    margin-left: auto;
+    flex: 0 0 auto;
+    min-width: 21px;
+    height: 21px;
+    padding: 0 6px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e4f2ff;
+    color: #175380;
+    font-size: 11px;
+    line-height: 1;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    box-sizing: border-box;
+    box-shadow: none;
+    text-shadow: none;
+}
+.sidebar-nav > a .sidebar-action-count[hidden] { display: none !important; }
+/* Keep tones in the data, but use one subtle visual style across the sidebar. */
+.sidebar-nav > a .sidebar-action-count.is-urgent,
+.sidebar-nav > a .sidebar-action-count.is-soon {
+    background: #e4f2ff;
+    color: #175380;
+}
+/* The light pill remains legible on the selected blue menu and on hover. */
+.sidebar-nav > a.active .sidebar-action-count,
+.sidebar-nav > a[aria-current="page"] .sidebar-action-count,
+.sidebar-nav > a:hover .sidebar-action-count {
+    background: #e4f2ff;
+    color: #175380;
+    box-shadow: none;
+}
+.sidebar-nav > a[data-sidebar-section-toggle] .sidebar-action-count {
+    margin-left: auto;
+}
+.sidebar-nav > a[data-sidebar-section-toggle] .sidebar-section-chevron {
+    margin-left: 0;
+}
+html[data-theme="dark"] .sidebar-nav > a .sidebar-action-count,
+html[data-theme="dark"] .sidebar-nav > a .sidebar-action-count.is-urgent,
+html[data-theme="dark"] .sidebar-nav > a .sidebar-action-count.is-soon,
+html[data-theme="dark"] .sidebar-nav > a.active .sidebar-action-count,
+html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
+    background: #294e6d;
+    color: #f3f9ff;
+}
+@media (min-width:1050px) {
+    html[data-sidebar-state="collapsed"] .sidebar-nav > a .sidebar-action-count {
+        position: absolute;
+        margin: 0;
+        right: 2px;
+        top: 2px;
+        min-width: 17px;
+        height: 17px;
+        padding: 0 3px;
+        font-size: 9px;
+        z-index: 1;
+    }
+}
+/* SIDEBAR ACTION BADGES END */
+</style>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -1263,6 +1331,8 @@
         $activeWorkspace = auth()->user()->primaryWorkspace();
         $unread = App\Models\NotificationDelivery::where('recipient_user_id', auth()->id())->where('channel', 'SYSTEM')->whereNull('read_at')->count();
         $classification = auth()->user()->access_classification;
+        $sidebarActionCounts = app(\App\Services\SidebarActionCountService::class)->counts(auth()->user());
+        $sidebarTones = app(\App\Services\SidebarActionCountService::class)->tones(auth()->user());
         $navigation = match ($activeWorkspace) {
             'BORROWER' => [
                 ['dashboard', 'dashboard', 'Dashboard', 'dashboard'],
@@ -1345,6 +1415,7 @@
                 @foreach($navigation as [$routeName, $routePattern, $label, $icon])
                     @php
                         $isNavActive = request()->routeIs($routePattern);
+                        $sidebarCount = max(0, (int) ($sidebarActionCounts[$routeName] ?? 0));
 
                         $hasSidebarSections =
                             $activeWorkspace === 'SPMU'
@@ -1365,6 +1436,7 @@
                         href="{{ route($routeName) }}"
                         aria-label="{{ $label }}"
                         data-sidebar-tooltip="{{ $label }}"
+                        data-sidebar-count-route="{{ $routeName }}"
                         @if($hasSidebarSections)
                             data-sidebar-section-toggle
                             aria-expanded="false"
@@ -1378,6 +1450,12 @@
                         </span>
 
                         <span class="nav-label">{{ $label }}</span>
+                        <span
+                            class="sidebar-action-count {{ match($sidebarTones[$routeName] ?? 'normal') { 'urgent' => 'is-urgent', 'soon' => 'is-soon', default => '' } }}"
+                            data-sidebar-action-count
+                            @if($sidebarCount < 1) hidden @endif
+                            aria-hidden="true"
+                        >{{ $sidebarCount > 99 ? '99+' : $sidebarCount }}</span>
 
                         @if($hasSidebarSections)
                             <span
@@ -1397,10 +1475,10 @@
                             <a
                                 class="interactive {{ request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'work' ? 'active' : '' }}"
                                 href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace"
-                                data-sidebar-tooltip="{{ $classification === App\Enums\AccessClassification::SpmuHead ? 'Needs My Decision' : 'Needs My Action' }}"
+                                data-sidebar-tooltip="{{ $classification === App\Enums\AccessClassification::SpmuHead ? 'Needs My Decision' : 'For Follow-Up' }}"
                                 @if(request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'work') aria-current="page" @endif
                             >
-                                {{ $classification === App\Enums\AccessClassification::SpmuHead ? 'Needs My Decision' : 'Needs My Action' }}
+                                {{ $classification === App\Enums\AccessClassification::SpmuHead ? 'Needs My Decision' : 'For Follow-Up' }}
                             </a>
 
                             <a
@@ -1460,6 +1538,57 @@
             </nav>
 
         </aside>
+{{-- SIDEBAR ACTION COUNTS AUTO-REFRESH START --}}
+        <script>
+        (function () {
+            'use strict';
+            const nav = document.querySelector('#primary-sidebar .sidebar-nav');
+            if (!nav) return;
+            const links = Array.from(nav.querySelectorAll('a[data-sidebar-count-route]'));
+            if (!links.length) return;
+            const url = @json(route('sidebar.actions.status'));
+            let refreshing = false;
+            const apply = function (counts, tones) {
+                if (!counts || typeof counts !== 'object') return;
+                links.forEach(function (link) {
+                    const badge = link.querySelector('[data-sidebar-action-count]');
+                    if (!badge) return;
+                    const raw = Number(counts[link.dataset.sidebarCountRoute] || 0);
+                    const count = Number.isFinite(raw) ? Math.max(0, Math.floor(raw)) : 0;
+                    const label = link.dataset.sidebarTooltip || '';
+                    const tone = tones && tones[link.dataset.sidebarCountRoute] || 'normal';
+                    badge.classList.toggle('is-urgent', tone === 'urgent');
+                    badge.classList.toggle('is-soon', tone === 'soon');
+                    badge.hidden = count < 1;
+                    badge.textContent = count > 99 ? '99+' : String(count);
+                    link.setAttribute('aria-label', count ? label + ': ' + count + ' pending' : label);
+                });
+            };
+            const refresh = async function () {
+                if (refreshing || document.hidden) return;
+                refreshing = true;
+                try {
+                    const response = await fetch(url, {
+                        credentials: 'same-origin',
+                        cache: 'no-store',
+                        headers: { Accept: 'application/json' }
+                    });
+                    if (!response.ok || !(response.headers.get('content-type') || '').includes('application/json')) return;
+                    const payload = await response.json();
+                    apply(payload.counts, payload.tones);
+                } catch (_) {
+                    // Keep the last server-rendered counts when offline.
+                } finally {
+                    refreshing = false;
+                }
+            };
+            setInterval(refresh, 120000);
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) refresh();
+            });
+        })();
+        </script>
+        {{-- SIDEBAR ACTION COUNTS AUTO-REFRESH END --}}
         <button class="sidebar-backdrop" type="button" aria-label="Close main menu" tabindex="-1" data-sidebar-close></button>
         <div class="app-stage">
             <header class="app-topbar">

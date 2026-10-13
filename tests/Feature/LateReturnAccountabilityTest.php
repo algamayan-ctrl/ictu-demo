@@ -310,6 +310,27 @@ class LateReturnAccountabilityTest extends TestCase
         $this->assertSame(LateReturnService::STATUS_OVERDUE, $case->status);
     }
 
+    public function test_non_linen_uses_verified_physical_date_not_later_encoding_timestamp(): void
+    {
+        $custody = $this->custody($this->borrower());
+        $officer = $this->officer();
+
+        // Encoded September 3, but physical receipt was September 1 (the due date).
+        $this->recordReturn($custody, Carbon::create(2026, 9, 3, 9), $officer);
+        DB::table('return_transactions')
+            ->where('custody_transaction_id', $custody->id)
+            ->update(['physical_return_date' => '2026-09-01']);
+
+        [$physicalReturn, $source] = $this->lateReturns->actualReturn($custody->fresh([
+            'lines.requestItem.inventoryItem',
+            'returns.lines.custodyLine.requestItem.inventoryItem',
+        ]));
+
+        $this->assertSame('2026-09-01', $physicalReturn?->toDateString());
+        $this->assertNotNull($source);
+        $this->assertNull($this->lateReturns->assess($custody->fresh(['lines', 'returns']), $officer));
+    }
+
     public function test_an_on_time_return_opens_no_late_return_case(): void
     {
         $custody = $this->custody($this->borrower());

@@ -217,6 +217,28 @@
         @if(!($linenOnly && $laundryFormMissing))
             <div class="return-action-area" id="return-action-area">
                 <div class="return-action-footer">
+                    @if($nonLinenReturnLines->isNotEmpty())
+                        <div class="return-physical-date-fields" style="display:grid;gap:10px;grid-column:1/-1;width:100%;">
+                            <label>
+                                Actual Physical Return Date — Non-Linen
+                                <input type="date" name="physical_return_date"
+                                    value="{{ old('physical_return_date', now(config('app.timezone') ?: 'Asia/Manila')->toDateString()) }}"
+                                    max="{{ now(config('app.timezone') ?: 'Asia/Manila')->toDateString() }}"
+                                    min="{{ $custody->released_at?->toDateString() }}"
+                                    @disabled($returnOperationallyClosed)>
+                                <small>Use the date items were physically handed to SPMU. Today is prefilled. Past dates require a signed return acknowledgment and explanation.</small>
+                            </label>
+                            <label>
+                                Delayed Encoding Explanation (if earlier than today)
+                                <textarea name="physical_return_reason" rows="2" maxlength="2000" placeholder="Explain why the physical handover was recorded later." @disabled($returnOperationallyClosed)>{{ old('physical_return_reason') }}</textarea>
+                            </label>
+                            <label>
+                                Signed Borrower Slip / Return Acknowledgment (required for earlier dates)
+                                <input type="file" name="physical_return_evidence" accept="application/pdf,image/png,image/jpeg,image/webp" @disabled($returnOperationallyClosed)>
+                                <small>The system always retains the actual date/time of encoding separately; a prior date does not change the audit timestamp.</small>
+                            </label>
+                        </div>
+                    @endif
                     <label>
                         Inspection Note (optional)
                         <span class="return-remarks-input">

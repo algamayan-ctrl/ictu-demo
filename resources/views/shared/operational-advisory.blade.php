@@ -78,7 +78,7 @@
         <p class="spmu-advisory__main" data-advisory-message>{{ $operationalAdvisory['message'] }}</p>
         {{-- Each line appears only when the Operational Calendar has something to say. --}}
         <div class="spmu-advisory__meta">
-            <span data-advisory-next @if(!$operationalAdvisory['next_available']) hidden @endif>Next available: {{ $operationalAdvisory['next_available'] }}</span>
+            <span data-advisory-next @if(!$operationalAdvisory['next_available'] || str_contains($operationalAdvisory['message'], $operationalAdvisory['next_available'])) hidden @endif>Next available: {{ $operationalAdvisory['next_available'] }}</span>
             <span data-advisory-hours @if(!$operationalAdvisory['hours']) hidden @endif>Hours: {{ $operationalAdvisory['hours'] }}</span>
             <span data-advisory-reason @if(!$operationalAdvisory['reason']) hidden @endif>{{ $operationalAdvisory['reason'] }}</span>
             <span data-advisory-upcoming @if(!$operationalAdvisory['upcoming']) hidden @endif>Upcoming: {{ $operationalAdvisory['upcoming'] }}</span>
@@ -123,7 +123,12 @@
                 card.dataset.tone = data.tone;
                 change(card, '[data-advisory-badge]', data.badge);
                 change(card, '[data-advisory-message]', data.message);
-                change(card, '[data-advisory-next]', data.next_available, 'Next available: ');
+                change(card, '[data-advisory-next]',
+                    (typeof data.next_available === 'string' &&
+                     typeof data.message === 'string' &&
+                     data.message.includes(data.next_available))
+                        ? null : data.next_available,
+                    'Next available: ');
                 change(card, '[data-advisory-hours]', data.hours, 'Hours: ');
                 change(card, '[data-advisory-reason]', data.reason);
                 change(card, '[data-advisory-upcoming]', data.upcoming, 'Upcoming: ');

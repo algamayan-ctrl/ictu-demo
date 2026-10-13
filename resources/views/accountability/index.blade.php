@@ -78,7 +78,7 @@
         ->unique();
     $pendingViolations = $isHead
         ? $violations->where('status', 'PENDING_REVIEW')->reject(
-            fn ($violation) => $propertyCustodyIds->contains((int) $violation->custody_transaction_id)
+            fn ($violation) => $propertyCustodyIds->contains((int) $violation->custody_transaction_id) && $violation->violation_source !== 'LATE_RETURN'
         )
         : collect();
     $headReviewIncidents = $isHead
@@ -368,13 +368,13 @@
  * Head/Admin overview:
  * three primary cards fill the complete available row.
  */
-section:has(> a .accountability-overview-note) {
+.accountability-overview {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 12px !important;
 }
 
-section:has(> a .accountability-overview-note) > a {
+.accountability-overview > a {
     width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
@@ -382,14 +382,14 @@ section:has(> a .accountability-overview-note) > a {
 
 /* Tablet */
 @media (max-width: 1050px) {
-    section:has(> a .accountability-overview-note) {
+    .accountability-overview {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 }
 
 /* Mobile */
 @media (max-width: 640px) {
-    section:has(> a .accountability-overview-note) {
+    .accountability-overview {
         grid-template-columns: 1fr !important;
     }
 }
@@ -936,25 +936,23 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         ];
     } else {
         $pendingAoVerification = $staffWorkQueue->where('stage', 'Physical Compliance Verification')->count();
-        $outstandingReceiptFollowUp = $staffWorkQueue->filter(fn (array $item) => in_array((string) ($item['stage'] ?? ''), [
-            'Awaiting Cashier Payment', 'Cashier Payment',
-        ], true))->count();
+
 
         $summaryCards = [
             [
                 'tone' => 'open',
                 'icon' => 'requests',
-                'label' => 'Needs My Action',
+                'label' => 'Cases for Follow-Up',
                 'value' => $staffWorkQueue->count(),
-                'note' => 'Operational actions currently assigned to the Action Officer',
+                'note' => 'Cases to monitor or process when ready',
                 'href' => route('accountability.index', ['queue' => 'work']).'#accountability-workspace',
             ],
             [
                 'tone' => 'overdue',
                 'icon' => 'approval',
-                'label' => 'Pending AO Verification',
+                'label' => 'Pending Physical Verification',
                 'value' => $pendingAoVerification,
-                'note' => 'Repair, replacement, or recovery awaiting physical verification',
+                'note' => 'Items awaiting physical compliance inspection',
                 'href' => route('accountability.index', ['queue' => 'work', 'metric' => 'verification']).'#accountability-workspace',
             ],
             [
@@ -962,17 +960,10 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                 'icon' => 'accountability',
                 'label' => 'Open Accountability Cases',
                 'value' => $openAccountabilities,
-                'note' => 'All unresolved accountability matters visible to SPMU',
+                'note' => 'All unresolved accountability matters',
                 'href' => route('accountability.index', ['queue' => 'all']).'#accountability-workspace',
             ],
-            [
-                'tone' => 'resolved',
-                'icon' => 'report-document',
-                'label' => 'Outstanding Receipts',
-                'value' => $outstandingReceiptFollowUp,
-                'note' => 'Cashier receipt follow-up available when the borrower presents payment proof',
-                'href' => route('accountability.index', ['queue' => 'work', 'metric' => 'receipts']).'#accountability-workspace',
-            ],
+
         ];
     }
 @endphp
@@ -1013,9 +1004,9 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         };
         $queueTitle = match ($selectedMetric) {
             'resolution' => 'For Final Resolution',
-            'verification' => 'Pending AO Verification',
-            'receipts' => 'Outstanding Receipts',
-            default => $isHead ? 'Cases Requiring My Decision' : 'Cases Requiring My Action',
+            'verification' => 'Pending Physical Verification',
+            'receipts' => 'Cashier Receipt Follow-Up',
+            default => $isHead ? 'Cases Requiring My Decision' : 'Cases for Follow-Up',
         };
         $queueIntro = match ($selectedMetric) {
             'resolution' => 'Head/Admin cases with a final resolution action available.',
@@ -1023,7 +1014,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             'receipts' => 'Cases awaiting Cashier receipt recording by the Action Officer.',
             default => $isHead
                 ? 'Cases are listed by the decision or official action currently assigned to the SPMU Head/Admin.'
-                : 'Cases are listed by the next Action Officer touchpoint. The Waiting On column shows when the borrower must act first.',
+                : 'Check the next required step for each case. Waiting On shows who must act before processing can continue.',
         };
     @endphp
     <section class="content-area">
@@ -1154,6 +1145,34 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             }
         @endphp
         {{-- ===================================================== --}}
+                {{-- Late-return offenses require Head confirmation. They are NEVER auto-sanctioned by AO encoding. --}}
+        @if($isLateReturnViolation && $violation->violation_source === 'LATE_RETURN')
+            <article class="card" style="padding:14px;margin:12px 0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                    <div>
+                        <strong>Late Return — Pending Head Review</strong>
+                        <p class="meta">{{ $violation->borrower?->full_name }} · {{ $violation->custody?->custody_no }}</p>
+                    </div>
+                    <span class="status-badge status-warning">Pending Decision</span>
+                </div>
+                <p class="meta">Due: {{ $effectiveReturnDate ?: '—' }} · Recorded physical return: {{ $actualReturnDate ?: '—' }} · Late days: {{ $lateDays ?? '—' }}</p>
+                @if(data_get($violationDetails, 'physical_return_evidence_file_id'))
+                    <p class="meta"><a href="{{ route('files.preview', data_get($violationDetails, 'physical_return_evidence_file_id')) }}">Review signed physical return evidence</a></p>
+                @endif
+                <p class="meta"><a href="{{ route('custody.return.show', $violation->custody) }}">Review full Return Inspection and transaction history</a> before deciding.</p>
+                <form method="post" action="{{ route('accountability.violations.review', $violation) }}" style="display:grid;gap:8px;margin-top:10px;">
+                    @csrf
+                    <label>Head decision notes (required when dismissing)
+                        <textarea name="remarks" rows="2" maxlength="2000" placeholder="Record the evidence and reason for the decision."></textarea>
+                    </label>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button class="button primary ui-pressable" type="submit" name="decision" value="CONFIRMED">Confirm Late-Return Offense</button>
+                        <button class="button secondary ui-pressable" type="submit" name="decision" value="DISMISSED">Dismiss — No Offense</button>
+                    </div>
+                </form>
+            </article>
+        @endif
+
         {{-- LEGACY GENERIC VIOLATION REVIEW UI REMOVED             --}}
         {{--                                                       --}}
         {{-- Active decisions now use their dedicated workflows:   --}}

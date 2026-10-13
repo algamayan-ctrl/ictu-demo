@@ -72,6 +72,10 @@
         : null;
     $laundryDatePending = (bool) $laundryJob?->receiptDatePendingAuthorization();
     $linenProvisionallyOverdue = $linenReturnState === App\Services\LateReturnService::LINEN_PROVISIONALLY_OVERDUE;
+    $onlyLinenOutstanding = $eligibleReturnLines->isNotEmpty()
+        && $eligibleReturnLines->every(
+            fn ($line) => (bool) $line->requestItem?->inventoryItem?->laundry_required
+        );
     $linenConfirmedUnreturned = $linenReturnState === App\Services\LateReturnService::LINEN_CONFIRMED_UNRETURNED;
     $canVerifyLinen = auth()->user()?->access_classification === App\Enums\AccessClassification::SpmuOfficer;
 @endphp
@@ -125,6 +129,8 @@
                 </div>
                 @if($gatePassDocumentationPending && !$returnAccountability)
                     <span class="status-badge status-warning">Awaiting Accomplished Gate Pass</span>
+                @elseif($linenProvisionallyOverdue && $linenOutstanding > 0 && $onlyLinenOutstanding && ! $hasNonGoodReturnFinding && ! $hasLateReturnFinding)
+                    <span class="status-badge status-warning">Laundry Form Pending</span>
                 @elseif($returnWorkflowStatus['key'] !== 'COMPLETED')
                     <x-status-badge :status="$returnWorkflowStatus['key']" :label="$returnWorkflowStatus['label']" />
                 @else
@@ -160,7 +166,7 @@
                     </dd>
                 </div>
                 <div class="return-summary-item">
-                    <dt><x-icon name="box" size="20" />{{ $custody->status === 'OVERDUE' ? 'Total Overdue' : 'Total On Custody' }}</dt>
+                    <dt><x-icon name="box" size="20" />Outstanding Quantity</dt>
                     <dd>{{ $outstandingTotal + 0 }}</dd>
                 </div>
                 <div class="return-summary-item">
@@ -250,7 +256,7 @@
                                                         Laundry Received Date
                                                         <input type="date" name="laundry_received_on" required autocomplete="off"
                                                             @if($custody->released_at) min="{{ $custody->released_at->toDateString() }}" @endif>
-                                                        <small>Use the RECEIVED BY date written on the accomplished form.</small>
+                                                        <small>Enter the actual RECEIVED BY date on the signed form. The physical receipt date, not the SPMU recording date, determines return timing.</small>
                                                     </label>
                                                     <button class="button secondary small ui-pressable" type="submit">Record Laundry Form</button>
                                                 </form>
@@ -269,7 +275,7 @@
                                         <x-icon name="linen" size="22" />
                                         <div>
                                             <strong>Laundry Form</strong>
-                                            <small>Awaiting accomplished form.</small>
+                                            <small>Signed Laundry Form not yet recorded.</small>
                                         </div>
                                     </div>
 
@@ -309,7 +315,7 @@
                                             aria-describedby="laundry-return-date-help laundry-return-date-status"
                                         >
                                         <span class="return-laundry-date-meta">
-                                            <small id="laundry-return-date-help">Use the RECEIVED BY date written on the accomplished form.</small>
+                                            <small id="laundry-return-date-help">Enter the actual RECEIVED BY date on the signed form. The physical receipt date, not the SPMU recording date, determines return timing.</small>
                                             <small id="laundry-return-date-status" class="return-laundry-date-status" data-laundry-return-date-status aria-live="polite"></small>
                                         </span>
                                     </label>
@@ -318,29 +324,7 @@
                                 </form>
                             </details>
 
-                            @if($linenProvisionallyOverdue)
-                                <div class="notice warning" role="status" data-linen-provisional>
-                                    <x-icon name="calendar" size="22" />
-                                    <div>
-                                        <strong>Provisionally Overdue &ndash; Pending Return Verification</strong>
-                                        <p>The Expected Return Date has passed and no signed Laundry Form has reached SPMU. This is not a finding that the linen was not returned, and no penalty or restriction has been created. Verify with the Laundry Area: if the linen was returned, record the signed form above with its actual Laundry Received date.</p>
-                                        @if($canVerifyLinen)
-                                            <details class="return-laundry-disclosure" @if($errors->has('unreturned_reason')) open @endif>
-                                                <summary>Verified that the linen was not returned</summary>
-                                                <form method="post" action="{{ route('laundry.spmu.confirm-not-returned', $laundryJob) }}" class="return-laundry-form-upload">
-                                                    @csrf
-                                                    <label>
-                                                        How this was verified
-                                                        <textarea name="unreturned_reason" rows="2" maxlength="500" required placeholder="e.g., Laundry Personnel confirmed on 14 Oct that no linen was received for this transaction.">{{ old('unreturned_reason') }}</textarea>
-                                                        <small>This ends the paperwork hold; the custody then follows the regular overdue and accountability process.</small>
-                                                    </label>
-                                                    <button class="button secondary small ui-pressable" type="submit">Record: Not Returned</button>
-                                                </form>
-                                            </details>
-                                        @endif
-                                    </div>
-                                </div>
-                            @elseif($linenConfirmedUnreturned)
+                            @if($linenConfirmedUnreturned)
                                 <div class="notice warning" role="status" data-linen-confirmed-unreturned>
                                     <x-icon name="calendar" size="22" />
                                     <div>
@@ -355,7 +339,7 @@
                                     <x-icon name="linen" size="22" />
                                     <div>
                                         <strong>Laundry Form</strong>
-                                        <small>Awaiting accomplished form.</small>
+                                        <small>Signed Laundry Form not yet recorded.</small>
                                     </div>
                                 </div>
                                 <span class="status-badge status-warning">Form unavailable</span>
@@ -415,7 +399,7 @@
                     <thead>
                         <tr>
                             <th>Return</th>
-                            <th>Received</th>
+                            <th>Physical Receipt / System Record</th>
                             <th>Timing</th>
                             <th>Status</th>
                             <th>Remarks</th>
@@ -425,7 +409,17 @@
                         @foreach($custody->returns->sortByDesc('id') as $return)
                             <tr>
                                 <td>{{ $return->return_no }}</td>
-                                <td>{{ optional($return->received_at)->format('d M Y, g:i A') ?: '—' }}</td>
+                                <td>
+                                    @if($return->physical_return_date)
+                                        <strong>{{ $return->physical_return_date->format('d M Y') }}</strong>
+                                        <small style="display:block;">Recorded {{ $return->created_at?->format('d M Y, g:i A') }}</small>
+                                        @if($return->physicalReturnEvidence)
+                                            <a href="{{ route('files.preview', $return->physicalReturnEvidence) }}">View signed receipt</a>
+                                        @endif
+                                    @else
+                                        {{ optional($return->received_at)->format('d M Y, g:i A') ?: '—' }}
+                                    @endif
+                                </td>
                                 @php
                                     $returnTiming = match (strtoupper((string) ($return->return_type ?: 'NORMAL'))) {
                                         'EARLY' => 'Early',

@@ -27,7 +27,7 @@ use Illuminate\Validation\ValidationException;
  * the existing return workflows and classifies it:
  *
  *   linen       the Laundry Personnel receipt (laundry_jobs.worker_received_at)
- *   non-linen   the AO Return Inspection (return_transactions.received_at)
+ *   non-linen   documented physical date, falling back to legacy received_at
  *   mixed       the later of those two authoritative physical-return dates
  *
  * For linen the Action Officer's later attestation of the accomplished Laundry
@@ -132,7 +132,7 @@ class LateReturnService
                         fn ($line): bool => ! (bool) $line->custodyLine?->requestItem?->inventoryItem?->laundry_required
                     );
                 })
-                ->map(fn ($return) => Carbon::parse($return->received_at)->startOfDay());
+                ->map(fn ($return) => Carbon::parse($return->physical_return_date ?: $return->received_at)->startOfDay());
 
             if ($nonLinenDates->isNotEmpty()) {
                 $nonLinenReceivedAt = $nonLinenDates->sortByDesc(fn (Carbon $date) => $date->timestamp)->first();
@@ -310,7 +310,9 @@ class LateReturnService
                 ->filter(fn ($return): bool => $return->received_at !== null && $return->lines->contains(
                     fn ($line): bool => (bool) $line->custodyLine?->requestItem?->inventoryItem?->laundry_required === $linen
                 ))
-                ->map(fn ($return) => Carbon::parse($return->received_at)->startOfDay())
+                ->map(fn ($return) => Carbon::parse($linen
+                    ? $return->received_at
+                    : ($return->physical_return_date ?: $return->received_at))->startOfDay())
                 ->sortByDesc(fn (Carbon $date) => $date->timestamp)
                 ->first();
         };
@@ -422,7 +424,7 @@ class LateReturnService
     public const LINEN_RETURN_ENCODED = 'RETURN_ENCODED';
 
     public const LINEN_STATE_LABELS = [
-        self::LINEN_PROVISIONALLY_OVERDUE => 'Provisionally Overdue - Pending Return Verification',
+        self::LINEN_PROVISIONALLY_OVERDUE => 'Pending Laundry Form - Return Date Unverified',
         self::LINEN_CONFIRMED_UNRETURNED => 'Confirmed Not Returned',
         self::LINEN_PENDING_DATE_AUTHORIZATION => 'Pending Date Authorization',
         self::LINEN_RECEIVED_ON_TIME => 'Received On Time - Awaiting Return Encoding',

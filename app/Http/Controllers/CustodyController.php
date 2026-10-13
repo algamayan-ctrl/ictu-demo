@@ -736,6 +736,9 @@ class CustodyController extends Controller
             'evidence_files' => ['nullable', 'array'],
             'evidence_files.*' => ['nullable', 'file', 'mimes:pdf,png,jpg,jpeg,webp', 'max:5120'],
             'remarks' => ['nullable', 'string', 'max:2000'],
+            'physical_return_date' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'physical_return_reason' => ['nullable', 'string', 'max:2000'],
+            'physical_return_evidence' => ['nullable', 'file', 'mimes:pdf,png,jpg,jpeg,webp', 'max:5120'],
 
             /*
              * Linen only, and only when Laundry Personnel never captured their
@@ -819,6 +822,19 @@ class CustodyController extends Controller
             }
         }
 
+        // A signed return acknowledgment is required for any non-linen
+        // return date entered earlier than the day of system recording.
+        $physicalEvidenceFileId = null;
+        $isDelayedPhysicalRecording = filled($data['physical_return_date'] ?? null)
+            && $data['physical_return_date'] < now(config('app.timezone') ?: 'Asia/Manila')->toDateString();
+        if ($isDelayedPhysicalRecording && $request->hasFile('physical_return_evidence')) {
+            $physicalEvidenceFileId = $files->storeUpload(
+                $request->file('physical_return_evidence'),
+                'physical-return-evidence',
+                'RETURN_RECEIPT_EVIDENCE'
+            )->id;
+        }
+
         $service->receiveReturn(
             $custody,
             $request->user(),
@@ -831,6 +847,9 @@ class CustodyController extends Controller
             laundryReceivedOn: filled($data['laundry_received_date'] ?? null)
                 ? \Carbon\Carbon::parse($data['laundry_received_date'])->startOfDay()
                 : null,
+            physicalReturnDate: $data['physical_return_date'] ?? null,
+            physicalReturnReason: $data['physical_return_reason'] ?? null,
+            physicalEvidenceFileId: $physicalEvidenceFileId,
         );
 
         /*

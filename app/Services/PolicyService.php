@@ -104,8 +104,36 @@ class PolicyService
 
         $dueDate = $custody->due_at?->toDateString();
         $originalDueDate = $custody->original_due_at?->toDateString();
-        $actualDate = $return->received_at?->toDateString();
-        $isLate = $dueDate && $actualDate && $actualDate > $dueDate;
+        $actualDate = $return->physical_return_date?->toDateString()
+            ?? $return->received_at?->toDateString();
+
+        // For mixed custody, do not detect a final administrative Late Return
+        // until BOTH physical channels are fully accounted. The eventual
+        // date must be the later verified linen/non-linen physical return,
+        // not simply whichever branch the AO encoded last.
+        $custody->loadMissing('lines.requestItem.inventoryItem');
+        $hasLinen = $custody->lines->contains(
+            fn ($line): bool => (bool) $line->requestItem?->inventoryItem?->laundry_required
+        );
+        $hasNonLinen = $custody->lines->contains(
+            fn ($line): bool => ! (bool) $line->requestItem?->inventoryItem?->laundry_required
+        );
+        $mixed = $hasLinen && $hasNonLinen;
+        $allReturned = $custody->lines->isNotEmpty() && $custody->lines->every(
+            fn ($line): bool => (float) $line->returned_quantity >= (float) $line->actual_released_quantity
+        );
+        if ($mixed && $allReturned) {
+            [$completedOn] = app(LateReturnService::class)->actualReturn(
+                $custody->fresh([
+                    'lines.requestItem.inventoryItem',
+                    'returns.lines.custodyLine.requestItem.inventoryItem',
+                    'laundryJob',
+                ]) ?? $custody
+            );
+            $actualDate = $completedOn?->toDateString();
+        }
+        $isLate = (! $mixed || $allReturned)
+            && $dueDate && $actualDate && $actualDate > $dueDate;
 
         $propertyReasons = [];
         foreach ($return->lines as $line) {
@@ -120,12 +148,15 @@ class PolicyService
             }
         }
 
-        $period = $this->activePeriodFor($return->received_at);
+        $period = $this->activePeriodFor($actualDate);
         $dateDetails = [
             'original_expected_return_date' => $originalDueDate ?: $dueDate,
             'effective_return_date' => $dueDate,
             'actual_return_date' => $actualDate,
             'return_date_adjusted' => $originalDueDate && $originalDueDate !== $dueDate,
+            'physical_return_source' => $return->physical_return_source,
+            'physical_return_evidence_file_id' => $return->physical_return_evidence_file_id,
+            'return_recorded_at' => $return->created_at?->toIso8601String(),
             'late_days' => $isLate
                 ? app(LateReturnService::class)->chargeableLateDays($custody, $actualDate)
                 : 0,
@@ -595,6 +626,13 @@ class PolicyService
         if ($violation->status !== 'PENDING_REVIEW') {
             throw ValidationException::withMessages([
                 'decision' => 'This violation has already been reviewed.',
+            ]);
+        }
+
+        if ($decision === 'DISMISSED' && $violation->violation_source === 'LATE_RETURN'
+            && trim((string) $remarks) === '') {
+            throw ValidationException::withMessages([
+                'remarks' => 'A documented reason is required to dismiss a late-return violation.',
             ]);
         }
 

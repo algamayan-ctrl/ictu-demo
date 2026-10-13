@@ -68,14 +68,24 @@ class OperationalAdvisoryService
             }
         }
 
+        // Reuse date-specific profiles; no additional DB fetches.
         $nextAvailable = null;
         foreach (array_slice($days, 1) as $entry) {
-            if ($entry['allowed']) {
-                $nextAvailable = $entry['day']->format('D, M j');
+            if (! $entry['allowed']) {
+                continue;
+            }
+
+            [$nextOpen, $nextClose] = $this->calendar->operatingWindow(
+                OperationalCalendarService::PICKUP,
+                $entry['day']->toDateString(),
+                $entry['profile']
+            );
+
+            if ($nextOpen !== null && $nextClose !== null && $nextOpen->lt($nextClose)) {
+                $nextAvailable = $entry['day']->format('D, M j').' at '.$nextOpen->format('g:i A');
                 break;
             }
         }
-
         // Use the authoritative Operational Calendar hours.
         $beforeOpening = false;
         $afterClosing = false;
@@ -94,25 +104,49 @@ class OperationalAdvisoryService
                 && $now->gte($closesAt);
         }
 
+        $closingTimeLabel = $todayAllowed && $closesAt !== null
+            ? $closesAt->format('g:i A')
+            : 'the scheduled closing time';
+        $nextOpeningNote = $nextAvailable !== null
+            ? 'Next on-site opening: '.$nextAvailable.'.'
+            : 'Please check the Borrowing Calendar for the next on-site schedule.';
+
         [$tone, $badge, $message] = match (true) {
             $todayAllowed && $afterClosing => [
                 'closed',
-                'Closed for Today',
-                'On-site transactions have ended for today. Online requests remain available.'
+                'On-site Closed',
+                'On-site transactions have ended for today. '.$nextOpeningNote.' Online borrowing requests remain available.',
             ],
             $todayAllowed && $beforeOpening => [
-                'normal',
-                'Opens Later Today',
-                'On-site transactions have not started yet. Online requests remain available.'
+                'closed',
+                'On-site Closed',
+                ($specialToday ? 'Special schedule today. ' : '')
+                    .'On-site transactions will open today at '.$opensAt->format('g:i A').'. Online borrowing requests remain available.',
             ],
-            $todayAllowed && $specialToday => ['special', $normallyClosedToday ? 'Special Opening' : 'Open Today', $normallyClosedToday
-                ? 'Special opening today. On-site transactions are available.'
-                : 'On-site transactions follow a special schedule today.'],
-            $todayAllowed => ['normal', 'Open Today', 'On-site transactions are available today.'],
-            $specialClosure => ['closed', 'Temporary Closure', ($closureEnd > 0
-                ? 'On-site transactions are suspended through '.$days[$closureEnd]['day']->format('D, M j').'.'
-                : 'On-site transactions are suspended today.').' Online requests remain available.'],
-            default => ['closed', 'Closed Today', 'No on-site transactions today. Online requests remain available.'],
+            $todayAllowed && $specialToday => [
+                'special',
+                'On-site Open',
+                ($normallyClosedToday ? 'Special opening today. ' : 'Special schedule today. ')
+                    .'On-site transactions are available until '.$closingTimeLabel.'. Online borrowing requests remain available.',
+            ],
+            $todayAllowed => [
+                'normal',
+                'On-site Open',
+                'On-site transactions are available until '.$closingTimeLabel.'. Online borrowing requests remain available.',
+            ],
+            $specialClosure => [
+                'closed',
+                'On-site Closed',
+                ($closureEnd > 0
+                    ? 'On-site transactions are suspended through '.$days[$closureEnd]['day']->format('D, M j').'. '
+                    : 'On-site transactions are suspended today. ')
+                    .$nextOpeningNote.' Online borrowing requests remain available.',
+            ],
+            default => [
+                'closed',
+                'On-site Closed',
+                'No on-site transactions are scheduled today. '.$nextOpeningNote.' Online borrowing requests remain available.',
+            ],
         };
 
         return [

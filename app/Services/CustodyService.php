@@ -21,6 +21,7 @@ use App\Models\OverdueCase;
 use App\Models\Penalty;
 use App\Models\ReturnLine;
 use App\Models\ReturnTransaction;
+use App\Models\StoredFile;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -1558,11 +1559,11 @@ class CustodyService
         }, 3);
     }
 
-    public function receiveReturn(CustodyTransaction $custody, User $spmu, array $quantities, array $conditions, ?string $remarks, array $policeBlotterReferences = [], array $evidenceFileIds = [], array $conditionBreakdowns = [], ?\Carbon\Carbon $laundryReceivedOn = null): ReturnTransaction
+    public function receiveReturn(CustodyTransaction $custody, User $spmu, array $quantities, array $conditions, ?string $remarks, array $policeBlotterReferences = [], array $evidenceFileIds = [], array $conditionBreakdowns = [], ?\Carbon\Carbon $laundryReceivedOn = null, ?string $physicalReturnDate = null, ?string $physicalReturnReason = null, ?int $physicalEvidenceFileId = null): ReturnTransaction
     {
         abort_unless($spmu->access_classification === AccessClassification::SpmuOfficer && $custody->borrower_user_id !== $spmu->id, 403);
 
-        return DB::transaction(function () use ($custody, $spmu, $quantities, $conditions, $remarks, $policeBlotterReferences, $evidenceFileIds, $conditionBreakdowns, $laundryReceivedOn): ReturnTransaction {
+        return DB::transaction(function () use ($custody, $spmu, $quantities, $conditions, $remarks, $policeBlotterReferences, $evidenceFileIds, $conditionBreakdowns, $laundryReceivedOn, $physicalReturnDate, $physicalReturnReason, $physicalEvidenceFileId): ReturnTransaction {
             $custody = CustodyTransaction::query()->lockForUpdate()->findOrFail($custody->id);
             $custody = $this->operationalCalendar->synchronizeCustodyDueDate($custody, $this->audit);
             $this->operationalCalendar->assertOpenFor(
@@ -1825,20 +1826,70 @@ class CustodyService
             }
 
             /*
-             * A return submission belongs to exactly one complete physical
-             * channel. Linen uses the physical Laundry RECEIVED BY date written
-             * on the accomplished form; non-linen uses the Action Officer's
-             * Return Inspection timestamp. Mixed linen/non-linen custody is
-             * never combined in one submission: each channel must be completed
-             * in full, and LateReturnService later uses the later authoritative
-             * date when the whole custody has been physically completed.
+             * These are independent physical receiving channels. Linen uses
+             * worker_received_at from the signed Laundry Form. Non-linen is
+             * received by AO; its actual physical DATE can differ from the
+             * system encoding time. Never fabricate a historical clock time.
+             * `received_at` and `created_at` retain the encoding timestamp
+             * for new non-linen records, while physical_return_date is the
+             * authoritative date for return classification and assessment.
              */
-            $returnReceivedAt = now();
-
-            if ($returnableLines->isNotEmpty()
+            $nonLinenReturn = $returnableLines->isNotEmpty()
                 && $returnableLines->every(
-                    fn ($line) => (bool) $line->requestItem?->inventoryItem?->laundry_required
-                )
+                    fn ($line) => ! (bool) $line->requestItem?->inventoryItem?->laundry_required
+                );
+            $returnReceivedAt = now();
+            $physicalReturnOn = null;
+            $physicalReturnSource = null;
+            $physicalReturnReasonForRecord = null;
+            $physicalReceiptEvidenceForRecord = null;
+
+            if ($nonLinenReturn) {
+                $todayDate = now()->toDateString();
+                $selectedDate = trim((string) ($physicalReturnDate ?: $todayDate));
+                if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) {
+                    throw ValidationException::withMessages(['physical_return_date' => 'Choose a valid physical return date.']);
+                }
+
+                try {
+                    $physicalReturnOn = \Carbon\CarbonImmutable::createFromFormat('!Y-m-d', $selectedDate, config('app.timezone') ?: 'Asia/Manila');
+                } catch (\Throwable $error) {
+                    throw ValidationException::withMessages(['physical_return_date' => 'Choose a valid physical return date.']);
+                }
+
+                if (! $physicalReturnOn || $physicalReturnOn->format('Y-m-d') !== $selectedDate
+                    || $selectedDate > $todayDate
+                    || ($custody->released_at && $selectedDate < $custody->released_at->toDateString())) {
+                    throw ValidationException::withMessages([
+                        'physical_return_date' => 'Physical return must be on or after release and cannot be in the future.',
+                    ]);
+                }
+
+                $physicalReturnSource = $selectedDate === $todayDate
+                    ? 'AO_SAME_DAY'
+                    : 'SIGNED_RETURN_ACKNOWLEDGMENT';
+
+                if ($selectedDate < $todayDate) {
+                    $physicalReturnReasonForRecord = trim((string) $physicalReturnReason);
+                    if (mb_strlen($physicalReturnReasonForRecord) < 15) {
+                        throw ValidationException::withMessages([
+                            'physical_return_reason' => 'For delayed recording, explain why the actual physical receipt was encoded later (at least 15 characters).',
+                        ]);
+                    }
+                    if (! $physicalEvidenceFileId || ! StoredFile::query()
+                        ->whereKey($physicalEvidenceFileId)
+                        ->where('classification', 'RETURN_RECEIPT_EVIDENCE')->exists()) {
+                        throw ValidationException::withMessages([
+                            'physical_return_evidence' => 'Attach the signed Borrower Slip or return acknowledgment to support an earlier physical return date.',
+                        ]);
+                    }
+                    $physicalReceiptEvidenceForRecord = $physicalEvidenceFileId;
+                }
+
+                $isEarlyReturn = $dueDate && $physicalReturnOn->lt($dueDate);
+                $isOverdueReturn = $dueDate && $physicalReturnOn->gt($dueDate);
+            } elseif ($returnableLines->isNotEmpty()
+                && $returnableLines->every(fn ($line) => (bool) $line->requestItem?->inventoryItem?->laundry_required)
                 && $laundryJob?->worker_received_at) {
                 $returnReceivedAt = $laundryJob->worker_received_at->copy();
                 $returnDay = $returnReceivedAt->copy()->startOfDay();
@@ -1912,6 +1963,10 @@ class CustodyService
                 'received_by_user_id' => $spmu->id,
                 'return_type' => $isEarlyReturn ? 'EARLY' : ($isOverdueReturn ? 'OVERDUE' : 'NORMAL'),
                 'received_at' => $returnReceivedAt,
+                'physical_return_date' => $physicalReturnOn?->toDateString(),
+                'physical_return_source' => $physicalReturnSource,
+                'physical_return_reason' => $physicalReturnReasonForRecord,
+                'physical_return_evidence_file_id' => $physicalReceiptEvidenceForRecord,
                 'status' => 'INSPECTED',
                 'remarks' => $remarks,
             ]);
@@ -2322,7 +2377,11 @@ class CustodyService
             $this->audit->record('RETURN_INSPECTED', $return, after: [
                 'custody_status' => $status,
                 'return_recorded_by_user_id' => $spmu->id,
-                'return_recorded_at' => $return->received_at?->toIso8601String(),
+                'return_recorded_at' => $return->created_at?->toIso8601String(),
+                'physical_return_date' => $return->physical_return_date?->toDateString()
+                    ?? $return->received_at?->toDateString(),
+                'physical_return_source' => $return->physical_return_source,
+                'physical_return_evidence_file_id' => $return->physical_return_evidence_file_id,
             ]);
 
             /*
@@ -2382,21 +2441,13 @@ class CustodyService
             }
 
             /*
-             * Late Return and Property Accountability offense detection.
-             * Recorded as two independent BorrowerViolation rows (never
-             * merged) so a Head later clearing a property finding can never
-             * erase a confirmed Late Return. The Late Return half is
-             * confirmed automatically from due-date/actual-return
-             * timestamps - it is never gated behind a Head Yes/No decision.
-             * The Property Accountability half, if any, is left
-             * PENDING_REVIEW for the Head's own Confirm/Clear decision on the
-             * linked Incident, unchanged from before.
+             * Detect separate late-return and property findings, but NEVER
+             * auto-confirm or sanction a Late Return from AO encoding.
+             * LATE_RETURN remains PENDING_REVIEW until an SPMU Head formally
+             * confirms/dismisses it. Existing historical decisions are left
+             * untouched by recordDetectedViolation().
              */
-            $detectedViolations = $this->policy->detectFromConfirmedReturn($custody, $return, $spmu);
-
-            if ($detectedViolations['late_return']) {
-                $this->policy->autoConfirmLateReturnViolation($detectedViolations['late_return'], $spmu);
-            }
+            $this->policy->detectFromConfirmedReturn($custody, $return, $spmu);
 
             return $return->fresh(['receivedBy', 'inspectionSignature.file']);
         }, 3);

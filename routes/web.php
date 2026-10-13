@@ -103,6 +103,10 @@ Route::middleware(['auth', 'active', 'verified-email', 'idle'])->group(function 
     Route::get('/operational-advisory/status', OperationalAdvisoryController::class)
         ->middleware('throttle:30,1')
         ->name('operational-advisory.status');
+// Read-only, authenticated role-filtered sidebar action badge totals.
+    Route::get('/sidebar/actions/status', \App\Http\Controllers\SidebarActionBadgeController::class)
+        ->middleware('throttle:30,1')
+        ->name('sidebar.actions.status');
 
     Route::post('/logout', [LoginController::class, 'destroy'])
         ->name('logout');

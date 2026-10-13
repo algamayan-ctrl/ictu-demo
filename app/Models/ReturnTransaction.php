@@ -16,6 +16,10 @@ class ReturnTransaction extends Model
         'confirmed_by_user_id',
         'return_type',
         'received_at',
+        'physical_return_date',
+        'physical_return_source',
+        'physical_return_reason',
+        'physical_return_evidence_file_id',
         'confirmed_at',
         'locked_at',
         'reopened_by_user_id',
@@ -29,10 +33,16 @@ class ReturnTransaction extends Model
     {
         return [
             'received_at' => 'datetime',
+            'physical_return_date' => 'date',
             'confirmed_at' => 'datetime',
             'locked_at' => 'datetime',
             'reopened_at' => 'datetime',
         ];
+    }
+
+    public function physicalReturnEvidence(): BelongsTo
+    {
+        return $this->belongsTo(StoredFile::class, 'physical_return_evidence_file_id');
     }
 
     public function custody(): BelongsTo

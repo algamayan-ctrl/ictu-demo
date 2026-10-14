@@ -118,7 +118,7 @@ ssh deploy@YOUR_VPS_IP
 docker --version && docker compose version
 ```
 
-Docker Compose must be **v2.24.4 or newer**, because the add-on file uses `!override`. If Docker is missing, install it from the official guide: <https://docs.docker.com/engine/install/ubuntu/>.
+Docker Compose must be **v2.24.4 or newer**, because the add-on file uses `!override`. Versions v3, v4 and v5 (for example `v5.6.0`) are all newer and fine. If Docker is missing, install it from the official guide: <https://docs.docker.com/engine/install/ubuntu/>.
 
 ### 5.4 Firewall
 

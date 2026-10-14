@@ -500,7 +500,7 @@
             </div>
 
             <p class="account-settings-note">
-                Official identity, designation, personnel type, employment status, and organizational assignments are maintained by ICTU. Contact ICTU if an official account detail requires correction.
+                Official identity, designation, personnel type, employment status, and organizational assignments are maintained by the SPMU Admin. Contact the SPMU Admin if an official account detail requires correction.
             </p>
         </article>
 

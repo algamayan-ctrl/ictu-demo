@@ -14,7 +14,7 @@ Migrations alone do not produce a usable system. On an empty database:
 |---|---|---|---|---|
 | `migrate` only | 1 (inactive `LAUNDRY`) | 6 of 13 | none | none |
 | `migrate`, then `spmu:bootstrap` | Borrower, SPMU, ICTU active | 13, plus one internal marker row | 4 categories, 3 units of measure, 26 opening items | none |
-| then `spmu:user` | | | | first ICTU Maintainer |
+| then `spmu:user` | | | | first SPMU Admin / Head |
 
 Until the reference data is seeded, no account can be created: `spmu:user`
 stops with an error because the role it must assign does not exist.
@@ -26,7 +26,7 @@ stops with an error because the role it must assign does not exist.
 - A working outgoing mail service. The first sign-in requires an email
   one-time code, so mail must work before step 6.
 - The institutional email address, full name and employee number of the
-  person who will hold the first ICTU Maintainer account.
+  person who will hold the first SPMU Admin / Head account.
 
 Never put real passwords, keys or secrets in this file, in a ticket, in chat,
 or in a screenshot. Enter them only in the Laravel Cloud environment settings
@@ -108,13 +108,13 @@ it seeds nothing.
 
 Use this command, not `db:seed`.
 
-## Step 5: First ICTU Maintainer account (run once)
+## Step 5: First SPMU Admin / Head account (run once)
 
 Run the command with the real person's details and **without** a password
 option, so the password is asked for at a hidden prompt:
 
 ```
-php artisan spmu:user <institutional-email> --name="<Full Name>" --employee-no="<Employee No>" --unit=ICTU --role=ICTU --classification=ICTU_MAINTAINER
+php artisan spmu:user <institutional-email> --name="<Full Name>" --employee-no="<Employee No>" --unit=SPMU --role=SPMU --classification=SPMU_HEAD
 ```
 
 The password must have at least 12 characters with an uppercase letter, a
@@ -125,16 +125,16 @@ command accepts `--password=`. A password typed that way may be kept in the
 command history, so treat it as temporary: sign in once and change it
 immediately. Never reuse a demonstration password.
 
-The command prints `Account ready for <name> as ICTU Maintainer.` when it
+The command prints `Account ready for <name> as SPMU Admin / Head.` when it
 succeeds. If it reports that the organizational unit is unavailable or fails
 on a missing role, step 4 has not been run.
 
 ## Step 6: Verify
 
-1. Open the site and sign in as the new ICTU Maintainer. Expect an email
+1. Open the site and sign in as the new SPMU Admin / Head. Expect an email
    one-time code on first sign-in; the account command does not mark the
    address as verified.
-2. Confirm the ICTU workspace opens.
+2. Confirm the SPMU workspace opens with User Accounts in the menu.
 3. In the command runner, confirm the counts:
 
    ```
@@ -148,7 +148,7 @@ on a missing role, step 4 has not been run.
 5. Enable the scheduler for the environment so `spmu:process-deadlines` runs
    every minute, and confirm it appears in the scheduler log.
 
-From here, the ICTU Maintainer creates the remaining accounts in the
+From here, the SPMU Admin / Head creates the remaining accounts in the
 application, and SPMU reconciles the opening inventory.
 
 ## Later deployments

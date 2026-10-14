@@ -111,8 +111,8 @@ class BorrowingRequestController extends Controller
                 ->contains(fn (OrganizationalUnit $unit) => ! $unit->isSelectable());
 
         return $hasHistoricalAssignment
-            ? 'Your organizational assignment is historical or inactive. Contact ICTU to assign an active Office / College / Unit before filing a new request.'
-            : 'No borrowing Office / College / Unit is authorized for this account. Contact ICTU.';
+            ? 'Your organizational assignment is historical or inactive. Contact the SPMU Admin to assign an active Office / College / Unit before filing a new request.'
+            : 'No borrowing Office / College / Unit is authorized for this account. Contact the SPMU Admin.';
     }
 
     public function index(Request $request): View
@@ -1192,7 +1192,7 @@ class BorrowingRequestController extends Controller
             $divisionCode = $authorizedUnit->divisionCode();
             if (! $divisionCode) {
                 throw ValidationException::withMessages([
-                    'requesting_organizational_unit_id' => 'The selected Office / College / Unit does not have a valid Division. Contact ICTU.',
+                    'requesting_organizational_unit_id' => 'The selected Office / College / Unit does not have a valid Division. Contact the SPMU Admin.',
                 ]);
             }
             // Preserve the existing server-derived employee assignment snapshot.

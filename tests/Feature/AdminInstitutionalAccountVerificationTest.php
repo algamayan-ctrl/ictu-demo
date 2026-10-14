@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
-class IctuInstitutionalAccountVerificationTest extends TestCase
+class AdminInstitutionalAccountVerificationTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -30,17 +30,17 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
-    private function ictu(): User
+    private function admin(): User
     {
         $actor = User::factory()->create([
             'email' => 'ictu.integration@cspc.edu.ph',
-            'access_classification' => AccessClassification::IctuMaintainer,
+            'access_classification' => AccessClassification::SpmuHead,
             'account_status' => AccountStatus::Active,
-            'organizational_unit_id' => OrganizationalUnit::where('unit_code', 'ICTU')
+            'organizational_unit_id' => OrganizationalUnit::where('unit_code', 'SPMU')
                 ->firstOrFail()
                 ->id,
         ]);
-        app(UserRoleAssignmentService::class)->synchronize($actor, AccessClassification::IctuMaintainer);
+        app(UserRoleAssignmentService::class)->synchronize($actor, AccessClassification::SpmuHead);
 
         return $actor;
     }
@@ -86,11 +86,11 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
         );
     }
 
-    public function test_ictu_registration_creates_pending_account_and_otp(): void
+    public function test_admin_registration_creates_pending_account_and_otp(): void
     {
         Mail::fake();
 
-        $this->actingAs($this->ictu())
+        $this->actingAs($this->admin())
             ->post(
                 route('administration.users.store'),
                 $this->formPayload()
@@ -258,7 +258,7 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
     {
         Mail::fake();
 
-        $this->actingAs($this->ictu())
+        $this->actingAs($this->admin())
             ->post(
                 route('administration.users.store'),
                 $this->formPayload([
@@ -272,7 +272,7 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
         ]);
     }
 
-    public function test_ictu_can_resend_otp_but_borrower_cannot_use_ictu_route(): void
+    public function test_admin_can_resend_otp_but_borrower_cannot_use_the_admin_route(): void
     {
         Mail::fake();
 
@@ -280,7 +280,7 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
             'email' => 'ictu.resend@cspc.edu.ph',
         ]);
 
-        $this->actingAs($this->ictu())
+        $this->actingAs($this->admin())
             ->post(
                 route(
                     'administration.users.email-verification.resend',
@@ -307,5 +307,30 @@ class IctuInstitutionalAccountVerificationTest extends TestCase
                 )
             )
             ->assertForbidden();
+    }
+
+    public function test_action_officer_may_resend_a_borrower_otp_but_not_a_staff_otp(): void
+    {
+        Mail::fake();
+
+        $officer = User::query()->where('access_classification', AccessClassification::SpmuOfficer->value)->firstOrFail();
+        $pendingBorrower = User::factory()->unverified()->create([
+            'email' => 'pending.borrower@cspc.edu.ph',
+            'access_classification' => AccessClassification::BorrowerOnly,
+        ]);
+        $pendingStaff = User::factory()->unverified()->create([
+            'email' => 'pending.staff@cspc.edu.ph',
+            'access_classification' => AccessClassification::SpmuOfficer,
+        ]);
+
+        $this->actingAs($officer)
+            ->from(route('registrations.index'))
+            ->post(route('administration.users.email-verification.resend', $pendingBorrower))
+            ->assertRedirect(route('registrations.index'))
+            ->assertSessionHas('status');
+        $this->assertDatabaseHas('email_verification_otps', ['user_id' => $pendingBorrower->id]);
+
+        $this->post(route('administration.users.email-verification.resend', $pendingStaff))->assertForbidden();
+        $this->assertDatabaseMissing('email_verification_otps', ['user_id' => $pendingStaff->id]);
     }
 }

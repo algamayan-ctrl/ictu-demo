@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Tests\TestCase;
 
@@ -28,8 +29,13 @@ class GoogleCanonicalOriginTest extends TestCase
         config(['app.url' => 'http://localhost:8080', 'services.google.client_id' => 'test-client',
             'services.google.client_secret' => 'test-secret', 'services.google.redirect' => 'http://localhost:8765/auth/google/callback']);
         Socialite::shouldReceive('driver')->never();
+        Log::spy();
 
         $this->get('http://localhost:8080/auth/google')->assertSessionHasErrors('google');
+
+        Log::shouldHaveReceived('warning')->once()->withArgs(fn (string $message, array $context): bool => str_contains($message, 'GOOGLE_REDIRECT_URI')
+            && $context['expected_redirect_uri'] === 'http://localhost:8080/auth/google/callback'
+            && ! str_contains((string) json_encode($context), 'test-secret'));
 
         $this->assertNull(session('state'));
         $this->assertGuest();

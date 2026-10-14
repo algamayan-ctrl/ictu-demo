@@ -27,12 +27,7 @@ The interface uses a compact navy role menu, white work area, clear status badge
 - Configuration (as authorized)
 
 ### ICTU
-- Dashboard
-- User Accounts
-- Delegated Approvers
-- System Settings
-- Audit Trail
-- Delivery Records
+ICTU has no portal menu. It is the Technical System Custodian and works on the server, database and source code; the SPMU Admin / Head menu holds User Accounts and Configuration.
 
 There are no GSU or VPAF portals. Their names appear only where the physical Borrowing Request Letter identifies required institutional signatories.
 

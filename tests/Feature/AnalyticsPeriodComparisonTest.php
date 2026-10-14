@@ -364,20 +364,6 @@ class AnalyticsPeriodComparisonTest extends TestCase
         $this->assertKpiHasDelta($demand, 'Active Borrowing Units', false);
     }
 
-    public function test_scheduled_demand_carries_no_historical_comparison_line(): void
-    {
-        $this->request('ACADEMIC', $this->ccs(), Carbon::create(2026, 4, 3, 10));
-
-        $predictive = $this->page($this->spmuHead(), 'predictive');
-
-        $this->assertSame(0, $this->countDeltas($predictive));
-        foreach (['Scheduled Demand', 'Pending Review', 'Approved Requests'] as $label) {
-            $cards = $this->xpath($predictive)->query('//section[contains(@class,"analytics-card")][.//h2[normalize-space(text())="'.$label.'"]]');
-            $this->assertSame(1, $cards->length, $label.' is displayed once.');
-            $this->assertSame(0, $this->xpath($predictive)->query('.//*[@data-period-delta]', $cards->item(0))->length);
-        }
-    }
-
     public function test_the_kpi_line_states_the_comparison_in_words(): void
     {
         foreach ([3, 10, 25] as $day) {

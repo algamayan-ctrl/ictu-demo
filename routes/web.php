@@ -18,7 +18,6 @@ use App\Http\Controllers\ConditionalProcessingController;
 use App\Http\Controllers\CustodyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OperationalAdvisoryController;
-use App\Http\Controllers\DelegationController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\GatePassController;
 use App\Http\Controllers\InventoryController;
@@ -29,7 +28,6 @@ use App\Http\Controllers\ProfilePictureController;
 use App\Http\Controllers\PolicyController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
-use App\Http\Controllers\TechnicalOperationController;
 use App\Http\Controllers\UserAdministrationController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,7 +45,7 @@ Route::middleware('guest')->group(function (): void {
         ->middleware('throttle:5,1')->name('register.store');
     /*
      * Pending institutional accounts verify mailbox ownership by OTP.
-     * ICTU creates the account; the account holder supplies only the code
+     * The SPMU Admin creates the account; the account holder supplies only the code
      * delivered to the registered CSPC email address.
      */
     Route::get('/account/verify', [EmailVerificationController::class, 'create'])
@@ -688,38 +686,42 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
     });
 
     Route::get('/reports/audit', [ReportController::class, 'audit'])
-        ->middleware('workspace:SPMU,ICTU')
+        ->middleware('workspace:SPMU')
         ->name('reports.audit');
 
     // Controlled recovery of one eligible change; the controller and service re-check audience, role and record state.
     Route::post('/reports/audit/{event}/revert', [ReportController::class, 'revertAuditEvent'])
         ->whereNumber('event')
-        ->middleware('workspace:SPMU,ICTU')
+        ->middleware('workspace:SPMU')
         ->name('reports.audit.revert');
 
-    // Delivery Records is ICTU technical administration: addresses, providers and provider responses.
+    // Delivery Records: addresses, providers and provider responses. SPMU Admin/Head only; enforced in the controller.
     Route::get('/reports/notifications', [ReportController::class, 'notifications'])
-        ->middleware('workspace:ICTU')
+        ->middleware('workspace:SPMU')
         ->name('reports.notifications');
 
     Route::post('/reports/notifications/{delivery}/resolve', [ReportController::class, 'resolveNotificationFailure'])
-        ->middleware('workspace:ICTU')
+        ->middleware('workspace:SPMU')
         ->name('reports.notifications.resolve');
 
     Route::post('/reports/notifications/resolve-bulk', [ReportController::class, 'resolveBulkNotificationFailures'])
-        ->middleware('workspace:ICTU')
+        ->middleware('workspace:SPMU')
         ->name('reports.notifications.resolveBulk');
 
 
     /*
     |--------------------------------------------------------------------------
-    | Administration - SPMU + ICTU
+    | Administration - SPMU
     |--------------------------------------------------------------------------
+    | Account administration belongs to the SPMU Admin/Head (UserPolicy). The
+    | Action Officer may only resend a borrower's verification OTP. Database
+    | backups and temporary delegations are backend maintenance and have no
+    | screen here.
     */
 
     Route::prefix('administration')
         ->name('administration.')
-        ->middleware('workspace:SPMU,ICTU')
+        ->middleware('workspace:SPMU')
         ->group(function (): void {
 
             Route::get('/', [AdministrationController::class, 'index'])
@@ -730,31 +732,12 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
 
             Route::put('/settings/{setting}', [SettingController::class, 'update'])
                 ->name('settings.update');
-        });
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | ICTU Administration
-    |--------------------------------------------------------------------------
-    */
-
-    Route::prefix('administration')
-        ->name('administration.')
-        ->middleware('workspace:SPMU,ICTU')
-        ->group(function (): void {
-            // UserPolicy narrows SPMU access to Admin and operational targets.
             Route::resource('users', UserAdministrationController::class)
                 ->except(['show', 'destroy']);
 
             Route::patch('/users/{user}/deactivate', [UserAdministrationController::class, 'deactivate'])
                 ->name('users.deactivate');
-        });
-
-    Route::prefix('administration')
-        ->name('administration.')
-        ->middleware('workspace:ICTU')
-        ->group(function (): void {
 
             Route::patch('/users/{user}/reactivate', [UserAdministrationController::class, 'reactivate'])
                 ->name('users.reactivate');
@@ -766,19 +749,5 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
             Route::post('/users/{user}/resend-email-verification-otp', [UserAdministrationController::class, 'resendEmailVerification'])
                 ->middleware('throttle:5,1')
                 ->name('users.email-verification.resend');
-
-            Route::post('/backup', [TechnicalOperationController::class, 'backup'])
-                ->name('backup');
-
-            Route::get('/delegations', [DelegationController::class, 'index'])
-                ->name('delegations.index');
-
-            Route::post('/delegations', [DelegationController::class, 'store'])
-                ->name('delegations.store');
-
-            Route::post(
-                '/delegations/{delegation}/revoke',
-                [DelegationController::class, 'revoke']
-            )->name('delegations.revoke');
         });
 });

@@ -53,6 +53,6 @@ class BorrowerRegistrationController extends Controller
         return redirect()->route('account.verification.show', ['email' => $registration->user->email])
             ->with('status', $sent
                 ? 'Registration saved. Check your email.'
-                : 'Registration saved. The code could not be sent. Resend OTP or contact ICTU.');
+                : 'Registration saved. The code could not be sent. Resend OTP or contact the SPMU Admin.');
     }
 }

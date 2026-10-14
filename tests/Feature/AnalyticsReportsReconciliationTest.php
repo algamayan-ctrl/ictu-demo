@@ -101,17 +101,17 @@ class AnalyticsReportsReconciliationTest extends TestCase
         $this->request(RequestStatus::Cancelled, borrower: $bob);
         $this->request(RequestStatus::Rejected, submittedAt: Carbon::create(2026, 3, 12, 10), borrower: $alice);
 
-        /* The Analytics page names its division filter "group"; the Reports link must translate it to "division". */
+        /* The Analytics page names its division filter "group"; the Reports link must translate it to "division".
+         * Analytics filters by Borrower Type, not one borrower, so no borrower is carried to Reports. */
         $scopes = [
             'whole' => ['page' => [], 'division' => null, 'unit' => null, 'borrower' => null],
             'division' => ['page' => ['group' => 'ACADEMIC'], 'division' => 'ACADEMIC', 'unit' => null, 'borrower' => null],
             'unit' => ['page' => ['group' => 'ACADEMIC', 'unit' => $this->ccs()], 'division' => 'ACADEMIC', 'unit' => $this->ccs(), 'borrower' => null],
-            'borrower' => ['page' => ['borrower' => (string) $alice->id], 'division' => null, 'unit' => null, 'borrower' => (string) $alice->id],
         ];
 
         $expected = [
-            'rejected' => ['whole' => 3, 'division' => 2, 'unit' => 2, 'borrower' => 2],
-            'revision' => ['whole' => 2, 'division' => 2, 'unit' => 1, 'borrower' => 1],
+            'rejected' => ['whole' => 3, 'division' => 2, 'unit' => 2],
+            'revision' => ['whole' => 2, 'division' => 2, 'unit' => 1],
         ];
 
         $status = ['rejected' => RequestStatus::Rejected->value, 'revision' => RequestStatus::ReturnedForRevision->value];
@@ -250,14 +250,6 @@ class AnalyticsReportsReconciliationTest extends TestCase
             'HRMO unit segment' => [
                 'query' => ['level' => 'unit', 'for' => 'ADMINISTRATION', 'segment' => $this->hrmo()],
                 'completed' => 3, 'late' => 1, 'division' => 'ADMINISTRATION', 'unit' => $this->hrmo(), 'borrower' => null,
-            ],
-            'Academic segment for one borrower' => [
-                'query' => ['level' => 'division', 'for' => 'ACADEMIC', 'borrower' => (string) $alice->id],
-                'completed' => 3, 'late' => 2, 'division' => 'ACADEMIC', 'unit' => null, 'borrower' => (string) $alice->id,
-            ],
-            'whole scope for one borrower' => [
-                'query' => ['level' => 'division', 'borrower' => (string) $bob->id],
-                'completed' => 5, 'late' => 2, 'division' => null, 'unit' => null, 'borrower' => (string) $bob->id,
             ],
             'page filtered to Administration, whole breakdown' => [
                 'query' => ['level' => 'unit', 'group' => 'ADMINISTRATION'],

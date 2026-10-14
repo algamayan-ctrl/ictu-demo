@@ -178,7 +178,7 @@ class UserAdministrationController extends Controller
 
         /*
          * The form disables these two controls and submits hidden inputs
-         * when ICTU is editing their own account, but a disabled control is
+         * when the SPMU Admin is editing their own account, but a disabled control is
          * a client-side convenience only. The server must not trust the
          * submitted value for the acting user's own account_status or
          * access_classification; it always keeps what is already stored,
@@ -293,7 +293,7 @@ class UserAdministrationController extends Controller
             $notifications->send(
                 'ACCOUNT_ACCESS_DISABLED',
                 collect([$user]),
-                'Your account access has been disabled. Contact ICTU for assistance.',
+                'Your account access has been disabled. Contact the SPMU Admin for assistance.',
                 $user,
                 ['SYSTEM', 'EMAIL']
             );
@@ -312,7 +312,7 @@ class UserAdministrationController extends Controller
                 ->with('status', $sent
                     ? 'Account updated. A new OTP was sent to the changed email; verification is required again before sign-in.'
                     : ($isExternalAccount
-                        ? 'Account updated and its changed email is unverified. OTP delivery failed; contact ICTU for mail assistance or request a new OTP on the account verification page.'
+                        ? 'Account updated and its changed email is unverified. OTP delivery failed; contact the SPMU Admin for mail assistance or request a new OTP on the account verification page.'
                         : 'Account updated and its changed email is unverified. OTP delivery failed; open Manage to resend the OTP.'));
         }
 
@@ -356,8 +356,7 @@ class UserAdministrationController extends Controller
                 before: $before,
                 after: [
                     'account_status' => AccountStatus::Inactive->value,
-                    'change_source' => $request->user()->access_classification === AccessClassification::IctuMaintainer
-                        ? 'ICTU_DIRECTORY_DEACTIVATION' : 'ADMIN_DIRECTORY_DEACTIVATION',
+                    'change_source' => 'ADMIN_DIRECTORY_DEACTIVATION',
                 ],
             );
 
@@ -373,7 +372,7 @@ class UserAdministrationController extends Controller
         $notifications->send(
             'ACCOUNT_ACCESS_DISABLED',
             collect([$user]),
-            'Your account access has been disabled. Contact Admin or ICTU for assistance.',
+            'Your account access has been disabled. Contact the SPMU Admin for assistance.',
             $user,
             ['SYSTEM', 'EMAIL'],
         );
@@ -388,13 +387,14 @@ class UserAdministrationController extends Controller
         User $user,
         AuditService $audit,
     ): RedirectResponse {
-        $this->authorizeIctu($request);
         abort_unless($user->access_classification?->isPortalEnabled(), 404);
 
         if ((int) $request->user()->getKey() === (int) $user->getKey()) {
             return redirect()->route('administration.users.index')
-                ->withErrors(['account_status' => 'You cannot reactivate your own ICTU account.']);
+                ->withErrors(['account_status' => 'You cannot reactivate your own account.']);
         }
+
+        Gate::authorize('reactivate', $user);
 
         $changed = DB::transaction(function () use ($user, $audit): bool {
             $account = User::query()->lockForUpdate()->findOrFail($user->getKey());
@@ -419,7 +419,7 @@ class UserAdministrationController extends Controller
                 before: $before,
                 after: [
                     'account_status' => AccountStatus::Active->value,
-                    'change_source' => 'ICTU_DIRECTORY_REACTIVATION',
+                    'change_source' => 'ADMIN_DIRECTORY_REACTIVATION',
                 ],
             );
 
@@ -438,12 +438,12 @@ class UserAdministrationController extends Controller
     /**
      * Remove a mistaken registration only while it is unverified and has never
      * been used. This is deliberately narrower than a general User::delete().
-     * Existing audit events remain to document the removed record and the ICTU actor.
+     * Existing audit events remain to document the removed record and its actor.
      */
     public function deletePendingRegistration(Request $request, User $user, AuditService $audit): RedirectResponse
     {
-        $this->authorizeIctu($request);
         abort_unless($user->access_classification?->isPortalEnabled(), 404);
+        Gate::authorize('deletePendingRegistration', $user);
 
         $actingUserId = (int) $request->user()->getKey();
         $blocker = $this->pendingRegistrationDeletionBlocker($user, $actingUserId);
@@ -464,7 +464,7 @@ class UserAdministrationController extends Controller
             }
 
             $audit->record('USER_PENDING_REGISTRATION_DELETED', $account,
-                reason: 'ICTU removed an unused, unverified registration.',
+                reason: 'SPMU Admin removed an unused, unverified registration.',
                 before: [
                     'employee_no' => $account->employee_no,
                     'email' => $account->email,
@@ -575,19 +575,23 @@ class UserAdministrationController extends Controller
      * protected by the verification and last_login_at checks above.
      */
 
-    /** ICTU recovery action if the previous OTP expired, was exhausted, or could not be delivered. */
+    /** Recovery action if the previous OTP expired, was exhausted, or could not be delivered. */
     public function resendEmailVerification(
         Request $request,
         User $user,
         EmailVerificationService $emailVerification,
         AuditService $audit,
     ): RedirectResponse {
-        $this->authorizeIctu($request);
         abort_unless($user->access_classification?->isPortalEnabled(), 404);
+        Gate::authorize('resendEmailVerification', $user);
+
+        // The Action Officer has no account-edit page; return them where they came from.
+        $returnTo = Gate::allows('update', $user)
+            ? redirect()->route('administration.users.edit', $user)
+            : back();
 
         if ($user->hasVerifiedInstitutionalEmail()) {
-            return redirect()->route('administration.users.edit', $user)
-                ->with('status', 'The registered institutional email is already verified.');
+            return $returnTo->with('status', 'The registered institutional email is already verified.');
         }
 
         $sent = $emailVerification->send($user);
@@ -598,10 +602,8 @@ class UserAdministrationController extends Controller
         );
 
         return $sent
-            ? redirect()->route('administration.users.edit', $user)
-                ->with('status', "A new 6-digit verification OTP was sent to {$user->email}.")
-            : redirect()->route('administration.users.edit', $user)
-                ->withErrors(['email_verification' => 'Verification OTP could not be sent. Confirm the institutional mail transport in ICTU System Configuration, then try again.']);
+            ? $returnTo->with('status', "A new 6-digit verification OTP was sent to {$user->email}.")
+            : $returnTo->withErrors(['email_verification' => 'Verification OTP could not be sent. Ask ICTU to confirm the mail transport, then try again.']);
     }
 
     private function form(User $user): View
@@ -720,7 +722,7 @@ class UserAdministrationController extends Controller
                     if (! $emailVerification->domainAllowed((string) $value)) {
                         $domains = implode(', ', $emailVerification->allowedDomains());
                         $fail($domains === ''
-                            ? 'ICTU registration email policy is not configured. Contact the system administrator.'
+                            ? 'The registration email policy is not configured. Contact the system administrator.'
                             : "Use an approved CSPC institutional email domain ({$domains}).");
                     }
                 },
@@ -756,7 +758,7 @@ class UserAdministrationController extends Controller
 
         /*
          * Additional requesting-unit assignments are borrower-only.
-         * Part-time status alone does not grant another Office / Unit; ICTU
+         * Part-time status alone does not grant another Office / Unit; the SPMU Admin
          * must explicitly record every additional unit the borrower may represent.
          */
         if ($classification !== AccessClassification::BorrowerOnly) {
@@ -930,17 +932,8 @@ class UserAdministrationController extends Controller
             && (string) $classification === $user->access_classification?->value;
     }
 
-    private function authorizeIctu(Request $request): void
-    {
-        abort_unless(
-            $request->user()?->access_classification === AccessClassification::IctuMaintainer,
-            403,
-            'Only ICTU may perform this account maintenance action.'
-        );
-    }
-
     /**
-     * User-facing ICTU account state used for meaningful audit comparisons.
+     * User-facing account state used for meaningful audit comparisons.
      *
      * Database IDs, timestamps, pivot assignment metadata, login timestamps,
      * verification timestamps, notification preferences, and password hashes
@@ -1053,7 +1046,7 @@ class UserAdministrationController extends Controller
             /*
              * Same active assignment and same type: leave it untouched.
              * In particular, do not rewrite assigned_at/created_at merely
-             * because ICTU pressed Save Changes again.
+             * because the SPMU Admin pressed Save Changes again.
              */
             $needsReassignment =
                 $existing->revoked_at !== null

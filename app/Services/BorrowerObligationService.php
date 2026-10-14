@@ -109,7 +109,7 @@ class BorrowerObligationService
     /**
      * What is still unpaid across these open billings: each billed total
      * less its VERIFIED payments, never below zero. The one definition of
-     * "Amount Due" for the borrower dashboard overview and My Obligations;
+     * "My Unsettled Charges" for the borrower dashboard overview and My Obligations;
      * no billing amount is changed.
      */
     public function outstandingBalance(Collection $openBillings): float

@@ -336,7 +336,7 @@ class CreateRequestOrganizationalUnitTest extends TestCase
         $response->assertOk();
         $this->assertSame([], $response->viewData('requestingUnitOptions'));
         $this->assertStringContainsString(
-            'No borrowing Office / College / Unit is authorized for this account. Contact ICTU.',
+            'No borrowing Office / College / Unit is authorized for this account. Contact the SPMU Admin.',
             $response->viewData('requestingUnitNotice')
         );
 
@@ -359,13 +359,13 @@ class CreateRequestOrganizationalUnitTest extends TestCase
 
     public function test_access_classification_wording_is_unaffected_by_the_division_rename(): void
     {
-        $ictu = User::factory()->create([
-            'access_classification' => AccessClassification::IctuMaintainer,
+        $head = User::factory()->create([
+            'access_classification' => AccessClassification::SpmuHead,
             'account_status' => AccountStatus::Active,
         ]);
-        app(\App\Services\UserRoleAssignmentService::class)->synchronize($ictu, AccessClassification::IctuMaintainer);
+        app(\App\Services\UserRoleAssignmentService::class)->synchronize($head, AccessClassification::SpmuHead);
 
-        $response = $this->actingAs($ictu)->get(route('administration.users.create'));
+        $response = $this->actingAs($head)->get(route('administration.users.create'));
 
         $response->assertOk();
         $response->assertSee('Access classification');

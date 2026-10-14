@@ -113,10 +113,10 @@ class OrganizationalStructureTest extends TestCase
 
     public function test_user_administration_and_account_settings_use_official_classification_and_leaf_labels(): void
     {
-        $ictu = $this->user(AccessClassification::IctuMaintainer);
+        $head = $this->user(AccessClassification::SpmuHead);
         $borrower = $this->user(AccessClassification::BorrowerOnly);
 
-        $this->actingAs($ictu)
+        $this->actingAs($head)
             ->get(route('administration.users.create'))
             ->assertOk()
             ->assertSee('Division')

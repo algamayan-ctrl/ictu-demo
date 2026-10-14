@@ -76,7 +76,7 @@ class PasswordResetController extends Controller
 
             return back()
                 ->withErrors([
-                    'email' => 'Password reset instructions could not be sent right now. Please contact ICTU for assistance.',
+                    'email' => 'Password reset instructions could not be sent right now. Please contact the SPMU Admin for assistance.',
                 ])
                 ->withInput(['email' => $email]);
         }
@@ -139,7 +139,7 @@ class PasswordResetController extends Controller
         if ($account->account_status !== AccountStatus::Active) {
             return back()
                 ->withErrors([
-                    'email' => 'This account is not active. Contact ICTU for assistance.',
+                    'email' => 'This account is not active. Contact the SPMU Admin for assistance.',
                 ])
                 ->withInput($request->only('email'));
         }

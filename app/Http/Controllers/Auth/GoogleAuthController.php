@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\OauthIdentity;
 use App\Services\AuditService;
+use App\Services\BorrowerRequestAffiliationService;
+use App\Services\EmailVerificationService;
 use App\Services\GoogleRegistrationContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,8 +46,15 @@ class GoogleAuthController extends Controller
 
         $applicationUrl = rtrim((string) config('app.url'), '/');
         if ((string) config('services.google.redirect') !== $applicationUrl.'/auth/google/callback') {
+            // Name the mismatch for ICTU; both values are public URLs, never secrets.
+            Log::warning('Google sign-in refused: GOOGLE_REDIRECT_URI does not match APP_URL.', [
+                'app_url' => $applicationUrl,
+                'google_redirect_uri' => (string) config('services.google.redirect'),
+                'expected_redirect_uri' => $applicationUrl.'/auth/google/callback',
+            ]);
+
             return redirect()->route('home')->withErrors([
-                'google' => 'Google sign-in needs server configuration. Contact ICTU for assistance.',
+                'google' => 'Google sign-in needs server configuration. Contact the SPMU Admin for assistance.',
             ]);
         }
         // Start state and receive the callback on the same browser origin.
@@ -85,6 +94,9 @@ class GoogleAuthController extends Controller
         $request->validate(['password' => ['required', 'string']]);
         if (! Hash::check($request->string('password')->toString(), $request->user()->password)) {
             throw ValidationException::withMessages(['password' => 'Enter your current password to link Google.']);
+        }
+        if ($this->isExternalBorrower($request->user())) {
+            return redirect()->route('profile.show')->withErrors(['google' => self::EXTERNAL_MESSAGE]);
         }
         $request->session()->put('google_link', ['user_id' => $request->user()->id, 'expires_at' => now()->addMinutes(10)->timestamp]);
 
@@ -133,7 +145,17 @@ class GoogleAuthController extends Controller
 
         if (! $this->domainAllowed($email)) {
             return redirect()->route('home')->withErrors([
-                'google' => 'This Google account is not from an allowed domain. Contact ICTU for account access assistance.',
+                'google' => 'This Google account is not from an allowed domain. Contact the SPMU Admin for account access assistance.',
+            ]);
+        }
+
+        /* A CSPC student address never registers, links or signs in through Google. */
+        if (app(EmailVerificationService::class)->isStudentEmail($email)) {
+            $request->session()->forget('google_link');
+            $target = $request->user() !== null ? 'profile.show' : 'home';
+
+            return redirect()->route($target)->withErrors([
+                'google' => 'Continue with Google is not available for CSPC student email addresses.',
             ]);
         }
 
@@ -145,6 +167,9 @@ class GoogleAuthController extends Controller
                 || $user->account_status !== AccountStatus::Active || ! $user->hasVerifiedInstitutionalEmail()
                 || ! $user->hasApprovedRegistration() || strtolower($user->email) !== $email) {
                 return redirect()->route('profile.show')->withErrors(['google' => 'Google linking requires your active, verified account and its matching email. Sign in and try again.']);
+            }
+            if ($this->isExternalBorrower($user)) {
+                return redirect()->route('profile.show')->withErrors(['google' => self::EXTERNAL_MESSAGE]);
             }
             try {
                 DB::transaction(function () use ($user, $googleUser): void {
@@ -170,6 +195,14 @@ class GoogleAuthController extends Controller
 
         if (! $user) {
             if (! User::query()->whereRaw('LOWER(email) = ?', [$email])->exists()) {
+                /* Google sign-up is for CSPC Employees only; External Borrowers and students use the email form. */
+                $emails = app(EmailVerificationService::class);
+                if (! $emails->domainAllowed($email)) {
+                    return redirect()->route('home')->withErrors([
+                        'google' => self::EXTERNAL_MESSAGE.' New External Borrowers register with the Sign up form.',
+                    ]);
+                }
+
                 app(GoogleRegistrationContext::class)->remember($request, $email,
                     trim((string) $googleUser->getId()), $googleUser->getName());
 
@@ -180,10 +213,15 @@ class GoogleAuthController extends Controller
             ]);
         }
 
+        /* A linked identity never lets an External Borrower in through Google. */
+        if ($this->isExternalBorrower($user)) {
+            return redirect()->route('home')->withErrors(['google' => self::EXTERNAL_MESSAGE]);
+        }
+
         /* The same account-status rule the credential login applies. */
         if ($user->account_status !== AccountStatus::Active) {
             return redirect()->route('home')->withErrors([
-                'google' => 'This account is inactive. Contact ICTU if you believe this is an error.',
+                'google' => 'This account is inactive. Contact the SPMU Admin if you believe this is an error.',
             ]);
         }
 
@@ -198,6 +236,14 @@ class GoogleAuthController extends Controller
         app(AuditService::class)->record('GOOGLE_LOGIN', $user, after: ['provider' => 'google']);
 
         return redirect()->intended(route('dashboard'));
+    }
+
+    private const EXTERNAL_MESSAGE = 'External Borrowers sign in with email and password. Continue with Google is for CSPC Employee accounts only.';
+
+    /** External Borrowers (an External borrower registration) use email/password + OTP + SAO approval only. */
+    private function isExternalBorrower(?User $user): bool
+    {
+        return $user !== null && app(BorrowerRequestAffiliationService::class)->isExternal($user);
     }
 
     private function isConfigured(): bool

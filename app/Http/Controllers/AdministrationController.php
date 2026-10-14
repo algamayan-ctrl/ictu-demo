@@ -15,6 +15,12 @@ class AdministrationController extends Controller
 {
     public function index(Request $request): View
     {
+        /* User counts and technical operations are the SPMU Admin/Head's, not the Action Officer's. */
+        abort_unless(
+            $request->user()?->access_classification === AccessClassification::SpmuHead,
+            403
+        );
+
         $mayViewAuditTrail = $request->user()?->access_classification
             === AccessClassification::IctuMaintainer;
 

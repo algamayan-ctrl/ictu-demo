@@ -12,7 +12,7 @@
  'academic_period' => $periodSelection,
  'group' => $selectedDivision !== 'all' ? $selectedDivision : null,
  'unit' => $selectedUnit !== 'all' ? $selectedUnit : null,
- 'borrower' => $selectedBorrower ?? null,
+ 'borrower_type' => $selectedBorrowerType !== 'all' ? $selectedBorrowerType : null,
  ]);
 @endphp
 
@@ -20,7 +20,7 @@
  <div>
  <p class="eyebrow">Borrowing insights</p>
  <h1>Analytics</h1>
- <p>Understand borrowing activity, equipment usage, returns, and scheduled bookings at a glance.</p>
+ <p>Understand borrowing activity, equipment usage, inventory, and returns at a glance.</p>
  </div>
 </section>
 
@@ -45,15 +45,33 @@
  </select>
  </label>
 
+ <label for="analytics-borrower-type">
+ <span class="analytics-filter-label">
+ Borrower Type
+ </span>
+ <select id="analytics-borrower-type" name="borrower_type" onchange="this.form.submit()">
+ @foreach($borrowerTypes as $typeValue => $typeLabel)
+ <option value="{{ $typeValue }}" @selected($selectedBorrowerType === $typeValue)>{{ $typeLabel }}</option>
+ @endforeach
+ </select>
+ </label>
+
+ {{-- External Borrowers have no CSPC Division or Office: both read Not applicable. --}}
+ @php($externalOnly = $selectedBorrowerType === 'EXTERNAL')
+
  <label for="analytics-group">
  <span class="analytics-filter-label">
  Division
  </span>
- <select id="analytics-group" name="group" onchange="this.form.submit()">
+ <select id="analytics-group" name="group" onchange="this.form.submit()" @disabled($externalOnly)>
+ @if($externalOnly)
+ <option value="all" selected>Not applicable</option>
+ @else
  <option value="all" @selected($selectedDivision === 'all')>All divisions</option>
  @foreach($divisions as $code => $label)
  <option value="{{ $code }}" @selected($selectedDivision === $code)>{{ $label }}</option>
  @endforeach
+ @endif
  </select>
  </label>
 
@@ -61,15 +79,17 @@
  <span class="analytics-filter-label">
  Office / College / Unit
  </span>
- <select id="analytics-unit" name="unit" onchange="this.form.submit()">
+ <select id="analytics-unit" name="unit" onchange="this.form.submit()" @disabled($externalOnly)>
+ @if($externalOnly)
+ <option value="all" selected>Not applicable</option>
+ @else
  <option value="all" @selected($selectedUnit === 'all')>All units</option>
  @foreach($selectableUnits as $unitName)
  <option value="{{ $unitName }}" @selected($selectedUnit === $unitName)>{{ $unitName }}</option>
  @endforeach
+ @endif
  </select>
  </label>
-
- @include('analytics.partials.borrower-picker')
 
  <p class="analytics-period-note">
  Showing {{ $from->format('d M Y') }} to {{ $to->format('d M Y') }}.

@@ -65,6 +65,12 @@ class AnalyticsDetailService
  private readonly ReturnMetricsService $returnMetrics,
  ) {}
 
+ /** This resolver, reading figures from the caller's already-filtered AnalyticsService. */
+ public function using(AnalyticsService $analytics): self
+ {
+ return new self($analytics, $this->inventory, $this->cards->using($analytics), $this->returnMetrics);
+ }
+
  /**
  * Resolve one detail, or null when the key is not offered.
  *
@@ -230,9 +236,7 @@ class AnalyticsDetailService
  return [
  (string) $request->request_no,
  (string) ($request->borrower?->full_name ?? ''),
- trim((string) ($version?->office_unit ?? '')) !== ''
- ? (string) $version->office_unit
- : OrganizationalStructure::label($version?->division_code),
+ $this->affiliationLabel($version),
  $this->date($version?->submitted_at ?? $request->created_at),
  $this->date($version?->schedule_date ?? $version?->needed_from),
  $this->date($version?->return_date ?? $version?->return_due_at),
@@ -419,11 +423,7 @@ class AnalyticsDetailService
  ->whereBetween('custody_transactions.released_at', [$scope['from'], $scope['to']])
  ->where('request_items.inventory_item_id', $item->id);
 
- if ($scope['division'] !== null || $scope['unit'] !== null) {
- $versionIds = DB::table('request_versions')
- ->when($scope['division'] !== null, fn ($versions) => $versions->where('division_code', $scope['division']))
- ->when($scope['unit'] !== null, fn ($versions) => $versions->where('office_unit', $scope['unit']))
- ->select('id');
+ if ($versionIds = $this->analytics->filteredVersionIds($scope['division'], $scope['unit'])) {
  $releasedQuery->whereIn('custody_transactions.request_version_id', $versionIds);
  }
 
@@ -450,6 +450,8 @@ class AnalyticsDetailService
  ->whereBetween('custody_transactions.released_at', [$scope['from'], $scope['to']])
  ->where('request_items.inventory_item_id', $item->id);
 
+ $this->analytics->constrainAffiliation($releaseRowsQuery, 'request_versions.affiliation_type', $scope['division'], $scope['unit']);
+
  if ($scope['division'] !== null) {
  $releaseRowsQuery->where('request_versions.division_code', $scope['division']);
  }
@@ -475,6 +477,8 @@ class AnalyticsDetailService
  'users.full_name as borrower_name',
  'request_versions.office_unit',
  'request_versions.division_code',
+ 'request_versions.affiliation_type',
+ 'request_versions.external_company_name',
  ]);
 
  $balance = $this->inventory->portfolio(
@@ -506,9 +510,7 @@ class AnalyticsDetailService
  (string) ($row->request_no ?? '—'),
  (string) ($row->custody_no ?? '—'),
  (string) ($row->borrower_name ?? '—'),
- trim((string) ($row->office_unit ?? '')) !== ''
- ? (string) $row->office_unit
- : OrganizationalStructure::label($row->division_code),
+ $this->affiliationLabel($row),
  (string) ((float) $row->actual_released_quantity + 0),
  $this->date($row->due_at),
  $this->custodyLabel((string) $row->status),
@@ -682,11 +684,7 @@ class AnalyticsDetailService
  ->orWhereHas('laundryJob', fn ($job) => $job->whereBetween('worker_received_at', [$scope['from'], $scope['to']]));
  });
 
- if ($scope['division'] !== null || $scope['unit'] !== null) {
- $versionIds = DB::table('request_versions')
- ->when($scope['division'] !== null, fn ($versions) => $versions->where('division_code', $scope['division']))
- ->when($scope['unit'] !== null, fn ($versions) => $versions->where('office_unit', $scope['unit']))
- ->select('id');
+ if ($versionIds = $this->analytics->filteredVersionIds($scope['division'], $scope['unit'])) {
  $query->whereIn('request_version_id', $versionIds);
  }
 
@@ -867,9 +865,7 @@ class AnalyticsDetailService
  return [
  (string) $request->request_no,
  (string) ($request->borrower?->full_name ?? ''),
- trim((string) ($version?->office_unit ?? '')) !== ''
- ? (string) $version->office_unit
- : OrganizationalStructure::label($version?->division_code),
+ $this->affiliationLabel($version),
  $this->date($version?->submitted_at ?? $request->created_at),
  $this->date($version?->schedule_date),
  $this->date($version?->return_date ?? $version?->return_due_at),
@@ -1046,9 +1042,7 @@ class AnalyticsDetailService
  'rows' => $records->map(fn (BorrowingRequest $row): array => [
  (string) $row->request_no,
  (string) ($row->borrower?->full_name ?? ''),
- trim((string) ($row->currentVersion?->office_unit ?? '')) !== ''
- ? (string) $row->currentVersion->office_unit
- : OrganizationalStructure::label($row->currentVersion?->division_code),
+ $this->affiliationLabel($row->currentVersion),
  $this->date($row->currentVersion?->submitted_at ?? $row->created_at),
  $row->status->label(),
  ])->all(),
@@ -1145,9 +1139,7 @@ class AnalyticsDetailService
  (string) $custody->custody_no,
  (string) ($custody->request?->request_no ?? ''),
  (string) ($custody->borrower?->full_name ?? ''),
- trim((string) ($version?->office_unit ?? '')) !== ''
- ? (string) $version->office_unit
- : OrganizationalStructure::label($version?->division_code),
+ $this->affiliationLabel($version),
  $this->date($custody->due_at),
  $days === null ? '—' : (string) $days,
  $this->custodyLabel($custody->status),
@@ -1279,9 +1271,7 @@ class AnalyticsDetailService
  (string) $custody->custody_no,
  (string) ($custody->request?->request_no ?? ''),
  (string) ($custody->borrower?->full_name ?? ''),
- trim((string) ($custody->requestVersion?->office_unit ?? '')) !== ''
- ? (string) $custody->requestVersion->office_unit
- : OrganizationalStructure::label($custody->requestVersion?->division_code),
+ $this->affiliationLabel($custody->requestVersion),
  $this->date($due),
  $this->date($row['returned_at']),
  $late ? 'Returned late' : 'Returned on time',
@@ -1343,6 +1333,27 @@ class AnalyticsDetailService
  private function date(mixed $value): string
  {
  return $value ? Carbon::parse($value)->format('d M Y') : '—';
+ }
+
+ /**
+ * The "Office / Unit" cell of a record row, from the saved request
+ * version: the recorded company for an External Borrower, otherwise the
+ * CSPC office (or its division when no office was recorded).
+ */
+ private function affiliationLabel(?object $version): string
+ {
+ $type = $version?->affiliation_type;
+ $type = $type instanceof \App\Enums\RegistrationType ? $type->value : $type;
+
+ if ($type === \App\Enums\RegistrationType::External->value) {
+ $company = trim((string) ($version->external_company_name ?? ''));
+
+ return $company !== '' ? $company : \App\Enums\RegistrationType::External->label();
+ }
+
+ return trim((string) ($version?->office_unit ?? '')) !== ''
+ ? (string) $version->office_unit
+ : OrganizationalStructure::label($version?->division_code);
  }
 
  // Pulled-main descriptive stock/release history; no projected values.

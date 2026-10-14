@@ -1,6 +1,6 @@
 # Authentication on other devices
 
-Confirmed behavior: verified Google identity → employee/external registration with locked email → SAO; manual sign-up → email OTP → SAO. Google proves identity, never grants a role or SAO approval. CSPC employee registration requires exactly `@cspc.edu.ph`; a student address such as `@my.cspc.edu.ph` does not prove employee eligibility. Gmail, Yahoo and government addresses work with Google only if they are registered Google accounts. Google owns the credential screen; SPMU never asks for the Google password.
+Confirmed behavior: verified Google identity → employee/external registration with locked email → SAO; manual sign-up → email OTP → SAO. Google proves identity, never grants a role or SAO approval. CSPC employee registration, manual or through Google, requires an address in `INSTITUTIONAL_EMAIL_DOMAINS` (default `cspc.edu.ph`); a student address such as `@my.cspc.edu.ph` is treated as External unless the institution adds that domain. Gmail, Yahoo and government addresses work with Google only if they are registered Google accounts. Google owns the credential screen; SPMU never asks for the Google password.
 
 ## Current local review
 

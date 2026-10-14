@@ -56,6 +56,8 @@ return [
             'INSTITUTIONAL_EMAIL_DOMAINS',
             env('APP_ENV') === 'production' ? 'cspc.edu.ph' : 'cspc.edu.ph,spmu.test'
         ),
+        // CSPC student addresses: never a CSPC Employee and never an External Borrower.
+        'student_domains' => env('STUDENT_EMAIL_DOMAINS', 'my.cspc.edu.ph'),
     ],
 
 ];

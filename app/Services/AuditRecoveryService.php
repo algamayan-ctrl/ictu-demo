@@ -367,7 +367,7 @@ class AuditRecoveryService
          */
         return $classification === AccessClassification::IctuMaintainer
             && $record instanceof SystemSetting
-            && in_array((string) $record->setting_key, SettingController::ICTU_SETTING_KEYS, true)
+            && in_array((string) $record->setting_key, SettingController::TECHNICAL_SETTING_KEYS, true)
             && ! in_array((string) $record->setting_key, SettingController::PROTECTED_DIRECT_SETTING_KEYS, true);
     }
 

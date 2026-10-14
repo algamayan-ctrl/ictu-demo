@@ -30,7 +30,6 @@ class DeliveryRecordsTest extends TestCase
 
     private User $head;
 
-    private User $ictu;
 
     protected function setUp(): void
     {
@@ -50,7 +49,6 @@ class DeliveryRecordsTest extends TestCase
         $this->borrower = $this->classificationUser(AccessClassification::BorrowerOnly);
         $this->officer = $this->classificationUser(AccessClassification::SpmuOfficer);
         $this->head = $this->classificationUser(AccessClassification::SpmuHead);
-        $this->ictu = $this->classificationUser(AccessClassification::IctuMaintainer);
     }
 
     public function test_an_accepted_email_and_its_in_system_copy_are_recorded_without_claiming_delivery(): void
@@ -85,7 +83,7 @@ class DeliveryRecordsTest extends TestCase
         $this->assertSame('system', $system->provider);
         $this->assertSame((string) $this->borrower->id, $system->address_snapshot);
 
-        $page = $this->as($this->ictu)->get(route('reports.notifications'))->assertOk();
+        $page = $this->as($this->head)->get(route('reports.notifications'))->assertOk();
         $page->assertSee('Account Access Disabled')
             ->assertSee('Posted In-System')
             ->assertSee('Stored in the in-system notification record.')
@@ -100,7 +98,7 @@ class DeliveryRecordsTest extends TestCase
 
         // With a real transport the wording is "accepted", with the limit of that evidence stated.
         $email->forceFill(['provider' => 'smtp'])->save();
-        $this->as($this->ictu)->get(route('reports.notifications', ['channel' => 'EMAIL']))
+        $this->as($this->head)->get(route('reports.notifications', ['channel' => 'EMAIL']))
             ->assertOk()
             ->assertSee('Accepted by the configured mail transport.')
             ->assertSee('This does not confirm that it reached the recipient', false)
@@ -134,7 +132,7 @@ class DeliveryRecordsTest extends TestCase
         // The in-system copy is its own attempt and is not affected by the email failure.
         $this->assertSame('SENT', $event->deliveries()->where('channel', 'SYSTEM')->sole()->delivery_status);
 
-        $this->as($this->ictu)->get(route('reports.notifications', ['status' => 'CURRENT_FAILURE']))
+        $this->as($this->head)->get(route('reports.notifications', ['status' => 'CURRENT_FAILURE']))
             ->assertOk()
             ->assertSee('Delivery Failed')
             ->assertSee('Failure Reason')
@@ -165,7 +163,7 @@ class DeliveryRecordsTest extends TestCase
         $this->assertSame(1, NotificationDelivery::query()->actionableFailures()->count());
 
         // Both attempts are listed separately, each under its own record number.
-        $page = $this->as($this->ictu)->get(route('reports.notifications', ['channel' => 'EMAIL', 'per_page' => 28]))->assertOk();
+        $page = $this->as($this->head)->get(route('reports.notifications', ['channel' => 'EMAIL', 'per_page' => 28]))->assertOk();
         $ids = $page->viewData('deliveries')->pluck('id')->all();
         $this->assertContains($failed->id, $ids);
         $this->assertContains($sent->id, $ids);
@@ -194,7 +192,7 @@ class DeliveryRecordsTest extends TestCase
         $this->assertCount(1, $this->sentMessages());
 
         // The real ICTU deactivation action notifies the affected account only.
-        $this->as($this->ictu)->patch(route('administration.users.deactivate', $this->officer))->assertSessionHasNoErrors();
+        $this->as($this->head)->patch(route('administration.users.deactivate', $this->officer))->assertSessionHasNoErrors();
         $event = NotificationEvent::query()->where('event_code', 'ACCOUNT_ACCESS_DISABLED')->orderByDesc('id')->firstOrFail();
         $this->assertSame([$this->officer->id], $event->deliveries()->pluck('recipient_user_id')->unique()->values()->all());
         $this->assertSame((new User)->getMorphClass(), $event->source_type);
@@ -205,7 +203,7 @@ class DeliveryRecordsTest extends TestCase
     {
         $this->seedDeliveries(620);
 
-        $page = $this->as($this->ictu)->get(route('reports.notifications'))->assertOk();
+        $page = $this->as($this->head)->get(route('reports.notifications'))->assertOk();
         $deliveries = $page->viewData('deliveries');
         $this->assertSame(620, $deliveries->total());
         $this->assertSame(7, $deliveries->perPage());
@@ -215,17 +213,17 @@ class DeliveryRecordsTest extends TestCase
         $this->assertSame(7, substr_count($page->getContent(), 'data-delivery-date='));
 
         // The oldest record sits on the last page, far past the previous cap.
-        $last = $this->as($this->ictu)->get(route('reports.notifications', ['page' => $deliveries->lastPage()]))->assertOk();
+        $last = $this->as($this->head)->get(route('reports.notifications', ['page' => $deliveries->lastPage()]))->assertOk();
         $this->assertSame(89, $deliveries->lastPage());
         $last->assertSee('oldest.record@cspc.test')->assertSee('617–620 of 620');
 
         // Search runs in the database, so it finds an old record without paging to it.
-        $search = $this->as($this->ictu)->get(route('reports.notifications', ['q' => 'oldest.record']))->assertOk();
+        $search = $this->as($this->head)->get(route('reports.notifications', ['q' => 'oldest.record']))->assertOk();
         $this->assertSame(1, $search->viewData('deliveries')->total());
         $search->assertSee('1 matching of 620 total records')->assertSee('oldest.record@cspc.test');
-        $this->assertSame(0, $this->as($this->ictu)->get(route('reports.notifications', ['q' => 'no-such-recipient-100%']))->viewData('deliveries')->total());
+        $this->assertSame(0, $this->as($this->head)->get(route('reports.notifications', ['q' => 'no-such-recipient-100%']))->viewData('deliveries')->total());
 
-        $total = fn (array $query): int => $this->as($this->ictu)
+        $total = fn (array $query): int => $this->as($this->head)
             ->get(route('reports.notifications', $query))
             ->assertOk()
             ->viewData('deliveries')
@@ -250,7 +248,7 @@ class DeliveryRecordsTest extends TestCase
         $this->assertSame(620, $total(['channel' => 'SMS', 'status' => 'NOPE', 'event' => 'x', 'date' => 'x', 'per_page' => 5000]));
 
         // Page size and paging keep the active filters.
-        $paged = $this->as($this->ictu)
+        $paged = $this->as($this->head)
             ->get(route('reports.notifications', ['channel' => 'EMAIL', 'per_page' => 28, 'page' => 2]))
             ->assertOk();
         $this->assertSame(28, $paged->viewData('deliveries')->perPage());
@@ -266,13 +264,13 @@ class DeliveryRecordsTest extends TestCase
         $this->assertSame(0, $total(['legacy' => 1]));
     }
 
-    public function test_only_ictu_can_open_delivery_records(): void
+    public function test_only_the_spmu_head_can_open_delivery_records(): void
     {
         $this->seedDeliveries(3);
         $failure = NotificationDelivery::query()->actionableFailures()->first()
             ?? NotificationDelivery::query()->where('channel', 'EMAIL')->firstOrFail();
 
-        foreach ([$this->borrower, $this->officer, $this->head] as $user) {
+        foreach ([$this->borrower, $this->officer] as $user) {
             foreach ([[], ['legacy' => 1], ['status' => 'failed'], ['q' => 'cspc'], ['channel' => 'EMAIL', 'page' => 2]] as $query) {
                 $this->as($user)->get(route('reports.notifications', $query))->assertForbidden();
             }
@@ -285,11 +283,10 @@ class DeliveryRecordsTest extends TestCase
         $this->flushSession();
         $this->get(route('reports.notifications'))->assertRedirect(route('login'));
 
-        $this->as($this->ictu)->get(route('reports.notifications'))->assertOk();
-
-        // The Head keeps the Operational Audit Trail; ICTU keeps the Technical one.
-        $this->as($this->head)->get(route('reports.audit'))->assertOk()->assertSee('Operational Audit Trail');
-        $this->as($this->ictu)->get(route('reports.audit'))->assertOk()->assertSee('Technical Audit Trail');
+        $this->as($this->head)->get(route('reports.notifications'))->assertOk();
+        $this->as($this->officer)->get(route('reports.audit'))->assertForbidden();
+        $this->as($this->head)->get(route('reports.audit'))->assertOk()
+            ->assertSee('Operational Audit Trail')->assertDontSee('Technical Audit Trail');
     }
 
     public function test_older_records_are_masked_on_display_without_being_rewritten_and_expose_no_documents(): void
@@ -316,7 +313,7 @@ class DeliveryRecordsTest extends TestCase
             'provider_response' => $raw,
         ]);
 
-        $page = $this->as($this->ictu)->get(route('reports.notifications'))->assertOk();
+        $page = $this->as($this->head)->get(route('reports.notifications'))->assertOk();
         $page->assertSee('550 5.1.1 User unknown')
             ->assertSee('BorrowingRequest #41')
             ->assertDontSee('legacy.mailer')
@@ -354,7 +351,7 @@ class DeliveryRecordsTest extends TestCase
             'provider_response' => 'SMTP 451: temporary local problem.',
         ]);
 
-        $this->as($this->ictu)
+        $this->as($this->head)
             ->post(route('reports.notifications.resolve', $failure), ['resolution_note' => 'Mail relay restarted and verified.'])
             ->assertSessionHasNoErrors();
 
@@ -363,7 +360,7 @@ class DeliveryRecordsTest extends TestCase
         $this->assertSame('SMTP 451: temporary local problem.', $failure->provider_response);
         $this->assertNotNull($failure->resolved_at);
 
-        $this->as($this->ictu)->get(route('reports.notifications', ['status' => 'HISTORICAL_FAILURE']))
+        $this->as($this->head)->get(route('reports.notifications', ['status' => 'HISTORICAL_FAILURE']))
             ->assertOk()
             ->assertSee('Historical Delivery Failed')
             ->assertSee('SMTP 451: temporary local problem.')
@@ -408,7 +405,7 @@ class DeliveryRecordsTest extends TestCase
             'delivery_status' => 'FAILED',
             'provider_response' => $response,
             'resolved_at' => $resolved ? now() : null,
-            'resolved_by_user_id' => $resolved ? $this->ictu->id : null,
+            'resolved_by_user_id' => $resolved ? $this->head->id : null,
             'resolution_note' => $resolved ? 'Mail host corrected by ICTU.' : null,
         ]);
         $current = $make($raw);
@@ -425,7 +422,7 @@ class DeliveryRecordsTest extends TestCase
             'provider_response' => 'Accepted by the configured Laravel mail transport.',
         ]);
 
-        $page = $this->as($this->ictu)->get(route('reports.notifications', ['status' => 'CURRENT_FAILURE']))->assertOk();
+        $page = $this->as($this->head)->get(route('reports.notifications', ['status' => 'CURRENT_FAILURE']))->assertOk();
         $html = $page->getContent();
 
         $page->assertSee('SMTP Authentication Failed (535)')
@@ -448,7 +445,7 @@ class DeliveryRecordsTest extends TestCase
         // Exactly one collapsible block for the one failed row on this page.
         $this->assertSame(1, substr_count($html, 'data-delivery-technical>'));
 
-        $resolvedPage = $this->as($this->ictu)->get(route('reports.notifications', ['status' => 'HISTORICAL_FAILURE']))->assertOk();
+        $resolvedPage = $this->as($this->head)->get(route('reports.notifications', ['status' => 'HISTORICAL_FAILURE']))->assertOk();
         $resolvedPage->assertSee('Historical Delivery Failed')
             ->assertSee('DNS Resolution Failed')
             ->assertSee('Show Technical Details')
@@ -457,11 +454,11 @@ class DeliveryRecordsTest extends TestCase
             ->assertDontSee('Mark as Resolved');
 
         // Sent records keep their plain result line and get no failure block.
-        $sentPage = $this->as($this->ictu)->get(route('reports.notifications', ['status' => 'SENT']))->assertOk();
+        $sentPage = $this->as($this->head)->get(route('reports.notifications', ['status' => 'SENT']))->assertOk();
         $sentPage->assertSee('Transport Result')->assertDontSee('Show Technical Details')->assertDontSee('data-delivery-failure', false);
 
         // Marking the current failure as resolved still works and changes nothing but the resolution fields.
-        $this->as($this->ictu)
+        $this->as($this->head)
             ->post(route('reports.notifications.resolve', $current), ['resolution_note' => 'Sending account re-authorised.'])
             ->assertSessionHasNoErrors();
         $this->assertNotNull($current->fresh()->resolved_at);
@@ -501,7 +498,7 @@ class DeliveryRecordsTest extends TestCase
                 'delivery_status' => $failed ? 'FAILED' : 'SENT',
                 'provider_response' => $failed ? 'SMTP 550: mailbox unavailable.' : 'Accepted.',
                 'resolved_at' => $resolved ? $at : null,
-                'resolved_by_user_id' => $resolved ? $this->ictu->id : null,
+                'resolved_by_user_id' => $resolved ? $this->head->id : null,
                 'resolution_note' => $resolved ? 'Resolved in test data.' : null,
                 'created_at' => $at,
                 'updated_at' => $at,

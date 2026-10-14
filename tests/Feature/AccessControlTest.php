@@ -56,18 +56,33 @@ class AccessControlTest extends TestCase
     public function test_secure_command_creates_an_authorized_system_user(): void
     {
         $this->artisan('spmu:user', [
-            'email' => 'ictu.admin@cspc.edu.ph',
-            '--name' => 'ICTU Administrator',
+            'email' => 'spmu.admin@cspc.edu.ph',
+            '--name' => 'SPMU Administrator',
             '--employee-no' => 'EMP-0001',
-            '--unit' => 'ICTU',
-            '--role' => 'ICTU',
+            '--unit' => 'SPMU',
+            '--role' => 'SPMU',
+            '--classification' => 'SPMU_HEAD',
             '--password' => 'Test-Only-Secure-2026!',
         ])->assertSuccessful();
 
-        $user = User::query()->where('email', 'ictu.admin@cspc.edu.ph')->firstOrFail();
+        $user = User::query()->where('email', 'spmu.admin@cspc.edu.ph')->firstOrFail();
 
         $this->assertSame('EMP-0001', $user->employee_no);
-        $this->assertTrue($user->hasRole(UserRole::Ictu));
+        $this->assertSame(AccessClassification::SpmuHead, $user->access_classification);
+        $this->assertTrue($user->hasRole(UserRole::Spmu));
+    }
+
+    public function test_secure_command_no_longer_creates_an_ictu_maintainer(): void
+    {
+        $this->artisan('spmu:user', [
+            'email' => 'ictu.admin@cspc.edu.ph',
+            '--name' => 'ICTU Administrator',
+            '--unit' => 'ICTU',
+            '--role' => 'ICTU',
+            '--password' => 'Test-Only-Secure-2026!',
+        ])->assertFailed();
+
+        $this->assertDatabaseMissing('users', ['email' => 'ictu.admin@cspc.edu.ph']);
     }
 
     public function test_user_command_explains_a_duplicate_employee_number(): void
@@ -81,8 +96,8 @@ class AccessControlTest extends TestCase
             'email' => 'another@cspc.edu.ph',
             '--name' => 'Another User',
             '--employee-no' => 'EMP-0001',
-            '--unit' => 'ICTU',
-            '--role' => 'ICTU',
+            '--unit' => 'SPMU',
+            '--role' => 'SPMU',
             '--password' => 'Test-Only-Secure-2026!',
         ])
             ->expectsOutputToContain('Employee number EMP-0001 already belongs to existing@cspc.edu.ph')
@@ -98,14 +113,11 @@ class AccessControlTest extends TestCase
         $this->actingAs($user)->get('/administration')->assertForbidden();
     }
 
-    public function test_ictu_user_can_open_administration(): void
+    public function test_retired_ictu_account_cannot_open_administration(): void
     {
         $user = $this->userWithRole(UserRole::Ictu);
 
-        $this->actingAs($user)
-            ->get('/administration')
-            ->assertOk()
-            ->assertSee('System administration');
+        $this->actingAs($user)->get('/administration')->assertForbidden();
     }
 
     private function userWithRole(UserRole $roleCode): User

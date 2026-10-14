@@ -4,12 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Enums\AccessClassification;
 use App\Models\AcademicPeriod;
-use App\Models\User;
 use App\Services\AnalyticsDetailService;
 use App\Services\AnalyticsService;
 use App\Services\InventoryService;
 use App\Services\ReportingPeriodService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -21,9 +19,9 @@ use Illuminate\View\View;
  * template stays a layout.
  *
  * Only the active section's figures are computed. Overview also prepares a
- * compact cross-tab summary (demand, inventory, returns and scheduled demand)
- * so it can act as the executive snapshot without duplicating each tab's full
- * rankings, tables or scheduled workspace.
+ * compact cross-tab summary (demand, inventory and returns) so it can act as
+ * the executive snapshot without duplicating each tab's full rankings or
+ * tables.
  */
 class AnalyticsController extends Controller
 {
@@ -33,7 +31,6 @@ class AnalyticsController extends Controller
  'demand' => 'Demand & Utilization',
  'inventory' => 'Inventory Health',
  'returns' => 'Borrowing & Return Performance',
- 'scheduled' => 'Scheduled Demand',
  ];
 
  /**
@@ -47,19 +44,17 @@ class AnalyticsController extends Controller
  'demand' => 'demand-usage',
  'inventory' => 'inventory-health',
  'returns' => 'borrowing-returns',
- 'scheduled' => 'scheduled-demand',
  ];
 
  /**
  * Section keys that were renamed, so an existing link or bookmark still
  * opens the section that absorbed it rather than silently falling back
- * to Overview.
+ * to Overview. Retired sections (forecast, predictive, scheduled) have no
+ * successor and open Overview.
  */
  public const SECTION_ALIASES = [
  'borrowers' => 'returns',
  'equipment' => 'demand',
- 'forecast' => 'scheduled',
- 'predictive' => 'scheduled',
  ];
 
  public function __invoke(
@@ -68,7 +63,7 @@ class AnalyticsController extends Controller
  InventoryService $inventory,
  ReportingPeriodService $periods,
  AnalyticsDetailService $details
- ): View|JsonResponse {
+ ): View {
  abort_unless(
  $request->user()?->access_classification === AccessClassification::SpmuHead,
  403
@@ -97,18 +92,30 @@ class AnalyticsController extends Controller
  $section = self::SECTION_ALIASES[$section] ?? 'overview';
  }
 
- /* Units are offered per division, so the two filters stay consistent. */
- [$scopeFrom, $scopeTo] = $section === 'scheduled' ? $periods->nextScheduledWindow($from, $to) : [$from, $to];
- $scheduledScope = $section === 'scheduled';
- $unitOptions = $scheduledScope ? $analytics->scheduledUnitOptions($scopeFrom, $scopeTo) : $analytics->unitOptions($from, $to);
+ /*
+ * Borrower Type. External Borrowers have no CSPC Division or Office,
+ * so selecting them clears both; the view shows them as Not applicable.
+ */
+ $borrowerType = (string) $request->input('borrower_type', 'all');
 
- $division = (string) $request->input('group', 'all');
+ if (! array_key_exists($borrowerType, AnalyticsService::borrowerTypes())) {
+ $borrowerType = 'all';
+ }
+
+ $analytics->forBorrowerType($borrowerType);
+ $details = $details->using($analytics);
+ $externalOnly = $borrowerType === \App\Enums\RegistrationType::External->value;
+
+ /* Units are offered per division, so the two filters stay consistent. */
+ $unitOptions = $analytics->unitOptions($from, $to);
+
+ $division = $externalOnly ? 'all' : (string) $request->input('group', 'all');
 
  if (! array_key_exists($division, AnalyticsService::divisions())) {
  $division = 'all';
  }
 
- $unit = (string) $request->input('unit', 'all');
+ $unit = $externalOnly ? 'all' : (string) $request->input('unit', 'all');
 
  $selectableUnits = $division === 'all'
  ? $unitOptions->flatten()->unique()->sort()->values()->all()
@@ -122,19 +129,8 @@ class AnalyticsController extends Controller
  $divisionFilter = $division === 'all' ? null : $division;
  $unitFilter = $unit === 'all' ? null : $unit;
 
- /*
- * The Borrower picker is cascading, not global. It asks this same
- * endpoint for borrowers that actually filed a request inside the
- * selected Reporting Period + Division + Office / Unit.
- */
- if ($request->boolean('borrower_options')) {
- return $this->borrowerOptions($request, $analytics, $scopeFrom, $scopeTo, $divisionFilter, $unitFilter, $scheduledScope);
- }
-
- $borrowerFilter = $this->resolveBorrower($request, $analytics, $scopeFrom, $scopeTo, $divisionFilter, $unitFilter, $scheduledScope);
- $selectedBorrowerLabel = $borrowerFilter !== null
- ? (User::query()->find($borrowerFilter)?->full_name ?? 'Selected borrower')
- : 'All borrowers';
+ /* Borrower Type replaced the individual Borrower filter in Analytics. */
+ $borrowerFilter = null;
 
  /*
  * Semester and academic-year scopes fall back to the current calendar
@@ -189,7 +185,8 @@ class AnalyticsController extends Controller
  'unitOptions' => $unitOptions,
  'selectableUnits' => $selectableUnits,
  'selectedBorrower' => $borrowerFilter,
- 'selectedBorrowerLabel' => $selectedBorrowerLabel,
+ 'borrowerTypes' => AnalyticsService::borrowerTypes(),
+ 'selectedBorrowerType' => $borrowerType,
  ];
 
  return view(
@@ -209,120 +206,11 @@ class AnalyticsController extends Controller
  }
 
  /**
- * A submitted borrower id, accepted only when it actually filed a request
- * inside the current Reporting Period + Division + Office / Unit scope.
- *
- * Cascading validation, not a stale global id: changing an upstream
- * filter can silently invalidate a previously selected borrower, and this
- * resets it to "All borrowers" rather than keep filtering by someone who
- * no longer belongs to the current scope.
- */
- private function resolveBorrower(
- Request $request,
- AnalyticsService $analytics,
- \Carbon\CarbonInterface $from,
- \Carbon\CarbonInterface $to,
- ?string $division,
- ?string $unit,
- bool $scheduledScope = false
- ): ?int {
- $submitted = (int) $request->input('borrower', 0);
-
- if ($submitted <= 0) {
- return null;
- }
-
- $exists = ($scheduledScope ? $analytics->scheduledRequestScope($from, $to, $division, $unit) : $analytics->requestScope($from, $to, $division, $unit))
- ->where('borrowing_requests.borrower_user_id', $submitted)
- ->exists();
-
- return $exists ? $submitted : null;
- }
-
- /**
- * Borrowers who filed a request inside the current Reporting Period +
- * Division + Office / Unit scope, for the Borrower picker.
- *
- * Mirrors ReportController::borrowerOptions() so the two pickers behave
- * identically: searchable, capped, and scoped to the same upstream
- * filters rather than listing every borrower in the system.
- */
- private function borrowerOptions(
- Request $request,
- AnalyticsService $analytics,
- \Carbon\CarbonInterface $from,
- \Carbon\CarbonInterface $to,
- ?string $division,
- ?string $unit,
- bool $scheduledScope = false
- ): JsonResponse {
- $ids = ($scheduledScope ? $analytics->scheduledRequestScope($from, $to, $division, $unit) : $analytics->requestScope($from, $to, $division, $unit))
- ->pluck('borrowing_requests.borrower_user_id')
- ->filter(fn ($id): bool => is_numeric($id) && (int) $id > 0)
- ->map(fn ($id): int => (int) $id)
- ->unique()
- ->values();
-
- if ($ids->isEmpty()) {
- return response()->json(['options' => [], 'count' => 0, 'shown' => 0, 'has_more' => false]);
- }
-
- $search = mb_substr(trim((string) $request->input('q', '')), 0, 100);
- $selectedBorrower = (int) $request->input('selected_borrower', 0);
- $limit = 50;
-
- $query = User::query()->whereIn('id', $ids->all());
-
- if ($search !== '') {
- $query->where(function ($borrowers) use ($search): void {
- $borrowers
- ->where('full_name', 'like', '%'.$search.'%')
- ->orWhere('email', 'like', '%'.$search.'%');
- });
- }
-
- $count = (clone $query)->count();
-
- $users = $query
- ->orderBy('full_name')
- ->orderBy('email')
- ->limit($limit)
- ->get(['id', 'full_name', 'email']);
-
- /*
- * Preserve a currently selected borrower even when they fall outside
- * the first 50 names, so the browser can validate the selection
- * after an upstream Division / Office / period change without
- * falsely resetting it.
- */
- if ($selectedBorrower > 0
- && $ids->contains($selectedBorrower)
- && ! $users->contains('id', $selectedBorrower)) {
- $selected = User::query()->find($selectedBorrower, ['id', 'full_name', 'email']);
-
- if ($selected) {
- $users->push($selected);
- }
- }
-
- return response()->json([
- 'options' => $users->map(fn (User $user): array => [
- 'value' => (string) $user->id,
- 'name' => (string) $user->full_name,
- 'email' => (string) $user->email,
- ])->all(),
- 'count' => $count,
- 'shown' => $users->count(),
- 'has_more' => $count > $users->count(),
- ]);
- }
-
- /**
  * The figures a single section needs, and nothing else.
  *
  * Overview intentionally computes only the small cross-tab figures needed
- * by its Analytics Summary. It still does not build the detailed rankings,
- * return breakdowns or scheduled records owned by the other tabs.
+ * by its Analytics Summary. It still does not build the detailed rankings
+ * or return breakdowns owned by the other tabs.
  *
  * @return array<string, mixed>
  */
@@ -360,8 +248,6 @@ class AnalyticsController extends Controller
  $peakSummary = $analytics->peakBorrowing($from, $to, $division, $unit, $borrower);
  $inventorySummary = $analytics->inventory($inventory);
  $processingSummary = $analytics->processingPerformance($from, $to, $division, $unit, $borrower);
- [$scheduledFrom, $scheduledTo] = app(ReportingPeriodService::class)->nextScheduledWindow($from, $to);
- $scheduledSummary = $analytics->scheduledDemand($scheduledFrom, $scheduledTo, $division, $unit, $borrower);
 
  return [
  'overview' => $overview,
@@ -382,7 +268,6 @@ class AnalyticsController extends Controller
  'inventorySummary' => $inventorySummary,
  'processingSummary' => $processingSummary,
  'overviewTrend' => $analytics->trend($from, $to, $division, $unit, $periodSelection, $borrower),
-                'scheduledSummary' => $scheduledSummary, 'scheduledFrom' => $scheduledFrom, 'scheduledTo' => $scheduledTo,
  ];
  }
 
@@ -444,8 +329,6 @@ class AnalyticsController extends Controller
  ];
  }
 
- [$scheduledFrom, $scheduledTo] = app(ReportingPeriodService::class)->nextScheduledWindow($from, $to);
- return ['scheduledFrom' => $scheduledFrom, 'scheduledTo' => $scheduledTo,
- 'scheduled' => $analytics->scheduledDemand($scheduledFrom, $scheduledTo, $division, $unit, $borrower)];
+ return [];
  }
 }

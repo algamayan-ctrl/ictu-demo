@@ -75,34 +75,11 @@ class TempDashboardInstructionsTest extends TestCase
         $this->assertStringContainsString('Open Verification Queue', $html);
         $this->assertStringContainsString('dashboard-kpi-card', $html);
     }
-
-    public function test_ictu_dashboard_drops_the_scope_panel(): void
-    {
-        $html = $this->dashboardHtml(AccessClassification::IctuMaintainer, 'ICTU');
-
-        foreach ([
-            'Technical scope',
-            'ICTU responsibility',
-            'Manage active user accounts',
-            'Maintain system settings',
-            'Monitor email/SMS delivery records',
-            'ICTU does not approve borrowing',
-        ] as $instruction) {
-            $this->assertStringNotContainsString($instruction, $html);
-        }
-
-        $this->assertStringContainsString('Recent Accounts', $html);
-        $this->assertStringContainsString('Recently added user accounts.', $html);
-        $this->assertStringContainsString('Manage User Accounts', $html);
-        $this->assertStringContainsString('dashboard-kpi-card', $html);
-    }
-
     public function test_no_empty_grid_column_remains(): void
     {
         foreach ([
             [AccessClassification::SpmuHead, 'SPMU'],
             [AccessClassification::SpmuOfficer, 'SPMU'],
-            [AccessClassification::IctuMaintainer, 'ICTU'],
         ] as [$classification, $workspace]) {
             $html = $this->dashboardHtml($classification, $workspace);
 

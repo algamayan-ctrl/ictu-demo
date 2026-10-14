@@ -988,7 +988,7 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 
 /*
  | AMBER
- | Amount Due = financial warning / outstanding amount.
+ | My Unsettled Charges = financial warning / unpaid amount.
  */
 .ob-workspace .ob-summary-card.is-orange {
     --ob-from:#ffc443;
@@ -1123,7 +1123,7 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* Amount Due */
+/* My Unsettled Charges */
 .ob-workspace .ob-summary-card.is-orange .ob-summary-value {
     font-size:28px !important;
 }
@@ -1530,7 +1530,7 @@ body:has(.ob-workspace) #sanction-history { margin: 18px 0 0 !important; }
  .ob-workspace .ob-case-actions { margin-left: 0; }
  body:has(.ob-workspace) #sanction-history { margin-top: 16px !important; }
 }
-/* Only Amount Due uses blue when the outstanding balance is zero. */
+/* Only My Unsettled Charges uses blue when the balance is zero. */
 .ob-workspace .ob-summary-card.is-blue {
     --ob-from:#38a0f2;
     --ob-mid:#1777dc;

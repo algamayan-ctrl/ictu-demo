@@ -3,8 +3,8 @@
 ## Access rules
 
 - Only Borrower accounts may create borrowing requests.
-- Active staff classifications are SPMU Admin / Head, SPMU Action Officer and ICTU Maintainer.
-- SPMU and ICTU accounts cannot borrow.
+- Active staff classifications are SPMU Admin / Head and SPMU Action Officer. ICTU Maintainer is retired and cannot sign in.
+- SPMU accounts cannot borrow.
 - GSU and VPAF are not system accounts/portals/approvers. They are physical institutional signatories on the printed Borrowing Request Letter when required.
 - No electronic signature is used. Required signatures are handwritten/wet signatures on printed documents; accomplished scans/evidence are uploaded and verified.
 - A formal SPMU delegation gives only the recorded decision authority and uses the delegate's own account.
@@ -44,11 +44,11 @@
 - Open **Laundry Operations** to record borrower turnover and physical processing for linen jobs.
 - Continue cleaned linen through the existing SPMU Return & Inspection flow and archive the accomplished Laundry Form after final acceptance.
 
-## ICTU Maintainer
+## ICTU (Technical System Custodian)
 
-- Create/manage active Borrower, SPMU Admin / Head, SPMU Action Officer and ICTU accounts.
+- ICTU has no application account. The SPMU Admin / Head manages user accounts under **User Accounts** and operational settings under **Configuration**.
+- ICTU maintains hosting, Cloudflare, deployment, the database and backups, source code, and technical troubleshooting. See "Technical turnover and responsibilities" in [DEPLOYMENT-ICTU.md](DEPLOYMENT-ICTU.md).
 - Retired GSU/VPAF records are hidden from the active User Accounts list and cannot be assigned.
-- Manage system configuration, audit trail, delivery records, deployment, scheduler and technical operations.
 - ICTU does not approve borrowing requests or perform SPMU custody work.
 
 ## Status principles

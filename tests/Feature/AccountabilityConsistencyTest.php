@@ -430,6 +430,33 @@ class AccountabilityConsistencyTest extends TestCase
         /* Overpayment never shows a negative amount. */
         $this->payment($billing, $borrower, 400, 'VERIFIED');
         $this->assertSame(0.0, $obligations->overview($borrower->id)['billing_total']);
+        $this->borrowerPage($borrower)->assertOk()->assertSee('My Unsettled Charges')
+            ->assertSee('PHP 0.00')->assertSee('No unsettled charges');
+    }
+
+    public function test_head_unsettled_charges_count_only_the_unpaid_part_of_issued_billings(): void
+    {
+        [$custody] = $this->custody('Head Balance Fixture');
+        $borrower = User::query()->findOrFail($custody->borrower_user_id);
+        [$head] = $this->headAndOfficer();
+
+        /* Partly paid: only the verified PHP 200 counts; the submitted PHP 100 is not yet verified. */
+        $partial = $this->billing($borrower, 500);
+        $this->payment($partial, $borrower, 200, 'VERIFIED');
+        $this->payment($partial, $borrower, 100, 'SUBMITTED');
+
+        /* Settled, waived and voided (corrected) statements owe nothing. */
+        $this->billing($borrower, 700)->update(['status' => 'SETTLED']);
+        $this->billing($borrower, 800)->update(['status' => 'WAIVED']);
+        $this->billing($borrower, 900)->update(['status' => 'VOID']);
+
+        $this->actingAs($head)->withSession(['active_workspace' => 'SPMU'])
+            ->get(route('accountability.index'))
+            ->assertOk()
+            ->assertSee('data-accountability-card-label="Unsettled Accountability Charges"', false)
+            ->assertSee('Total unpaid charges from confirmed accountability cases only.')
+            ->assertSee('PHP 300.00')
+            ->assertDontSee('Outstanding Balance');
     }
 
     /* ------------------------------------------------------------------ */

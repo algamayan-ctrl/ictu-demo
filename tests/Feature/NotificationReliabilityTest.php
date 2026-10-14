@@ -37,7 +37,7 @@ class NotificationReliabilityTest extends TestCase
 
     private User $borrower;
 
-    private User $ictu;
+    private User $head;
 
     protected function setUp(): void
     {
@@ -55,7 +55,7 @@ class NotificationReliabilityTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $this->borrower = User::query()->where('access_classification', AccessClassification::BorrowerOnly->value)->firstOrFail();
-        $this->ictu = User::query()->where('access_classification', AccessClassification::IctuMaintainer->value)->firstOrFail();
+        $this->head = User::query()->where('access_classification', AccessClassification::SpmuHead->value)->firstOrFail();
     }
 
     public function test_an_email_is_handed_to_the_transport_only_after_the_transaction_commits(): void
@@ -201,8 +201,8 @@ class NotificationReliabilityTest extends TestCase
 
         $this->app['auth']->forgetGuards();
         $this->flushSession();
-        $this->withSession(['active_workspace' => $this->ictu->primaryWorkspace()])
-            ->actingAs($this->ictu)
+        $this->withSession(['active_workspace' => $this->head->primaryWorkspace()])
+            ->actingAs($this->head)
             ->get(route('reports.notifications', ['status' => 'CURRENT_FAILURE']))
             ->assertOk()
             ->assertSee('Return Due Tomorrow')

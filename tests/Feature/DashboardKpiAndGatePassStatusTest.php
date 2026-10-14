@@ -64,8 +64,8 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
     {
         // This class intentionally has no reference seed; provision the actor's
         // canonical role without adding unrelated users or changing KPI counts.
-        Role::firstOrCreate(['role_code' => 'ICTU'], ['role_name' => 'Information and Communications Technology Unit', 'active' => true]);
-        app(UserRoleAssignmentService::class)->synchronize($actor, AccessClassification::IctuMaintainer);
+        Role::firstOrCreate(['role_code' => 'SPMU'], ['role_name' => 'Supply and Property Management Unit', 'active' => true]);
+        app(UserRoleAssignmentService::class)->synchronize($actor, AccessClassification::SpmuHead);
     }
 
     public static function staffDashboardRoles(): array
@@ -421,7 +421,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_recorded_delivery_status_and_provider_content_are_escaped_and_preserved(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::create(['event_code' => 'QA_HISTORY', 'source_type' => User::class,
             'source_id' => $ictu->id, 'occurred_at' => now()]);
         $recorded = '<b>RAW</b>';
@@ -430,7 +430,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
             'recipient_user_id' => $ictu->id, 'channel' => 'SMS', 'delivery_status' => $recorded,
             'provider_response' => $provider, 'attempted_at' => now()]);
 
-        $response = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)
+        $response = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($ictu)
             ->get(route('reports.notifications', ['legacy' => 1]));
         $response->assertOk()->assertSee(e($recorded), false)->assertSee(e($provider), false)
             ->assertDontSee($provider, false)->assertDontSee('Mark as Resolved');
@@ -467,88 +467,6 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $drilldown->assertOk()->assertSee($active->request->request_no)->assertSee('Active Custodies');
         $this->assertSame($expectedCount, $drilldown->viewData('requests')->count());
     }
-
-    public function test_ictu_active_accounts_kpi_drilldown_matches_exact_count(): void
-    {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-        $this->grantDirectoryRole($ictu);
-        User::factory()->create(['access_classification' => AccessClassification::BorrowerOnly, 'account_status' => 'ACTIVE']);
-        User::factory()->create(['access_classification' => AccessClassification::BorrowerOnly, 'account_status' => 'INACTIVE']);
-
-        $dashboard = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('dashboard'));
-        $dashboard->assertOk();
-        $expectedCount = $dashboard->viewData('statistics')['Active Accounts'];
-
-        $drilldown = $this->withSession(['active_workspace' => 'ICTU'])
-            ->actingAs($ictu)
-            ->get(route('administration.users.index', ['status' => 'active']));
-
-        $drilldown->assertOk();
-        $this->assertSame($expectedCount, $drilldown->viewData('users')->count());
-        $this->assertTrue($drilldown->viewData('users')->every(fn ($user) => $user->account_status?->value === 'ACTIVE'));
-    }
-
-    public function test_ictu_inactive_accounts_kpi_drilldown_matches_exact_count(): void
-    {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-        $this->grantDirectoryRole($ictu);
-        User::factory()->create(['access_classification' => AccessClassification::BorrowerOnly, 'account_status' => 'ACTIVE']);
-        User::factory()->create(['access_classification' => AccessClassification::BorrowerOnly, 'account_status' => 'INACTIVE']);
-
-        $dashboard = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('dashboard'));
-        $dashboard->assertOk();
-        $expectedCount = $dashboard->viewData('statistics')['Inactive Accounts'];
-
-        $drilldown = $this->withSession(['active_workspace' => 'ICTU'])
-            ->actingAs($ictu)
-            ->get(route('administration.users.index', ['status' => 'inactive']));
-
-        $drilldown->assertOk();
-        $this->assertSame($expectedCount, $drilldown->viewData('users')->count());
-        $this->assertTrue($drilldown->viewData('users')->every(fn ($user) => $user->account_status?->value !== 'ACTIVE'));
-    }
-
-    public function test_ictu_failed_notifications_kpi_drilldown_matches_exact_count(): void
-    {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-
-        $event = NotificationEvent::query()->create([
-            'event_code' => 'TEST_EVENT',
-            'source_type' => User::class,
-            'source_id' => $ictu->id,
-            'occurred_at' => now(),
-            'correlation_id' => (string) Str::uuid(),
-        ]);
-
-        NotificationDelivery::query()->create([
-            'notification_event_id' => $event->id,
-            'recipient_user_id' => $ictu->id,
-            'channel' => 'EMAIL',
-            'delivery_status' => 'FAILED',
-            'attempted_at' => now(),
-        ]);
-
-        NotificationDelivery::query()->create([
-            'notification_event_id' => $event->id,
-            'recipient_user_id' => $ictu->id,
-            'channel' => 'SYSTEM',
-            'delivery_status' => 'SENT',
-            'attempted_at' => now(),
-        ]);
-
-        $dashboard = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('dashboard'));
-        $dashboard->assertOk();
-        $expectedCount = $dashboard->viewData('statistics')['Failed Notifications'];
-
-        $drilldown = $this->withSession(['active_workspace' => 'ICTU'])
-            ->actingAs($ictu)
-            ->get(route('reports.notifications', ['status' => 'failed']));
-
-        $drilldown->assertOk();
-        $this->assertSame($expectedCount, $drilldown->viewData('deliveries')->count());
-        $this->assertTrue($drilldown->viewData('deliveries')->every(fn ($delivery) => $delivery->delivery_status === 'FAILED'));
-    }
-
     /**
      * Historical rows written while SMS support existed but no provider was
      * ever configured. Channel=SMS, delivery_status=FAILED, with the exact
@@ -581,7 +499,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_sms_not_configured_does_not_create_a_misleading_ordinary_failure(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -594,7 +512,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         // SMS is not a current operational channel, so this row is not on
         // the normal Delivery Records view at all - it only ever surfaces
         // in the explicit legacy audit view.
-        $log = $this->withSession(['active_workspace' => 'ICTU'])
+        $log = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($ictu)
             ->get(route('reports.notifications', ['legacy' => 1]));
 
@@ -605,7 +523,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_normal_delivery_records_view_excludes_sms_but_legacy_view_preserves_it(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -615,13 +533,13 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
         $sms = $this->unconfiguredSmsFailure($event, $ictu);
 
-        $normal = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('reports.notifications'));
+        $normal = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($ictu)->get(route('reports.notifications'));
         $normal->assertOk();
         $this->assertFalse($normal->viewData('deliveries')->contains(fn ($delivery) => $delivery->is($sms)));
         $normal->assertDontSee('SMS Not Configured');
         $normal->assertDontSee('data-delivery-channel="SMS"');
 
-        $legacy = $this->withSession(['active_workspace' => 'ICTU'])
+        $legacy = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($ictu)
             ->get(route('reports.notifications', ['legacy' => 1]));
         $legacy->assertOk();
@@ -633,90 +551,6 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $legacy->assertSee('Recorded Status');
         $legacy->assertSee($sms->provider_response);
     }
-
-    public function test_genuine_email_failures_remain_visible_and_counted(): void
-    {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-        $event = NotificationEvent::query()->create([
-            'event_code' => 'TEST_EVENT',
-            'source_type' => User::class,
-            'source_id' => $ictu->id,
-            'occurred_at' => now(),
-        ]);
-
-        $email = $this->genuineEmailFailure($event, $ictu);
-
-        $dashboard = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('dashboard'));
-        $dashboard->assertOk();
-        $this->assertSame(1, $dashboard->viewData('statistics')['Failed Notifications']);
-
-        $drilldown = $this->withSession(['active_workspace' => 'ICTU'])
-            ->actingAs($ictu)
-            ->get(route('reports.notifications', ['status' => 'failed']));
-
-        $drilldown->assertOk();
-        $this->assertTrue($drilldown->viewData('deliveries')->contains(fn ($delivery) => $delivery->is($email)));
-    }
-
-    public function test_failed_notifications_kpi_matches_drilldown_with_sms_history_present(): void
-    {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-        $event = NotificationEvent::query()->create([
-            'event_code' => 'TEST_EVENT',
-            'source_type' => User::class,
-            'source_id' => $ictu->id,
-            'occurred_at' => now(),
-        ]);
-
-        $this->unconfiguredSmsFailure($event, $ictu);
-        $this->unconfiguredSmsFailure($event, $ictu);
-        $this->genuineEmailFailure($event, $ictu);
-        $this->genuineEmailFailure($event, $ictu);
-
-        $dashboard = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('dashboard'));
-        $dashboard->assertOk();
-        $expectedCount = $dashboard->viewData('statistics')['Failed Notifications'];
-        $this->assertSame(2, $expectedCount);
-
-        $drilldown = $this->withSession(['active_workspace' => 'ICTU'])
-            ->actingAs($ictu)
-            ->get(route('reports.notifications', ['status' => 'failed']));
-
-        $drilldown->assertOk();
-        $this->assertSame($expectedCount, $drilldown->viewData('deliveries')->count());
-        $this->assertTrue($drilldown->viewData('deliveries')->every(fn ($delivery) => $delivery->channel === 'EMAIL'));
-    }
-
-    public function test_disabling_sms_does_not_hide_genuine_failures_from_another_enabled_channel(): void
-    {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-        $event = NotificationEvent::query()->create([
-            'event_code' => 'TEST_EVENT',
-            'source_type' => User::class,
-            'source_id' => $ictu->id,
-            'occurred_at' => now(),
-        ]);
-
-        // Heavy SMS noise from the unconfigured period should never suppress
-        // a real, currently-actionable EMAIL failure.
-        for ($i = 0; $i < 5; $i++) {
-            $this->unconfiguredSmsFailure($event, $ictu);
-        }
-        $email = $this->genuineEmailFailure($event, $ictu);
-
-        $dashboard = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('dashboard'));
-        $dashboard->assertOk();
-        $this->assertSame(1, $dashboard->viewData('statistics')['Failed Notifications']);
-
-        $drilldown = $this->withSession(['active_workspace' => 'ICTU'])
-            ->actingAs($ictu)
-            ->get(route('reports.notifications', ['status' => 'failed']));
-
-        $drilldown->assertOk();
-        $this->assertSame(1, $drilldown->viewData('deliveries')->count());
-        $this->assertTrue($drilldown->viewData('deliveries')->first()->is($email));
-    }
-
     private function resolvedEmailFailure(NotificationEvent $event, User $recipient, User $resolver): NotificationDelivery
     {
         return NotificationDelivery::query()->create([
@@ -731,53 +565,9 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
             'resolution_note' => 'Recipient address corrected and re-sent manually.',
         ]);
     }
-
-    public function test_unresolved_email_failure_appears_in_failed_notifications_kpi(): void
-    {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-        $event = NotificationEvent::query()->create([
-            'event_code' => 'TEST_EVENT',
-            'source_type' => User::class,
-            'source_id' => $ictu->id,
-            'occurred_at' => now(),
-        ]);
-
-        $this->genuineEmailFailure($event, $ictu);
-
-        $dashboard = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('dashboard'));
-        $dashboard->assertOk();
-        $this->assertSame(1, $dashboard->viewData('statistics')['Failed Notifications']);
-    }
-
-    public function test_resolved_email_failure_no_longer_appears_in_kpi_or_drilldown(): void
-    {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-        $event = NotificationEvent::query()->create([
-            'event_code' => 'TEST_EVENT',
-            'source_type' => User::class,
-            'source_id' => $ictu->id,
-            'occurred_at' => now(),
-        ]);
-
-        $this->resolvedEmailFailure($event, $ictu, $ictu);
-        $unresolved = $this->genuineEmailFailure($event, $ictu);
-
-        $dashboard = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('dashboard'));
-        $dashboard->assertOk();
-        $this->assertSame(1, $dashboard->viewData('statistics')['Failed Notifications']);
-
-        $drilldown = $this->withSession(['active_workspace' => 'ICTU'])
-            ->actingAs($ictu)
-            ->get(route('reports.notifications', ['status' => 'failed']));
-
-        $drilldown->assertOk();
-        $this->assertSame(1, $drilldown->viewData('deliveries')->count());
-        $this->assertTrue($drilldown->viewData('deliveries')->first()->is($unresolved));
-    }
-
     public function test_resolved_failure_still_exists_in_delivery_records_as_historical_failure_with_original_error_preserved(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -787,7 +577,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
         $resolved = $this->resolvedEmailFailure($event, $ictu, $ictu);
 
-        $log = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('reports.notifications'));
+        $log = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($ictu)->get(route('reports.notifications'));
 
         $log->assertOk();
         $log->assertSee('Historical Delivery Failed');
@@ -799,7 +589,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_sms_not_configured_remains_separate_from_historical_failure(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -812,13 +602,13 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
         // Now on entirely separate pages (normal vs. legacy), so "remains
         // separate" means neither view mixes the other's category in.
-        $normal = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('reports.notifications'));
+        $normal = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($ictu)->get(route('reports.notifications'));
         $normal->assertOk();
         $normal->assertSee('Historical Delivery Failed');
         $normal->assertDontSee('SMS Not Configured');
         $this->assertFalse($normal->viewData('deliveries')->contains(fn ($delivery) => $delivery->is($sms)));
 
-        $legacy = $this->withSession(['active_workspace' => 'ICTU'])
+        $legacy = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($ictu)
             ->get(route('reports.notifications', ['legacy' => 1]));
         $legacy->assertOk();
@@ -828,7 +618,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_legacy_sms_not_configured_and_skipped_statuses_group_with_failed_under_one_category(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -858,7 +648,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
         // These legacy statuses only ever surface in the explicit legacy
         // audit view now - the normal view excludes channel=SMS entirely.
-        $log = $this->withSession(['active_workspace' => 'ICTU'])
+        $log = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($ictu)
             ->get(route('reports.notifications', ['legacy' => 1]));
         $log->assertOk();
@@ -888,7 +678,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_sent_rows_remain_unchanged(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -904,7 +694,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
             'attempted_at' => now(),
         ]);
 
-        $log = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('reports.notifications'));
+        $log = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($ictu)->get(route('reports.notifications'));
 
         $log->assertOk();
         $sent->refresh();
@@ -913,10 +703,10 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->assertTrue($log->viewData('deliveries')->contains(fn ($delivery) => $delivery->is($sent) && $delivery->delivery_status === 'SENT'));
     }
 
-    public function test_only_ictu_can_resolve_a_delivery_failure(): void
+    public function test_only_the_spmu_head_can_resolve_a_delivery_failure(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-        $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
+        $officer = User::factory()->create(['access_classification' => AccessClassification::SpmuOfficer]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -927,13 +717,13 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $failure = $this->genuineEmailFailure($event, $ictu);
 
         $blocked = $this->withSession(['active_workspace' => 'SPMU'])
-            ->actingAs($head)
-            ->post(route('reports.notifications.resolve', $failure), ['resolution_note' => 'Attempted resolution by non-ICTU user.']);
+            ->actingAs($officer)
+            ->post(route('reports.notifications.resolve', $failure), ['resolution_note' => 'Attempted resolution by a non-Head user.']);
 
         $blocked->assertForbidden();
         $this->assertNull($failure->fresh()->resolved_at);
 
-        $allowed = $this->withSession(['active_workspace' => 'ICTU'])
+        $allowed = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($ictu)
             ->post(route('reports.notifications.resolve', $failure), ['resolution_note' => 'Mail transport credentials rotated; verified next attempt succeeds.']);
 
@@ -947,7 +737,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_resolve_action_rejects_sms_rows_and_already_resolved_rows(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -958,12 +748,12 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $sms = $this->unconfiguredSmsFailure($event, $ictu);
         $alreadyResolved = $this->resolvedEmailFailure($event, $ictu, $ictu);
 
-        $this->withSession(['active_workspace' => 'ICTU'])
+        $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($ictu)
             ->post(route('reports.notifications.resolve', $sms), ['resolution_note' => 'Should not be allowed.'])
             ->assertNotFound();
 
-        $this->withSession(['active_workspace' => 'ICTU'])
+        $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($ictu)
             ->post(route('reports.notifications.resolve', $alreadyResolved), ['resolution_note' => 'Should not be allowed either.'])
             ->assertNotFound();
@@ -971,7 +761,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_historical_failure_row_never_renders_resolution_form_or_button(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -981,7 +771,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
         $this->resolvedEmailFailure($event, $ictu, $ictu);
 
-        $log = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('reports.notifications'));
+        $log = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($ictu)->get(route('reports.notifications'));
 
         $log->assertOk();
         $log->assertSee('Historical Delivery Failed');
@@ -991,7 +781,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_sms_not_configured_row_never_renders_resolution_form_or_button(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -1002,7 +792,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->unconfiguredSmsFailure($event, $ictu);
 
         // Legacy/audit-only view - resolution is never offered here either.
-        $log = $this->withSession(['active_workspace' => 'ICTU'])
+        $log = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($ictu)
             ->get(route('reports.notifications', ['legacy' => 1]));
 
@@ -1014,7 +804,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_resolution_form_appears_only_for_unresolved_current_failure_when_all_three_categories_present(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -1026,7 +816,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->resolvedEmailFailure($event, $ictu, $ictu);
         $this->genuineEmailFailure($event, $ictu);
 
-        $log = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('reports.notifications'));
+        $log = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($ictu)->get(route('reports.notifications'));
 
         $log->assertOk();
         // Exactly one resolution form should be present: the unresolved
@@ -1037,7 +827,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_bulk_resolve_writes_the_same_resolution_to_all_selected_current_failures(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -1048,7 +838,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $first = $this->genuineEmailFailure($event, $ictu);
         $second = $this->genuineEmailFailure($event, $ictu);
 
-        $response = $this->withSession(['active_workspace' => 'ICTU'])
+        $response = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($ictu)
             ->post(route('reports.notifications.resolveBulk'), [
                 'delivery_ids' => [$first->id, $second->id],
@@ -1072,7 +862,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_bulk_resolve_preserves_the_original_provider_error(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -1083,7 +873,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $failure = $this->genuineEmailFailure($event, $ictu);
         $originalProviderResponse = $failure->provider_response;
 
-        $this->withSession(['active_workspace' => 'ICTU'])
+        $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($ictu)
             ->post(route('reports.notifications.resolveBulk'), [
                 'delivery_ids' => [$failure->id],
@@ -1095,10 +885,10 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->assertSame('FAILED', $failure->delivery_status);
     }
 
-    public function test_only_ictu_can_bulk_resolve_delivery_failures(): void
+    public function test_only_the_spmu_head_can_bulk_resolve_delivery_failures(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-        $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
+        $officer = User::factory()->create(['access_classification' => AccessClassification::SpmuOfficer]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -1109,7 +899,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $failure = $this->genuineEmailFailure($event, $ictu);
 
         $blocked = $this->withSession(['active_workspace' => 'SPMU'])
-            ->actingAs($head)
+            ->actingAs($officer)
             ->post(route('reports.notifications.resolveBulk'), [
                 'delivery_ids' => [$failure->id],
                 'resolution_note' => 'Attempted by a non-ICTU user.',
@@ -1121,7 +911,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_bulk_resolve_excludes_non_actionable_rows_from_a_mixed_selection(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -1143,7 +933,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $originalHistoricalResolvedAt = $historical->resolved_at;
         $originalHistoricalNote = $historical->resolution_note;
 
-        $response = $this->withSession(['active_workspace' => 'ICTU'])
+        $response = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($ictu)
             ->post(route('reports.notifications.resolveBulk'), [
                 'delivery_ids' => [$current->id, $historical->id, $sms->id, $sent->id],
@@ -1171,7 +961,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_bulk_resolve_rejects_a_batch_with_no_eligible_rows(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -1181,7 +971,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
         $sms = $this->unconfiguredSmsFailure($event, $ictu);
 
-        $response = $this->withSession(['active_workspace' => 'ICTU'])
+        $response = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($ictu)
             ->post(route('reports.notifications.resolveBulk'), [
                 'delivery_ids' => [$sms->id],
@@ -1194,7 +984,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_provider_error_details_preserve_dns_and_smtp_errors_without_automatic_repair_claims(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::create(['event_code' => 'TEST_EVENT', 'source_type' => User::class,
             'source_id' => $ictu->id, 'occurred_at' => now()]);
         $dns = NotificationDelivery::create(['notification_event_id' => $event->id, 'recipient_user_id' => $ictu->id,
@@ -1202,7 +992,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
             'provider_response' => 'getaddrinfo for smtp.example.test failed: Name or service not known', 'attempted_at' => now()]);
         $smtp = $this->genuineEmailFailure($event, $ictu);
 
-        $response = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)
+        $response = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($ictu)
             ->get(route('reports.notifications'));
         $response->assertOk()->assertSee($dns->provider_response)->assertSee($smtp->provider_response)
             ->assertDontSee('connectivity was verified operational.');
@@ -1220,7 +1010,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_individual_resolution_controls_only_render_for_current_failures(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $this->grantDirectoryRole($ictu);
         $event = NotificationEvent::create(['event_code' => 'TEST_EVENT', 'source_type' => User::class,
             'source_id' => $ictu->id, 'occurred_at' => now()]);
@@ -1230,7 +1020,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $sent = NotificationDelivery::create(['notification_event_id' => $event->id, 'recipient_user_id' => $ictu->id,
             'channel' => 'EMAIL', 'delivery_status' => 'SENT', 'attempted_at' => now()]);
 
-        $response = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('reports.notifications'));
+        $response = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($ictu)->get(route('reports.notifications'));
         $response->assertOk()->assertSee(route('reports.notifications.resolve', $current), false)
             ->assertDontSee(route('reports.notifications.resolve', $historical), false)
             ->assertDontSee(route('reports.notifications.resolve', $sms), false)
@@ -1239,51 +1029,14 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->assertCount(1, $dom->query('//textarea[@name="resolution_note"]'));
         $this->assertCount(0, $dom->query('//input[@name="delivery_ids[]"]'));
         $this->get(route('reports.notifications', ['legacy' => 1]))->assertOk()->assertDontSee('Mark as Resolved');
-        $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
-        $this->withSession(['active_workspace' => 'SPMU'])->actingAs($head)->get(route('reports.notifications'))
+        $officer = User::factory()->create(['access_classification' => AccessClassification::SpmuOfficer]);
+        $this->withSession(['active_workspace' => 'SPMU'])->actingAs($officer)->get(route('reports.notifications'))
             ->assertForbidden();
         $this->assertNull($current->fresh()->resolved_at);
         $this->assertNull($sms->fresh()->resolved_at);
         $this->assertNull($sent->fresh()->resolved_at);
         $this->assertNotNull($historical->fresh()->resolved_at);
     }
-
-    public function test_ictu_pending_verification_kpi_drilldown_matches_exact_count(): void
-    {
-        $ictu = User::factory()->create([
-            'access_classification' => AccessClassification::IctuMaintainer,
-            'email_verified_at' => now(),
-        ]);
-        $this->grantDirectoryRole($ictu);
-
-        User::factory()->create([
-            'access_classification' => AccessClassification::BorrowerOnly,
-            'email_verified_at' => null,
-        ]);
-        User::factory()->create([
-            'access_classification' => AccessClassification::SpmuOfficer,
-            'email_verified_at' => null,
-        ]);
-        User::factory()->create([
-            'access_classification' => AccessClassification::BorrowerOnly,
-            'email_verified_at' => now(),
-        ]);
-
-        $dashboard = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('dashboard'));
-        $dashboard->assertOk();
-        $expectedCount = $dashboard->viewData('statistics')['Pending Verification'];
-        $this->assertSame(2, $expectedCount);
-
-        $drilldown = $this->withSession(['active_workspace' => 'ICTU'])
-            ->actingAs($ictu)
-            ->get(route('administration.users.index', ['verification' => 'pending']));
-
-        $drilldown->assertOk();
-        $this->assertSame($expectedCount, $drilldown->viewData('users')->count());
-        $this->assertSame('pending', $drilldown->viewData('verificationFilter'));
-        $drilldown->assertSee('Pending Verification');
-    }
-
     /* ================================================================== */
     /* Canonical KPI color/tone semantics */
     /* ================================================================== */
@@ -1319,27 +1072,6 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->assertNotNull($tone, 'Expected to find the Returns Due KPI card markup.');
         $this->assertNotSame('danger', $tone, 'Returns Due must not use the danger/red tone merely because it is due.');
     }
-
-    public function test_failed_notifications_kpi_uses_danger_tone(): void
-    {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-
-        $response = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('dashboard'));
-
-        $response->assertOk();
-        $this->assertSame('danger', $this->kpiCardTone($response->getContent(), 'Failed Notifications'));
-    }
-
-    public function test_inactive_accounts_kpi_uses_neutral_tone(): void
-    {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-
-        $response = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('dashboard'));
-
-        $response->assertOk();
-        $this->assertSame('neutral', $this->kpiCardTone($response->getContent(), 'Inactive Accounts'));
-    }
-
     public function test_gate_pass_processing_status_badge_uses_info_tone(): void
     {
         $borrower = $this->borrower();
@@ -1359,11 +1091,11 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_dashboard_filtered_drilldown_uses_compact_universal_filter_banner(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $this->grantDirectoryRole($ictu);
         User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer, 'account_status' => 'ACTIVE']);
 
-        $response = $this->withSession(['active_workspace' => 'ICTU'])
+        $response = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($ictu)
             ->get(route('administration.users.index', ['status' => 'active']));
 
@@ -1462,7 +1194,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_normal_delivery_records_channel_filter_never_offers_sms(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'TEST_EVENT',
             'source_type' => User::class,
@@ -1473,7 +1205,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->unconfiguredSmsFailure($event, $ictu);
         $this->genuineEmailFailure($event, $ictu);
 
-        $response = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('reports.notifications'));
+        $response = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($ictu)->get(route('reports.notifications'));
 
         $response->assertOk();
         $response->assertDontSee('<option value="SMS">', false);
@@ -1482,7 +1214,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
     public function test_notification_event_and_delivery_status_remain_semantically_separate(): void
     {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
         $event = NotificationEvent::query()->create([
             'event_code' => 'PICKUP_WINDOW_EXPIRED',
             'source_type' => User::class,
@@ -1492,7 +1224,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
         $this->genuineEmailFailure($event, $ictu);
 
-        $response = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('reports.notifications'));
+        $response = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($ictu)->get(route('reports.notifications'));
 
         $response->assertOk();
         // The event name is a recorded fact; the delivery outcome is a

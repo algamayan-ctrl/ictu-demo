@@ -172,7 +172,7 @@ class ExternalBorrowingRevisionTest extends TestCase
         if ($actor === 'revoked') {
             $user->roles()->detach();
         }
-        $this->as($user, $user->primaryWorkspace())->post(route('verifications.verify', $request), ['decision' => 'RETURNED_FOR_REVISION', 'remarks' => 'Unauthorized correction'])
+        $this->as($user, $user->primaryWorkspace() ?? 'SPMU')->post(route('verifications.verify', $request), ['decision' => 'RETURNED_FOR_REVISION', 'remarks' => 'Unauthorized correction'])
             ->assertForbidden();
         $this->assertSame(RequestStatus::UnderSpmu, $request->fresh()->status);
         $this->assertSame('RECEIVED', $request->currentVersion->approvalSteps()->sole()->decision);

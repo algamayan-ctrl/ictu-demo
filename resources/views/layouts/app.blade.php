@@ -1294,10 +1294,15 @@
     color: #175380;
     box-shadow: none;
 }
+/* Section toggles share one right-hand chevron column; a visible count sits just before it. */
 .sidebar-nav > a[data-sidebar-section-toggle] .sidebar-action-count {
     margin-left: auto;
 }
 .sidebar-nav > a[data-sidebar-section-toggle] .sidebar-section-chevron {
+    margin-left: auto;
+    align-self: center;
+}
+.sidebar-nav > a[data-sidebar-section-toggle] .sidebar-action-count:not([hidden]) + .sidebar-section-chevron {
     margin-left: 0;
 }
 html[data-theme="dark"] .sidebar-nav > a .sidebar-action-count,
@@ -1355,6 +1360,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                     ['reports.audit', 'reports.audit', 'Operational Audit Trail', 'reports'],
                     ['policies.index', 'policies.*', 'Configuration', 'settings'],
                     ['administration.users.index', 'administration.users.*', 'User Accounts', 'users'],
+                    /* System Configuration and Delivery Records are ICTU technical custody and have no menu entry. */
                 ]
                 : [
                     ['dashboard', 'dashboard', 'Dashboard', 'dashboard'],
@@ -1369,13 +1375,6 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                     ['calendar.index', 'calendar.*', 'Operations Calendar', 'calendar'],
                     ['accountability.index', 'accountability.*', 'Accountability', 'accountability'],
                 ],
-            'ICTU' => [
-                ['dashboard', 'dashboard', 'Dashboard', 'dashboard'],
-                ['administration.users.index', 'administration.users.*', 'User Accounts', 'users'],
-                ['administration.settings.index', 'administration.settings.*', 'System Configuration', 'settings'],
-                ['reports.audit', 'reports.audit', 'Technical Audit Trail', 'reports'],
-                ['reports.notifications', 'reports.notifications', 'Delivery Records', 'notifications'],
-            ],
             default => [],
         };
     @endphp
@@ -1402,9 +1401,9 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                     $analyticsSidebarCarry = request()->routeIs('analytics.*')
                         ? request()->only([
                             'academic_period',
-                            'division',
+                            'borrower_type',
+                            'group',
                             'unit',
-                            'borrower',
                         ])
                         : [];
 
@@ -1413,9 +1412,13 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                     $accountabilitySidebarQueue = (string) request('queue', 'work');
                 @endphp
 
-                @foreach($navigation as [$routeName, $routePattern, $label, $icon])
+                @foreach($navigation as $navItem)
                     @php
-                        $isNavActive = request()->routeIs($routePattern);
+                        [$routeName, $routePattern, $label, $icon] = $navItem;
+                        // Optional fifth element: query parameters that also decide the active state.
+                        $navParameters = $navItem[4] ?? [];
+                        $isNavActive = request()->routeIs($routePattern)
+                            && collect($navParameters)->every(fn ($value, $key) => request()->query($key) === $value);
                         $sidebarCount = max(0, (int) ($sidebarActionCounts[$routeName] ?? 0));
 
                         $hasSidebarSections =
@@ -1434,7 +1437,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
 
                     <a
                         class="interactive {{ $isNavActive ? 'active' : '' }}"
-                        href="{{ route($routeName) }}"
+                        href="{{ route($routeName, $navParameters) }}"
                         aria-label="{{ $label }}"
                         data-sidebar-tooltip="{{ $label }}"
                         data-sidebar-count-route="{{ $routeName }}"

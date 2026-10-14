@@ -123,7 +123,7 @@ class EmailVerificationService
                             </p>
 
                             <p style="margin:0;font-size:14px;line-height:1.65;color:#486581;">
-                                If you were not expecting this account, ignore this message and contact ICTU.
+                                If you were not expecting this account, ignore this message and contact the SPMU Admin.
                             </p>
                         </td>
                     </tr>
@@ -286,22 +286,50 @@ HTML;
     }
 
     /**
-     * Check the institution-level domain allow-list used by ICTU registration.
+     * Check the CSPC Employee domain allow-list (INSTITUTIONAL_EMAIL_DOMAINS).
+     *
+     * A student domain never qualifies, even if it is added to that list by
+     * mistake: an institutional address alone does not establish employment.
      */
     public function domainAllowed(string $email): bool
     {
         $allowedDomains = $this->allowedDomains();
 
-        if ($allowedDomains === []) {
+        if ($allowedDomains === [] || $this->isStudentEmail($email)) {
             return false;
         }
 
-        $domain = strtolower(
-            (string) substr(strrchr(trim($email), '@') ?: '', 1)
-        );
+        $domain = $this->domainOf($email);
 
         return $domain !== ''
             && in_array($domain, $allowedDomains, true);
+    }
+
+    /**
+     * A CSPC student address (STUDENT_EMAIL_DOMAINS, default my.cspc.edu.ph).
+     * Students may register neither as CSPC Employees nor as External Borrowers.
+     */
+    public function isStudentEmail(string $email): bool
+    {
+        $domain = $this->domainOf($email);
+
+        return $domain !== '' && in_array($domain, $this->studentDomains(), true);
+    }
+
+    /** @return list<string> */
+    public function studentDomains(): array
+    {
+        return collect(explode(',', (string) config('services.institutional_email.student_domains')))
+            ->map(fn (string $domain) => strtolower(trim(ltrim($domain, '@'))))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function domainOf(string $email): string
+    {
+        return strtolower((string) substr(strrchr(trim($email), '@') ?: '', 1));
     }
 
     /** @return list<string> */

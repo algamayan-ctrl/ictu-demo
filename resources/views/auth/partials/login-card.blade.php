@@ -363,7 +363,7 @@
                 </p>
 
                 <p>
-                    Contact ICTU for account access assistance.
+                    Contact the SPMU Admin for account access assistance.
                 </p>
                 <div class="login-otp-verification">
                     <a href="{{ route('account.verification.show') }}">

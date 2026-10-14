@@ -2130,6 +2130,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-units { --kpi-from: #92400e; --
 .analytics-donut-arc.is-administration { stroke: #0e7c66; }
 .analytics-donut-arc.is-research { stroke: #7a4bc4; }
 .analytics-donut-arc.is-unspecified { stroke: var(--text-soft); }
+.analytics-donut-arc.is-external { stroke: #b45309; }
 
 .analytics-donut-centre {
  position: absolute;
@@ -2175,6 +2176,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-units { --kpi-from: #92400e; --
 .analytics-donut-key.is-academic { background: #1769e0; }
 .analytics-donut-key.is-administration { background: #0e7c66; }
 .analytics-donut-key.is-research { background: #7a4bc4; }
+.analytics-donut-key.is-external { background: #b45309; }
 
 .analytics-donut-name {
  min-width: 0;

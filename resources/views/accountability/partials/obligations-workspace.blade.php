@@ -79,7 +79,7 @@
     if ($needsActionCount > 0) {
         $summaryCards[] = ['warning', 'warning', (string) $needsActionCount, 'Needs My Action', 'Your response is required', route('accountability.index', ['focus' => 'action']).'#current-obligations', 'action'];
     }
-    $summaryCards[] = [$outstandingBalance > 0 ? 'orange' : 'blue', 'coins', 'PHP '.number_format($outstandingBalance, 2), 'Amount Due', $outstandingBalance > 0 ? 'Unpaid billing balance' : 'No payment due', route('accountability.index', ['focus' => 'payment']).'#current-obligations', 'payment'];
+    $summaryCards[] = [$outstandingBalance > 0 ? 'orange' : 'blue', 'coins', 'PHP '.number_format($outstandingBalance, 2), 'My Unsettled Charges', $outstandingBalance > 0 ? 'Unpaid billing balance' : 'No unsettled charges', route('accountability.index', ['focus' => 'payment']).'#current-obligations', 'payment'];
     $summaryCards[] = [$borrowingBlocked ? 'warning' : 'success', $borrowingBlocked ? 'lock' : 'check-circle', $borrowingStatus, 'Borrowing Status', $borrowingStatusState['note'], route('accountability.index', ['focus' => $activeRestrictionCount > 0 || ! $borrowingBlocked ? 'status' : 'active']).'#current-obligations', 'status'];
 @endphp
 

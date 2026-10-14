@@ -59,8 +59,8 @@ class LoginController extends Controller
 
         if ($account->account_status !== AccountStatus::Active) {
             $statusMessage = $account->account_status === AccountStatus::Suspended
-                ? 'This account is suspended. Contact ICTU for assistance.'
-                : 'This account is inactive. Contact ICTU for assistance.';
+                ? 'This account is suspended. Contact the SPMU Admin for assistance.'
+                : 'This account is inactive. Contact the SPMU Admin for assistance.';
 
             return back()
                 ->withErrors([

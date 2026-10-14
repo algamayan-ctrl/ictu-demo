@@ -38,7 +38,7 @@ class RegistrationUiAccountAccessTest extends TestCase
 
     public static function accountManagers(): array
     {
-        return ['Admin' => ['SPMU_HEAD'], 'ICTU' => ['ICTU_MAINTAINER']];
+        return ['Admin' => ['SPMU_HEAD']];
     }
 
     #[DataProvider('accountManagers')]

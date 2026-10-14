@@ -513,7 +513,7 @@ class BorrowerObligationGroupingTest extends TestCase
         $response->assertOk()
             ->assertSee('Active Obligations')
             ->assertSee('Needs My Action')
-            ->assertSee('Amount Due')
+            ->assertSee('My Unsettled Charges')
             ->assertSee('Borrowing Status')
             ->assertSee($billing->billing_no)
             ->assertDontSee('No unresolved obligations')
@@ -533,7 +533,7 @@ class BorrowerObligationGroupingTest extends TestCase
             ->assertOk()
             ->assertSee('No current obligations.')
             ->assertSee('Active Obligations')
-            ->assertSee('Amount Due')
+            ->assertSee('My Unsettled Charges')
             ->assertSee('Borrowing Status');
         $this->assertSame(3, substr_count($response->getContent(), 'class="ob-summary-card '));
         $this->assertStringNotContainsString('<span class="ob-summary-label">Needs My Action</span>', $response->getContent());

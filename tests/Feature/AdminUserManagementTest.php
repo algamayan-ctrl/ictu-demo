@@ -88,10 +88,10 @@ class AdminUserManagementTest extends TestCase
         $ictu = $this->actor(AccessClassification::IctuMaintainer);
         $before = $ictu->getAttributes();
 
+        // A retired ICTU account is a legacy record: it is neither listed nor editable.
         $this->actingAs($this->actor(AccessClassification::SpmuHead))
-            ->get(route('administration.users.edit', $ictu))->assertForbidden();
-        $this->put(route('administration.users.update', $ictu), $this->payload())
-            ->assertForbidden();
+            ->get(route('administration.users.edit', $ictu))->assertNotFound();
+        $this->assertContains($this->put(route('administration.users.update', $ictu), $this->payload())->getStatusCode(), [403, 404]);
 
         $this->assertSame($before, $ictu->fresh()->getAttributes());
     }
@@ -184,11 +184,19 @@ class AdminUserManagementTest extends TestCase
         ]);
     }
 
-    public function test_admin_cannot_call_ictu_backup_or_pending_deletion_actions(): void
+    public function test_backup_has_no_screen_and_the_head_cannot_delete_an_established_account(): void
     {
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('administration.backup'));
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('administration.delegations.index'));
+
+        $borrower = $this->actor(AccessClassification::BorrowerOnly);
         $this->actingAs($this->actor(AccessClassification::SpmuHead))
-            ->post(route('administration.backup'))->assertForbidden();
-        $this->delete(route('administration.users.delete-pending', $this->actor(AccessClassification::BorrowerOnly)))
+            ->delete(route('administration.users.delete-pending', $borrower))
+            ->assertSessionHasErrors('account');
+        $this->assertModelExists($borrower);
+
+        $this->actingAs($this->actor(AccessClassification::SpmuOfficer))
+            ->delete(route('administration.users.delete-pending', $borrower))
             ->assertForbidden();
     }
 

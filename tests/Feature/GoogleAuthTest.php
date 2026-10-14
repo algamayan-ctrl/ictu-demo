@@ -227,14 +227,15 @@ class GoogleAuthTest extends TestCase
 
     public function test_unknown_google_email_opens_registration_without_provisioning_privileges(): void
     {
-        $this->fakeGoogleUser('student.not.registered@my.cspc.edu.ph');
+        /* Only a CSPC Employee address opens Google registration; students and External Borrowers are refused. */
+        $this->fakeGoogleUser('employee.not.registered@cspc.edu.ph');
 
         $this->get(route('auth.google.callback'))
             ->assertRedirect(route('register', ['source' => 'google']));
 
         $this->assertGuest();
         $this->assertSame(0, User::query()->count());
-        $this->assertDatabaseMissing('users', ['email' => 'student.not.registered@my.cspc.edu.ph']);
+        $this->assertDatabaseMissing('users', ['email' => 'employee.not.registered@cspc.edu.ph']);
     }
 
     public function test_inactive_local_account_cannot_sign_in_through_google(): void
@@ -433,7 +434,7 @@ class GoogleAuthTest extends TestCase
             ->assertRedirect(route('home'))
             ->assertSessionHasErrors('google');
 
-        $message = 'This Google account is not from an allowed domain. Contact ICTU for account access assistance.';
+        $message = 'This Google account is not from an allowed domain. Contact the SPMU Admin for account access assistance.';
         $this->withCookie(config('session.cookie'), session()->getId());
         $page = $this->get('/')->assertOk()
             ->assertSeeInOrder(['class="landing-shell"', 'class="login-card"', 'class="login-google"', 'class="google-auth-error"', $message, 'Need help?'], false);

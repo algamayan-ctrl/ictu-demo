@@ -451,7 +451,6 @@ class AuditTrailInvestigationTest extends TestCase
     {
         $item = $this->createInventoryItem('Paginated Investigation Item', 5);
         $operationalBefore = $this->as($this->head)->get(route('reports.audit'))->viewData('events')->total();
-        $technicalBefore = $this->as($this->ictu)->get(route('reports.audit'))->viewData('events')->total();
 
         // 520 operational events, the oldest 400+ days back, plus a handful of technical ones.
         $rows = [];
@@ -469,10 +468,10 @@ class AuditTrailInvestigationTest extends TestCase
             DB::table('audit_events')->insert($chunk);
         }
 
-        // Head: every operational event is counted and reachable; default page size is seven.
+        // Head: every operational and account event is counted and reachable; default page size is seven.
         $headPage = $this->as($this->head)->get(route('reports.audit'))->assertOk();
         $events = $headPage->viewData('events');
-        $this->assertSame($operationalBefore + 522, $events->total());
+        $this->assertSame($operationalBefore + 528, $events->total());
         $this->assertSame(7, $events->perPage());
         $this->assertCount(7, $events->items());
         $headPage->assertDontSee('needle-oldest-operational');
@@ -500,30 +499,15 @@ class AuditTrailInvestigationTest extends TestCase
             ->assertOk()
             ->assertSee('15–28 of', false);
 
-        // Operational events never reach ICTU, by search, category, or record filter.
-        $ictuPage = $this->as($this->ictu)->get(route('reports.audit'))->assertOk();
-        $this->assertSame($technicalBefore + 7, $ictuPage->viewData('events')->total());
-        foreach ([
-            ['q' => 'needle-oldest-operational'],
-            ['category' => 'INVENTORY', 'q' => 'needle-oldest-operational'],
-            ['record_type' => 'InventoryItem', 'record_id' => $item->id],
-            ['q' => 'needle-unknown-by-head'],
-            ['q' => 'needle-unknown-by-system'],
-        ] as $attempt) {
-            $this->assertSame(0, $this->as($this->ictu)->get(route('reports.audit', $attempt))->viewData('events')->total(), json_encode($attempt));
-        }
-        $this->as($this->ictu)->get(route('reports.audit', ['q' => 'needle-oldest-technical']))->assertSee('needle-oldest-technical');
-        $this->as($this->ictu)->get(route('reports.audit', ['q' => 'needle-unknown-by-ictu']))->assertSee('needle-unknown-by-ictu');
+        // The retired ICTU classification has no Audit Trail.
+        $this->as($this->ictu)->get(route('reports.audit'))->assertForbidden();
 
-        // Technical events never reach the SPMU Head.
-        foreach ([
-            ['q' => 'needle-oldest-technical'],
-            ['category' => 'ACCOUNT', 'q' => 'needle-oldest-technical'],
-            ['record_type' => 'User', 'record_id' => $this->borrower->id, 'q' => 'needle-oldest-technical'],
-            ['q' => 'needle-unknown-by-ictu'],
-        ] as $attempt) {
-            $this->assertSame(0, $this->as($this->head)->get(route('reports.audit', $attempt))->viewData('events')->total(), json_encode($attempt));
-        }
+        // Account events reach the Head, who now administers accounts.
+        $this->assertSame(1, $this->as($this->head)->get(route('reports.audit', ['category' => 'ACCOUNT', 'q' => 'needle-oldest-technical']))->viewData('events')->total());
+        $this->assertSame(6, $this->as($this->head)->get(route('reports.audit', ['record_type' => 'User', 'record_id' => $this->borrower->id]))->viewData('events')->total());
+
+        // Other technical records, such as an unclassified event by a legacy ICTU actor, stay out.
+        $this->assertSame(0, $this->as($this->head)->get(route('reports.audit', ['q' => 'needle-unknown-by-ictu']))->viewData('events')->total());
         $this->as($this->head)->get(route('reports.audit', ['q' => 'needle-unknown-by-head']))->assertSee('needle-unknown-by-head');
 
         // Borrowers and Action Officers have no Audit Trail at all.

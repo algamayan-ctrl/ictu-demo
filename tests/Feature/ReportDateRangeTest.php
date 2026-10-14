@@ -214,4 +214,40 @@ class ReportDateRangeTest extends TestCase
 
         return $request;
     }
+
+    public function test_previous_semester_resolves_to_the_period_before_the_active_one(): void
+    {
+        $range = fn (string $year, string $code, string $from, string $to, string $status) => \App\Models\AcademicPeriod::query()->create([
+            'academic_year' => $year, 'term_code' => $code, 'term_name' => ucfirst(strtolower($code)).' Semester',
+            'start_date' => $from, 'end_date' => $to, 'status' => $status,
+        ]);
+
+        // No active period: the range is offered without dates and never shows another period's records.
+        $unconfigured = $this->get(route('reports.index', ['report' => 'borrowing', 'academic_period' => 'previous_semester', 'generated' => 1]))->assertOk();
+        $this->assertNull($unconfigured->viewData('reportingPeriods')['previous_semester']['start_date']);
+        $unconfigured->assertSee('Previous semester is not configured yet.', false);
+
+        $range('2024-2025', 'SECOND', '2025-01-13', '2025-05-30', 'CLOSED');
+        $range('2025-2026', 'SECOND', '2026-01-12', '2026-05-29', 'CLOSED');
+        $range('2026-2027', 'FIRST', '2026-08-03', '2026-12-18', 'ACTIVE');
+        $range('2026-2027', 'SECOND', '2027-01-11', '2027-05-28', 'PLANNED');
+        $this->record('2026-03-10 09:00:00', 'Previous semester record');
+        $this->record('2026-09-10 09:00:00', 'Current semester record');
+
+        $response = $this->get(route('reports.index', [
+            'report' => 'borrowing', 'academic_period' => 'previous_semester', 'generated' => 1,
+            'start_date' => '2025-02-05', 'end_date' => '2025-02-20',
+        ]))->assertOk();
+
+        $this->assertSame('2026-01-12', $response->viewData('from')->toDateString());
+        $this->assertSame('2026-05-29', $response->viewData('to')->toDateString());
+        $this->assertSame('23:59:59.999999', $response->viewData('to')->format('H:i:s.u'));
+        $this->assertSame('previous_semester', $response->viewData('periodSelection'));
+        $this->assertSame('2026-01-12', $response->viewData('reportingPeriods')['previous_semester']['start_date']);
+        $response->assertSee('Previous semester record')->assertDontSee('Current semester record');
+        $response->assertDontSee('Previous semester is not configured yet.', false);
+
+        // Pagination and export keep the selection rather than fixed dates.
+        $this->assertSame('previous_semester', $response->viewData('reportFilters')->toQuery()['academic_period']);
+    }
 }

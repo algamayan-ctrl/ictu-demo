@@ -142,7 +142,7 @@
                     <div>
                         <p class="report-preview-label">Report preview</p>
                         <h3 id="report-preview-error-title">The report could not be generated.</h3>
-                        <p>Nothing was exported. Try again, or change the reporting period or filters. If the problem continues, contact ICTU.</p>
+                        <p>Nothing was exported. Try again, or change the reporting period or filters. If the problem continues, contact the SPMU Admin.</p>
                         <div class="report-no-results-actions">
                             <a class="button primary ui-pressable" href="{{ request()->fullUrl() }}">Try Again</a>
                             <a class="button secondary ui-pressable" href="#report-builder" data-focus-report-builder>Change Period or Filters</a>

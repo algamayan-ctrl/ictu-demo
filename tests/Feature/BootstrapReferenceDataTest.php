@@ -188,7 +188,7 @@ class BootstrapReferenceDataTest extends TestCase
         $this->bootstrap();
 
         $this->assertContains(BootstrapReferenceData::MARKER_KEY, SettingController::PROTECTED_DIRECT_SETTING_KEYS);
-        $this->assertNotContains(BootstrapReferenceData::MARKER_KEY, SettingController::ICTU_SETTING_KEYS);
+        $this->assertNotContains(BootstrapReferenceData::MARKER_KEY, SettingController::TECHNICAL_SETTING_KEYS);
         $this->assertNull(SystemSetting::value(BootstrapReferenceData::MARKER_KEY));
     }
 

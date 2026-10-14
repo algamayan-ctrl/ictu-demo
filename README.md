@@ -11,7 +11,7 @@ The application has one requester portal and three active staff classifications:
 | Borrower | Creates borrowing requests and tracks personal requests/custody. Only Borrower accounts may borrow. |
 | SPMU Admin / Head | Final borrowing decision authority, oversight, reports, and authorized controls after Action Officer verification. |
 | SPMU Action Officer | Request/document verification, pickup scheduling, exact-quantity preparation, physical release/return, laundry operations, evidence and operational processing. May make the final SPMU decision only under a valid formal delegation. |
-| ICTU Maintainer | User accounts, classifications, system settings, audit trail, delivery records, deployment and technical operations. |
+| SPMU Admin / Head (administration) | Also administers user accounts and classifications, operational configuration and the operational audit trail. ICTU is no longer an application role; as Technical System Custodian it maintains hosting, Cloudflare, deployment, the database, backups and source code. See "Technical turnover and responsibilities" in [docs/DEPLOYMENT-ICTU.md](docs/DEPLOYMENT-ICTU.md). |
 
 **GSU and VPAF are not application roles, portals, approval queues, or system approvers.** When required by the institutional Borrowing Request Letter, they are **physical signatories only**. The borrower prints the letter, obtains the required handwritten/wet signatures, scans the accomplished document, and uploads it to SPMU for verification.
 
@@ -66,7 +66,6 @@ Local demo password: `SPMU-Demo-2026!`
 | Borrower | `borrower@spmu.test` |
 | SPMU Action Officer | `spmu@spmu.test` |
 | SPMU Admin / Head | `spmu-head@spmu.test` |
-| ICTU Maintainer | `ictu@spmu.test` |
 
 There are intentionally **no GSU or VPAF login accounts** in the current demo seeder.
 
@@ -80,7 +79,7 @@ docker compose -p spmu-acpmp-test -f .\docker-compose.test.yml run --rm test php
 
 ## Production turnover
 
-Production configuration, first ICTU account creation, scheduler/storage operations, Google OAuth, update steps, and the environment-variable register are in [docs/DEPLOYMENT-ICTU.md](docs/DEPLOYMENT-ICTU.md). The manual database/protected-storage backup, verification, and isolated restore-rehearsal procedure is in [docs/BACKUP-RESTORE-RUNBOOK.md](docs/BACKUP-RESTORE-RUNBOOK.md). Do not use local demo settings or the SQLite download backup action for production.
+Production configuration, first SPMU Admin account creation, scheduler/storage operations, Google OAuth, update steps, and the environment-variable register are in [docs/DEPLOYMENT-ICTU.md](docs/DEPLOYMENT-ICTU.md). The manual database/protected-storage backup, verification, and isolated restore-rehearsal procedure is in [docs/BACKUP-RESTORE-RUNBOOK.md](docs/BACKUP-RESTORE-RUNBOOK.md). Do not use local demo settings or the SQLite download backup action for production.
 
 ## Source map
 

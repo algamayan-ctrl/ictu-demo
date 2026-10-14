@@ -89,7 +89,9 @@ class DescriptiveScheduledAnalyticsTest extends TestCase
     {
         $this->assertFalse(class_exists(\App\Services\ForecastService::class));
         $response = $this->actingAs($this->head)->get(route('analytics.index', ['section' => $section, 'academic_period' => 'month']));
-        $response->assertOk()->assertSee('Scheduled Demand')->assertDontSee('Forecast &amp; Planning', false)
+        /* Retired sections (Scheduled Demand, Forecast & Planning) open Overview. */
+        $expected = in_array($section, ['scheduled', 'forecast', 'predictive'], true) ? 'overview' : $section;
+        $response->assertOk()->assertViewHas('section', $expected)->assertDontSee('Scheduled Demand')->assertDontSee('Forecast &amp; Planning', false)
             ->assertDontSee('Forecast Methodology')->assertDontSee('Forecast Readiness')->assertDontSee('Forecasted Demand')
             ->assertDontSee('days coverage');
     }
@@ -204,19 +206,15 @@ class DescriptiveScheduledAnalyticsTest extends TestCase
         $this->assertSame(0, $this->scheduled()['requests']);
     }
 
-    public function test_scheduled_picker_and_selected_borrower_follow_schedule_not_filing_date(): void
+    public function test_a_retired_scheduled_demand_link_opens_overview(): void
     {
-        $request = $this->booking();
-        $request->versions()->first()->update(['submitted_at' => '2026-03-15 09:00:00']);
-        $this->booking('2026-06-01');
-        $params = ['section' => 'scheduled', 'academic_period' => 'month', 'borrower' => $request->borrower_user_id];
-        $this->actingAs($this->head)->get(route('analytics.index', $params))->assertOk()
-            ->assertViewHas('selectedBorrower', $request->borrower_user_id)
-            ->assertViewHas('scheduled', fn ($data) => $data['requests'] === 1)
-            ->assertSee('01 May 2026')->assertSee('31 May 2026');
-        $this->getJson(route('analytics.index', $params + ['borrower_options' => 1]))->assertOk()
-            ->assertJsonPath('count', 1)->assertJsonPath('options.0.value', (string) $request->borrower_user_id);
-        $this->get(route('analytics.index', array_merge($params, ['borrower' => 999999])))->assertOk()->assertViewHas('selectedBorrower', null);
+        $this->booking();
+        $this->actingAs($this->head)->get(route('analytics.index', ['section' => 'scheduled', 'academic_period' => 'month']))->assertOk()
+            ->assertViewHas('section', 'overview')
+            ->assertViewMissing('scheduled')
+            ->assertViewMissing('scheduledSummary')
+            ->assertDontSee('Scheduled Demand')
+            ->assertDontSee('section=scheduled', false);
     }
 
     public function test_calendar_window_uses_actual_next_month_length_without_forecasting(): void
@@ -237,14 +235,14 @@ class DescriptiveScheduledAnalyticsTest extends TestCase
         }
     }
 
-    public function test_saved_external_company_is_escaped_in_the_actual_scheduled_view(): void
+    public function test_saved_external_company_is_never_rendered_raw_by_analytics(): void
     {
         $this->booking('2026-05-10', RequestStatus::UnderSpmu, [
             'affiliation_type' => RegistrationType::External, 'external_company_name' => '<script>company()</script>',
             'division_code' => null, 'office_unit' => null,
         ]);
         $this->actingAs($this->head)->get(route('analytics.index', ['section' => 'scheduled', 'academic_period' => 'month']))
-            ->assertOk()->assertSee('&lt;script&gt;company()&lt;/script&gt;', false)->assertDontSee('<script>company()</script>', false);
+            ->assertOk()->assertDontSee('<script>company()</script>', false);
     }
 
     public function test_scheduled_access_preserves_head_only_authority(): void

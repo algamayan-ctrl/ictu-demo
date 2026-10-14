@@ -781,7 +781,7 @@ class CompleteWorkflowTest extends TestCase
         $this->assertNotNull($custody->fresh()->released_at);
     }
 
-    public function test_ictu_cannot_act_on_official_approval_queue(): void
+    public function test_retired_ictu_account_cannot_open_approvals_or_user_accounts(): void
     {
         $ictu = $this->roleUser(UserRole::Ictu);
 
@@ -793,7 +793,7 @@ class CompleteWorkflowTest extends TestCase
         $this->withSession(['active_workspace' => 'ICTU'])
             ->actingAs($ictu)
             ->get('/administration/users')
-            ->assertOk();
+            ->assertForbidden();
     }
 
     public function test_date_based_overdue_billing_payment_and_closeout(): void

@@ -14,7 +14,7 @@ class SettingController extends Controller
 {
     private const MAX_UPLOAD_MB = 64;
 
-    public const ICTU_SETTING_KEYS = [
+    public const TECHNICAL_SETTING_KEYS = [
         'max_upload_mb',
         'backup_schedule',
     ];
@@ -33,29 +33,24 @@ class SettingController extends Controller
     {
         $this->authorizeConfiguration($request);
 
-        $classification = $request->user()?->access_classification;
-        $isIctu = $classification === AccessClassification::IctuMaintainer;
+        /*
+         * The SPMU Admin/Head owns both screens: System Configuration
+         * (?scope=system) for the technical settings and service status,
+         * and Operational Configuration for business policy values.
+         */
+        $isTechnical = $request->query('scope') === 'system';
 
-        if ($isIctu) {
-            /*
-             * ICTU owns only technical configuration. Operational policy,
-             * fees, and workflow deadlines are intentionally excluded from
-             * this workspace.
-             */
+        if ($isTechnical) {
             $settings = SystemSetting::query()
-                ->whereIn('setting_key', self::ICTU_SETTING_KEYS)
+                ->whereIn('setting_key', self::TECHNICAL_SETTING_KEYS)
                 ->orderBy('group_code')
                 ->orderBy('setting_key')
                 ->get();
         } else {
-            /*
-             * SPMU Admin/Head owns business/operational configuration.
-             * ICTU-owned technical settings and legacy compatibility rows are
-             * not exposed here.
-             */
+            /* Technical settings and legacy compatibility rows are not listed here. */
             $hiddenSettingKeys = array_values(array_unique(array_merge(
                 self::PROTECTED_DIRECT_SETTING_KEYS,
-                self::ICTU_SETTING_KEYS,
+                self::TECHNICAL_SETTING_KEYS,
             )));
 
             $settings = SystemSetting::query()
@@ -65,7 +60,7 @@ class SettingController extends Controller
                 ->get();
         }
 
-        return view('administration.settings', compact('settings', 'isIctu'));
+        return view('administration.settings', compact('settings', 'isTechnical'));
     }
 
     public function update(
@@ -152,7 +147,7 @@ class SettingController extends Controller
 
         return back()->with(
             'status',
-            $request->user()?->access_classification === AccessClassification::IctuMaintainer
+            in_array((string) $setting->setting_key, self::TECHNICAL_SETTING_KEYS, true)
                 ? 'System configuration updated with before/after audit history.'
                 : 'Operational configuration updated with before/after audit history.'
         );
@@ -162,46 +157,19 @@ class SettingController extends Controller
         Request $request,
         SystemSetting $setting
     ): void {
-        $classification = $request->user()?->access_classification;
-        $key = (string) $setting->setting_key;
-
         abort_if(
-            in_array($key, self::PROTECTED_DIRECT_SETTING_KEYS, true),
+            in_array((string) $setting->setting_key, self::PROTECTED_DIRECT_SETTING_KEYS, true),
             403,
             'This compatibility or template-version value is not directly editable.'
-        );
-
-        if ($classification === AccessClassification::IctuMaintainer) {
-            abort_unless(
-                in_array($key, self::ICTU_SETTING_KEYS, true),
-                403,
-                'ICTU may change only technical system configuration.'
-            );
-
-            return;
-        }
-
-        abort_unless(
-            $classification === AccessClassification::SpmuHead
-                && ! in_array($key, self::ICTU_SETTING_KEYS, true),
-            403,
-            'This setting is not owned by SPMU Admin/Head.'
         );
     }
 
     private function authorizeConfiguration(Request $request): void
     {
         abort_unless(
-            in_array(
-                $request->user()?->access_classification,
-                [
-                    AccessClassification::SpmuHead,
-                    AccessClassification::IctuMaintainer,
-                ],
-                true
-            ),
+            $request->user()?->access_classification === AccessClassification::SpmuHead,
             403,
-            'Only SPMU Admin/Head or ICTU Maintainer may access configuration.'
+            'Only the SPMU Admin/Head may access configuration.'
         );
     }
 }

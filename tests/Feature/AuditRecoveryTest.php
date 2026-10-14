@@ -184,8 +184,8 @@ class AuditRecoveryTest extends TestCase
 
         $this->revertAs($this->officer, $inventoryEvent)->assertForbidden();
         $this->revertAs($this->borrower, $inventoryEvent)->assertForbidden();
-        // Operational events do not exist for ICTU, and technical ones do not exist for the Head.
-        $this->revertAs($this->ictu, $inventoryEvent)->assertNotFound();
+        // The retired ICTU classification opens no portal; account events are view-only for the Head.
+        $this->revertAs($this->ictu, $inventoryEvent)->assertForbidden();
         $this->revertAs($this->head, $accountEvent)->assertNotFound();
 
         $this->app['auth']->forgetGuards();
@@ -199,8 +199,7 @@ class AuditRecoveryTest extends TestCase
         $this->assertSame('Recovery Designation Wrong', $this->borrower->fresh()->designation);
         $this->assertSame($eventsBefore, AuditEvent::query()->count());
 
-        // Neither trail offers the action to the other audience.
-        $this->as($this->ictu)->get(route('reports.audit'))->assertOk()->assertDontSee('Recovery Flag Wrong');
+        $this->as($this->ictu)->get(route('reports.audit'))->assertForbidden();
     }
 
     public function test_stock_archiving_and_deletion_are_never_reverted_from_the_audit_trail(): void
@@ -282,42 +281,6 @@ class AuditRecoveryTest extends TestCase
 
         $this->assertSame('Recovery Stage Renamed', $item->fresh()->unique_description);
     }
-
-    public function test_ictu_reverts_a_technical_setting_but_not_one_whose_previous_value_is_no_longer_valid(): void
-    {
-        $upload = SystemSetting::query()->where('setting_key', 'max_upload_mb')->firstOrFail();
-        $previous = $upload->value_json;
-
-        $this->as($this->ictu)
-            ->put(route('administration.settings.update', $upload), ['value' => 12, 'reason' => 'Raised for a large scan.'])
-            ->assertSessionHasNoErrors();
-        $event = $this->latestEvent('SYSTEM_SETTING_CHANGED', $upload->id);
-        $changesBefore = DB::table('configuration_changes')->where('system_setting_id', $upload->id)->count();
-
-        // The Head neither sees nor reaches a technical setting event.
-        $this->revertAs($this->head, $event)->assertNotFound();
-
-        $this->as($this->ictu)->get(route('reports.audit'))->assertOk()->assertSee('Revert This Change');
-        $this->revertAs($this->ictu, $event)->assertSessionHasNoErrors();
-
-        $this->assertSame($previous, $upload->fresh()->value_json);
-        $this->assertSame($changesBefore + 1, DB::table('configuration_changes')->where('system_setting_id', $upload->id)->count());
-        $revert = $this->latestEvent('SYSTEM_SETTING_CHANGE_REVERTED', $upload->id);
-        $this->assertSame(12, $revert->before_json['value']);
-        $this->assertSame($previous, $revert->after_json['value']);
-        $this->assertSame($event->id, $revert->after_json['reverted_audit_event_no']);
-
-        // The seeded backup schedule placeholder does not pass today's rules, so it is not restored.
-        $backup = SystemSetting::query()->where('setting_key', 'backup_schedule')->firstOrFail();
-        $this->as($this->ictu)
-            ->put(route('administration.settings.update', $backup), ['backup_time' => '02:00', 'backup_recurrence' => 'daily'])
-            ->assertSessionHasNoErrors();
-        $backupEvent = $this->latestEvent('SYSTEM_SETTING_CHANGED', $backup->id);
-
-        $this->revertAs($this->ictu, $backupEvent)->assertSessionHasErrors('revert');
-        $this->assertSame(['time' => '02:00', 'recurrence' => 'daily'], $backup->fresh()->value_json);
-    }
-
     public function test_only_the_item_name_and_specification_are_restored_for_inventory(): void
     {
         $item = $this->createInventoryItem('Recovery Canopy', 9);
@@ -377,11 +340,11 @@ class AuditRecoveryTest extends TestCase
         $this->assertSame($eventsBefore, AuditEvent::query()->count());
     }
 
-    public function test_operational_setting_changes_are_shown_to_the_head_only_and_are_never_revertible(): void
+    public function test_setting_changes_are_shown_to_the_head_and_are_never_revertible(): void
     {
         $setting = SystemSetting::query()->where('setting_key', 'approved_letter_download_time')->firstOrFail();
         $this->assertNotContains($setting->setting_key, array_merge(
-            SettingController::ICTU_SETTING_KEYS,
+            SettingController::TECHNICAL_SETTING_KEYS,
             SettingController::PROTECTED_DIRECT_SETTING_KEYS,
         ));
 
@@ -391,7 +354,7 @@ class AuditRecoveryTest extends TestCase
         $event = $this->latestEvent('SYSTEM_SETTING_CHANGED', $setting->id);
 
         $technical = SystemSetting::query()->where('setting_key', 'max_upload_mb')->firstOrFail();
-        $this->as($this->ictu)
+        $this->as($this->head)
             ->put(route('administration.settings.update', $technical), ['value' => 9, 'reason' => 'Technical change.'])
             ->assertSessionHasNoErrors();
         $technicalEvent = $this->latestEvent('SYSTEM_SETTING_CHANGED', $technical->id);
@@ -404,11 +367,12 @@ class AuditRecoveryTest extends TestCase
             ->pluck('id')
             ->all();
 
-        // The Head investigates the operational setting; the technical one stays with ICTU.
+        // The Head investigates both; each stays under its own category.
         $headIds = $pageIds($this->head);
         $this->assertContains($event->id, $headIds);
-        $this->assertNotContains($technicalEvent->id, $headIds);
+        $this->assertContains($technicalEvent->id, $headIds);
         $this->assertSame([$event->id], $pageIds($this->head, ['category' => 'OPERATIONAL_SETTINGS']));
+        $this->assertSame([$technicalEvent->id], $pageIds($this->head, ['category' => 'SETTINGS']));
         $this->as($this->head)
             ->get(route('reports.audit', ['category' => 'OPERATIONAL_SETTINGS']))
             ->assertOk()
@@ -417,140 +381,15 @@ class AuditRecoveryTest extends TestCase
             ->assertSee('22:00')
             ->assertDontSee('Will Be Restored To');
 
-        $ictuIds = $pageIds($this->ictu);
-        $this->assertContains($technicalEvent->id, $ictuIds);
-        $this->assertNotContains($event->id, $ictuIds);
-        // A forged category or record filter does not bring the operational event into ICTU's trail.
-        $this->assertNotContains($event->id, $pageIds($this->ictu, ['category' => 'OPERATIONAL_SETTINGS']));
-        $this->assertSame([], $pageIds($this->ictu, ['record_type' => 'SystemSetting', 'record_id' => $setting->id]));
-        $this->assertSame([], $pageIds($this->head, ['record_type' => 'SystemSetting', 'record_id' => $technical->id]));
-
-        // Fees and deadlines are never reverted from an audit event, by either office.
+        // Fees and deadlines are never reverted from an audit event; system settings are view-only.
         $this->revertAs($this->head, $event)->assertForbidden();
-        $this->revertAs($this->ictu, $event)->assertNotFound();
+        $this->revertAs($this->ictu, $event)->assertForbidden();
         $this->revertAs($this->head, $technicalEvent)->assertNotFound();
 
         $this->assertSame('22:00', $setting->fresh()->value_json);
         $this->assertSame(9, $technical->fresh()->value_json);
         $this->assertSame(0, AuditEvent::query()->where('action_code', 'SYSTEM_SETTING_CHANGE_REVERTED')->count());
     }
-
-    public function test_an_account_full_name_is_never_reverted_from_the_audit_trail(): void
-    {
-        $account = $this->borrower;
-        $originalName = $account->full_name;
-        $this->updateAccount($account, ['designation' => 'Instructor I']);
-
-        // A rename on its own offers no revert.
-        $this->updateAccount($account->fresh(), ['full_name' => 'Recovery Renamed Borrower']);
-        $rename = $this->latestEvent('USER_ACCOUNT_UPDATED', $account->id);
-        $this->assertSame($originalName, $rename->before_json['full_name']);
-        $this->assertSame('Recovery Renamed Borrower', $rename->after_json['full_name']);
-        $eventsBefore = AuditEvent::query()->count();
-
-        $this->as($this->ictu)
-            ->get(route('reports.audit', ['record_type' => 'User', 'record_id' => $account->id]))
-            ->assertOk()
-            ->assertDontSee('Will Be Restored To');
-        $this->revertAs($this->ictu, $rename)->assertSessionHasErrors('revert');
-
-        $this->assertSame('Recovery Renamed Borrower', $account->fresh()->full_name);
-        $this->assertSame($eventsBefore, AuditEvent::query()->count());
-
-        // A rename made together with a designation change restores the designation only.
-        $this->updateAccount($account->fresh(), ['full_name' => 'Recovery Renamed Again', 'designation' => 'Recovery Designation Wrong']);
-        $mixed = $this->latestEvent('USER_ACCOUNT_UPDATED', $account->id);
-
-        $this->as($this->ictu)
-            ->get(route('reports.audit', ['record_type' => 'User', 'record_id' => $account->id]))
-            ->assertOk()
-            ->assertSee('Not restored by this action: Full Name.');
-        $this->revertAs($this->ictu, $mixed)->assertSessionHasNoErrors();
-
-        $account->refresh();
-        $this->assertSame('Instructor I', $account->designation);
-        $this->assertSame('Recovery Renamed Again', $account->full_name);
-        $revert = $this->latestEvent('USER_ACCOUNT_CHANGE_REVERTED', $account->id);
-        $this->assertArrayNotHasKey('full_name', $revert->after_json);
-        $this->assertArrayNotHasKey('full_name', $revert->before_json);
-        // The audit history of the name itself is intact.
-        $this->assertSame('Recovery Renamed Borrower', $mixed->fresh()->before_json['full_name']);
-    }
-
-    public function test_a_profile_revert_leaves_identity_verification_roles_status_and_credentials_alone(): void
-    {
-        $account = $this->borrower;
-        $this->updateAccount($account, ['designation' => 'Instructor I']);
-        $account->refresh();
-
-        // One ICTU edit changes the designation together with the institutional email.
-        $newEmail = 'recovery.'.$account->email;
-        $this->updateAccount($account, ['designation' => 'Recovery Designation Wrong', 'email' => $newEmail]);
-        $event = $this->latestEvent('USER_ACCOUNT_UPDATED', $account->id);
-
-        $protected = fn (): array => [
-            'row' => collect((array) DB::table('users')->where('id', $account->id)->first())
-                ->except(['designation', 'updated_at'])
-                ->all(),
-            /* user_roles has no id column; its key is (user_id, role_id, assigned_at). */
-            'roles' => DB::table('user_roles')->where('user_id', $account->id)->orderBy('role_id')->orderBy('assigned_at')->get()->map(fn ($row) => (array) $row)->all(),
-            'units' => $account->fresh()->authorizedOrganizationalUnits()->pluck('organizational_units.id')->sort()->values()->all(),
-            'sessions' => DB::table('sessions')->where('user_id', $account->id)->count(),
-            'reset_tokens' => DB::table('password_reset_tokens')->count(),
-        ];
-        $before = $protected();
-        $this->assertSame($newEmail, $before['row']['email']);
-        $this->assertNull($before['row']['email_verified_at']);
-
-        $this->as($this->ictu)
-            ->get(route('reports.audit', ['record_type' => 'User', 'record_id' => $account->id]))
-            ->assertOk()
-            ->assertSee('Not restored by this action: Email.');
-
-        $this->revertAs($this->ictu, $event)->assertSessionHasNoErrors();
-
-        $this->assertSame('Instructor I', $account->fresh()->designation);
-        // Email, verification, employee number, status, classification, password hash,
-        // roles and unit assignments are exactly as they were before the revert.
-        $this->assertSame($before, $protected());
-    }
-
-    public function test_ictu_reverts_profile_details_but_never_account_access_or_credentials(): void
-    {
-        $account = $this->borrower;
-        $this->updateAccount($account, ['designation' => 'Instructor I']);
-        $account->refresh();
-        $originalDesignation = $account->designation;
-        $originalMobile = $account->mobile_no;
-        $passwordHash = $account->getRawOriginal('password');
-
-        $this->updateAccount($account, ['designation' => 'Recovery Designation Wrong', 'mobile_no' => '09991112222']);
-        $event = $this->latestEvent('USER_ACCOUNT_UPDATED', $account->id);
-        $this->assertSame('09991112222', $account->fresh()->mobile_no);
-
-        $this->revertAs($this->ictu, $event)->assertSessionHasNoErrors();
-
-        $account->refresh();
-        $this->assertSame($originalDesignation, $account->designation);
-        $this->assertSame($originalMobile, $account->mobile_no);
-        $this->assertSame($passwordHash, $account->getRawOriginal('password'));
-        $revert = $this->latestEvent('USER_ACCOUNT_CHANGE_REVERTED', $account->id);
-        $this->assertSame($event->id, $revert->after_json['reverted_audit_event_no']);
-        $this->assertSame(
-            ['designation', 'mobile_no', 'reverted_audit_event_no', 'reverted_audit_event_recorded_at'],
-            collect(array_keys($revert->after_json))->sort()->values()->all()
-        );
-
-        // Account status changes keep the Deactivate / Reactivate actions.
-        $this->as($this->ictu)
-            ->patch(route('administration.users.deactivate', $account))
-            ->assertSessionHasNoErrors();
-        $deactivation = $this->latestEvent('USER_ACCOUNT_UPDATED', $account->id);
-
-        $this->revertAs($this->ictu, $deactivation)->assertSessionHasErrors('revert');
-        $this->assertSame('INACTIVE', $account->fresh()->account_status->value);
-    }
-
     /**
      * The order a snapshot's keys come back in belongs to the database: a
      * text column keeps them as written, MySQL's native JSON type re-sorts
@@ -711,12 +550,12 @@ class AuditRecoveryTest extends TestCase
             ->assertSessionHasNoErrors();
     }
 
-    /** Edit an account through the ICTU form, changing only the given fields. */
+    /** Edit an account through the SPMU Admin form, changing only the given fields. */
     private function updateAccount(User $account, array $changes): void
     {
         $account->loadMissing('organizationalUnit');
 
-        $this->as($this->ictu)
+        $this->as($this->head)
             ->put(route('administration.users.update', $account), $changes + [
                 'division_code' => $account->organizationalUnit->divisionCode(),
                 'organizational_unit_id' => $account->organizational_unit_id,

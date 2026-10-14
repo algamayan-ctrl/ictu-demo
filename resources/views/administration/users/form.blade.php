@@ -7,10 +7,10 @@
     $addingNewUnit = filled($newUnitName) || old('organizational_unit_id') === '__NEW__';
     $historicalPrimaryUnit = $historicalPrimaryUnit ?? null;
     $historicalAdditionalUnits = $historicalAdditionalUnits ?? collect();
-    // Only ICTU can remove an unused pending registration. The controller
-    // rechecks record/session preservation before deleting the account.
-    $isIctu = auth()->user()->access_classification === App\Enums\AccessClassification::IctuMaintainer;
-    $isPendingUnverified = $isIctu && $user->exists && !$user->hasVerifiedInstitutionalEmail();
+    // The SPMU Admin may remove an unused pending registration and resend its OTP.
+    // The controller rechecks record/session preservation before deleting the account.
+    $canMaintainAccount = $user->exists && Gate::allows('deletePendingRegistration', $user);
+    $isPendingUnverified = $canMaintainAccount && $user->exists && !$user->hasVerifiedInstitutionalEmail();
     $canDeletePending = $isPendingUnverified && $pendingRegistrationDeletionBlocker === null;
     $selectedAdditionalUnitIds = collect(old('additional_organizational_unit_ids', $additionalUnitIds ?? []))
         ->map(fn ($id) => (int) $id)->unique()->values();
@@ -66,7 +66,7 @@
                 <div class="ictu-field ictu-email-field">
                     <div class="ictu-email-label-row">
                         <label for="ictu-official-email">{{ $isExternalAccount ? 'Email' : 'Official CSPC email' }}</label>
-                        @if($isIctu && $user->exists && !$user->hasVerifiedInstitutionalEmail())
+                        @if($canMaintainAccount && $user->exists && !$user->hasVerifiedInstitutionalEmail())
                             <button type="submit" form="ictu-resend-email-verification-form" class="ictu-email-verification-link" title="Send a new 6-digit OTP to the currently saved email address: {{ $user->email }}">
                                 <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">
                                     <rect x="3" y="5" width="18" height="14" rx="2"></rect>
@@ -348,7 +348,7 @@
                                     aria-label="Delete unverified account for {{ $user->full_name }}">
                                 <x-icon name="trash" size="16" /> Delete Account
                             </button>
-                        @elseif($isIctu)
+                        @elseif($canMaintainAccount)
                             <small class="ictu-account-action-note is-danger">
                                 <x-icon name="information" size="13" />
                                 <span>{{ $pendingRegistrationDeletionMessage }}</span>
@@ -384,7 +384,7 @@
     @endif
 
 
-    @if($isIctu && $user->exists && !$user->hasVerifiedInstitutionalEmail())
+    @if($canMaintainAccount && $user->exists && !$user->hasVerifiedInstitutionalEmail())
         <form id="ictu-resend-email-verification-form" method="post" action="{{ route('administration.users.email-verification.resend', $user) }}" data-preserve-submit-label="true" hidden>@csrf</form>
     @endif
 </section>

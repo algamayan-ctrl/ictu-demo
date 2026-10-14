@@ -23,8 +23,8 @@ class CreateSystemUser extends Command
         {--employee-no= : Employee / borrower number}
         {--employment-type=STAFF : EMPLOYEE, FACULTY, or STAFF}
         {--unit= : Organizational unit code; inferred for staff roles when omitted}
-        {--role=BORROWER : BORROWER, SPMU, or ICTU}
-        {--classification= : BORROWER_ONLY, SPMU_HEAD, SPMU_OFFICER, or ICTU_MAINTAINER}
+        {--role=BORROWER : BORROWER or SPMU}
+        {--classification= : BORROWER_ONLY, SPMU_HEAD, or SPMU_OFFICER}
         {--password= : Password; prompted securely when omitted}';
 
     protected $description = 'Create or update an authorized SPMU-ACPMP account';
@@ -42,7 +42,6 @@ class CreateSystemUser extends Command
         $activeRoles = [
             UserRole::Borrower,
             UserRole::Spmu,
-            UserRole::Ictu,
         ];
 
         if (
@@ -52,7 +51,7 @@ class CreateSystemUser extends Command
         ) {
             $this->error(
                 'Employment type or active role is invalid. '
-                .'Allowed roles: BORROWER, SPMU, ICTU.'
+                .'Allowed roles: BORROWER, SPMU.'
             );
 
             return SymfonyCommand::INVALID;
@@ -66,7 +65,6 @@ class CreateSystemUser extends Command
             ? AccessClassification::tryFrom($requestedClassification)
             : match ($roleCode) {
                 UserRole::Spmu => AccessClassification::SpmuOfficer,
-                UserRole::Ictu => AccessClassification::IctuMaintainer,
                 default => AccessClassification::BorrowerOnly,
             };
 
@@ -91,7 +89,6 @@ class CreateSystemUser extends Command
             $unitCode = match ($classification) {
                 AccessClassification::SpmuHead,
                 AccessClassification::SpmuOfficer => 'SPMU',
-                AccessClassification::IctuMaintainer => 'ICTU',
                 default => 'CCS',
             };
         }

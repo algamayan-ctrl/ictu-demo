@@ -421,11 +421,7 @@ class ReportController extends Controller
         }
 
         if (in_array($type, ['notification', 'audit'], true)) {
-            abort_unless(
-                $request->user()->hasRole(UserRole::Spmu)
-                || $request->user()->hasRole(UserRole::Ictu),
-                403
-            );
+            abort_unless($request->user()->hasRole(UserRole::Spmu), 403);
         }
 
         $from = Carbon::parse($request->input('from', now()->subDays(30)->toDateString()))->startOfDay();
@@ -643,32 +639,24 @@ class ReportController extends Controller
         /*
          * Audit Trail RBAC:
          *
-         * ICTU sees only account, authentication, technical settings,
-         * security/system, and other technical records.
-         *
-         * SPMU Head/Admin sees the operational audit trail only.
-         * Action Officers continue using transaction/request histories
-         * instead of receiving system-wide Audit Trail access.
+         * The SPMU Admin/Head sees the operational trail plus the account
+         * and settings events of the account administration they now own.
+         * Authentication, security/system and other technical records stay
+         * with backend maintenance. Action Officers continue using
+         * transaction/request histories instead of system-wide access.
          */
-        abort_unless(
-            in_array($classification, [
-                AccessClassification::SpmuHead,
-                AccessClassification::IctuMaintainer,
-            ], true),
-            403
-        );
+        abort_unless($classification === AccessClassification::SpmuHead, 403);
 
-        $auditMode = $classification === AccessClassification::IctuMaintainer
-            ? 'technical'
-            : 'operational';
+        $auditMode = 'operational';
 
-        $allowedCategories = $this->auditAudienceCategories($auditMode);
+        $allowedCategories = $this->auditAudienceCategories('head');
 
         /*
          * Filter on the server, in the database. The audience boundary is
          * always applied first, so a manually supplied URL/category/record
-         * value cannot expose operational events to ICTU or technical events
-         * to SPMU. Every retained event stays reachable through pagination;
+         * value cannot expose events outside the audience, such as
+         * authentication or security records. Every retained event stays
+         * reachable through pagination;
          * the audit table is never loaded into memory.
          */
         $categoryPairs = $this->auditCategoryPairs();
@@ -729,25 +717,19 @@ class ReportController extends Controller
         // Preserve a total count for the audit view while using the paginated, audience-filtered query.
         $totalEvents = $events->total();
 
-        $categoryOptions = $auditMode === 'technical'
-            ? [
-                'ACCOUNT' => 'Account',
-                'AUTH_VERIFICATION' => 'Authentication / Verification',
-                'SETTINGS' => 'Settings',
-                'SECURITY_SYSTEM' => 'Security / System',
-                'OTHER_TECHNICAL' => 'Other Technical',
-            ]
-            : [
-                'BORROWING' => 'Borrowing',
-                'APPROVAL' => 'Approval',
-                'RELEASE_RETURN' => 'Release / Return',
-                'LAUNDRY_GATEPASS' => 'Laundry / Gate Pass',
-                'ACCOUNTABILITY' => 'Accountability',
-                'INVENTORY' => 'Inventory',
-                'CORRECTIONS_REOPENINGS' => 'Corrections / Reopenings',
-                'OPERATIONAL_SETTINGS' => 'Operational Settings',
-                'OTHER_OPERATIONAL' => 'Other Operational',
-            ];
+        $categoryOptions = [
+            'BORROWING' => 'Borrowing',
+            'APPROVAL' => 'Approval',
+            'RELEASE_RETURN' => 'Release / Return',
+            'LAUNDRY_GATEPASS' => 'Laundry / Gate Pass',
+            'ACCOUNTABILITY' => 'Accountability',
+            'INVENTORY' => 'Inventory',
+            'CORRECTIONS_REOPENINGS' => 'Corrections / Reopenings',
+            'OPERATIONAL_SETTINGS' => 'Operational Settings',
+            'OTHER_OPERATIONAL' => 'Other Operational',
+            'ACCOUNT' => 'Account',
+            'SETTINGS' => 'System Settings',
+        ];
 
         return view('reports.audit', [
             'events' => $events,
@@ -777,21 +759,12 @@ class ReportController extends Controller
     ): RedirectResponse {
         $classification = $request->user()?->access_classification;
 
-        abort_unless(
-            in_array($classification, [
-                AccessClassification::SpmuHead,
-                AccessClassification::IctuMaintainer,
-            ], true),
-            403
-        );
+        abort_unless($classification === AccessClassification::SpmuHead, 403);
 
+        // Only operational changes can be reverted; account and system-setting events are view-only.
         $auditEvent = $this->scopeAuditCategories(
             AuditEvent::query(),
-            $this->auditAudienceCategories(
-                $classification === AccessClassification::IctuMaintainer
-                    ? 'technical'
-                    : 'operational'
-            ),
+            $this->auditAudienceCategories('operational'),
             $this->auditCategoryPairs()
         )
             ->whereKey($event)
@@ -825,25 +798,22 @@ class ReportController extends Controller
      */
     private function auditAudienceCategories(string $auditMode): array
     {
-        return $auditMode === 'technical'
-            ? [
-                'ACCOUNT',
-                'AUTH_VERIFICATION',
-                'SETTINGS',
-                'SECURITY_SYSTEM',
-                'OTHER_TECHNICAL',
-            ]
-            : [
-                'BORROWING',
-                'APPROVAL',
-                'RELEASE_RETURN',
-                'LAUNDRY_GATEPASS',
-                'ACCOUNTABILITY',
-                'INVENTORY',
-                'CORRECTIONS_REOPENINGS',
-                'OPERATIONAL_SETTINGS',
-                'OTHER_OPERATIONAL',
-            ];
+        $operational = [
+            'BORROWING',
+            'APPROVAL',
+            'RELEASE_RETURN',
+            'LAUNDRY_GATEPASS',
+            'ACCOUNTABILITY',
+            'INVENTORY',
+            'CORRECTIONS_REOPENINGS',
+            'OPERATIONAL_SETTINGS',
+            'OTHER_OPERATIONAL',
+        ];
+
+        // 'head': what the SPMU Admin/Head may view; 'operational': what may be reverted.
+        return $auditMode === 'head'
+            ? [...$operational, 'ACCOUNT', 'SETTINGS']
+            : $operational;
     }
 
     /**
@@ -857,7 +827,7 @@ class ReportController extends Controller
     private function operationalSettingIds(): array
     {
         return $this->operationalSettingIds ??= SystemSetting::query()
-            ->whereNotIn('setting_key', SettingController::ICTU_SETTING_KEYS)
+            ->whereNotIn('setting_key', SettingController::TECHNICAL_SETTING_KEYS)
             ->pluck('id')
             ->map(fn ($id): int => (int) $id)
             ->all();
@@ -1384,13 +1354,10 @@ class ReportController extends Controller
     {
         /*
          * Delivery Records lists recipient addresses, mail providers and
-         * provider responses. It is technical administration, so a direct
-         * URL follows the same rule as the navigation: ICTU only.
+         * provider responses, so a direct URL follows the same rule as the
+         * navigation: SPMU Admin/Head only.
          */
-        abort_unless(
-            $request->user()?->access_classification === AccessClassification::IctuMaintainer,
-            403
-        );
+        $this->authorizeDeliveryRecords($request);
 
         // SMS has no dispatch path today - the normal/current operational
         // view never mixes its historical rows in with SYSTEM/EMAIL. A
@@ -1623,7 +1590,7 @@ class ReportController extends Controller
     }
 
     /**
-     * Explicit ICTU resolution of a genuine, currently-unresolved delivery
+     * Explicit SPMU Admin resolution of a genuine, currently-unresolved delivery
      * failure. delivery_status stays FAILED for audit - only resolved_at /
      * resolved_by_user_id / resolution_note are written, which is what
      * moves the row out of actionableFailures() (the KPI/drilldown scope)
@@ -1633,6 +1600,8 @@ class ReportController extends Controller
      */
     public function resolveNotificationFailure(Request $request, NotificationDelivery $delivery): RedirectResponse
     {
+        $this->authorizeDeliveryRecords($request);
+
         abort_unless(
             $delivery->delivery_status === 'FAILED'
                 && in_array($delivery->channel, NotificationDelivery::OPERATIONAL_CHANNELS, true)
@@ -1657,7 +1626,7 @@ class ReportController extends Controller
      * Bulk variant of resolveNotificationFailure() for a set of currently-
      * unresolved operational failures sharing one root cause (e.g. the same
      * transient DNS/SMTP error) - never an automatic/blanket resolution.
-     * ICTU explicitly selects the rows and supplies one required note,
+     * The SPMU Admin explicitly selects the rows and supplies one required note,
      * which is written identically (same resolved_at, resolved_by_user_id,
      * resolution_note) to every selected row. Submitted ids that are not
      * currently eligible (already resolved, SMS-channel, or not FAILED) are
@@ -1667,6 +1636,8 @@ class ReportController extends Controller
      */
     public function resolveBulkNotificationFailures(Request $request): RedirectResponse
     {
+        $this->authorizeDeliveryRecords($request);
+
         $data = $request->validate([
             'delivery_ids' => ['required', 'array', 'min:1'],
             'delivery_ids.*' => ['integer'],
@@ -1714,5 +1685,14 @@ class ReportController extends Controller
             'closed' => $closed,
             'percentage' => $released ? round($closed / $released * 100, 2) : 0,
         ];
+    }
+
+    /** Delivery Records and its failure resolutions belong to the SPMU Admin/Head. */
+    private function authorizeDeliveryRecords(Request $request): void
+    {
+        abort_unless(
+            $request->user()?->access_classification === AccessClassification::SpmuHead,
+            403
+        );
     }
 }

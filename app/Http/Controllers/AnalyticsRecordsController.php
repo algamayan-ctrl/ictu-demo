@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Enums\AccessClassification;
 use App\Models\AcademicPeriod;
-use App\Models\User;
 use App\Services\AnalyticsDetailService;
 use App\Services\AnalyticsService;
 use App\Services\ReportingPeriodService;
@@ -49,7 +48,16 @@ class AnalyticsRecordsController extends Controller
             $activeAcademicPeriod
         );
 
-        $division = (string) $request->input('group', 'all');
+        /* Same Borrower Type rule as the Analytics page that linked here. */
+        $borrowerType = (string) $request->input('borrower_type', 'all');
+        if (! array_key_exists($borrowerType, AnalyticsService::borrowerTypes())) {
+            $borrowerType = 'all';
+        }
+        $analytics->forBorrowerType($borrowerType);
+        $details = $details->using($analytics);
+        $externalOnly = $borrowerType === \App\Enums\RegistrationType::External->value;
+
+        $division = $externalOnly ? 'all' : (string) $request->input('group', 'all');
         if (! array_key_exists($division, AnalyticsService::divisions())) {
             $division = 'all';
         }
@@ -57,7 +65,7 @@ class AnalyticsRecordsController extends Controller
         $scheduledScope = $request->input('for') === 'scheduled.summary';
         [$scopeFrom, $scopeTo] = $scheduledScope ? $periods->nextScheduledWindow($from, $to) : [$from, $to];
         $unitOptions = $scheduledScope ? $analytics->scheduledUnitOptions($scopeFrom, $scopeTo) : $analytics->unitOptions($from, $to);
-        $unit = (string) $request->input('unit', 'all');
+        $unit = $externalOnly ? 'all' : (string) $request->input('unit', 'all');
         $selectableUnits = $division === 'all'
             ? $unitOptions->flatten()->unique()->sort()->values()->all()
             : ($unitOptions[$division] ?? []);
@@ -69,19 +77,8 @@ class AnalyticsRecordsController extends Controller
         $divisionFilter = $division === 'all' ? null : $division;
         $unitFilter = $unit === 'all' ? null : $unit;
 
-        $borrower = (int) $request->input('borrower', 0);
+        /* Borrower Type replaced the individual Borrower filter in Analytics. */
         $borrowerFilter = null;
-
-        if ($borrower > 0) {
-            $exists = ($scheduledScope ? $analytics->scheduledRequestScope($scopeFrom, $scopeTo, $divisionFilter, $unitFilter)
-                : $analytics->requestScope($from, $to, $divisionFilter, $unitFilter))
-                ->where('borrowing_requests.borrower_user_id', $borrower)
-                ->exists();
-
-            if ($exists) {
-                $borrowerFilter = $borrower;
-            }
-        }
 
         $detailKey = trim((string) $request->input('detail', ''));
         abort_if($detailKey === '', 404);
@@ -110,9 +107,7 @@ class AnalyticsRecordsController extends Controller
             'to' => $to,
             'periodSelection' => $periodSelection,
             'selectedAcademicPeriod' => $selectedAcademicPeriod,
-            'selectedBorrowerLabel' => $borrowerFilter !== null
-                ? (User::query()->find($borrowerFilter)?->full_name ?? 'Selected borrower')
-                : null,
+            'selectedBorrowerLabel' => null,
             'backToAnalyticsUrl' => route('analytics.index', $backQuery),
         ]);
     }

@@ -23,7 +23,7 @@ class EnsureInstitutionalEmailIsVerified
             $request->session()->regenerateToken();
 
             return redirect()->route('login')->withErrors([
-                'email' => 'Your CSPC email address must be verified before you can access SPMU-ACPMP. Enter the OTP sent to your institutional inbox or contact ICTU to resend a new OTP.',
+                'email' => 'Your CSPC email address must be verified before you can access SPMU-ACPMP. Enter the OTP sent to your institutional inbox or contact the SPMU Admin to resend a new OTP.',
             ]);
         }
 

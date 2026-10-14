@@ -31,7 +31,9 @@ class RevisionControlsTest extends TestCase
         $this->assertClassification(AccessClassification::BorrowerOnly, true, ['BORROWER']);
         $this->assertClassification(AccessClassification::SpmuHead, false, ['SPMU']);
         $this->assertClassification(AccessClassification::SpmuOfficer, false, ['SPMU']);
-        $this->assertClassification(AccessClassification::IctuMaintainer, false, ['ICTU']);
+        $this->assertFalse(AccessClassification::IctuMaintainer->isPortalEnabled());
+        $this->assertSame([], AccessClassification::IctuMaintainer->workspaces());
+        $this->assertNotContains(AccessClassification::IctuMaintainer, AccessClassification::assignableCases());
         $this->assertFalse(AccessClassification::RetiredInactive->isPortalEnabled());
         $this->assertSame([], AccessClassification::RetiredInactive->workspaces());
 

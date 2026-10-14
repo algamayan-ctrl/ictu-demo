@@ -39,8 +39,52 @@ class GoogleRegistrationOnboardingTest extends TestCase
 
     public static function newAccounts(): array
     {
-        return ['employee' => ['applicant@cspc.edu.ph', 'EMPLOYEE'], 'gmail' => ['applicant@gmail.com', 'EXTERNAL'],
-            'yahoo Google account' => ['applicant@yahoo.com', 'EXTERNAL'], 'government Google account' => ['applicant@gov.edu.ph', 'EXTERNAL']];
+        return ['employee' => ['applicant@cspc.edu.ph', 'EMPLOYEE']];
+    }
+
+    /** External Borrowers and CSPC students never register through Google. */
+    public static function refusedAccounts(): array
+    {
+        return ['gmail' => ['applicant@gmail.com'], 'yahoo Google account' => ['applicant@yahoo.com'],
+            'government Google account' => ['applicant@gov.edu.ph'], 'CSPC student address' => ['applicant@my.cspc.edu.ph']];
+    }
+
+    #[DataProvider('refusedAccounts')]
+    public function test_external_and_student_google_identities_cannot_register_through_google(string $email): void
+    {
+        $count = User::count();
+        $this->fakeCallback($email);
+        $this->get(route('auth.google.callback'))->assertRedirect(route('home'))->assertSessionHasErrors('google');
+        $this->assertNull(session('google_registration'));
+        $this->assertSame($count, User::count());
+        $this->assertDatabaseCount('oauth_identities', 0);
+        $this->assertGuest();
+
+        /* A hand-posted Google-sourced External application is refused at the backend too. */
+        $this->post(route('register.store'), $this->payload($email, 'EXTERNAL'))->assertSessionHasErrors();
+        $this->assertDatabaseCount('borrower_registrations', 0);
+    }
+
+    public function test_google_employee_registration_follows_the_configured_institutional_domains(): void
+    {
+        config(['services.institutional_email.allowed_domains' => 'cspc.edu.ph,spmu.test']);
+        $this->fakeCallback('applicant@spmu.test');
+
+        $this->get(route('auth.google.callback'))->assertRedirect(route('register', ['source' => 'google']));
+
+        $this->assertSame('EMPLOYEE', session('google_registration.registration_type'));
+        $this->assertGuest();
+    }
+
+    public function test_a_student_domain_never_becomes_an_employee_domain_even_if_listed(): void
+    {
+        config(['services.institutional_email.allowed_domains' => 'cspc.edu.ph,my.cspc.edu.ph']);
+        $this->fakeCallback('applicant@my.cspc.edu.ph');
+
+        $this->get(route('auth.google.callback'))->assertRedirect(route('home'))->assertSessionHasErrors('google');
+
+        $this->assertNull(session('google_registration'));
+        $this->assertGuest();
     }
 
     private function fakeCallback(string $email, bool $verified = true): void
@@ -108,20 +152,20 @@ class GoogleRegistrationOnboardingTest extends TestCase
 
     public function test_google_email_and_type_cannot_be_changed_by_posted_fields(): void
     {
-        $this->fakeCallback('applicant@gmail.com');
+        $this->fakeCallback('applicant@cspc.edu.ph');
         $this->get(route('auth.google.callback'));
-        $this->post(route('register.store'), $this->payload('fabricated@cspc.edu.ph', 'EMPLOYEE'))->assertSessionHasErrors(['email', 'registration_type']);
+        $this->post(route('register.store'), $this->payload('fabricated@gmail.com', 'EXTERNAL'))->assertSessionHasErrors(['email', 'registration_type']);
         $this->assertDatabaseCount('borrower_registrations', 0);
         $this->assertDatabaseCount('oauth_identities', 0);
     }
 
     public function test_missing_or_expired_google_context_cannot_create_a_verified_user(): void
     {
-        $this->post(route('register.store'), $this->payload())->assertSessionHasErrors('registration_source');
-        $this->fakeCallback('applicant@gmail.com');
+        $this->post(route('register.store'), $this->payload('applicant@cspc.edu.ph', 'EMPLOYEE'))->assertSessionHasErrors('registration_source');
+        $this->fakeCallback('applicant@cspc.edu.ph');
         $this->get(route('auth.google.callback'));
         $this->travel(11)->minutes();
-        $this->post(route('register.store'), $this->payload())->assertSessionHasErrors('registration_source');
+        $this->post(route('register.store'), $this->payload('applicant@cspc.edu.ph', 'EMPLOYEE'))->assertSessionHasErrors('registration_source');
         $this->assertDatabaseCount('borrower_registrations', 0);
     }
 
@@ -139,11 +183,11 @@ class GoogleRegistrationOnboardingTest extends TestCase
 
     public function test_identity_collision_rolls_back_application_and_private_bytes(): void
     {
-        $this->fakeCallback('applicant@gmail.com');
+        $this->fakeCallback('applicant@cspc.edu.ph');
         $this->get(route('auth.google.callback'));
         OauthIdentity::create(['user_id' => User::firstOrFail()->id, 'provider' => 'google', 'subject' => 'new-provider-subject']);
         $users = User::count();
-        $this->post(route('register.store'), $this->payload())->assertSessionHasErrors('email');
+        $this->post(route('register.store'), $this->payload('applicant@cspc.edu.ph', 'EMPLOYEE'))->assertSessionHasErrors('email');
         $this->assertSame($users, User::count());
         $this->assertDatabaseCount('borrower_registrations', 0);
         $this->assertDatabaseCount('stored_files', 0);
@@ -182,7 +226,7 @@ class GoogleRegistrationOnboardingTest extends TestCase
 
     public function test_google_form_cannot_switch_source_to_bypass_its_locked_identity(): void
     {
-        $this->fakeCallback('applicant@gmail.com');
+        $this->fakeCallback('applicant@cspc.edu.ph');
         $this->get(route('auth.google.callback'));
         $payload = $this->payload('invented@cspc.edu.ph', 'EMPLOYEE');
         $payload['registration_source'] = 'manual';
@@ -197,11 +241,11 @@ class GoogleRegistrationOnboardingTest extends TestCase
 
     public function test_google_audit_failure_rolls_back_verified_identity_application_and_new_private_upload(): void
     {
-        $this->fakeCallback('applicant@gmail.com');
+        $this->fakeCallback('applicant@cspc.edu.ph');
         $this->get(route('auth.google.callback'));
         $users = User::count();
         $this->mock(AuditService::class, fn ($mock) => $mock->shouldReceive('record')->andThrow(new \RuntimeException('Synthetic registration audit failure')));
-        $this->post(route('register.store'), $this->payload())->assertStatus(500);
+        $this->post(route('register.store'), $this->payload('applicant@cspc.edu.ph', 'EMPLOYEE'))->assertStatus(500);
         $this->assertSame($users, User::count());
         $this->assertDatabaseCount('borrower_registrations', 0);
         $this->assertDatabaseCount('oauth_identities', 0);
@@ -211,16 +255,15 @@ class GoogleRegistrationOnboardingTest extends TestCase
 
     public function test_review_history_remains_visible_when_an_approved_mailbox_is_later_unverified(): void
     {
-        $this->fakeCallback('history@gmail.com');
+        $this->fakeCallback('history@cspc.edu.ph');
         $this->get(route('auth.google.callback'));
-        $this->post(route('register.store'), $this->payload('history@gmail.com'))->assertRedirect(route('login'));
+        $this->post(route('register.store'), $this->payload('history@cspc.edu.ph', 'EMPLOYEE'))->assertRedirect(route('login'));
         $record = BorrowerRegistration::firstOrFail();
         $this->actingAs($this->sao())->post(route('registrations.decide', $record), ['decision' => 'APPROVED'])->assertSessionHasNoErrors();
         $user = $record->user;
         $user->forceFill(['email_verified_at' => null])->save();
         $this->actingAs($this->sao())->get(route('registrations.index'))->assertOk()->assertSee($user->email);
         $this->get(route('registrations.show', $record))->assertOk();
-        $this->get(route('files.show', $record->validIdFile))->assertOk();
         $this->post(route('registrations.decide', $record), ['decision' => 'REJECTED', 'remarks' => 'Attempted repeat review'])->assertForbidden();
         $this->assertSame('APPROVED', $record->fresh()->status->value);
     }

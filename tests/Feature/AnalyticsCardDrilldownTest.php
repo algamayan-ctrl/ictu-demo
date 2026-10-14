@@ -27,7 +27,7 @@ class AnalyticsCardDrilldownTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Every card key wired into the five Analytics tabs.
+     * Every card key wired into the four Analytics tabs.
      *
      * @return list<array{0: string, 1: string}>
      */
@@ -52,7 +52,6 @@ class AnalyticsCardDrilldownTest extends TestCase
                 'returns.trend', 'returns.outcome', 'returns.lifecycle', 'returns.followup',
                 'returns.condition', 'returns.summary', 'returns.issues',
             ],
-            'scheduled' => ['scheduled.summary'],
         ];
 
         $cases = [];
@@ -236,7 +235,7 @@ class AnalyticsCardDrilldownTest extends TestCase
             ->assertSee('Out past the due date right now', false);
     }
 
-    public function test_scheduled_demand_is_not_described_as_a_forecast(): void
+    public function test_retired_scheduled_demand_detail_is_unavailable(): void
     {
         $this->actingAs($this->spmuHead())
             ->get(route('analytics.index', [
@@ -246,7 +245,9 @@ class AnalyticsCardDrilldownTest extends TestCase
                 'for' => 'scheduled.summary',
             ]))
             ->assertOk()
-            ->assertSee('requests already filed', false);
+            ->assertViewHas('section', 'overview')
+            ->assertViewHas('detail', fn ($detail) => ($detail['title'] ?? null) === 'Detail unavailable')
+            ->assertDontSee('requests already filed', false);
     }
 
     /**

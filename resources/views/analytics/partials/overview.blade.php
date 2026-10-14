@@ -338,23 +338,6 @@
  </div>
  </dl>
  </a>
-<a class="analytics-summary-card" href="{{ route('analytics.index', $carry + ['section' => 'scheduled']) }}">
- <span class="analytics-summary-icon" aria-hidden="true"><x-icon name="calendar-clock" size="16" /></span>
- <span class="analytics-summary-title">Scheduled Demand</span>
- <span class="analytics-summary-arrow" aria-hidden="true"><x-icon name="chevron-right" size="14" /></span>
-
- <dl class="analytics-summary-metrics">
- <div>
- <dt>{{ $scheduledFrom->format('d M') }} – {{ $scheduledTo->format('d M Y') }}</dt>
- <dd>{{ number_format($scheduledSummary['requests']) }}</dd>
- </div>
- <div>
- <dt>Pending / approved</dt>
- <dd>{{ $scheduledSummary['pending'] }} / {{ $scheduledSummary['approved'] }}</dd>
- </div>
- </dl>
- </a>
-
 
  </div>
 </section>

@@ -110,7 +110,7 @@
                         value=""
                         required
                     >
-                    <small class="field-error">{{ $requestingUnitNotice ?? 'No borrowing Office / College / Unit is authorized for this account. Contact ICTU.' }}</small>
+                    <small class="field-error">{{ $requestingUnitNotice ?? 'No borrowing Office / College / Unit is authorized for this account. Contact the SPMU Admin.' }}</small>
                 @endif
 
                 <input id="office_unit" type="hidden" name="office_unit" value="{{ $effectiveOfficeUnit }}">

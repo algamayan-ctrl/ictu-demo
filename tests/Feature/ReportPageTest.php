@@ -217,76 +217,7 @@ class ReportPageTest extends TestCase
             ->assertOk()->assertViewHas('auditMode', 'operational')
             ->assertSee('Operational Audit Trail')->assertDontSee('ICTU technical audit');
     }
-
-    public function test_ictu_maintainer_can_open_the_audit_trail(): void
-    {
-        $ictu = User::factory()->create([
-            'access_classification' => AccessClassification::IctuMaintainer,
-            'full_name' => 'ICTU Maintainer',
-        ]);
-
-        $this->auditEvent('BORROWING_REQUEST_SUBMITTED', $this->head, 'Operational fixture: request submitted.');
-        $this->auditEvent('INVENTORY_ADJUSTED', $this->head, 'Operational fixture: stock adjusted.');
-        $this->auditEvent('LOGIN_FAILED', $this->head, 'Technical fixture: failed sign-in.');
-        $this->auditEvent('SYSTEM_SETTING_UPDATED', $ictu, 'Technical fixture: setting changed.');
-        $this->auditEvent('USER_ACCOUNT_DEACTIVATED', $ictu, 'Technical fixture: account deactivated.');
-        $this->auditEvent('UNCLASSIFIED_MAINTENANCE', $ictu, 'Technical fixture: unclassified ICTU action.');
-
-        /* Reports itself still carries no audit controls; the trail is its own sidebar destination. */
-        $reports = $this->actingAs($this->head)
-            ->withSession(['active_workspace' => 'SPMU'])
-            ->get(route('reports.index'));
-
-        $reports->assertDontSee('View related audit history', false);
-        $reports->assertSee('Operational Audit Trail', false);
-        $reports->assertDontSee('Technical Audit Trail', false);
-        $this->assertSame(1, substr_count($reports->getContent(), 'href="'.route('reports.audit').'"'));
-
-        /* A hand-typed category cannot widen the list: it is filtered on the server. */
-        foreach ([[], ['category' => 'AUTH_VERIFICATION'], ['category' => 'SETTINGS', 'mode' => 'technical']] as $query) {
-            $trail = $this->actingAs($this->head)
-                ->withSession(['active_workspace' => 'SPMU'])
-                ->get(route('reports.audit', $query))
-                ->assertOk();
-
-            $this->assertSame('operational', $trail->viewData('auditMode'));
-            $this->assertEqualsCanonicalizing(
-                ['BORROWING_REQUEST_SUBMITTED', 'INVENTORY_ADJUSTED'],
-                $trail->viewData('events')->pluck('action_code')->all()
-            );
-
-            $trail->assertSee('Operational Audit Trail', false)
-                ->assertSee('Operational fixture: request submitted.', false)
-                ->assertSee('Operational fixture: stock adjusted.', false)
-                ->assertDontSee('Technical Audit Trail', false)
-                ->assertDontSee('Technical fixture', false)
-                ->assertDontSee('Authentication / Verification', false);
-
-            /* These unsupported audit events have no authorized recovery action. */
-            $auditArea = substr($trail->getContent(), strpos($trail->getContent(), 'class="content-area ictu-audit-area"'));
-            $auditArea = substr($auditArea, 0, strpos($auditArea, '</main>') ?: null);
-            $this->assertStringContainsString('Operational fixture: request submitted.', $auditArea);
-            foreach ($trail->viewData('events') as $event) {
-                $this->assertFalse((bool) ($event->getAttributes()['recovery']['allowed'] ?? false));
-            }
-            $this->assertDoesNotMatchRegularExpression('/name="_method"/i', $auditArea);
-        }
-
-        foreach (['post', 'put', 'patch', 'delete'] as $method) {
-            $this->actingAs($this->head)
-                ->withSession(['active_workspace' => 'SPMU'])
-                ->{$method}(route('reports.audit'))
-                ->assertStatus(405);
-        }
-
-        $this->assertSame(6, AuditEvent::query()->whereIn('reason', [
-            'Operational fixture: request submitted.', 'Operational fixture: stock adjusted.',
-            'Technical fixture: failed sign-in.', 'Technical fixture: setting changed.',
-            'Technical fixture: account deactivated.', 'Technical fixture: unclassified ICTU action.',
-        ])->count());
-    }
-
-    public function test_audit_trail_is_closed_to_everyone_but_the_spmu_head_and_ictu(): void
+    public function test_audit_trail_is_closed_to_everyone_but_the_spmu_head(): void
     {
         $this->get(route('reports.audit'))->assertRedirect();
 
@@ -299,103 +230,6 @@ class ReportPageTest extends TestCase
                 ->assertForbidden();
         }
     }
-
-    public function test_delivery_records_is_open_to_ictu_only_by_navigation_and_by_url(): void
-    {
-        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-        $officer = User::factory()->create(['access_classification' => AccessClassification::SpmuOfficer]);
-
-        foreach ([[], ['status' => 'failed'], ['legacy' => 1]] as $query) {
-            $this->actingAs($this->head)
-                ->withSession(['active_workspace' => 'SPMU'])
-                ->get(route('reports.notifications', $query))
-                ->assertForbidden();
-
-            $this->actingAs($officer)
-                ->withSession(['active_workspace' => 'SPMU'])
-                ->get(route('reports.notifications', $query))
-                ->assertForbidden();
-
-            $this->actingAs($ictu)
-                ->withSession(['active_workspace' => 'ICTU'])
-                ->get(route('reports.notifications', $query))
-                ->assertOk();
-        }
-
-        /* The Head's pages never linked to it, and still do not. */
-        foreach (['reports.index', 'dashboard', 'administration.index'] as $route) {
-            $this->actingAs($this->head)
-                ->withSession(['active_workspace' => 'SPMU'])
-                ->get(route($route))
-                ->assertOk()
-                ->assertDontSee(route('reports.notifications'), false);
-        }
-    }
-
-    public function test_ictu_maintainer_opens_only_the_technical_audit_trail(): void
-    {
-        $ictu = User::factory()->create([
-            'access_classification' => AccessClassification::IctuMaintainer,
-            'full_name' => 'ICTU Maintainer',
-        ]);
-
-        $this->auditEvent('BORROWING_REQUEST_SUBMITTED', $this->head, 'Operational fixture: request submitted.');
-        $this->auditEvent('LOGIN_FAILED', $this->head, 'Technical fixture: failed sign-in.');
-        $this->auditEvent('SYSTEM_SETTING_UPDATED', $ictu, 'Technical fixture: setting changed.');
-
-        $trail = $this->actingAs($ictu)
-            ->withSession(['active_workspace' => 'ICTU'])
-            ->get(route('reports.audit'))
-            ->assertOk()
-            ->assertSee('Audit Trail', false)
-            ->assertSee('Technical Audit Trail', false)
-            ->assertSee('ICTU system administration', false)
-            /* Under the 500-row display cap, no "latest N of total" caveat is shown. */
-            ->assertDontSee('Showing latest', false);
-    }
-
-    public function test_audit_trail_past_the_display_cap_states_it_is_showing_only_the_latest_records(): void
-    {
-        $ictu = User::factory()->create([
-            'access_classification' => AccessClassification::IctuMaintainer,
-            'full_name' => 'ICTU Maintainer',
-        ]);
-
-        $now = now();
-
-        $rows = [];
-
-        foreach (range(1, 510) as $index) {
-            $rows[] = [
-                'actor_user_id' => $ictu->id,
-                'action_code' => 'audit_cap_fixture.recorded',
-                'record_type' => User::class,
-                'record_id' => $ictu->id,
-                'occurred_at' => $now->copy()->subMinutes($index),
-                'reason' => 'Audit trail 500-row display cap fixture.',
-                'correlation_id' => (string) \Illuminate\Support\Str::uuid(),
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
-        }
-
-        \Illuminate\Support\Facades\DB::table('audit_events')->insert($rows);
-
-        /*
-         * The display cap only ever hides rows, it never deletes or
-         * rewrites them: every one of the 510 rows inserted above is still
-         * in audit_events after the page renders.
-         */
-        $trail = $this->actingAs($ictu)
-            ->withSession(['active_workspace' => 'ICTU'])
-            ->get(route('reports.audit'))
-            ->assertOk()
-            ->assertViewHas('events', fn ($events) => $events->total() === 510 && $events->count() > 0 && $events->count() < 510 && $events->hasMorePages());
-        $trail->assertSee('Showing latest '.$trail->viewData('events')->count().' of 510 total records.', false);
-
-        $this->assertSame(510, \App\Models\AuditEvent::query()->count());
-    }
-
     public function test_spmu_administration_page_links_to_the_operational_audit_trail(): void
     {
         $this->auditEvent('SYSTEM_SETTING_UPDATED', $this->head, 'Technical fixture: setting changed.');
@@ -854,5 +688,159 @@ class ReportPageTest extends TestCase
         ]);
 
         return $request;
+    }
+
+    public function test_reports_page_opens_on_the_system_preview_without_a_placeholder_or_paper_layout(): void
+    {
+        $response = $this->actingAs($this->head)
+            ->withSession(['active_workspace' => 'SPMU'])
+            ->get(route('reports.index', ['report' => 'borrowing']));
+
+        $response->assertOk();
+        $this->assertTrue($response->viewData('showPreview'));
+        $this->assertNotNull($response->viewData('dataset'));
+        $response->assertSee('data-report-live="results"', false);
+        $response->assertDontSee('Choose the report options above', false);
+        $response->assertDontSee('report-preview-empty', false);
+        $response->assertDontSee('CAMARINES SUR POLYTECHNIC COLLEGES', false);
+        $response->assertDontSee('Republic of the Philippines', false);
+        $response->assertDontSee('Export / Print', false);
+    }
+
+    public function test_spmu_administration_page_shows_no_audit_evidence_only_the_operational_trail_link(): void
+    {
+        $this->auditEvent('SYSTEM_SETTING_UPDATED', $this->head, 'Technical fixture: setting changed.');
+
+        $page = $this->actingAs($this->head)
+            ->withSession(['active_workspace' => 'SPMU'])
+            ->get(route('administration.index'))
+            ->assertOk()
+            ->assertSee('System administration', false)
+            ->assertDontSee('Open Audit Trail', false)
+            ->assertDontSee('Full audit', false)
+            ->assertDontSee('Recent attributable actions', false)
+            ->assertDontSee('SYSTEM_SETTING_UPDATED', false)
+            ->assertDontSee('Technical Audit Trail', false);
+
+        $this->assertFalse($page->viewData('mayViewAuditTrail'));
+        $this->assertCount(0, $page->viewData('recentAudits'));
+
+        /* The one audit link is the Head's own sidebar entry for the operational trail. */
+        $this->assertSame(1, substr_count($page->getContent(), 'href="'.route('reports.audit').'"'));
+        $page->assertSee('Operational Audit Trail', false);
+    }
+
+    public function test_head_audit_trail_shows_operational_account_and_setting_events_only(): void
+    {
+        $legacyIctu = User::factory()->create([
+            'access_classification' => AccessClassification::IctuMaintainer,
+            'full_name' => 'Legacy ICTU Maintainer',
+        ]);
+
+        $this->auditEvent('BORROWING_REQUEST_SUBMITTED', $this->head, 'Operational fixture: request submitted.');
+        $this->auditEvent('INVENTORY_ADJUSTED', $this->head, 'Operational fixture: stock adjusted.');
+        $this->auditEvent('LOGIN_FAILED', $this->head, 'Technical fixture: failed sign-in.');
+        $this->auditEvent('SYSTEM_SETTING_UPDATED', $this->head, 'Settings fixture: setting changed.');
+        $this->auditEvent('USER_ACCOUNT_DEACTIVATED', $this->head, 'Account fixture: account deactivated.');
+        $this->auditEvent('UNCLASSIFIED_MAINTENANCE', $legacyIctu, 'Technical fixture: unclassified ICTU action.');
+
+        /* A hand-typed category outside the Head's audience cannot widen the list. */
+        foreach ([[], ['category' => 'AUTH_VERIFICATION'], ['category' => 'OTHER_TECHNICAL', 'mode' => 'technical']] as $query) {
+            $trail = $this->actingAs($this->head)
+                ->withSession(['active_workspace' => 'SPMU'])
+                ->get(route('reports.audit', $query))
+                ->assertOk();
+
+            $this->assertSame('operational', $trail->viewData('auditMode'));
+            $this->assertEqualsCanonicalizing(
+                ['BORROWING_REQUEST_SUBMITTED', 'INVENTORY_ADJUSTED', 'SYSTEM_SETTING_UPDATED', 'USER_ACCOUNT_DEACTIVATED'],
+                $trail->viewData('events')->pluck('action_code')->all(),
+                json_encode($query)
+            );
+
+            $trail->assertSee('Operational Audit Trail', false)
+                ->assertSee('Account fixture: account deactivated.', false)
+                ->assertDontSee('Technical Audit Trail', false)
+                ->assertDontSee('Technical fixture', false)
+                ->assertDontSee('Authentication / Verification', false);
+
+            /* Account and setting events are view-only. */
+            foreach ($trail->viewData('events') as $event) {
+                $this->assertFalse((bool) ($event->getAttributes()['recovery']['allowed'] ?? false));
+            }
+        }
+
+        $this->actingAs($legacyIctu)
+            ->withSession(['active_workspace' => 'SPMU'])
+            ->get(route('reports.audit'))
+            ->assertForbidden();
+    }
+
+    public function test_delivery_records_has_no_menu_entry_and_is_open_to_the_spmu_head_only_by_url(): void
+    {
+        $legacyIctu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $officer = User::factory()->create(['access_classification' => AccessClassification::SpmuOfficer]);
+
+        foreach ([[], ['status' => 'failed'], ['legacy' => 1]] as $query) {
+            $this->actingAs($this->head)
+                ->withSession(['active_workspace' => 'SPMU'])
+                ->get(route('reports.notifications', $query))
+                ->assertOk();
+
+            $this->actingAs($officer)
+                ->withSession(['active_workspace' => 'SPMU'])
+                ->get(route('reports.notifications', $query))
+                ->assertForbidden();
+
+            $this->actingAs($legacyIctu)
+                ->withSession(['active_workspace' => 'SPMU'])
+                ->get(route('reports.notifications', $query))
+                ->assertForbidden();
+        }
+
+        /* ICTU technical turnover: no menu links to it, for the Head or the Action Officer. */
+        $this->actingAs($this->head)
+            ->withSession(['active_workspace' => 'SPMU'])
+            ->get(route('reports.index'))
+            ->assertOk()
+            ->assertDontSee(route('reports.notifications'), false);
+
+        $this->actingAs($officer)
+            ->withSession(['active_workspace' => 'SPMU'])
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee(route('reports.notifications'), false);
+    }
+
+    public function test_audit_trail_past_the_display_cap_states_it_is_showing_only_the_latest_records(): void
+    {
+        $now = now();
+        $rows = [];
+
+        foreach (range(1, 510) as $index) {
+            $rows[] = [
+                'actor_user_id' => $this->head->id,
+                'action_code' => 'audit_cap_fixture.recorded',
+                'record_type' => User::class,
+                'record_id' => $this->head->id,
+                'occurred_at' => $now->copy()->subMinutes($index),
+                'reason' => 'Audit trail 500-row display cap fixture.',
+                'correlation_id' => (string) \Illuminate\Support\Str::uuid(),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        \Illuminate\Support\Facades\DB::table('audit_events')->insert($rows);
+
+        /* The display cap only ever hides rows; every inserted row is still stored. */
+        $trail = $this->actingAs($this->head)
+            ->withSession(['active_workspace' => 'SPMU'])
+            ->get(route('reports.audit'))
+            ->assertOk()
+            ->assertViewHas('events', fn ($events) => $events->total() === 510 && $events->count() > 0 && $events->count() < 510 && $events->hasMorePages());
+        $trail->assertSee('Showing latest '.$trail->viewData('events')->count().' of 510 total records.', false);
+
+        $this->assertSame(510, \App\Models\AuditEvent::query()->count());
     }
 }

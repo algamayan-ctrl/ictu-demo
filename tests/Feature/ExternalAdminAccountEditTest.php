@@ -58,7 +58,7 @@ class ExternalAdminAccountEditTest extends TestCase
 
     public static function administrators(): array
     {
-        return [['Admin'], ['ICTU']];
+        return [['Admin']];
     }
 
     #[DataProvider('reviewStates')]
@@ -325,7 +325,7 @@ class ExternalAdminAccountEditTest extends TestCase
         $this->mock(EmailVerificationService::class)->shouldReceive('send')->once()->andReturnFalse();
         $this->as($this->headUser())->put(route('administration.users.update', $target), [
             ...$this->accountPayload($target), 'email' => 'delivery.failure@agency.test',
-        ])->assertSessionHasNoErrors()->assertSessionHas('status', 'Account updated and its changed email is unverified. OTP delivery failed; contact ICTU for mail assistance or request a new OTP on the account verification page.');
+        ])->assertSessionHasNoErrors()->assertSessionHas('status', 'Account updated and its changed email is unverified. OTP delivery failed; contact the SPMU Admin for mail assistance or request a new OTP on the account verification page.');
         $this->assertSame('delivery.failure@agency.test', $target->fresh()->email);
         $this->assertNull($target->fresh()->email_verified_at);
         $this->assertExternalHistoryPreserved($before);
@@ -441,7 +441,7 @@ class ExternalAdminAccountEditTest extends TestCase
 
     private function administrator(string $actor): User
     {
-        return $actor === 'Admin' ? $this->headUser() : User::where('email', 'ictu@spmu.test')->sole();
+        return $this->headUser();
     }
 
     private function accountPayload(User $user): array

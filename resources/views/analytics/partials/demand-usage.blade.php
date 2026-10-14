@@ -68,6 +68,30 @@
  ]);
  }
 
+ if ($groupCounts->has('EXTERNAL')) {
+ $externalGroup = $groupCounts['EXTERNAL'];
+ $divisionLegend->push([
+ 'code' => null,
+ 'label' => $externalGroup['label'],
+ 'count' => (int) $externalGroup['count'],
+ 'percentage' => (int) $externalGroup['percentage'],
+ 'tone' => 'external',
+ ]);
+ }
+
+ /*
+ | Borrower Type = External Borrower: CSPC divisions do not apply, so the
+ | same card names the External demand and lists only that row. The data,
+ | total and period scope are the ones computed above.
+ */
+ $externalDemandOnly = ($selectedBorrowerType ?? 'all') === 'EXTERNAL';
+
+ if ($externalDemandOnly) {
+ $divisionLegend = $divisionLegend->where('tone', 'external')->values();
+ }
+
+ $divisionCardTitle = $externalDemandOnly ? 'External Borrower Demand' : 'Demand by Division';
+
  /*
  | Donut geometry. The radius is chosen so the circumference is exactly 100
  | and a dash length is a percentage directly. Arc lengths use the unrounded
@@ -311,22 +335,22 @@
  <header class="analytics-card-head">
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="users" size="15" /></span>
  <div>
- <h2>Demand by Division</h2>
- <p>Share of borrowing requests filed by each division.</p>
+ <h2>{{ $divisionCardTitle }}</h2>
+ <p>{{ $externalDemandOnly ? 'Borrowing requests filed by External Borrowers.' : 'Share of borrowing requests filed by each division.' }}</p>
  </div>
- <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.division']) }}" aria-label="View Demand by Division details"><x-icon name="chevron-right" size="15" /></a>
+ <a class="analytics-card-open" href="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.division']) }}" aria-label="View {{ $divisionCardTitle }} details"><x-icon name="chevron-right" size="15" /></a>
  </header>
 
  @if($donutTotal === 0)
  <div class="analytics-card-body">
  <p class="analytics-blank is-visualization-empty">
  <span class="analytics-blank-mark" aria-hidden="true"><x-icon name="users" size="19" /></span>
- No borrowing activity by division during this period.
+ {{ $externalDemandOnly ? 'No External Borrower requests during this period.' : 'No borrowing activity by division during this period.' }}
  </p>
  </div>
  @else
  <div class="analytics-card-body analytics-donut-body">
- <div class="analytics-donut" role="img" aria-label="Borrowing requests by division: {{ $donutTotal }} in total">
+ <div class="analytics-donut" role="img" aria-label="{{ $externalDemandOnly ? 'External Borrower requests' : 'Borrowing requests by division' }}: {{ $donutTotal }} in total">
  <svg viewBox="0 0 42 42" aria-hidden="true" focusable="false">
  <circle class="analytics-donut-rail" cx="21" cy="21" r="15.9155" />
  @foreach($donutSegments as $segment)

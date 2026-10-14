@@ -54,8 +54,13 @@ class BorrowerRegistrationRequest extends FormRequest
                 if (User::query()->whereRaw('LOWER(email) = ?', [$value])->exists()) {
                     $fail('This email is already registered. Sign in or contact SAO.');
                 }
-                if ($employee && ! app(EmailVerificationService::class)->domainAllowed($value)) {
+                $emails = app(EmailVerificationService::class);
+                if ($employee && ! $emails->domainAllowed($value)) {
                     $fail('Use an approved CSPC institutional email for employee registration.');
+                }
+                // A student address may not bypass employee eligibility by registering as External.
+                if (! $employee && $emails->isStudentEmail($value)) {
+                    $fail('CSPC student email addresses cannot register as External Borrowers.');
                 }
             }],
             'mobile_no' => ['required', 'string', 'max:30', 'regex:/^\+?[0-9][0-9 ()-]{6,29}$/'],
@@ -86,6 +91,11 @@ class BorrowerRegistrationRequest extends FormRequest
             if ($this->input('registration_source', 'manual') !== 'google'
                 && app(GoogleRegistrationContext::class)->current($this)) {
                 $validator->errors()->add('registration_source', 'Continue with the verified Google registration, or open Sign up for manual registration.');
+            }
+            // External Borrowers register with email and password only, never through Google.
+            if ($this->input('registration_source') === 'google'
+                && $this->input('registration_type') !== RegistrationType::Employee->value) {
+                $validator->errors()->add('registration_type', 'External Borrowers register with email and password. Continue with Google is for CSPC Employee accounts only.');
             }
             if ($this->input('registration_source') === 'google'
                 && ($context = app(GoogleRegistrationContext::class)->current($this))) {

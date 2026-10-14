@@ -2,6 +2,23 @@
 
 Evidence boundary: this runbook describes the supplied implementation and proposed technical operating controls. The hosting DOCX, nine-deliverable ICTU letter/screenshot, and applicable TD RSC PDF were unavailable in this local project mirror. It is not proof that ICTU approved the infrastructure or deployment. The reported TD RSC project/title “Bolivia” mismatch must be checked against the actual file. Configured email-domain lists are current code settings; government-domain/Google eligibility still needs its separate decision.
 
+## Technical turnover and responsibilities
+
+ICTU is the Technical System Custodian. It works on the server, database and source code, not through an application account: the ICTU Maintainer classification is retired, and its accounts are refused at sign-in.
+
+| Party | Responsible for |
+|---|---|
+| ICTU (Technical System Custodian) | Hosting and server maintenance, Cloudflare and HTTPS, deployment and updates, database administration, backups and restore rehearsal ([runbook](BACKUP-RESTORE-RUNBOOK.md)), source code maintenance, the protected `.env.docker` register, mail transport and Google OAuth setup, scheduler health, and technical troubleshooting. |
+| SPMU Admin / Head | Operational configuration (the **Configuration** menu), user accounts and classifications (**User Accounts**), reports and analytics, institutional borrowing policies, and the final borrowing decision. |
+| SPMU Action Officer | Borrower registration verification, request and document verification, and operational processing: release, return, laundry, gate passes and accountability. |
+
+Two technical screens remain in the code for ICTU maintenance but have no menu entry:
+
+- **System Configuration** (`/administration/settings?scope=system`): Google OAuth and email service status (configured or not; no secret values), the upload limit `max_upload_mb`, and the recorded `backup_schedule`.
+- **Delivery Records** (`/reports/notifications`): every system, email and OTP delivery attempt and its provider response, stored in `notification_deliveries`.
+
+Their routes, controllers, tables, delivery logging and audit history are unchanged, and notifications and OTPs are logged whether or not anyone opens these screens. A direct URL is refused (403) for every account except the SPMU Admin / Head.
+
 ## Production architecture
 
 The supplied stack contains:
@@ -78,21 +95,21 @@ Do not run `php artisan db:seed` against a database that is in use.
 | Situation | Setting | What to run |
 |---|---|---|
 | First-time local setup (`.env.docker` created by `tools/prepare-docker-local.ps1`) | `true` | Nothing by hand. The first `docker compose up -d --build` migrates and initializes the database, including the demo accounts when `SEED_DEMO_USERS=true`. |
-| First start of a production Docker deployment | `true` | Nothing by hand for migrations and reference data; then create the first ICTU account as described below. |
+| First start of a production Docker deployment | `true` | Nothing by hand for migrations and reference data; then create the first SPMU Admin account as described below. |
 | Any later start or update, local or production | `false` | `docker compose exec app php artisan migrate --force` when an update brings migrations. Nothing else. |
 | Laravel Cloud staging | Not used | Follow `LARAVEL-CLOUD-FIRST-DEPLOY.md`; the Docker entrypoint does not run there. |
 
 Leaving `RUN_MIGRATIONS=true` after the first start no longer reseeds anything, but it does apply pending migrations automatically on every restart. Setting it to `false` keeps schema changes a deliberate step taken during a planned update.
 
-7. Create the first real ICTU account:
+7. Create the first real SPMU Admin / Head account:
 
 ```powershell
-docker compose exec app php artisan spmu:user ictu.admin@cspc.edu.ph --name="ICTU Administrator" --employee-no="REAL-EMPLOYEE-NO" --unit=ICTU --role=ICTU
+docker compose exec app php artisan spmu:user spmu.admin@cspc.edu.ph --name="SPMU Administrator" --employee-no="REAL-EMPLOYEE-NO" --unit=SPMU --role=SPMU --classification=SPMU_HEAD
 ```
 
 The command securely prompts for a 12+ character password with uppercase, lowercase, number, and symbol.
 
-8. Sign in and create only the approved Borrower, SPMU Admin / Head, SPMU Action Officer, and ICTU accounts. GSU/VPAF do not receive application accounts. Document/signature processing must follow the confirmed E-sign workflow; remaining physical-only instructions require reconciliation before workflow acceptance.
+8. Sign in and create only the approved Borrower, SPMU Admin / Head, and SPMU Action Officer accounts. ICTU Maintainer is retired and cannot be assigned. GSU/VPAF do not receive application accounts. Document/signature processing must follow the confirmed E-sign workflow; remaining physical-only instructions require reconciliation before workflow acceptance.
    Admin / Head may now use **User Accounts** to register and edit Borrower, Action Officer (SAO), and Admin / Head accounts. Admin cannot assign ICTU access or manage ICTU targets. ICTU retains technical maintenance permissions. Provisioned-account creation uses the existing verification OTP. Public borrower signup at `/register` additionally creates a Pending registration for SAO review at **Borrower Registrations**; OTP or Google identity never replaces this approval. Existing provisioned accounts without a self-registration row retain their established access. External-account editing/request affiliation compatibility is still a separate increment.
 9. Reconcile opening inventory and all values in the Configuration Register before production acceptance.
 
@@ -100,7 +117,7 @@ The command securely prompts for a 12+ character password with uppercase, lowerc
 
 Google OAuth is optional. When enabled, use only the environment variables above; never hardcode a client secret in PHP or configuration files. The Google Cloud Console redirect must exactly match `GOOGLE_REDIRECT_URI`, and production CSPC accounts must be limited with `GOOGLE_ALLOWED_DOMAINS=cspc.edu.ph`.
 
-Laravel uses the configured SMTP transport for email. Delivery attempts and responses appear in the notification report.
+Laravel uses the configured SMTP transport for email. Delivery attempts and provider responses are recorded in `notification_deliveries` (the Delivery Records screen; see "Technical turnover and responsibilities").
 
 Verification links are host-independent and are prefixed with `EMAIL_VERIFICATION_BASE_URL`. This means ICTU may register an account from one computer and the recipient may verify from another device. For access from any network, the base URL must be the institution-approved public HTTPS SPMU-ACPMP address. For a same-LAN demo on Windows, `tools\configure-verification-url.cmd` can detect the server laptop's LAN address; it does not require changing PowerShell's permanent execution policy.
 

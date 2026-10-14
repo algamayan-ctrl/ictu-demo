@@ -475,20 +475,20 @@
 }
 
 /* -----------------------------
-   Outstanding Balance = AMBER
+   Unsettled Accountability Charges = AMBER
    ----------------------------- */
-[data-accountability-card-label="Outstanding Balance"] {
+[data-accountability-card-label="Unsettled Accountability Charges"] {
     background: linear-gradient(135deg, #dd8b00 0%, #f2a300 100%) !important;
     color: #ffffff !important;
 }
 
-[data-accountability-card-label="Outstanding Balance"] * {
+[data-accountability-card-label="Unsettled Accountability Charges"] * {
     color: inherit !important;
 }
 
-[data-accountability-card-label="Outstanding Balance"] .accountability-overview-icon,
-[data-accountability-card-label="Outstanding Balance"] .overview-card-icon,
-[data-accountability-card-label="Outstanding Balance"] [class*="overview-icon"] {
+[data-accountability-card-label="Unsettled Accountability Charges"] .accountability-overview-icon,
+[data-accountability-card-label="Unsettled Accountability Charges"] .overview-card-icon,
+[data-accountability-card-label="Unsettled Accountability Charges"] [class*="overview-icon"] {
     background: rgba(255,255,255,.14) !important;
     border-color: rgba(255,255,255,.22) !important;
 }
@@ -928,9 +928,9 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             [
                 'tone' => 'balance',
                 'icon' => 'coins',
-                'label' => 'Outstanding Balance',
+                'label' => 'Unsettled Accountability Charges',
                 'value' => 'PHP '.number_format($outstandingBalance, 2),
-                'note' => 'Not covered by verified payments',
+                'note' => 'Total unpaid charges from confirmed accountability cases only.',
                 'href' => route('accountability.index', ['queue' => 'all', 'metric' => 'balance']).'#accountability-workspace',
             ],
         ];
@@ -2656,7 +2656,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     <article class="card accountability-cases-card">
         <div class="accountability-cases-head">
             <h2>
-                {{ $selectedMetric === 'balance' ? 'Borrowers with Outstanding Balance' : 'Borrowers with Active Accountability' }}
+                {{ $selectedMetric === 'balance' ? 'Borrowers with Unsettled Charges' : 'Borrowers with Active Accountability' }}
                 <span class="accountability-count-chip" id="accountability-borrower-count" data-total="{{ $borrowerRollups->count() }}">{{ $borrowerRollups->count() }}</span>
             </h2>
         </div>
@@ -2664,7 +2664,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         @if($borrowerRollups->isEmpty())
             <x-empty-state
                 icon="accountability"
-                :title="$selectedMetric === 'balance' ? 'No outstanding balance.' : 'No active accountability cases.'"
+                :title="$selectedMetric === 'balance' ? 'No unsettled charges.' : 'No active accountability cases.'"
                 :message="$selectedMetric === 'balance'
                     ? 'No borrower has an unpaid balance from the currently open billing records.'
                     : 'There are no active borrower accountability cases to display.'"
@@ -2703,7 +2703,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                     <thead>
                         <tr>
                             <th scope="col">Borrower</th>
-                            <th scope="col" class="is-numeric">{{ $selectedMetric === 'balance' ? 'Outstanding Balance' : 'Active Cases' }}</th>
+                            <th scope="col" class="is-numeric">{{ $selectedMetric === 'balance' ? 'Unsettled Charges' : 'Active Cases' }}</th>
                             <th scope="col">Borrowing Status</th>
                             <th scope="col">Current Attention</th>
                             <th scope="col"><span class="sr-only">Actions</span></th>

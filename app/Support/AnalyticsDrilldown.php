@@ -36,15 +36,11 @@ final class AnalyticsDrilldown
  'division' => self::scalar($division),
  'unit' => self::scalar($unit),
  /*
- * Carried forward from the current Analytics request so
- * "View source records" always reconciles with the
- * borrower currently selected there. Reports validates
- * every filter against the destination report's own
- * catalogue entry, so this is silently ignored by a
- * report (inventory, utilization) that does not declare
- * a borrower filter.
+ * No borrower is carried: Analytics filters by Borrower
+ * Type, which the Report Builder has no filter for, and an
+ * old ?borrower= value would narrow Reports below the figure
+ * that was clicked.
  */
- 'borrower' => self::scalar((string) request()->query('borrower', '')),
  /* Open the exact source dataset immediately; no second Preview click. */
  'generated' => 1,
  ],

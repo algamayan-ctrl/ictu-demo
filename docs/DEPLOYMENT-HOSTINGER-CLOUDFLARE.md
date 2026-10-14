@@ -22,7 +22,7 @@ Follow the parts **in order**. Every step says **where** to do it, **what** to c
 - [Part I. Cloudflare Tunnel](#part-i-cloudflare-tunnel)
 - [Part J. Create the configuration file (`.env.docker`)](#part-j-create-the-configuration-file-envdocker)
 - [Part K. Start the system](#part-k-start-the-system)
-- [Part L. Create the first ICTU account](#part-l-create-the-first-ictu-account)
+- [Part L. Create the first SPMU Admin account](#part-l-create-the-first-spmu-admin-account)
 - [Part M. Verify everything (including two devices)](#part-m-verify-everything-including-two-devices)
 - [Part N. Everyday operations](#part-n-everyday-operations)
 - [Part O. Backups](#part-o-backups)
@@ -857,14 +857,14 @@ docker compose logs -f app
 
 ---
 
-## Part L. Create the first ICTU account
+## Part L. Create the first SPMU Admin account
 
-There are no demo accounts in production. Create the first real ICTU account from the command line.
+There are no demo accounts in production. Create the first real SPMU Admin / Head account from the command line.
 
 🐧 VPS. Replace the email, name and employee number with real ones:
 
 ```bash
-docker compose exec app php artisan spmu:user ictu.admin@cspc.edu.ph --name="ICTU Administrator" --employee-no="REAL-EMPLOYEE-NO" --unit=ICTU --role=ICTU
+docker compose exec app php artisan spmu:user spmu.admin@cspc.edu.ph --name="SPMU Administrator" --employee-no="REAL-EMPLOYEE-NO" --unit=SPMU --role=SPMU --classification=SPMU_HEAD
 ```
 
 - It asks for a password: **12+ characters** with uppercase, lowercase, a number and a symbol. Nothing appears while typing.
@@ -872,9 +872,9 @@ docker compose exec app php artisan spmu:user ictu.admin@cspc.edu.ph --name="ICT
 
 Then 🌐 sign in at https://spmu-acpmp.tech with that account and create the other staff accounts (SPMU Admin/Head, Action Officers) in **User Accounts**. Borrowers register themselves at `/register` or with Google, and are approved by the SAO in **Borrower Registrations**. Details: [DEPLOYMENT-ICTU.md](DEPLOYMENT-ICTU.md), step 8.
 
-Other `spmu:user` options: `--role=BORROWER|SPMU|ICTU`, `--classification=BORROWER_ONLY|SPMU_HEAD|SPMU_OFFICER|ICTU_MAINTAINER`, `--employment-type=EMPLOYEE|FACULTY|STAFF`.
+Other `spmu:user` options: `--role=BORROWER|SPMU`, `--classification=BORROWER_ONLY|SPMU_HEAD|SPMU_OFFICER`, `--employment-type=EMPLOYEE|FACULTY|STAFF`.
 
-- [ ] First ICTU account created and able to sign in
+- [ ] First SPMU Admin account created and able to sign in
 
 ---
 
@@ -1116,7 +1116,7 @@ When asking for help, share the **output of commands** (for example `docker comp
 
 - [ ] `spmu:auth-readiness --check-smtp` → PASS; test email received
 - [ ] All Part M3 two-device tests pass (phone on mobile data)
-- [ ] First ICTU account works; no demo accounts exist
+- [ ] First SPMU Admin account works; no demo accounts exist
 
 **Recovery**
 

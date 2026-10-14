@@ -224,11 +224,11 @@ class AnalyticsSectionsTest extends TestCase
         }
     }
 
-    public function test_legacy_forecast_bookmark_shows_only_recorded_scheduled_demand(): void
+    public function test_legacy_forecast_bookmark_opens_overview(): void
     {
         $this->request('ACADEMIC', 'College of Computer Studies', Carbon::create(2026, 4, 5, 10));
         $this->actingAs($this->spmuHead())->get(route('analytics.index', ['section' => 'forecast', 'academic_period' => 'month']))
-            ->assertOk()->assertSee('Scheduled Demand')->assertDontSee('Forecast unavailable')->assertDontSee('Forecast Methodology');
+            ->assertOk()->assertViewHas('section', 'overview')->assertDontSee('Scheduled Demand')->assertDontSee('Forecast unavailable')->assertDontSee('Forecast Methodology');
     }
 
     public function test_dense_history_cannot_enable_predictive_output(): void
@@ -237,7 +237,7 @@ class AnalyticsSectionsTest extends TestCase
             for ($i = 0; $i < 6; $i++) { $this->request('ACADEMIC', 'College of Computer Studies', $when->copy()->addHours($i)); }
         }
         $this->actingAs($this->spmuHead())->get(route('analytics.index', ['section' => 'forecast', 'academic_period' => 'month']))
-            ->assertOk()->assertSee('Scheduled Demand')->assertDontSee('Forecasted Demand')->assertDontSee('Projected requests')->assertDontSee('Forecast Methodology');
+            ->assertOk()->assertViewHas('section', 'overview')->assertDontSee('Forecasted Demand')->assertDontSee('Projected requests')->assertDontSee('Forecast Methodology');
     }
 
     public function test_switching_section_preserves_the_reporting_period_and_filters(): void

@@ -732,4 +732,43 @@ class ProtectedStorageDiskTest extends TestCase
 
         return $file;
     }
+    public function test_the_orphaned_object_log_entry_names_the_location_and_nothing_confidential(): void
+    {
+        config(['filesystems.protected_disk' => 's3']);
+
+        $bytes = 'CONFIDENTIAL-DOCUMENT-BODY';
+
+        /* A database error message carries the statement and its values. */
+        StoredFile::creating(function (): void {
+            throw new RuntimeException('SQLSTATE insert failed: Borrower Medical Letter.pdf password=db-secret');
+        });
+
+        Log::spy();
+
+        try {
+            $this->files->storeBytes($bytes, 'generated-documents', 'Borrower Medical Letter.pdf', 'application/pdf', 'pdf', 'CONTROLLED_DOCUMENT');
+            $this->fail('The database failure must reach the caller.');
+        } catch (RuntimeException) {
+            /* Expected: the caller still receives the original failure. */
+        } finally {
+            StoredFile::flushEventListeners();
+        }
+
+        Log::shouldHaveReceived('error')->once()->withArgs(function (string $message, array $context) use ($bytes): bool {
+            $logged = $message.' '.json_encode($context);
+
+            $this->assertSame(['disk', 'storage_path', 'byte_size', 'sha256', 'classification', 'error'], array_keys($context));
+            $this->assertSame('s3', $context['disk']);
+            $this->assertStringStartsWith('generated-documents/', $context['storage_path']);
+            $this->assertSame(strlen($bytes), $context['byte_size']);
+            $this->assertSame(RuntimeException::class, $context['error']);
+
+            $this->assertStringNotContainsString($bytes, $logged);
+            $this->assertStringNotContainsString('Borrower Medical Letter', $logged);
+            $this->assertStringNotContainsString('db-secret', $logged);
+            $this->assertStringNotContainsString('SQLSTATE', $logged);
+
+            return true;
+        });
+    }
 }

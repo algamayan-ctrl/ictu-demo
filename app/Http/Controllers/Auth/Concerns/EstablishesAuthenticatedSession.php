@@ -42,7 +42,7 @@ trait EstablishesAuthenticatedSession
         if (! $classification?->isPortalEnabled()) {
             $this->abandonSession($request);
 
-            return 'This account uses a retired or invalid system role. Contact ICTU.';
+            return 'This account uses a retired or invalid system role. Contact the SPMU Admin.';
         }
 
         $workspace = $user->primaryWorkspace();
@@ -50,12 +50,12 @@ trait EstablishesAuthenticatedSession
         if (! $workspace) {
             $this->abandonSession($request);
 
-            return 'This account has no valid portal assignment. Contact ICTU.';
+            return 'This account has no valid portal assignment. Contact the SPMU Admin.';
         }
 
         if (! $user->hasVerifiedInstitutionalEmail()) {
             $this->abandonSession($request);
-            return 'Your email is pending verification. Enter the OTP sent to your registered email or ask ICTU to resend a new OTP.';
+            return 'Your email is pending verification. Enter the OTP sent to your registered email or ask the SPMU Admin to resend a new OTP.';
         }
 
         if (! $user->hasApprovedRegistration()) {

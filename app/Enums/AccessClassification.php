@@ -7,12 +7,14 @@ enum AccessClassification: string
     case BorrowerOnly = 'BORROWER_ONLY';
     case SpmuHead = 'SPMU_HEAD';
     case SpmuOfficer = 'SPMU_OFFICER';
-    case IctuMaintainer = 'ICTU_MAINTAINER';
 
     /*
      * Legacy values are retained only so old database/history records can
      * still be read safely. They are not assignable and cannot open a portal.
+     * ICTU Maintainer is retired: account administration belongs to the
+     * SPMU Admin/Head, and ICTU remains an institutional backend function.
      */
+    case IctuMaintainer = 'ICTU_MAINTAINER';
     case RetiredInactive = 'RETIRED_INACTIVE';
     case GsuHead = 'GSU_HEAD';
     case VpafHead = 'VPAF_HEAD';
@@ -33,7 +35,7 @@ enum AccessClassification: string
     /**
      * User-facing choices for new/edited accounts.
      * Borrower is a requester user type; active staff roles are SPMU
-     * Admin/Head, SPMU Action Officer, and ICTU Maintainer.
+     * Admin/Head and SPMU Action Officer.
      *
      * @return list<self>
      */
@@ -43,7 +45,6 @@ enum AccessClassification: string
             self::BorrowerOnly,
             self::SpmuHead,
             self::SpmuOfficer,
-            self::IctuMaintainer,
         ];
     }
 

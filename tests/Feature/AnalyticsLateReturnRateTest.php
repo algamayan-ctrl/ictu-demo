@@ -375,12 +375,15 @@ class AnalyticsLateReturnRateTest extends TestCase
         $this->assertSame(2, $bobOnly['completed']);
         $this->assertSame(0, $bobOnly['late']);
 
-        /* The scoped page states the borrower scope on the card. */
+        /*
+         * The Analytics page filters by Borrower Type, not by one borrower: an
+         * old ?borrower= link no longer narrows the card or claims to.
+         */
         $page = $this->actingAs($this->spmuHead())->get(route('analytics.index', [
             'section' => 'returns', 'academic_period' => 'month', 'borrower' => $alice->id,
         ]));
-        $page->assertOk();
-        $this->assertStringContainsString("Scoped to the selected borrower's completed returns.", $this->card($page->getContent())->textContent);
+        $page->assertOk()->assertViewHas('lateRatesByDivision', fn (array $rates) => $rates['completed'] === 4);
+        $this->assertStringNotContainsString("Scoped to the selected borrower's completed returns.", $this->card($page->getContent())->textContent);
     }
 
     /* ------------------------------------------------------------------ */

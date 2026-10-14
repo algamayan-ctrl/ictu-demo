@@ -15,8 +15,8 @@ class GoogleRegistrationContext
             'email' => $email,
             'subject' => $subject,
             'name' => $name,
-            'registration_type' => str_ends_with($email, '@cspc.edu.ph')
-                ? RegistrationType::Employee->value : RegistrationType::External->value,
+            // Google onboarding is CSPC Employee only (INSTITUTIONAL_EMAIL_DOMAINS); the callback refuses everyone else.
+            'registration_type' => RegistrationType::Employee->value,
             'expires_at' => now()->addMinutes(10)->timestamp,
         ]);
     }
@@ -27,7 +27,8 @@ class GoogleRegistrationContext
         if (! is_array($context) || blank($context['subject'] ?? null)
             || ! filter_var($context['email'] ?? '', FILTER_VALIDATE_EMAIL)
             || (int) ($context['expires_at'] ?? 0) <= now()->timestamp
-            || ! in_array($context['registration_type'] ?? '', ['EMPLOYEE', 'EXTERNAL'], true)) {
+            || ($context['registration_type'] ?? '') !== RegistrationType::Employee->value
+            || ! app(EmailVerificationService::class)->domainAllowed((string) $context['email'])) {
             $request->session()->forget('google_registration');
             return null;
         }

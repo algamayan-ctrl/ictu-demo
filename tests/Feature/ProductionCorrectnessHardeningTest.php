@@ -30,9 +30,9 @@ class ProductionCorrectnessHardeningTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
-    public function test_historical_assignment_is_visible_and_survives_an_unrelated_ictu_update(): void
+    public function test_historical_assignment_is_visible_and_survives_an_unrelated_admin_update(): void
     {
-        $ictu = $this->classificationUser(AccessClassification::IctuMaintainer);
+        $admin = $this->classificationUser(AccessClassification::SpmuHead);
         $borrower = $this->classificationUser(AccessClassification::BorrowerOnly);
         $historicalUnit = $this->historicalAcademicUnit();
 
@@ -51,20 +51,20 @@ class ProductionCorrectnessHardeningTest extends TestCase
             'user_id' => $borrower->id,
             'organizational_unit_id' => $historicalUnit->id,
             'assignment_type' => 'PRIMARY',
-            'assigned_by_user_id' => $ictu->id,
+            'assigned_by_user_id' => $admin->id,
             'assigned_at' => now(),
             'revoked_at' => null,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $this->actingAs($ictu)
+        $this->actingAs($admin)
             ->get(route('administration.users.edit', $borrower))
             ->assertOk()
             ->assertSee($historicalUnit->unit_name)
             ->assertSee('Historical / inactive assignment');
 
-        $this->actingAs($ictu)
+        $this->actingAs($admin)
             ->put(
                 route('administration.users.update', $borrower),
                 $this->administrationPayload($borrower, [
@@ -88,7 +88,7 @@ class ProductionCorrectnessHardeningTest extends TestCase
             'revoked_at' => null,
         ]);
 
-        $this->actingAs($ictu)
+        $this->actingAs($admin)
             ->get(route('administration.users.create'))
             ->assertOk()
             ->assertDontSee($historicalUnit->unit_name);
@@ -96,25 +96,25 @@ class ProductionCorrectnessHardeningTest extends TestCase
         $this->actingAs($borrower)
             ->get(route('requests.create'))
             ->assertOk()
-            ->assertSee('Your organizational assignment is historical or inactive. Contact ICTU to assign an active Office / College / Unit before filing a new request.');
+            ->assertSee('Your organizational assignment is historical or inactive. Contact the SPMU Admin to assign an active Office / College / Unit before filing a new request.');
     }
 
-    public function test_ictu_cannot_change_their_own_account_status_or_access_classification_via_a_crafted_request(): void
+    public function test_the_admin_cannot_change_their_own_account_status_or_access_classification_via_a_crafted_request(): void
     {
-        $ictu = $this->classificationUser(AccessClassification::IctuMaintainer);
+        $admin = $this->classificationUser(AccessClassification::SpmuHead);
 
-        $this->assertSame('ACTIVE', $ictu->account_status->value);
-        $this->assertSame('ICTU_MAINTAINER', $ictu->access_classification->value);
+        $this->assertSame('ACTIVE', $admin->account_status->value);
+        $this->assertSame('SPMU_HEAD', $admin->access_classification->value);
 
-        $this->actingAs($ictu)
+        $this->actingAs($admin)
             ->put(
-                route('administration.users.update', $ictu),
-                $this->administrationPayload($ictu, [
+                route('administration.users.update', $admin),
+                $this->administrationPayload($admin, [
                     'division_code' => OrganizationalUnit::DIVISION_ADMINISTRATION,
-                    'organizational_unit_id' => $ictu->organizational_unit_id,
+                    'organizational_unit_id' => $admin->organizational_unit_id,
                     /* The crafted, disallowed part of the request. */
                     'account_status' => 'SUSPENDED',
-                    'access_classification' => AccessClassification::SpmuHead->value,
+                    'access_classification' => AccessClassification::SpmuOfficer->value,
                     /* An unrelated field, submitted in the same request, which must still save. */
                     'mobile_no' => '09170000001',
                 ]),
@@ -123,14 +123,14 @@ class ProductionCorrectnessHardeningTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('users', [
-            'id' => $ictu->id,
+            'id' => $admin->id,
             'account_status' => 'ACTIVE',
-            'access_classification' => 'ICTU_MAINTAINER',
+            'access_classification' => 'SPMU_HEAD',
             'mobile_no' => '09170000001',
         ]);
     }
 
-    public function test_user_administration_update_requires_ictu_even_when_called_without_route_middleware(): void
+    public function test_user_administration_update_requires_the_admin_even_when_called_without_route_middleware(): void
     {
         $spmuOfficer = $this->classificationUser(AccessClassification::SpmuOfficer);
         $borrower = $this->classificationUser(AccessClassification::BorrowerOnly);
@@ -146,7 +146,7 @@ class ProductionCorrectnessHardeningTest extends TestCase
                 app(NotificationService::class),
             );
 
-            $this->fail('A non-ICTU user must not reach the User Administration update action.');
+            $this->fail('A non-Admin user must not reach the User Administration update action.');
         } catch (HttpExceptionInterface $exception) {
             $this->assertSame(403, $exception->getStatusCode());
         }

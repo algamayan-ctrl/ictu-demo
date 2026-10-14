@@ -1089,7 +1089,8 @@ select::-ms-expand { display: none; }
 html[data-theme="dark"] select {
     --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b9c6d4' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
-select:disabled { background-image: var(--select-chevron); opacity: .75; }
+/* The disabled `background` shorthand above resets repeat/position/size; restore them so one chevron shows, not a tiled row. */
+select:disabled { background-image: var(--select-chevron); background-repeat: no-repeat; background-position: right 13px center; background-size: 16px 16px; opacity: .75; }
 select[multiple], select[size]:not([size="1"]) { padding-right: 11px; background-image: none; }
 
 /* The decision that advances an accountability case reads as the primary one. */

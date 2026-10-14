@@ -1636,7 +1636,7 @@ HTML;
                 'Your borrowing suspension has ended. Check My Obligations only if another active requirement remains.',
 
             'ACCOUNT_ACCESS_DISABLED' =>
-                'Your account access has been disabled. Contact ICTU if you need assistance.',
+                'Your account access has been disabled. Contact the SPMU Admin if you need assistance.',
 
             /*
              * -----------------------------------------------------

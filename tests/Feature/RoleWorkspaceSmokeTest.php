@@ -56,20 +56,20 @@ class RoleWorkspaceSmokeTest extends TestCase
             ->assertRedirect(route('requests.index'));
     }
 
-    public function test_ictu_workspace_pages_render(): void
+    /** The administration pages ICTU used to own now render for the SPMU Admin/Head. */
+    public function test_head_renders_the_former_ictu_administration_pages(): void
     {
-        $this->assertPagesRender(UserRole::Ictu, [
-            '/dashboard',
-            '/profile',
-            '/notifications',
+        $this->assertPagesRender(UserRole::Spmu, [
             '/reports/audit',
             '/reports/notifications',
             '/administration',
             '/administration/settings',
+            '/administration/settings?scope=system',
             '/administration/users',
             '/administration/users/create',
-            '/administration/delegations',
         ]);
+
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('administration.delegations.index'));
     }
 
     public function test_each_active_workspace_has_a_focused_role_specific_menu(): void
@@ -80,22 +80,16 @@ class RoleWorkspaceSmokeTest extends TestCase
                 'hide' => ['For Approval', 'User Accounts', 'Laundry'],
             ],
             /*
-             * The SPMU Head reviews the Operational Audit Trail. ICTU's own
-             * menu entries (User Accounts, the technical Audit Trail,
-             * Delivery Records) are not offered.
+             * The SPMU Head reviews the Operational Audit Trail and keeps
+             * Configuration and User Accounts. System Configuration and
+             * Delivery Records are ICTU technical custody with no menu entry.
+             * There is no ICTU workspace.
              */
             UserRole::Spmu->value => [
                 'see' => ['For Approval', 'Request Records', 'Inventory', 'Analytics', 'Reports', 'Configuration', 'User Accounts'],
-                'hide' => ['Release & Return', 'Release', 'Return', 'Technical Audit Trail', 'Delivery Records', 'Laundry'],
-            ],
-            UserRole::Ictu->value => [
-                'see' => ['User Accounts', 'System Configuration', 'Technical Audit Trail', 'Delivery Records'],
-                'hide' => ['Borrowing Calendar', 'For Approval', 'Laundry'],
+                'hide' => ['Release & Return', 'Release', 'Return', 'Technical Audit Trail', 'Laundry', 'System Configuration', 'Delivery Records'],
             ],
         ];
-
-        /* ICTU-only destinations, by the address the menu would link to. */
-        $ictuOnlyLinks = ['/administration/users', '/reports/notifications'];
 
         foreach ($expectations as $roleCode => $labels) {
             $role = UserRole::from($roleCode);

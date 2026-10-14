@@ -74,12 +74,21 @@ class EquipmentUtilizationReport implements ReportBuilder
                 $unit !== null,
                 fn ($query) => $query->where('request_versions.office_unit', $unit)
             )
-            ->groupBy('request_items.inventory_item_id', 'request_versions.division_code')
+            /* A CSPC Division / Office filter describes employee releases only. */
+            ->when(
+                $division !== null || $unit !== null,
+                fn ($query) => $query->where(fn ($employee) => $employee
+                    ->whereNull('request_versions.affiliation_type')
+                    ->orWhere('request_versions.affiliation_type', '!=', 'EXTERNAL'))
+            )
+            /* The saved affiliation decides; an External Borrower never counts toward a CSPC division. */
+            ->groupBy('request_items.inventory_item_id', 'request_versions.division_code', 'is_external')
             ->selectRaw(
-                'request_items.inventory_item_id AS item_id,
+                "request_items.inventory_item_id AS item_id,
                  request_versions.division_code AS division_code,
+                 CASE WHEN request_versions.affiliation_type = 'EXTERNAL' THEN 1 ELSE 0 END AS is_external,
                  COALESCE(SUM(custody_lines.actual_released_quantity), 0) AS released_quantity,
-                 COUNT(DISTINCT custody_transactions.id) AS transaction_count'
+                 COUNT(DISTINCT custody_transactions.id) AS transaction_count"
             )
             ->get();
 
@@ -114,10 +123,16 @@ class EquipmentUtilizationReport implements ReportBuilder
                 foreach ($divisionCodes as $code) {
                     $row['division_'.strtolower($code)] = $this->number(
                         (float) $itemUsage
-                            ->where('division_code', $code)
+                            ->filter(fn ($usageRow): bool => (int) $usageRow->is_external === 0 && $usageRow->division_code === $code)
                             ->sum(fn ($usageRow): float => (float) $usageRow->released_quantity)
                     );
                 }
+
+                /* Released quantity no division column holds: External Borrowers, and employees with no recorded division. */
+                $row['_outside_divisions'] = (float) $itemUsage
+                    ->filter(fn ($usageRow): bool => (int) $usageRow->is_external === 1
+                        || ! in_array($usageRow->division_code, $divisionCodes, true))
+                    ->sum(fn ($usageRow): float => (float) $usageRow->released_quantity);
 
                 return $row;
             })
@@ -167,6 +182,10 @@ class EquipmentUtilizationReport implements ReportBuilder
                 'Released quantity' => (int) $rows->sum(
                     fn (array $row): float => $row['_released']
                 ),
+                /* Reconciles the division columns to Released quantity; never folded into a CSPC division. */
+                'Released outside CSPC division columns (External Borrowers / no recorded division)' => $rows->sum(
+                    fn (array $row): float => $row['_outside_divisions']
+                ) + 0,
             ],
         );
     }

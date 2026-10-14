@@ -4,7 +4,7 @@
     <div>
         <p class="eyebrow">Restricted administration</p>
         <h1>System administration</h1>
-        <p>ICTU controls technical accounts and delegated authority; SPMU controls approved operational configuration. Finalized transactions remain immutable.</p>
+        <p>The SPMU Admin manages accounts and approved configuration; ICTU maintains the backend. Finalized transactions remain immutable.</p>
     </div>
     <div class="actions">
         @if(session('active_workspace') === 'ICTU')

@@ -186,54 +186,50 @@ class AnalyticsBorrowerReconciliationTest extends TestCase
     /* Filter propagation                                                  */
     /* ------------------------------------------------------------------ */
 
-    public function test_borrower_selection_scopes_the_analytics_page_and_carries_across_tabs(): void
+    /*
+     * The Analytics page filters by Borrower Type; the individual Borrower
+     * filter remains a Reports filter. These guard the page side of that.
+     */
+    public function test_borrower_type_selection_carries_across_tabs(): void
     {
         $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
 
         $response = $this->actingAs($head)->get(route('analytics.index', [
             'section' => 'overview',
             'academic_period' => 'month',
-            'borrower' => $this->borrowerA->id,
+            'borrower_type' => 'EMPLOYEE',
         ]));
 
         $response->assertOk();
 
-        /* The tab links must not silently drop the borrower selection. */
-        $response->assertSee('borrower='.$this->borrowerA->id, false);
+        /* The tab links must not silently drop the Borrower Type selection. */
+        $response->assertSee('borrower_type=EMPLOYEE', false);
     }
 
-    public function test_view_source_records_link_carries_the_selected_borrower(): void
+    public function test_an_old_borrower_link_no_longer_narrows_the_analytics_page(): void
     {
         $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
 
-        $response = $this->actingAs($head)->get(route('analytics.index', [
+        $this->actingAs($head)->get(route('analytics.index', [
             'section' => 'overview',
             'academic_period' => 'month',
             'borrower' => $this->borrowerA->id,
-            'detail' => 'requests',
-        ]));
-
-        $response->assertOk();
-        $response->assertSee('report=borrowing', false);
-        $response->assertSee('borrower='.$this->borrowerA->id, false);
+        ]))->assertOk()
+            ->assertViewHas('selectedBorrower', null)
+            ->assertViewHas('overview', fn (array $overview): bool => $overview['total'] === 3)
+            ->assertDontSee('borrower='.$this->borrowerA->id, false);
     }
 
-    public function test_borrower_options_endpoint_only_lists_borrowers_with_activity_in_scope(): void
+    public function test_the_borrower_options_endpoint_was_retired_with_the_picker(): void
     {
         $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
 
-        $response = $this->actingAs($head)->getJson(route('analytics.index', [
+        /* The page renders normally; it no longer answers with a borrower list. */
+        $this->actingAs($head)->get(route('analytics.index', [
             'borrower_options' => 1,
             'section' => 'overview',
             'academic_period' => 'month',
-        ]));
-
-        $response->assertOk()->assertJsonPath('count', 2);
-
-        $ids = collect($response->json('options'))->pluck('value');
-
-        $this->assertTrue($ids->contains((string) $this->borrowerA->id));
-        $this->assertTrue($ids->contains((string) $this->borrowerB->id));
+        ]))->assertOk()->assertViewIs('analytics.index');
     }
 
     /* ------------------------------------------------------------------ */

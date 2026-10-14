@@ -2590,8 +2590,7 @@ class AccountabilityController extends Controller
         $user = $request->user();
         abort_unless(
             (int) $restriction->borrower_user_id === (int) $user?->id
-                || $user?->hasRole(UserRole::Spmu)
-                || $user?->hasRole(UserRole::Ictu),
+                || $user?->hasRole(UserRole::Spmu),
             403
         );
 

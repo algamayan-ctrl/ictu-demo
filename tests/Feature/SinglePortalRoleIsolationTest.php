@@ -30,7 +30,6 @@ class SinglePortalRoleIsolationTest extends TestCase
             AccessClassification::BorrowerOnly->value => ['BORROWER', true],
             AccessClassification::SpmuHead->value => ['SPMU', false],
             AccessClassification::SpmuOfficer->value => ['SPMU', false],
-            AccessClassification::IctuMaintainer->value => ['ICTU', false],
         ];
 
         foreach ($expectations as $classification => [$portal, $mayBorrow]) {
@@ -56,7 +55,7 @@ class SinglePortalRoleIsolationTest extends TestCase
     {
         $borrower = $this->classificationUser(AccessClassification::BorrowerOnly);
         $spmuOfficer = $this->classificationUser(AccessClassification::SpmuOfficer);
-        $ictu = $this->classificationUser(AccessClassification::IctuMaintainer);
+        $head = $this->classificationUser(AccessClassification::SpmuHead);
 
         $this->withSession(['active_workspace' => 'BORROWER'])
             ->actingAs($spmuOfficer)
@@ -64,7 +63,7 @@ class SinglePortalRoleIsolationTest extends TestCase
             ->assertForbidden();
 
         $this->withSession(['active_workspace' => 'BORROWER'])
-            ->actingAs($ictu)
+            ->actingAs($head)
             ->get(route('requests.create'))
             ->assertForbidden();
 
@@ -91,7 +90,6 @@ class SinglePortalRoleIsolationTest extends TestCase
             'borrower@spmu.test' => 'BORROWER',
             'spmu-head@spmu.test' => 'SPMU',
             'spmu@spmu.test' => 'SPMU',
-            'ictu@spmu.test' => 'ICTU',
         ];
 
         foreach ($expectations as $email => $portal) {
@@ -129,7 +127,7 @@ class SinglePortalRoleIsolationTest extends TestCase
 
     public function test_administration_classification_change_revokes_obsolete_role_and_assigns_required_role(): void
     {
-        $ictu = $this->classificationUser(AccessClassification::IctuMaintainer);
+        $head = $this->classificationUser(AccessClassification::SpmuHead);
         $user = $this->classificationUser(AccessClassification::BorrowerOnly);
         $spmuUnit = OrganizationalUnit::query()
             ->where('unit_code', 'SPMU')
@@ -141,7 +139,7 @@ class SinglePortalRoleIsolationTest extends TestCase
             ->where('role_code', 'SPMU')
             ->firstOrFail();
 
-        $this->actingAs($ictu)
+        $this->actingAs($head)
             ->put(route('administration.users.update', $user), [
                 /*
                  * UserAdministrationController::validated() requires
@@ -218,7 +216,7 @@ class SinglePortalRoleIsolationTest extends TestCase
 
     public function test_user_administration_hides_retired_non_portal_accounts(): void
     {
-        $ictu = $this->classificationUser(AccessClassification::IctuMaintainer);
+        $head = $this->classificationUser(AccessClassification::SpmuHead);
         $institution = OrganizationalUnit::query()
             ->where('unit_code', 'CSPC')
             ->firstOrFail();
@@ -250,7 +248,7 @@ class SinglePortalRoleIsolationTest extends TestCase
             'account_status' => 'INACTIVE',
         ]);
 
-        $this->actingAs($ictu)
+        $this->actingAs($head)
             ->get(route('administration.users.index'))
             ->assertOk()
             ->assertDontSee('Retired Laundry Account')
@@ -280,5 +278,17 @@ class SinglePortalRoleIsolationTest extends TestCase
         return User::query()
             ->where('access_classification', $classification->value)
             ->firstOrFail();
+    }
+
+    public function test_a_retired_ictu_maintainer_account_cannot_sign_in(): void
+    {
+        $this->withoutMiddleware(ThrottleRequests::class);
+
+        $this->post(route('login.store'), [
+            'email' => 'ictu@spmu.test',
+            'password' => DemoUserSeeder::PASSWORD,
+        ])->assertSessionHasErrors();
+
+        $this->assertGuest();
     }
 }

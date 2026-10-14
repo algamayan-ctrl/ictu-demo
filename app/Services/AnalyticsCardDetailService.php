@@ -29,6 +29,12 @@ class AnalyticsCardDetailService
  private readonly ReportingPeriodService $periods,
  ) {}
 
+ /** This resolver, reading figures from the caller's already-filtered AnalyticsService. */
+ public function using(AnalyticsService $analytics): self
+ {
+ return new self($analytics, $this->inventory, $this->periods);
+ }
+
  /**
  * @param array<string, mixed> $scope
  * @return array<string, mixed>
@@ -77,9 +83,7 @@ class AnalyticsCardDetailService
  'returns.summary' => $this->returnSummary($scope),
  'returns.issues' => $this->returnIssues($scope),
 
- /* Recorded scheduled demand */
- 'scheduled.summary' => $this->scheduled($scope),
-
+ /* scheduled.* details were retired with the Scheduled Demand section. */
  default => $this->unknown($key),
  };
  }
@@ -1514,34 +1518,6 @@ class AnalyticsCardDetailService
  /** @return array<string, mixed> */
 
 
- /** @return array<string, mixed> */
- private function scheduled(array $scope): array
- {
- [$scheduledFrom, $scheduledTo] = $this->periods->nextScheduledWindow($scope['from'], $scope['to']);
- $scheduled = $this->analytics->scheduledDemand(
- $scheduledFrom, $scheduledTo, $scope['division'], $scope['unit'], $scope['borrower'] ?? null
- );
- $count = (int) ($scheduled['requests'] ?? 0);
- $groups = collect($scheduled['divisions']['groups'] ?? []);
-
- return [
- 'title' => 'Scheduled Demand',
- 'value' => $count,
- 'value_label' => $count === 1 ? 'request already filed' : 'requests already filed',
- 'context' => 'Known bookings for '.$scheduledFrom->format('d M Y').' – '.$scheduledTo->format('d M Y'),
- 'note' => 'Pending review: '.$scheduled['pending'].'. Approved: '.$scheduled['approved'].'. These counts are requests, not allocated stock.',
- 'bars' => $groups->isEmpty() ? null : $groups->map(
- static fn (array $group): array => [
- 'label' => $group['label'],
- 'value' => $group['count'].' '.$group['percentage'].'%',
- 'share' => $group['percentage'],
- ]
- )->all(),
- 'empty' => $count === 0
- ? 'No requests have been filed for the next period yet.'
- : null,
- ];
- }
 
  /** @return array<string, mixed> */
 

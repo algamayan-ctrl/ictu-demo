@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => $isIctu ? 'System Configuration' : 'Operational Configuration'])
+@extends('layouts.app', ['title' => $isTechnical ? 'System Configuration' : 'Operational Configuration'])
 @section('content')
 @php
     $humanizedKey = fn ($key) => ucwords(str_replace('_', ' ', (string) $key));
@@ -19,24 +19,24 @@
     $activeSectionMeta = $configurationSection ? $sectionMeta[$configurationSection] : null;
     $lateReturnFeeSetting = $settings->firstWhere('setting_key', 'daily_overdue_tariff');
 
-    $ictuSettings = $isIctu ? $settings->keyBy('setting_key') : collect();
+    $ictuSettings = $isTechnical ? $settings->keyBy('setting_key') : collect();
 
-    $googleConfigured = $isIctu
+    $googleConfigured = $isTechnical
         && filled(config('services.google.client_id'))
         && filled(config('services.google.client_secret'))
         && filled(config('services.google.redirect'));
 
-    $mailTransport = $isIctu
+    $mailTransport = $isTechnical
         ? trim((string) config('mail.default'))
         : '';
 
-    $emailConfigured = $isIctu && $mailTransport !== '';
+    $emailConfigured = $isTechnical && $mailTransport !== '';
 
-    $maxUploadSetting = $isIctu
+    $maxUploadSetting = $isTechnical
         ? $ictuSettings->get('max_upload_mb')
         : null;
 
-    $backupScheduleSetting = $isIctu
+    $backupScheduleSetting = $isTechnical
         ? $ictuSettings->get('backup_schedule')
         : null;
 
@@ -88,7 +88,7 @@
     }
 @endphp
 
-@if(!$isIctu)
+@if(!$isTechnical)
 <section class="page-heading settings-detail-heading">
     <div>
         <p class="eyebrow">{{ $activeSectionMeta[0] ?? 'Effective operational configuration' }}</p>
@@ -104,7 +104,7 @@
 </section>
 @endif
 
-@if($isIctu)
+@if($isTechnical)
 @php
     $googleHostedDomain = trim((string) (config('services.google.hosted_domain') ?? config('services.google.hd') ?? ''));
     $googleAllowedDomain = $googleHostedDomain !== ''
@@ -179,7 +179,7 @@
     <div class="ictu-config-section-heading ictu-managed-settings-heading">
         <p class="eyebrow">Technical configuration</p>
         <h2>System-managed settings</h2>
-        <p>Only technical values owned by ICTU are editable here. Every saved change is recorded in the audit trail.</p>
+        <p>Only technical values are editable here. Every saved change is recorded in the audit trail.</p>
     </div>
 
     <div class="ictu-technical-settings-grid">

@@ -177,7 +177,7 @@ class EmailVerificationController extends Controller
             return redirect()
                 ->route('account.verification.show', ['email' => $email])
                 ->withErrors([
-                    'delivery' => 'The verification OTP could not be sent. Resend OTP or contact ICTU for assistance.',
+                    'delivery' => 'The verification OTP could not be sent. Resend OTP or contact the SPMU Admin for assistance.',
                 ]);
         }
 

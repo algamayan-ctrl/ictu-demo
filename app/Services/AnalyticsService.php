@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\RegistrationType;
 use App\Enums\RequestStatus;
 use App\Models\BillingStatement;
 use App\Models\BorrowerRestriction;
@@ -98,6 +99,99 @@ class AnalyticsService
  private readonly OperationalCalendarService $operationalCalendar,
  ) {}
 
+ /* ------------------------------------------------------------------ */
+ /* Borrower Type */
+ /* ------------------------------------------------------------------ */
+
+ /**
+ * Borrower Type selected for this request: null (All Types), EMPLOYEE or
+ * EXTERNAL. The Analytics controllers set it once and hand this same
+ * instance to the detail services (AnalyticsDetailService::using()), so
+ * every figure, card detail and record list follows it.
+ */
+ private ?string $borrowerType = null;
+
+ /** @return array<string, string> option value => label, All Types first */
+ public static function borrowerTypes(): array
+ {
+ return [
+ 'all' => 'All Types',
+ RegistrationType::Employee->value => RegistrationType::Employee->label(),
+ RegistrationType::External->value => RegistrationType::External->label(),
+ ];
+ }
+
+ public function forBorrowerType(?string $type): static
+ {
+ $this->borrowerType = in_array($type, [RegistrationType::Employee->value, RegistrationType::External->value], true)
+ ? $type
+ : null;
+
+ return $this;
+ }
+
+ public function borrowerType(): ?string
+ {
+ return $this->borrowerType;
+ }
+
+ private static function hasOrganisationFilter(?string $division, ?string $unit): bool
+ {
+ return ($division !== null && $division !== '' && $division !== 'all')
+ || ($unit !== null && $unit !== '' && $unit !== 'all');
+ }
+
+ /**
+ * Narrow a request_versions query by Borrower Type.
+ *
+ * The saved request-version snapshot is the only source, read the way
+ * DocumentAffiliationService reads it: EXTERNAL is an External Borrower;
+ * EMPLOYEE, and legacy versions that predate affiliation_type (null), are
+ * CSPC Employees. A CSPC Division / Office filter describes employees
+ * only, so it always excludes External Borrowers.
+ */
+ public function constrainAffiliation($query, string $column, ?string $division = null, ?string $unit = null): void
+ {
+ $employee = static fn ($versions) => $versions->whereNull($column)
+ ->orWhere($column, RegistrationType::Employee->value);
+
+ if (self::hasOrganisationFilter($division, $unit)) {
+ $query->where($employee);
+ }
+
+ if ($this->borrowerType === RegistrationType::External->value) {
+ $query->where($column, RegistrationType::External->value);
+ } elseif ($this->borrowerType === RegistrationType::Employee->value) {
+ $query->where($employee);
+ }
+ }
+
+ /**
+ * Request-version ids matching Division / Office / Borrower Type, or null
+ * when none of them narrows anything (so callers keep their unfiltered
+ * query untouched).
+ */
+ public function filteredVersionIds(?string $division, ?string $unit): ?\Illuminate\Database\Query\Builder
+ {
+ if (! self::hasOrganisationFilter($division, $unit) && $this->borrowerType === null) {
+ return null;
+ }
+
+ $versions = DB::table('request_versions')
+ ->when(
+ $division !== null && $division !== '' && $division !== 'all',
+ fn ($query) => $query->where('division_code', $division)
+ )
+ ->when(
+ $unit !== null && $unit !== '' && $unit !== 'all',
+ fn ($query) => $query->where('office_unit', $unit)
+ );
+
+ $this->constrainAffiliation($versions, 'affiliation_type', $division, $unit);
+
+ return $versions->select('id');
+ }
+
  /**
  * Requests that reached the system's authoritative approved state.
  *
@@ -141,6 +235,8 @@ class AnalyticsService
  static fn (RequestStatus $status): string => $status->value,
  self::excludedFromActivity()
  ));
+
+ $this->constrainAffiliation($query, 'request_versions.affiliation_type', $division, $unit);
 
  if ($division !== null && $division !== '' && $division !== 'all') {
  $query->where('request_versions.division_code', $division);
@@ -211,10 +307,7 @@ class AnalyticsService
  });
 
  // External saved affiliation cannot become a CSPC assignment through a filter.
- if (($division !== null && $division !== '' && $division !== 'all') || ($unit !== null && $unit !== '' && $unit !== 'all')) {
- $query->where(fn ($scope) => $scope->whereNull('request_versions.affiliation_type')
- ->orWhere('request_versions.affiliation_type', '!=', 'EXTERNAL'));
- }
+ $this->constrainAffiliation($query, 'request_versions.affiliation_type', $division, $unit);
 
  if ($division !== null && $division !== '' && $division !== 'all') {
  $query->where('request_versions.division_code', $division);
@@ -329,19 +422,7 @@ class AnalyticsService
  ->whereNotNull('released_at')
  ->whereBetween('released_at', [$from, $to]);
 
- if (($division !== null && $division !== '' && $division !== 'all')
- || ($unit !== null && $unit !== '' && $unit !== 'all')) {
- $versionIds = DB::table('request_versions')
- ->when(
- $division !== null && $division !== '' && $division !== 'all',
- fn ($versions) => $versions->where('division_code', $division)
- )
- ->when(
- $unit !== null && $unit !== '' && $unit !== 'all',
- fn ($versions) => $versions->where('office_unit', $unit)
- )
- ->select('id');
-
+ if ($versionIds = $this->filteredVersionIds($division, $unit)) {
  $query->whereIn('request_version_id', $versionIds);
  }
 
@@ -387,19 +468,7 @@ class AnalyticsService
  );
  });
 
- if (($division !== null && $division !== '' && $division !== 'all')
- || ($unit !== null && $unit !== '' && $unit !== 'all')) {
- $versionIds = DB::table('request_versions')
- ->when(
- $division !== null && $division !== '' && $division !== 'all',
- fn ($versions) => $versions->where('division_code', $division)
- )
- ->when(
- $unit !== null && $unit !== '' && $unit !== 'all',
- fn ($versions) => $versions->where('office_unit', $unit)
- )
- ->select('id');
-
+ if ($versionIds = $this->filteredVersionIds($division, $unit)) {
  $query->whereIn('request_version_id', $versionIds);
  }
 
@@ -447,6 +516,7 @@ class AnalyticsService
  ($division === null || $division === '' || $division === 'all') ? '' : $division,
  ($unit === null || $unit === '' || $unit === 'all') ? '' : $unit,
  $borrower === null ? '' : (string) $borrower,
+ (string) $this->borrowerType,
  ]);
 
  return $this->completedReturnRecordsCache[$key] ??= $this->loadCompletedReturnRecords(
@@ -536,8 +606,7 @@ class AnalyticsService
  ?string $unit,
  ?int $borrower = null
  ): Collection {
- $hasOrgFilter = ($division !== null && $division !== '' && $division !== 'all')
- || ($unit !== null && $unit !== '' && $unit !== 'all');
+ $hasOrgFilter = self::hasOrganisationFilter($division, $unit) || $this->borrowerType !== null;
 
  $allowedCustodyIds = $hasOrgFilter
  ? $this->currentCustodyScope($division, $unit, $borrower)->pluck('id')->map(fn ($id): int => (int) $id)
@@ -754,23 +823,9 @@ class AnalyticsService
  $query->where('borrower_user_id', $borrower);
  }
 
- if (($division === null || $division === '' || $division === 'all')
- && ($unit === null || $unit === '' || $unit === 'all')) {
- return $query;
- }
+ $versionIds = $this->filteredVersionIds($division, $unit);
 
- $versionIds = DB::table('request_versions')
- ->when(
- $division !== null && $division !== '' && $division !== 'all',
- fn ($versions) => $versions->where('division_code', $division)
- )
- ->when(
- $unit !== null && $unit !== '' && $unit !== 'all',
- fn ($versions) => $versions->where('office_unit', $unit)
- )
- ->select('id');
-
- return $query->whereIn('request_version_id', $versionIds);
+ return $versionIds === null ? $query : $query->whereIn('request_version_id', $versionIds);
  }
 
  /**
@@ -964,11 +1019,12 @@ class AnalyticsService
  ?string $division,
  ?string $unit
  ): array {
+ /* External Borrowers carry no CSPC division; they are their own row, not "Unspecified". */
  $counts = $this->requestScope($from, $to, $division, $unit)
- ->select('request_versions.division_code')
+ ->selectRaw("CASE WHEN request_versions.affiliation_type = 'EXTERNAL' THEN 'EXTERNAL' ELSE COALESCE(request_versions.division_code, '') END AS division_key")
  ->selectRaw('COUNT(borrowing_requests.id) AS total')
- ->groupBy('request_versions.division_code')
- ->pluck('total', 'division_code');
+ ->groupBy('division_key')
+ ->pluck('total', 'division_key');
 
  $total = (int) $counts->sum();
 
@@ -993,6 +1049,17 @@ class AnalyticsService
  ]);
  }
 
+ $external = (int) ($counts['EXTERNAL'] ?? 0);
+
+ if ($external > 0) {
+ $groups->push([
+ 'code' => 'EXTERNAL',
+ 'label' => RegistrationType::External->label(),
+ 'count' => $external,
+ 'percentage' => $total > 0 ? round($external / $total * 100) : 0,
+ ]);
+ }
+
  /* Groups with no activity add nothing to a comparison. */
  $visible = $groups->filter(fn (array $group): bool => $group['count'] > 0)->values();
  $leader = $visible->sortByDesc('count')->first();
@@ -1003,7 +1070,8 @@ class AnalyticsService
  'summary' => $total === 0
  ? 'No borrowing requests were filed during this period, so there is nothing to compare yet.'
  : ($leader
- ? 'Most borrowing activity came from '.$leader['label'].' units ('
+ ? 'Most borrowing activity came from '.$leader['label']
+ .($leader['code'] === 'EXTERNAL' ? 's (' : ' units (')
  .$leader['percentage'].'% of requests).'
  : ''),
  ];
@@ -1448,6 +1516,8 @@ class AnalyticsService
  });
  });
 
+ $this->constrainAffiliation($query, 'request_versions.affiliation_type', $division, $unit);
+
  if ($division !== null && $division !== '' && $division !== 'all') {
  $query->where('request_versions.division_code', $division);
  }
@@ -1682,6 +1752,8 @@ class AnalyticsService
  ->whereIn('borrowing_requests.status', $legacyProof);
  });
  });
+
+ $this->constrainAffiliation($query, 'request_versions.affiliation_type', $division, $unit);
 
  if ($division !== null && $division !== '' && $division !== 'all') {
  $query->where('request_versions.division_code', $division);
@@ -2239,19 +2311,7 @@ class AnalyticsService
  ->whereNotNull('custody_transactions.released_at')
  ->whereBetween('custody_transactions.released_at', [$from, $to]);
 
- if (($division !== null && $division !== '' && $division !== 'all')
- || ($unit !== null && $unit !== '' && $unit !== 'all')) {
- $versionIds = DB::table('request_versions')
- ->when(
- $division !== null && $division !== '' && $division !== 'all',
- fn ($versions) => $versions->where('division_code', $division)
- )
- ->when(
- $unit !== null && $unit !== '' && $unit !== 'all',
- fn ($versions) => $versions->where('office_unit', $unit)
- )
- ->select('id');
-
+ if ($versionIds = $this->filteredVersionIds($division, $unit)) {
  $releasedQuery->whereIn('custody_transactions.request_version_id', $versionIds);
  }
 
@@ -2536,22 +2596,11 @@ class AnalyticsService
  ->whereBetween('reported_at', [$from, $to])
  ->with('lines');
 
- if (($division !== null && $division !== '' && $division !== 'all')
- || ($unit !== null && $unit !== '' && $unit !== 'all')
- || $borrower !== null) {
- $versionIds = DB::table('request_versions')
- ->when(
- $division !== null && $division !== '' && $division !== 'all',
- fn ($versions) => $versions->where('division_code', $division)
- )
- ->when(
- $unit !== null && $unit !== '' && $unit !== 'all',
- fn ($versions) => $versions->where('office_unit', $unit)
- )
- ->select('id');
+ $versionIds = $this->filteredVersionIds($division, $unit);
 
+ if ($versionIds !== null || $borrower !== null) {
  $custodyIds = CustodyTransaction::query()
- ->whereIn('request_version_id', $versionIds)
+ ->when($versionIds !== null, fn ($q) => $q->whereIn('request_version_id', $versionIds))
  ->when($borrower !== null, fn ($q) => $q->where('borrower_user_id', $borrower))
  ->select('id');
 
@@ -3237,19 +3286,7 @@ class AnalyticsService
  ->join('custody_transactions', 'custody_transactions.id', '=', 'return_transactions.custody_transaction_id')
  ->whereBetween('return_transactions.received_at', [$from, $to]);
 
- if (($division !== null && $division !== '' && $division !== 'all')
- || ($unit !== null && $unit !== '' && $unit !== 'all')) {
- $versionIds = DB::table('request_versions')
- ->when(
- $division !== null && $division !== '' && $division !== 'all',
- fn ($versions) => $versions->where('division_code', $division)
- )
- ->when(
- $unit !== null && $unit !== '' && $unit !== 'all',
- fn ($versions) => $versions->where('office_unit', $unit)
- )
- ->select('id');
-
+ if ($versionIds = $this->filteredVersionIds($division, $unit)) {
  $query->whereIn('custody_transactions.request_version_id', $versionIds);
  }
 
@@ -3318,20 +3355,7 @@ class AnalyticsService
  ->whereNotNull('custody_transactions.released_at')
  ->whereBetween('custody_transactions.released_at', [$from, $to]);
 
- if (($division !== null && $division !== '' && $division !== 'all')
- || ($unit !== null && $unit !== '' && $unit !== 'all')) {
- $versionIds = DB::table('request_versions')
- ->where(fn ($versions) => $versions->whereNull('affiliation_type')->orWhere('affiliation_type', '!=', 'EXTERNAL'))
- ->when(
- $division !== null && $division !== '' && $division !== 'all',
- fn ($versions) => $versions->where('division_code', $division)
- )
- ->when(
- $unit !== null && $unit !== '' && $unit !== 'all',
- fn ($versions) => $versions->where('office_unit', $unit)
- )
- ->select('id');
-
+ if ($versionIds = $this->filteredVersionIds($division, $unit)) {
  $usageQuery->whereIn('custody_transactions.request_version_id', $versionIds);
  }
 

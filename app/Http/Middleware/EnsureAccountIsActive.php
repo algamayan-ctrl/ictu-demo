@@ -20,7 +20,7 @@ class EnsureAccountIsActive
             $request->session()->regenerateToken();
 
             return redirect()->route('login')->withErrors([
-                'email' => 'This account is inactive. Contact ICTU if you believe this is an error.',
+                'email' => 'This account is inactive. Contact the SPMU Admin if you believe this is an error.',
             ]);
         }
 

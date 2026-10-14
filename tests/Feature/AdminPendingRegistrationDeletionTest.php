@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
-class IctuPendingRegistrationDeletionTest extends TestCase
+class AdminPendingRegistrationDeletionTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -28,11 +28,11 @@ class IctuPendingRegistrationDeletionTest extends TestCase
     {
         $actor = User::factory()->create([
             'email' => 'ictu.pending-cleanup@cspc.edu.ph',
-            'access_classification' => AccessClassification::IctuMaintainer,
+            'access_classification' => AccessClassification::SpmuHead,
             'account_status' => AccountStatus::Active,
-            'organizational_unit_id' => OrganizationalUnit::where('unit_code', 'ICTU')->firstOrFail()->id,
+            'organizational_unit_id' => OrganizationalUnit::where('unit_code', 'SPMU')->firstOrFail()->id,
         ]);
-        app(UserRoleAssignmentService::class)->synchronize($actor, AccessClassification::IctuMaintainer);
+        app(UserRoleAssignmentService::class)->synchronize($actor, AccessClassification::SpmuHead);
 
         return $actor;
     }
@@ -136,11 +136,11 @@ class IctuPendingRegistrationDeletionTest extends TestCase
 
         $pendingIctu = User::factory()->create([
             'email' => 'self-protected-pending@cspc.edu.ph',
-            'access_classification' => AccessClassification::IctuMaintainer,
+            'access_classification' => AccessClassification::SpmuHead,
             'account_status' => AccountStatus::Active,
-            'organizational_unit_id' => OrganizationalUnit::where('unit_code', 'ICTU')->firstOrFail()->id,
+            'organizational_unit_id' => OrganizationalUnit::where('unit_code', 'SPMU')->firstOrFail()->id,
         ]);
-        app(UserRoleAssignmentService::class)->synchronize($pendingIctu, AccessClassification::IctuMaintainer);
+        app(UserRoleAssignmentService::class)->synchronize($pendingIctu, AccessClassification::SpmuHead);
         $this->actingAs($pendingIctu)->get(route('administration.users.edit', $pendingIctu))
             ->assertOk()
             ->assertDontSee('id="ictu-delete-pending-registration-button"', false)

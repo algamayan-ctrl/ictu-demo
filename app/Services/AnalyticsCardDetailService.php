@@ -66,6 +66,7 @@ class AnalyticsCardDetailService
  'inventory.low-availability' => $this->lowAvailability($scope),
  'inventory.utilization' => $this->releasedItems($scope, 'Utilization'),
  'inventory.operational' => $this->operationalInventory($scope),
+ 'inventory.coverage' => $this->coverage($scope),
 
  /* Borrowing & Return Performance */
  'returns.trend' => $this->returnTrend($scope),
@@ -1566,4 +1567,34 @@ class AnalyticsCardDetailService
 
  /** @return array<string, mixed> */
 
+
+ // Pulled-main descriptive stock/release history; no projected values.
+ private function coverage(array $scope): array
+ {
+ $coverage = $this->analytics->stockCoverage(
+ $this->inventory, $scope['from'], $scope['to'], 10, $scope['division'], $scope['unit'], $scope['borrower'] ?? null
+ );
+
+ $rows = $coverage['items'] ?? [];
+
+ return [
+ 'title' => 'Coverage Detail',
+ 'value' => $coverage['total'] ?? count($rows),
+ 'value_label' => 'items released in this period',
+ 'context' => 'Available stock and release history',
+ 'note' => 'Available stock is the current count for each item. Released quantity and '
+ .'release transactions are those recorded in the selected period. No usage rate '
+ .'or future shortage is estimated from them. '.$this->periodNote($scope),
+ 'stats' => array_map(
+ static fn (array $row): array => [
+ 'label' => $row['name'],
+ 'value' => ($row['available'] + 0).' available - '.($row['released'] + 0).' released',
+ ],
+ array_slice($rows, 0, 4)
+ ),
+ 'empty' => $rows === []
+ ? ($coverage['summary'] ?? 'No equipment was released during this period.')
+ : null,
+ ];
+ }
 }

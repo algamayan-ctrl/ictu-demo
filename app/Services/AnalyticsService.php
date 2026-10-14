@@ -3299,4 +3299,97 @@ class AnalyticsService
  {
  return collect(OrganizationalStructure::unitsByDivision());
  }
+
+ // Pulled-main descriptive stock/release history; no projected values.
+ public function stockCoverage(
+ InventoryService $inventoryService,
+ CarbonInterface $from,
+ CarbonInterface $to,
+ int $limit = 10,
+ ?string $division = null,
+ ?string $unit = null,
+ ?int $borrower = null
+ ): array {
+ $days = max(1, (int) Carbon::parse($from)->startOfDay()->diffInDays(Carbon::parse($to)->startOfDay()) + 1);
+
+ $usageQuery = DB::table('custody_lines')
+ ->join('custody_transactions', 'custody_transactions.id', '=', 'custody_lines.custody_transaction_id')
+ ->join('request_items', 'request_items.id', '=', 'custody_lines.request_item_id')
+ ->whereNotNull('custody_transactions.released_at')
+ ->whereBetween('custody_transactions.released_at', [$from, $to]);
+
+ if (($division !== null && $division !== '' && $division !== 'all')
+ || ($unit !== null && $unit !== '' && $unit !== 'all')) {
+ $versionIds = DB::table('request_versions')
+ ->where(fn ($versions) => $versions->whereNull('affiliation_type')->orWhere('affiliation_type', '!=', 'EXTERNAL'))
+ ->when(
+ $division !== null && $division !== '' && $division !== 'all',
+ fn ($versions) => $versions->where('division_code', $division)
+ )
+ ->when(
+ $unit !== null && $unit !== '' && $unit !== 'all',
+ fn ($versions) => $versions->where('office_unit', $unit)
+ )
+ ->select('id');
+
+ $usageQuery->whereIn('custody_transactions.request_version_id', $versionIds);
+ }
+
+ if ($borrower !== null) {
+ $usageQuery->where('custody_transactions.borrower_user_id', $borrower);
+ }
+
+ $usage = $usageQuery
+ ->groupBy('request_items.inventory_item_id')
+ ->select('request_items.inventory_item_id AS item_id')
+ ->selectRaw('SUM(custody_lines.actual_released_quantity) AS quantity')
+ ->selectRaw('COUNT(DISTINCT custody_transactions.id) AS releases')
+ ->selectRaw('MAX(custody_transactions.released_at) AS last_released_at')
+ ->get()
+ ->keyBy('item_id');
+
+ $items = InventoryItem::query()
+ ->where('active', true)
+ ->where('borrowable', true)
+ ->get();
+
+ $balances = $inventoryService->portfolio($items, now()->startOfDay(), now()->endOfDay());
+ $rows = [];
+
+ foreach ($items as $item) {
+ $activity = $usage->get($item->id);
+ $released = (float) ($activity->quantity ?? 0);
+
+ if ($released <= 0) {
+ continue;
+ }
+
+ $balance = $balances[$item->id] ?? [];
+
+ $rows[] = [
+ 'item_id' => $item->id,
+ 'name' => $item->unique_description,
+ 'available' => (float) ($balance['borrower_available'] ?? $balance['current_available'] ?? 0) + 0,
+ 'stock' => (float) ($balance['serviceable_total'] ?? 0) + 0,
+ 'released' => $released + 0,
+ 'releases' => (int) ($activity->releases ?? 0),
+ 'last_released_at' => $activity->last_released_at ?? null,
+ ];
+ }
+
+ usort($rows, fn (array $a, array $b): int => [$a['available'], -$a['released'], $a['name']]
+ <=> [$b['available'], -$b['released'], $b['name']]);
+
+ $count = count($rows);
+
+ return [
+ 'available' => $rows !== [],
+ 'window_days' => $days,
+ 'total' => $count,
+ 'items' => array_slice($rows, 0, $limit),
+ 'summary' => $rows === []
+ ? 'No equipment was released during this period, so there is no release history to show.'
+ : $count.' '.($count === 1 ? 'item was' : 'items were').' released during this period.',
+ ];
+ }
 }

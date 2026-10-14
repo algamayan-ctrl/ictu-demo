@@ -9,6 +9,7 @@ use App\Policies\BorrowerRegistrationPolicy;
 use App\Policies\BorrowingRequestPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,6 +27,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Reset emails and OAuth entry links use the configured system address,
+        // including when a request arrives through a hostname alias or proxy.
+        $applicationUrl = rtrim((string) config('app.url'), '/');
+        if (filter_var($applicationUrl, FILTER_VALIDATE_URL)) {
+            URL::forceRootUrl($applicationUrl);
+            URL::forceScheme((string) parse_url($applicationUrl, PHP_URL_SCHEME));
+        }
+
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(BorrowerRegistration::class, BorrowerRegistrationPolicy::class);
         Gate::policy(BorrowingRequest::class, BorrowingRequestPolicy::class);

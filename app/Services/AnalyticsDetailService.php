@@ -46,6 +46,7 @@ class AnalyticsDetailService
  'unit',
  'returns',
  'borrower',
+ 'coverage',
  'trend',
  /* Request Outcomes cohort, whole or one outcome group. */
  'outcomes',
@@ -80,7 +81,7 @@ class AnalyticsDetailService
  ?int $borrower = null,
  ?int $recordLimit = null
  ): ?array {
- if (! in_array($type, self::TYPES, true) || ($type === 'card' && (str_starts_with((string) $request->input('for', ''), 'forecast.') || $request->input('for') === 'inventory.coverage'))) {
+ if (! in_array($type, self::TYPES, true) || ($type === 'card' && str_starts_with((string) $request->input('for', ''), 'forecast.'))) {
  return null;
  }
 
@@ -104,6 +105,7 @@ class AnalyticsDetailService
  'unit' => $this->unit($scope, (string) $request->input('for', '')),
  'returns' => $this->returns($scope, (string) $request->input('state', 'on-time')),
  'borrower' => $this->borrower($scope, (string) $request->input('for', '')),
+ 'coverage' => $this->coverage($scope, (string) $request->input('item', '')),
  'trend' => $this->trend($scope, (int) $request->input('bucket', 0)),
  'outcomes' => $this->outcomes($scope, (string) $request->input('outcome', '')),
  'overdue-aging' => $this->overdueAging($scope, (string) $request->input('bucket', '')),
@@ -1341,5 +1343,43 @@ class AnalyticsDetailService
  private function date(mixed $value): string
  {
  return $value ? Carbon::parse($value)->format('d M Y') : '—';
+ }
+
+ // Pulled-main descriptive stock/release history; no projected values.
+ private function coverage(array $scope, string $itemId): ?array
+ {
+ $coverage = $this->analytics->stockCoverage(
+ $this->inventory, $scope['from'], $scope['to'], 200, $scope['division'], $scope['unit'], $scope['borrower'] ?? null
+ );
+
+ $row = collect($coverage['items'])->firstWhere('item_id', (int) $itemId);
+
+ if (! $row) {
+ return null;
+ }
+
+ /*
+ * Recorded facts only: what is usable now and what the custody records
+ * show went out in the period. No usage rate, projected days of stock
+ * or risk band is derived from them.
+ */
+ return [
+ 'title' => $row['name'],
+ 'value' => $row['available'],
+ 'value_label' => 'units available now',
+ 'context' => 'Available stock and release history',
+ 'note' => 'Available stock is the current count. Released quantity and release '
+ .'transactions are those recorded in the selected reporting period.',
+ 'stats' => [
+ ['label' => 'Current usable stock', 'value' => $row['available']],
+ ['label' => 'Serviceable stock', 'value' => $row['stock']],
+ ['label' => 'Released in this period', 'value' => $row['released']],
+ ['label' => 'Release transactions', 'value' => $row['releases']],
+ ['label' => 'Reporting period', 'value' => $coverage['window_days'].' days'],
+ ],
+ 'reports_url' => AnalyticsDrilldown::utilization(
+ $scope['period'], null, null, ['equipment' => $row['item_id']]
+ ),
+ ];
  }
 }

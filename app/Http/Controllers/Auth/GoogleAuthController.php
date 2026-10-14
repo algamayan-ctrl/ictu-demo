@@ -42,6 +42,22 @@ class GoogleAuthController extends Controller
             ]);
         }
 
+        $applicationUrl = rtrim((string) config('app.url'), '/');
+        if ((string) config('services.google.redirect') !== $applicationUrl.'/auth/google/callback') {
+            return redirect()->route('home')->withErrors([
+                'google' => 'Google sign-in needs server configuration. Contact ICTU for assistance.',
+            ]);
+        }
+        // Start state and receive the callback on the same browser origin.
+        // Google still requires this exact callback in its client configuration.
+        $applicationOrigin = parse_url($applicationUrl, PHP_URL_SCHEME).'://'.parse_url($applicationUrl, PHP_URL_HOST);
+        if ($port = parse_url($applicationUrl, PHP_URL_PORT)) {
+            $applicationOrigin .= ':'.$port;
+        }
+        if ($request->getSchemeAndHttpHost() !== $applicationOrigin) {
+            return redirect()->away($applicationUrl.'/auth/google');
+        }
+
         try {
             $driver = Socialite::driver('google')->scopes(['openid', 'email', 'profile']);
 

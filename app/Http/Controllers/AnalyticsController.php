@@ -415,7 +415,8 @@ class AnalyticsController extends Controller
  'inventory' => $analytics->inventory($inventory),
  'lowAvailability' => $analytics->lowAvailability($inventory, 10),
  'released' => $analytics->equipment($from, $to, $division, $unit, 5, $borrower),
- /* Quiet items are reported on Demand & Utilization, not here. */
+ /* Pulled-main recorded stock and release history; no projection. */
+ 'coverage' => $analytics->stockCoverage($inventory, $from, $to, 10, $division, $unit, $borrower),
  ];
  }
 

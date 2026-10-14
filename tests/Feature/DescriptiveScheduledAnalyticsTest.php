@@ -25,7 +25,9 @@ class DescriptiveScheduledAnalyticsTest extends TestCase
         $this->assertFalse(class_exists(\App\Services\ForecastService::class));
         $this->assertFileDoesNotExist(app_path('Services/ForecastService.php'));
         $this->assertFileDoesNotExist(resource_path('views/analytics/partials/predictive.blade.php'));
-        $this->assertFalse(method_exists(\App\Services\AnalyticsService::class, 'stockCoverage'));
+        // Main's coverage API contains recorded releases and current stock only.
+        $this->assertTrue(method_exists(\App\Services\AnalyticsService::class, 'stockCoverage'));
+        $this->assertFalse(defined(AnalyticsService::class.'::STOCKOUT_RISK_HIGH_DAYS'));
     }
 
     use RefreshDatabase;
@@ -89,14 +91,14 @@ class DescriptiveScheduledAnalyticsTest extends TestCase
         $response = $this->actingAs($this->head)->get(route('analytics.index', ['section' => $section, 'academic_period' => 'month']));
         $response->assertOk()->assertSee('Scheduled Demand')->assertDontSee('Forecast &amp; Planning', false)
             ->assertDontSee('Forecast Methodology')->assertDontSee('Forecast Readiness')->assertDontSee('Forecasted Demand')
-            ->assertDontSee('Coverage Detail')->assertDontSee('days coverage');
+            ->assertDontSee('days coverage');
     }
 
     public static function unsupportedDetails(): array
     {
         return [
-            ['forecast', 'demand'], ['coverage', ''], ['card', 'forecast.outlook'], ['card', 'forecast.equipment'],
-            ['card', 'forecast.busy'], ['card', 'forecast.methodology'], ['card', 'inventory.coverage'],
+            ['forecast', 'demand'], ['predictive', ''], ['card', 'forecast.outlook'], ['card', 'forecast.equipment'],
+            ['card', 'forecast.busy'], ['card', 'forecast.methodology'], ['card', 'forecast.coverage'],
         ];
     }
 
@@ -106,7 +108,7 @@ class DescriptiveScheduledAnalyticsTest extends TestCase
         $this->assertFalse(class_exists(\App\Services\ForecastService::class));
         $params = ['section' => 'inventory', 'detail' => $detail, 'for' => $key, 'metric' => 'demand', 'academic_period' => 'month'];
         $this->actingAs($this->head)->get(route('analytics.index', $params))->assertOk()
-            ->assertDontSee('Forecast Methodology')->assertDontSee('Coverage Detail')->assertDontSee('Forecasted Demand');
+            ->assertDontSee('Forecast Methodology')->assertDontSee('days coverage')->assertDontSee('Forecasted Demand');
         $this->get(route('reports.analytics-records', $params))->assertNotFound();
     }
 

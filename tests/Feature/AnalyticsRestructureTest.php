@@ -437,9 +437,12 @@ class AnalyticsRestructureTest extends TestCase
         $this->assertSame('Monday', $peak['peak_day']);
     }
 
-    public function test_retired_stock_projection_api_is_absent(): void
+    public function test_stock_history_without_releases_does_not_invent_a_projection(): void
     {
-        $this->assertFalse(method_exists(AnalyticsService::class, 'stockCoverage'));
+        $coverage = $this->analytics->stockCoverage(app(InventoryService::class), $this->from, $this->to);
+        $this->assertFalse($coverage['available']);
+        $this->assertSame([], $coverage['items']);
+        $this->assertSame(0, $coverage['total']);
         $this->assertFalse(defined(AnalyticsService::class.'::STOCKOUT_RISK_HIGH_DAYS'));
     }
 

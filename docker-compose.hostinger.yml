@@ -1,0 +1,27 @@
+# Hostinger VPS + Cloudflare Tunnel add-on. Use together with docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.hostinger.yml up -d --build
+# See docs/DEPLOYMENT-HOSTINGER-CLOUDFLARE.md.
+
+services:
+  app:
+    # Reachable only from the VPS itself; the public reaches the app through
+    # the tunnel. Docker-published ports bypass UFW, so never publish 0.0.0.0.
+    ports: !override
+      - "127.0.0.1:8080:80"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    # Holds only TUNNEL_TOKEN, so the tunnel never receives application secrets.
+    env_file: tunnel.env
+    depends_on:
+      app:
+        condition: service_healthy
+
+networks:
+  default:
+    # Fixed subnet so TRUSTED_PROXIES can name the tunnel's address range.
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24

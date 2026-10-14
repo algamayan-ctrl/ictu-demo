@@ -19,3 +19,6 @@ bootstrap/cache/*.php
 *.bak-*
 *.before-*
 BACKUP-*/
+
+# Cloudflare Tunnel token never belongs in an image.
+tunnel.env

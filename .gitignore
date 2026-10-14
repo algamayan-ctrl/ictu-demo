@@ -48,3 +48,6 @@ return-ui-files.zip
 *.backup-before-*
 *.backup-safe-*
 *.backup-bg-*
+
+# Cloudflare Tunnel token (Hostinger deployment)
+tunnel.env

@@ -26,12 +26,12 @@ domain="${domain%%/*}"
 
 read -rp "Google OAuth Client ID: " google_client_id
 read -rsp "NEW Google OAuth Client Secret (hidden): " google_client_secret; echo
-read -rp "Gmail sender address [spmuacpmp@gmail.com]: " mail_user
-mail_user="${mail_user:-spmuacpmp@gmail.com}"
+read -rp "Gmail sender address (the account that owns the App Password): " mail_user
+mail_user="${mail_user// /}"
 read -rsp "NEW Gmail App Password, 16 letters (hidden): " mail_password; echo
 mail_password="${mail_password// /}"
 
-for value in "$google_client_id" "$google_client_secret" "$mail_password"; do
+for value in "$google_client_id" "$google_client_secret" "$mail_user" "$mail_password"; do
     if [ -z "$value" ]; then
         echo "A required value was empty. Nothing was written." >&2
         exit 1

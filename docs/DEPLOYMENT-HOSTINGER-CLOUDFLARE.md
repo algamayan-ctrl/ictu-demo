@@ -235,9 +235,9 @@ MAIL_MAILER=smtp
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
 MAIL_SCHEME=smtp
-MAIL_USERNAME=spmuacpmp@gmail.com
+MAIL_USERNAME=<the Gmail address that owns the App Password>
 MAIL_PASSWORD=<Gmail App Password, 16 characters, no spaces>
-MAIL_FROM_ADDRESS=spmuacpmp@gmail.com
+MAIL_FROM_ADDRESS=<same Gmail address>
 MAIL_FROM_NAME="SPMU-ACPMP"
 
 GOOGLE_CLIENT_ID=<from Google Cloud Console>
@@ -325,7 +325,7 @@ OTP and reset emails are sent **immediately during the request** (not through th
 
 **Gmail (fine for a capstone, about 500 messages/day):**
 
-1. Sign in to `spmuacpmp@gmail.com` → **Google Account → Security** → turn on **2-Step Verification**.
+1. Use a Gmail account your team controls. A new dedicated one such as `spmu.acpmp.system@gmail.com` is best; a school Workspace account (`@my.cspc.edu.ph`) may have App Passwords disabled by its admin. Sign in → **Google Account → Security** → turn on **2-Step Verification**.
 2. **Security → App passwords** → create one named `SPMU VPS`. Copy the 16 characters, without spaces, into `MAIL_PASSWORD`.
 3. Revoke the old App Password that was used during development.
 

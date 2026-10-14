@@ -22,8 +22,9 @@ class IctuAccountStatusKpiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
+        $this->seed(\Database\Seeders\RoleSeeder::class);
         $this->ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        app(\App\Services\UserRoleAssignmentService::class)->synchronize($this->ictu, AccessClassification::IctuMaintainer);
     }
 
     private function account(AccessClassification $classification, string $status, string $name, bool $verified = true): User

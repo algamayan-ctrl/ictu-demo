@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureRegistrationIsApproved;
 use App\Http\Middleware\EnsureActiveWorkspace;
 use App\Http\Middleware\EnsureInstitutionalEmailIsVerified;
 use App\Http\Middleware\EnforceIdleSession;
@@ -19,11 +20,18 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Configure the actual reverse-proxy addresses at deployment; requests
+        // are not trusted merely for carrying forwarded headers.
+        $trustedProxies = array_values(array_filter(array_map('trim', explode(',', (string) env('TRUSTED_PROXIES', '')))));
+        if ($trustedProxies !== []) {
+            $middleware->trustProxies(at: $trustedProxies);
+        }
         $middleware->web(append: [
         SecurityHeaders::class,
         PreventDuplicateSubmission::class,
     ]);
         $middleware->alias([
+            'approved-registration' => EnsureRegistrationIsApproved::class,
             'active' => EnsureAccountIsActive::class,
             'verified-email' => EnsureInstitutionalEmailIsVerified::class,
             'idle' => EnforceIdleSession::class,

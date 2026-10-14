@@ -222,6 +222,22 @@ class ReportInventoryUtilizationTest extends TestCase
         $this->assertSame('1', $row['transactions']);
     }
 
+    public function test_approved_only_fixture_uses_the_version_primary_key_when_sequences_differ(): void
+    {
+        $chair = $this->item('Version consistency Chair', 500);
+        [, $firstVersion] = $this->requestAndVersion('ACADEMIC', 'College of Computer Studies', RequestStatus::UnderSpmu);
+        $extraVersion = $firstVersion->replicate();
+        $extraVersion->version_no = 2;
+        $extraVersion->save();
+        $this->approvedOnly($chair, 90);
+        $latestRequest = BorrowingRequest::query()->latest('id')->firstOrFail();
+        $actualVersion = RequestVersion::query()->where('request_id', $latestRequest->id)->where('version_no', 1)->firstOrFail();
+        $line = RequestItem::query()->firstOrFail();
+        $this->assertNotSame($latestRequest->id, $actualVersion->id);
+        $this->assertSame($actualVersion->id, $line->request_version_id);
+        $this->assertSame(90.0, (float) $line->requested_quantity);
+    }
+
     public function test_custody_without_a_release_timestamp_contributes_no_utilization(): void
     {
         $chair = $this->item('Monoblock Chair', 500);
@@ -413,7 +429,6 @@ class ReportInventoryUtilizationTest extends TestCase
     /** A request approved at the record level but never carried into custody. */
     private function approvedOnly(InventoryItem $item, int $quantity): void
     {
-        /* requestAndVersion() returns [request, version, borrower]; the item belongs to the version. */
         [, $version] = $this->requestAndVersion('ACADEMIC', 'College of Computer Studies', RequestStatus::ApprovedReadyForRelease);
 
         RequestItem::query()->create([

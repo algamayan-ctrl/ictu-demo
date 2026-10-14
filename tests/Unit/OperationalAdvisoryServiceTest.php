@@ -27,7 +27,7 @@ class OperationalAdvisoryServiceTest extends TestCase
     ];
 
     /** A Monday–Friday 8–5 schedule from $today, with date-specific overrides. */
-    private function snapshot(array $overrides, string $today = '2026-10-12'): array
+    private function snapshot(array $overrides, string $today = '2026-10-12', string $time = '10:00:00'): array
     {
         $start = CarbonImmutable::parse($today, 'Asia/Manila');
         $profiles = collect();
@@ -52,7 +52,7 @@ class OperationalAdvisoryServiceTest extends TestCase
         $calendar = Mockery::mock(OperationalCalendarService::class)->makePartial();
         $calendar->shouldReceive('profilesForRange')->once()->andReturn($profiles);
 
-        return (new OperationalAdvisoryService($calendar))->snapshot($start);
+        return (new OperationalAdvisoryService($calendar))->snapshot($start->setTimeFromTimeString($time));
     }
 
     public function test_regular_open_day_shows_hours_and_no_routine_weekend_reminder(): void
@@ -60,8 +60,8 @@ class OperationalAdvisoryServiceTest extends TestCase
         $result = $this->snapshot([]);
 
         $this->assertSame('normal', $result['tone']);
-        $this->assertSame('Open Today', $result['badge']);
-        $this->assertSame('On-site transactions are available today.', $result['message']);
+        $this->assertSame('On-site Open', $result['badge']);
+        $this->assertSame('On-site transactions are available until 5:00 PM. Online borrowing requests remain available.', $result['message']);
         $this->assertSame('8:00 AM–5:00 PM', $result['hours']);
         // The coming weekend is routine: it is not announced.
         $this->assertNull($result['upcoming']);
@@ -75,9 +75,9 @@ class OperationalAdvisoryServiceTest extends TestCase
         $result = $this->snapshot([], '2026-10-17');
 
         $this->assertSame('closed', $result['tone']);
-        $this->assertSame('Closed Today', $result['badge']);
-        $this->assertSame('No on-site transactions today. Online requests remain available.', $result['message']);
-        $this->assertSame('Mon, Oct 19', $result['next_available']);
+        $this->assertSame('On-site Closed', $result['badge']);
+        $this->assertSame('No on-site transactions are scheduled today. Next on-site opening: Mon, Oct 19 at 8:00 AM. Online borrowing requests remain available.', $result['message']);
+        $this->assertSame('Mon, Oct 19 at 8:00 AM', $result['next_available']);
         $this->assertNull($result['hours']);
         $this->assertNull($result['reason']);
         $this->assertNull($result['upcoming']);
@@ -87,8 +87,8 @@ class OperationalAdvisoryServiceTest extends TestCase
     {
         $result = $this->snapshot([], '2026-10-18');
 
-        $this->assertSame('Closed Today', $result['badge']);
-        $this->assertSame('Mon, Oct 19', $result['next_available']);
+        $this->assertSame('On-site Closed', $result['badge']);
+        $this->assertSame('Mon, Oct 19 at 8:00 AM', $result['next_available']);
     }
 
     public function test_weekly_schedule_decides_which_days_are_routine_not_the_weekday_name(): void
@@ -106,11 +106,11 @@ class OperationalAdvisoryServiceTest extends TestCase
         }
 
         $wednesday = $this->snapshot($overrides, '2026-10-14');
-        $this->assertSame('Closed Today', $wednesday['badge']);
-        $this->assertSame('Thu, Oct 15', $wednesday['next_available']);
+        $this->assertSame('On-site Closed', $wednesday['badge']);
+        $this->assertSame('Thu, Oct 15 at 8:00 AM', $wednesday['next_available']);
 
         $saturday = $this->snapshot($overrides, '2026-10-17');
-        $this->assertSame('Open Today', $saturday['badge']);
+        $this->assertSame('On-site Open', $saturday['badge']);
         $this->assertNull($saturday['upcoming']);
     }
 
@@ -121,10 +121,10 @@ class OperationalAdvisoryServiceTest extends TestCase
         ]);
 
         $this->assertSame('closed', $result['tone']);
-        $this->assertSame('Temporary Closure', $result['badge']);
-        $this->assertSame('On-site transactions are suspended today. Online requests remain available.', $result['message']);
+        $this->assertSame('On-site Closed', $result['badge']);
+        $this->assertSame('On-site transactions are suspended today. Next on-site opening: Tue, Oct 13 at 8:00 AM. Online borrowing requests remain available.', $result['message']);
         $this->assertSame('Emergency closure', $result['reason']);
-        $this->assertSame('Tue, Oct 13', $result['next_available']);
+        $this->assertSame('Tue, Oct 13 at 8:00 AM', $result['next_available']);
     }
 
     public function test_consecutive_closures_from_today_give_the_last_date_and_the_true_next_available_day(): void
@@ -136,8 +136,8 @@ class OperationalAdvisoryServiceTest extends TestCase
             '2026-10-14' => $closed,
         ]);
 
-        $this->assertSame('On-site transactions are suspended through Wed, Oct 14. Online requests remain available.', $result['message']);
-        $this->assertSame('Thu, Oct 15', $result['next_available']);
+        $this->assertSame('On-site transactions are suspended through Wed, Oct 14. Next on-site opening: Thu, Oct 15 at 8:00 AM. Online borrowing requests remain available.', $result['message']);
+        $this->assertSame('Thu, Oct 15 at 8:00 AM', $result['next_available']);
         // The rest of the same closure is not repeated as an upcoming notice.
         $this->assertNull($result['upcoming']);
     }
@@ -149,8 +149,8 @@ class OperationalAdvisoryServiceTest extends TestCase
             '2026-10-16' => self::CLOSED,
         ], '2026-10-15');
 
-        $this->assertSame('On-site transactions are suspended through Fri, Oct 16. Online requests remain available.', $result['message']);
-        $this->assertSame('Mon, Oct 19', $result['next_available']);
+        $this->assertSame('On-site transactions are suspended through Fri, Oct 16. Next on-site opening: Mon, Oct 19 at 8:00 AM. Online borrowing requests remain available.', $result['message']);
+        $this->assertSame('Mon, Oct 19 at 8:00 AM', $result['next_available']);
     }
 
     public function test_upcoming_weekday_closure_is_announced_with_its_reason(): void
@@ -159,7 +159,7 @@ class OperationalAdvisoryServiceTest extends TestCase
             '2026-10-14' => self::CLOSED + ['reason' => 'Special maintenance'],
         ]);
 
-        $this->assertSame('Open Today', $result['badge']);
+        $this->assertSame('On-site Open', $result['badge']);
         $this->assertSame('Temporary closure · Wed, Oct 14 · Special maintenance', $result['upcoming']);
     }
 
@@ -191,7 +191,7 @@ class OperationalAdvisoryServiceTest extends TestCase
             '2026-10-20' => self::CLOSED + ['reason' => 'Holiday'],
         ], '2026-10-16');
 
-        $this->assertSame('Open Today', $result['badge']);
+        $this->assertSame('On-site Open', $result['badge']);
         $this->assertSame('Temporary closure · Tue, Oct 20 · Holiday', $result['upcoming']);
     }
 
@@ -211,9 +211,9 @@ class OperationalAdvisoryServiceTest extends TestCase
 
         // On the day itself it stays a routine closed day, with the calendar's reason.
         $today = $this->snapshot(['2026-10-18' => self::CLOSED + ['reason' => 'Holiday']], '2026-10-18');
-        $this->assertSame('Closed Today', $today['badge']);
+        $this->assertSame('On-site Closed', $today['badge']);
         $this->assertSame('Holiday', $today['reason']);
-        $this->assertSame('Mon, Oct 19', $today['next_available']);
+        $this->assertSame('Mon, Oct 19 at 8:00 AM', $today['next_available']);
     }
 
     public function test_special_saturday_opening_today_shows_its_own_hours(): void
@@ -228,8 +228,8 @@ class OperationalAdvisoryServiceTest extends TestCase
         ], '2026-10-17');
 
         $this->assertSame('special', $result['tone']);
-        $this->assertSame('Special Opening', $result['badge']);
-        $this->assertSame('Special opening today. On-site transactions are available.', $result['message']);
+        $this->assertSame('On-site Open', $result['badge']);
+        $this->assertSame('Special opening today. On-site transactions are available until 12:00 PM. Online borrowing requests remain available.', $result['message']);
         $this->assertSame('9:00 AM–12:00 PM', $result['hours']);
         $this->assertSame('Scheduled Saturday service', $result['reason']);
         $this->assertNull($result['next_available']);
@@ -242,7 +242,7 @@ class OperationalAdvisoryServiceTest extends TestCase
         ], '2026-10-17');
 
         $this->assertSame('closed', $result['tone']);
-        $this->assertSame('Closed Today', $result['badge']);
+        $this->assertSame('On-site Closed', $result['badge']);
         $this->assertNull($result['hours']);
     }
 
@@ -253,8 +253,8 @@ class OperationalAdvisoryServiceTest extends TestCase
         ]);
 
         $this->assertSame('closed', $result['tone']);
-        $this->assertSame('Closed Today', $result['badge']);
-        $this->assertSame('Tue, Oct 13', $result['next_available']);
+        $this->assertSame('On-site Closed', $result['badge']);
+        $this->assertSame('Tue, Oct 13 at 8:00 AM', $result['next_available']);
     }
 
     public function test_no_available_day_in_the_lookahead_leaves_next_available_empty(): void
@@ -269,5 +269,17 @@ class OperationalAdvisoryServiceTest extends TestCase
 
         $this->assertSame('closed', $result['tone']);
         $this->assertNull($result['next_available']);
+    }
+
+    public function test_opening_and_closing_boundaries_follow_the_configured_transaction_window(): void
+    {
+        $before = $this->snapshot([], '2026-10-12', '07:59:59');
+        $this->assertSame('On-site Closed', $before['badge']);
+        $this->assertSame('On-site transactions will open today at 8:00 AM. Online borrowing requests remain available.', $before['message']);
+        $this->assertSame('On-site Open', $this->snapshot([], '2026-10-12', '08:00:00')['badge']);
+        $this->assertSame('On-site Open', $this->snapshot([], '2026-10-12', '16:59:59')['badge']);
+        $closed = $this->snapshot([], '2026-10-12', '17:00:00');
+        $this->assertSame('On-site Closed', $closed['badge']);
+        $this->assertSame('Tue, Oct 13 at 8:00 AM', $closed['next_available']);
     }
 }

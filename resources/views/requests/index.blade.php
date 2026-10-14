@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => session('active_workspace') === 'BORROWER' ? 'My Requests' : 'Borrowing Requests'])
 
 @section('content')
+<style>.record-browser-toolbar + .table-wrap tbody td { padding-block: 10px; }</style>
 @php
     $isBorrower = session('active_workspace') === 'BORROWER';
     $classification = auth()->user()?->access_classification?->value;
@@ -8,8 +9,8 @@
     $isSpmuHead = ! $isBorrower && $classification === 'SPMU_HEAD';
 
     /*
-     * Request Records uses only the user-facing statuses that are actually
-     * represented by the current records. Internal/retired workflow names are
+     * Request Records uses supported user-facing stages and current records.
+     * Internal/retired workflow names are
      * normalized to the current SPMU terminology instead of appearing as
      * separate filter choices.
      */
@@ -123,16 +124,28 @@
     ];
 
     /*
-     * Build the dropdown from the same records/status labels rendered below.
-     * This keeps the list short: no unused statuses and no legacy GSU/VPAF
-     * entries just because those enum values still exist for old data.
+     * Keep current record wording and add supported stages with no rows.
+     * Retired GSU/VPAF stages remain normalized for historical records.
      */
     $requestRecordsForFilters = method_exists($requests, 'items')
         ? collect($requests->items())
         : collect($requests);
 
-    $requestFilterStatuses = $requestRecordsForFilters
-        ->map($requestRecordStatus)
+    // Keep every supported stage available, including stages with no current rows.
+    $supportedStatusLabels = [
+        'DRAFT' => 'Draft', 'SUBMITTED' => 'Submitted',
+        ...($isBorrower ? ['UNDER_SPMU_REVIEW' => 'Under SPMU Review'] : ['FOR_APPROVAL' => 'For Approval']),
+        ...($isActionOfficer ? ['FOR_VERIFICATION' => 'For Verification'] : []),
+        'RETURNED_FOR_REVISION' => 'Returned for Revision', 'APPROVED' => 'Approved',
+        'PICKUP_SCHEDULING' => 'Pickup Scheduling', 'ITEM_PREPARATION' => 'Item Preparation',
+        'PICKUP_SCHEDULED' => 'Pickup Scheduled', 'READY_FOR_RELEASE' => 'Ready for Release',
+        'PICKUP_EXPIRED' => 'Pickup Missed', 'BORROWED' => 'Items Released / On Custody',
+        'RETURN_PROCESSING' => 'Return Processing', 'OVERDUE' => 'Overdue',
+        'ACCOUNTABILITY_PENDING' => 'Accountability Pending', 'BORROWER_CLEARED' => 'Borrower Cleared',
+        'COMPLETED' => 'Completed', 'CANCELLED' => 'Cancelled', 'REJECTED' => 'Rejected',
+    ];
+    $requestFilterStatuses = $requestRecordsForFilters->map($requestRecordStatus)
+        ->concat(collect($supportedStatusLabels)->map(fn ($label, $key) => ['key' => $key, 'label' => $label]))
         ->unique('key')
         ->sortBy(fn (array $status): int => $requestStatusOrder[$status['key']] ?? 999)
         ->values();
@@ -159,6 +172,9 @@
 </section>
 
 <section class="content-area">
+@if($activeCustodiesFilter ?? false)
+    <x-filter-context-banner label="Active Custodies" :count="$requests->count()" :clear-url="route('requests.index')" />
+@endif
 @if($isBorrower)
 
 <div class="my-requests">

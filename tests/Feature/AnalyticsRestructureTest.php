@@ -437,113 +437,13 @@ class AnalyticsRestructureTest extends TestCase
         $this->assertSame('Monday', $peak['peak_day']);
     }
 
-    /* ------------------------------------------------------------------ */
-    /* Stock coverage                                                      */
-    /* ------------------------------------------------------------------ */
-
-    public function test_stock_coverage_reports_nothing_without_any_release(): void
+    public function test_stock_history_without_releases_does_not_invent_a_projection(): void
     {
-        $this->item('Idle Item', 40);
-
-        $coverage = $this->coverage();
-
+        $coverage = $this->analytics->stockCoverage(app(InventoryService::class), $this->from, $this->to);
         $this->assertFalse($coverage['available']);
         $this->assertSame([], $coverage['items']);
-        $this->assertStringContainsString('No equipment was released', $coverage['summary']);
-    }
-
-    public function test_coverage_states_current_stock_beside_the_recorded_release_history(): void
-    {
-        $item = $this->item('Monoblock Chair', 300);
-
-        /* Three separate releases of 10 across the 30-day period. */
-        foreach ([2, 10, 18] as $offset) {
-            $this->releaseOnce($item, 10, $this->from->copy()->addDays($offset));
-        }
-
-        $coverage = $this->coverage();
-
-        $this->assertTrue($coverage['available']);
-        $this->assertSame(30, $coverage['window_days']);
-        $this->assertSame(1, $coverage['total']);
-
-        $row = $coverage['items'][0];
-
-        $this->assertSame($item->id, $row['item_id']);
-        $this->assertEquals(300, $row['stock']);
-        /* 300 serviceable less the 30 still out. */
-        $this->assertEquals(270, $row['available']);
-        $this->assertEquals(30, $row['released']);
-        $this->assertSame(3, $row['releases']);
-    }
-
-    public function test_coverage_never_projects_a_rate_days_of_stock_or_a_risk_band(): void
-    {
-        /*
-         * Forecasting is outside the Analytics scope. Whatever the release
-         * history looks like - one release or many - the reading stays a
-         * statement of recorded facts and carries no derived projection.
-         */
-        $item = $this->item('Monoblock Chair', 90);
-
-        foreach ([2, 10, 18] as $offset) {
-            $this->releaseOnce($item, 30, $this->from->copy()->addDays($offset));
-        }
-
-        $coverage = $this->coverage();
-
-        foreach (['per_day', 'days_cover', 'risk', 'sufficient'] as $projected) {
-            $this->assertArrayNotHasKey($projected, $coverage['items'][0]);
-        }
-
-        foreach (['high_risk', 'thresholds', 'requirement', 'measured', 'insufficient'] as $projected) {
-            $this->assertArrayNotHasKey($projected, $coverage);
-        }
-
-        /* All 90 are out, and that is stated as the current count, not graded. */
-        $this->assertEquals(0, $coverage['items'][0]['available']);
-        $this->assertEquals(90, $coverage['items'][0]['released']);
-    }
-
-    public function test_a_single_release_is_reported_as_history_not_withheld(): void
-    {
-        $item = $this->item('Monoblock Chair', 300);
-
-        $this->releaseOnce($item, 30, $this->from->copy()->addDays(2));
-
-        $row = $this->coverage()['items'][0];
-
-        $this->assertSame(1, $row['releases']);
-        $this->assertEquals(30, $row['released']);
-        $this->assertEquals(270, $row['available']);
-    }
-
-    public function test_coverage_counts_only_releases_inside_the_reporting_period(): void
-    {
-        $item = $this->item('Monoblock Chair', 300);
-
-        $this->releaseOnce($item, 10, $this->from->copy()->addDays(2));
-        /* Released the month before: current stock reflects it, the period history does not. */
-        $this->releaseOnce($item, 40, $this->from->copy()->subDays(10));
-
-        $row = $this->coverage()['items'][0];
-
-        $this->assertEquals(10, $row['released']);
-        $this->assertSame(1, $row['releases']);
-        $this->assertEquals(250, $row['available']);
-    }
-
-    public function test_coverage_lists_the_tightest_current_stock_first(): void
-    {
-        $roomy = $this->item('Folding Table', 100);
-        $tight = $this->item('Sound System', 4);
-
-        $this->releaseOnce($roomy, 5, $this->from->copy()->addDays(2));
-        $this->releaseOnce($tight, 3, $this->from->copy()->addDays(3));
-
-        $names = array_column($this->coverage()['items'], 'name');
-
-        $this->assertSame(['Sound System', 'Folding Table'], $names);
+        $this->assertSame(0, $coverage['total']);
+        $this->assertFalse(defined(AnalyticsService::class.'::STOCKOUT_RISK_HIGH_DAYS'));
     }
 
     /* ------------------------------------------------------------------ */
@@ -575,7 +475,7 @@ class AnalyticsRestructureTest extends TestCase
             'Demand &amp; Utilization',
             'Inventory Health',
             'Borrowing &amp; Return Performance',
-            'Forecast &amp; Planning',
+            'Scheduled Demand',
         ] as $tab) {
             $response->assertSee($tab, false);
         }
@@ -586,7 +486,7 @@ class AnalyticsRestructureTest extends TestCase
         foreach ([
             'borrowers' => 'Borrowing &amp; Return Performance',
             'equipment' => 'Demand &amp; Utilization',
-            'forecast' => 'Forecast &amp; Planning',
+            'forecast' => 'Scheduled Demand',
         ] as $legacy => $heading) {
             $this->actingAs($this->spmuHead())
                 ->get(route('analytics.index', ['section' => $legacy]))
@@ -726,7 +626,7 @@ class AnalyticsRestructureTest extends TestCase
         $followUp->assertOk();
         /* The overdue / late-return distinction survives into the detail. */
         $followUp->assertSee('Late returns are already returned and are counted separately.', false);
-        $followUp->assertSee('Days overdue', false);
+        $followUp->assertSee('Open return days overdue', false);
     }
 
     public function test_low_availability_detail_states_it_is_current_inventory(): void
@@ -776,9 +676,10 @@ class AnalyticsRestructureTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Monoblock Chair', false);
-        $response->assertSee('Requested quantity (expressed demand)', false);
-        $response->assertSee('Released quantity (actual usage)', false);
-        $response->assertSee('Requested quantity shows demand; released quantity shows actual usage.', false);
+        $response->assertSee('Requested quantity', false);
+        $response->assertViewHas('detail', fn ($value) => collect($value['stats'])->firstWhere('label', 'Requested quantity')['value'] === 30.0);
+        $response->assertSee('Units released', false);
+        $response->assertViewHas('detail', fn ($value) => $value['value'] === 30.0 && $value['table']['rows'][0][5] === '30');
     }
 
     public function test_unit_and_division_details_render_with_their_scope(): void
@@ -842,56 +743,18 @@ class AnalyticsRestructureTest extends TestCase
         $response->assertSee('No late returns were recorded for this reporting period.', false);
     }
 
-    public function test_predictive_detail_shows_the_calculation_not_a_reports_jump(): void
+    public function test_legacy_predictive_detail_cannot_produce_a_projection(): void
     {
-        $response = $this->actingAs($this->spmuHead())->get(route('analytics.index', [
-            'section' => 'predictive',
-            'academic_period' => 'month',
-            'detail' => 'forecast',
-            'metric' => 'demand',
-        ]));
-
-        $response->assertOk();
-        $response->assertSee('Forecasted Demand', false);
-
-        /* With this dataset the guard holds, and the detail says why. */
-        $response->assertSee('Not enough historical data', false);
-        $response->assertDontSee('machine learning', false);
-
-        /*
-         * The headline figure is a weighted projection for a period that has
-         * not happened yet, not a count of raw records, so no report can
-         * reproduce it and the drawer must not offer one.
-         */
-        $response->assertDontSee('View source records', false);
+        $this->actingAs($this->spmuHead())->get(route('analytics.index', ['section' => 'predictive', 'detail' => 'forecast', 'metric' => 'demand']))
+            ->assertOk()->assertViewHas('detail', null)->assertSee('Scheduled Demand')->assertDontSee('Forecasted Demand');
     }
 
-    public function test_coverage_detail_states_recorded_history_and_projects_nothing(): void
+    public function test_legacy_stock_coverage_detail_is_unavailable_even_with_a_real_release(): void
     {
         $item = $this->item('Monoblock Chair', 300);
-
         $this->releaseOnce($item, 30, $this->from->copy()->addDays(2));
-
-        $response = $this->actingAs($this->spmuHead())->get(route('analytics.index', [
-            'section' => 'inventory',
-            'academic_period' => 'month',
-            'detail' => 'coverage',
-            'item' => $item->id,
-        ]));
-
-        $response->assertOk();
-
-        /*
-         * The panel restates what is recorded - current stock and the
-         * period's releases - and derives no rate, projected days of stock
-         * or risk band from it.
-         */
-        $response->assertSee('Available stock and release history', false);
-        $response->assertSee('Released in this period', false);
-        $response->assertSee('Release transactions', false);
-        $response->assertDontSee('Risk classification', false);
-        $response->assertDontSee('Estimated days of coverage', false);
-        $response->assertDontSee('Average daily usage', false);
+        $this->actingAs($this->spmuHead())->get(route('analytics.index', ['section' => 'inventory', 'academic_period' => 'month', 'detail' => 'coverage', 'item' => $item->id]))
+            ->assertOk()->assertViewHas('detail', null)->assertDontSee('Estimated days of coverage')->assertDontSee('Risk classification');
     }
 
     public function test_an_unknown_detail_key_renders_the_section_without_a_panel(): void
@@ -903,7 +766,8 @@ class AnalyticsRestructureTest extends TestCase
         ]));
 
         $response->assertOk();
-        $response->assertDontSee('aria-modal="true"', false);
+        $response->assertViewHas('detail', null);
+        $response->assertDontSee('data-analytics-detail-panel', false);
     }
 
     public function test_closing_a_detail_returns_to_the_same_analytics_state(): void
@@ -956,7 +820,8 @@ class AnalyticsRestructureTest extends TestCase
             ->get(route('analytics.index', ['section' => 'predictive']));
 
         $response->assertOk();
-        $response->assertSee('Weighted Moving Average', false);
+        $response->assertSee('Scheduled Demand', false);
+        $response->assertDontSee('Weighted Moving Average', false);
 
         foreach (['machine learning', 'artificial intelligence', 'trained model', 'AI model'] as $claim) {
             $response->assertDontSee($claim, false);
@@ -968,15 +833,6 @@ class AnalyticsRestructureTest extends TestCase
     /* ------------------------------------------------------------------ */
 
     /** Stock coverage over the fixture period unless another is given. */
-    private function coverage(?Carbon $from = null, ?Carbon $to = null): array
-    {
-        return $this->analytics->stockCoverage(
-            app(InventoryService::class),
-            $from ?? $this->from,
-            $to ?? $this->to
-        );
-    }
-
     /**
      * One physical release of an item, as its own custody transaction.
      *

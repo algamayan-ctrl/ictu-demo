@@ -509,7 +509,7 @@
                                 </time>
                             </td>
                             <td class="ictu-audit-action-cell">
-                                <button class="ictu-audit-view-button" type="button"
+                                <button class="ictu-audit-view-button button secondary small ui-pressable disclosure-trigger" type="button"
                                         data-audit-details-toggle
                                         aria-expanded="false"
                                         aria-controls="audit-detail-{{ $event->id }}">

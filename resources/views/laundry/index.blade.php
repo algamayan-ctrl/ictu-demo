@@ -59,7 +59,6 @@
             <button type="button" class="laundry-tab" id="laundry-tab-completed" role="tab" aria-controls="laundry-panel-completed" aria-selected="false" tabindex="-1" data-laundry-tab="completed">Completed <span class="laundry-tab-count">{{ $completedJobs->total() }}</span></button>
         </div>
         <div id="laundry-panel-active" role="tabpanel" aria-labelledby="laundry-tab-active" data-laundry-panel="active">
-    @if($hasLaundryCases)
         <section class="card record-browser-toolbar laundry-toolbar" aria-label="Active laundry case filters">
             <label class="record-browser-search" for="laundry-search">Search
                 <span class="search-input-shell">
@@ -82,7 +81,6 @@
                 </select>
             </label>
         </section>
-    @endif
 
     <section class="card laundry-cases-card" aria-labelledby="laundry-cases-title">
         <div class="laundry-cases-heading">

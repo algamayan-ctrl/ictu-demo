@@ -363,6 +363,7 @@ class CreateRequestOrganizationalUnitTest extends TestCase
             'access_classification' => AccessClassification::IctuMaintainer,
             'account_status' => AccountStatus::Active,
         ]);
+        app(\App\Services\UserRoleAssignmentService::class)->synchronize($ictu, AccessClassification::IctuMaintainer);
 
         $response = $this->actingAs($ictu)->get(route('administration.users.create'));
 

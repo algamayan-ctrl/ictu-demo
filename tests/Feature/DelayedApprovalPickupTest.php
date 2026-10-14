@@ -652,13 +652,14 @@ class DelayedApprovalPickupTest extends TestCase
             'received_at' => now(), 'decision' => 'RECEIVED',
         ]);
 
-        $bytes = '%PDF-1.4 delayed-approval-test';
+        $bytes = \Tests\Support\EvidenceFixtures::pdfBytes('Delayed approval supporting letter');
         $file = StoredFile::query()->create([
             'uploaded_by_user_id' => $this->borrower->id, 'disk' => 'local',
             'storage_path' => 'tests/request-supporting-documents/'.$request->id.'/letter.pdf',
             'original_name' => 'letter.pdf', 'mime_type' => 'application/pdf', 'byte_size' => strlen($bytes),
             'sha256' => hash('sha256', $bytes), 'classification' => 'REQUEST_SUPPORTING_DOCUMENT',
         ]);
+        Storage::disk('local')->put($file->storage_path, $bytes);
         RequestSupportingDocument::query()->create([
             'request_id' => $request->id, 'request_version_id' => $version->id,
             'document_type' => RequestSupportingDocument::TYPE_REQUEST_LETTER, 'version_no' => 1,
@@ -680,7 +681,7 @@ class DelayedApprovalPickupTest extends TestCase
 
     private function registerSignature(User $user): void
     {
-        $bytes = "\x89PNG\r\n\x1a\n".'signature-ink-'.$user->id;
+        $bytes = \Tests\Support\EvidenceFixtures::signatureBytes('signature-ink-'.$user->id);
         $path = 'tests/signatures/'.$user->id.'/signature.png';
         Storage::disk('local')->put($path, $bytes);
 

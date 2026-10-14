@@ -28,6 +28,7 @@ use App\Services\PolicyService;
 use Carbon\Carbon;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -86,7 +87,7 @@ class BorrowingEligibilityTest extends TestCase
     }
 
     /* ------------------------------------------------------------------ */
-    /* Fixtures                                                            */
+    /* Fixtures */
     /* ------------------------------------------------------------------ */
 
     private function borrower(): User
@@ -266,21 +267,21 @@ class BorrowingEligibilityTest extends TestCase
             ->update(['status' => 'LIFTED', 'effective_to' => now()]);
     }
 
-    private function attemptCreateRequest(User $borrower): \Illuminate\Testing\TestResponse
+    private function attemptCreateRequest(User $borrower): TestResponse
     {
         $item = $this->inventoryItem();
-
-        /*
-         * Use the next dates the Operational Calendar itself treats as open,
-         * so this request is judged on the borrower's eligibility alone and
-         * never on a schedule or return date that happens to land on a
-         * closed day (for example a Saturday).
-         */
         $calendar = app(OperationalCalendarService::class);
-        $scheduleDate = $calendar->nextOpenDate(OperationalCalendarService::PICKUP, now()->addDay());
+        // Eligibility scenarios must use valid physical transaction dates,
+        // including when the simulated sanction clock advances across weekends.
+        $scheduleDate = $calendar->nextOpenDate(OperationalCalendarService::PICKUP, now()->addDays(2));
         $returnDate = $calendar->nextOpenDate(OperationalCalendarService::RETURN, $scheduleDate->addDay());
 
-        return $this->withSession(['active_workspace' => 'BORROWER'])
+        // Each attempt represents a fresh signed-in interaction. Advancing
+        // the sanction clock by days must not accidentally test idle logout.
+        return $this->withSession([
+            'active_workspace' => 'BORROWER',
+            'last_user_activity_at' => now()->timestamp,
+        ])
             ->actingAs($borrower)
             ->post(route('requests.store'), [
                 'purpose_event' => 'Eligibility gate request',
@@ -310,7 +311,7 @@ class BorrowingEligibilityTest extends TestCase
     }
 
     /* ------------------------------------------------------------------ */
-    /* First offense                                                       */
+    /* First offense */
     /* ------------------------------------------------------------------ */
 
     public function test_unresolved_first_offense_case_blocks_borrowing(): void
@@ -350,7 +351,7 @@ class BorrowingEligibilityTest extends TestCase
     }
 
     /* ------------------------------------------------------------------ */
-    /* Second offense                                                      */
+    /* Second offense */
     /* ------------------------------------------------------------------ */
 
     public function test_active_second_offense_suspension_blocks_even_after_the_case_resolves(): void
@@ -414,7 +415,7 @@ class BorrowingEligibilityTest extends TestCase
     }
 
     /* ------------------------------------------------------------------ */
-    /* Third offense / current semester                                    */
+    /* Third offense / current semester */
     /* ------------------------------------------------------------------ */
 
     public function test_third_offense_resolved_but_still_same_semester_stays_blocked(): void
@@ -493,7 +494,7 @@ class BorrowingEligibilityTest extends TestCase
     }
 
     /* ------------------------------------------------------------------ */
-    /* Server-side enforcement (forged POST, not just a disabled button)   */
+    /* Server-side enforcement (forged POST, not just a disabled button) */
     /* ------------------------------------------------------------------ */
 
     public function test_create_request_cannot_be_forged_past_an_active_restriction(): void

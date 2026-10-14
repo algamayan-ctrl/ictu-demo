@@ -413,8 +413,9 @@
                                                         @endif
                                                     </dd>
                                                 </div>
+                                                <div><dt>Recorded Status</dt><dd>{{ $delivery->delivery_status }}</dd></div>
                                                 <div class="notification-delivery-detail-response"><dt>Status Meaning</dt><dd>{{ $statusMeaning }}</dd></div>
-                                                <div><dt>{{ $channelCode === 'EMAIL' ? 'Mail Transport' : 'Provider' }}</dt><dd>{{ filled($delivery->provider) ? $delivery->provider : 'Not recorded' }}</dd></div>
+                                                <div><dt>Provider</dt><dd>{{ filled($delivery->provider) ? $delivery->provider : 'Not recorded' }}</dd></div>
                                                 <div><dt>Attempt</dt><dd>#{{ $delivery->attempt_no ?: 1 }}</dd></div>
                                                 @if($channelCode === 'SYSTEM')
                                                     <div><dt>Opened By Recipient</dt><dd>{{ $delivery->read_at ? $delivery->read_at->format('M j, Y • g:i A') : 'Not yet opened' }}</dd></div>

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\AccessClassification;
 use App\Enums\RequestStatus;
 use App\Models\BorrowingRequest;
+use App\Models\BorrowerRegistration;
 use App\Models\BorrowerRestriction;
 use App\Models\BillingStatement;
 use App\Models\CustodyTransaction;
@@ -36,7 +37,8 @@ class NotificationService
         string $message,
         ?Model $source = null,
         array $channels = ['SYSTEM', 'EMAIL'],
-        array $requiredChannels = []
+        array $requiredChannels = [],
+        bool $deferEmailUntilCommit = false
     ): NotificationEvent {
         $event = NotificationEvent::query()->create([
             'event_code' => $eventCode,
@@ -89,7 +91,41 @@ class NotificationService
                     default => (string) $recipient->id,
                 };
 
-                $attempt = function () use ($channel, $address, $message, $eventCode, $recipient, $source, $event): void {
+                if ($deferEmailUntilCommit && $channel === 'EMAIL') {
+                    // Persist all notification records before any irreversible
+                    // mail attempt. Rollback discards this commit callback.
+                    $delivery = NotificationDelivery::query()->create([
+                        'notification_event_id' => $event->id,
+                        'recipient_user_id' => $recipient->id,
+                        'channel' => $channel,
+                        'address_snapshot' => $address,
+                        'attempt_no' => 1,
+                        'attempted_at' => null,
+                        'delivery_status' => 'PENDING',
+                        'provider_response' => 'Waiting for the approval transaction to commit.',
+                    ]);
+                    DB::afterCommit(function () use ($delivery, $channel, $address, $message, $eventCode, $recipient, $source): void {
+                        try {
+                            [$status, $provider, $response] = $this->deliver($channel, $address, $message, $eventCode, $recipient, $source);
+                            $delivery->update([
+                                'attempted_at' => now(),
+                                'delivery_status' => $status,
+                                'provider' => $provider,
+                                'provider_response' => $response,
+                            ]);
+                        } catch (Throwable $exception) {
+                            // The approval is already committed. Leave its
+                            // pending delivery truthful for technical review.
+                            Log::error('Committed approval notification could not record its delivery outcome.', [
+                                'notification_delivery_id' => $delivery->id,
+                                'error' => $exception::class,
+                            ]);
+                        }
+                    });
+                    continue;
+                }
+
+                $attempt = function () use ($event, $recipient, $channel, $address, $message, $eventCode, $source): void {
                     [$status, $provider, $providerResponse] = $this->deliver(
                         $channel,
                         $address,
@@ -415,6 +451,9 @@ HTML;
     private function eventProfile(string $eventCode): array
     {
         $title = match ($eventCode) {
+            'BORROWER_REGISTRATION_SUBMITTED' => 'Borrower Registration Awaiting Review',
+            'BORROWER_REGISTRATION_APPROVED' => 'Borrower Registration Approved',
+            'BORROWER_REGISTRATION_REJECTED' => 'Borrower Registration Not Approved',
             'REQUEST_SUBMITTED' => 'Borrowing Request Submitted',
             'REQUEST_VERIFIED' => 'Request Ready for Head Review',
             'REQUEST_APPROVED' => 'Borrowing Request Approved',
@@ -521,6 +560,20 @@ HTML;
         ];
 
         if (! $source) {
+            return $data;
+        }
+
+        if ($source instanceof BorrowerRegistration) {
+            $source->loadMissing('user');
+            $data['detailsHeading'] = 'Borrower Registration';
+            $data['details'] = [
+                'Applicant' => $source->user->full_name,
+                'Registration Type' => $source->registration_type->label(),
+                'Review Status' => ucfirst(strtolower($source->status->value)),
+            ];
+            $data['actionLabel'] = $eventCode === 'BORROWER_REGISTRATION_SUBMITTED' ? 'Review registrations' : 'Sign in';
+            $data['actionUrl'] = $eventCode === 'BORROWER_REGISTRATION_SUBMITTED' ? route('registrations.index') : route('login');
+
             return $data;
         }
 

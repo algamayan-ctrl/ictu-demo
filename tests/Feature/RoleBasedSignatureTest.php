@@ -1071,7 +1071,7 @@ class RoleBasedSignatureTest extends TestCase
     {
         $file = app(ProtectedFileService::class)->storeBytes(
             // Distinct bytes per signer so snapshots are provably different.
-            "\x89PNG\r\n\x1a\n".$ink,
+            \Tests\Support\EvidenceFixtures::signatureBytes($ink),
             'test-signatures',
             'signature.png',
             'image/png',

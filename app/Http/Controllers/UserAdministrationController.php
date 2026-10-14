@@ -5,17 +5,21 @@ namespace App\Http\Controllers;
 use App\Enums\AccessClassification;
 use App\Enums\AccountStatus;
 use App\Enums\EmploymentType;
+use App\Enums\RegistrationType;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
+use App\Policies\UserPolicy;
 use App\Services\AuditService;
+use App\Services\BorrowerRequestAffiliationService;
 use App\Services\EmailVerificationService;
 use App\Services\NotificationService;
+use App\Services\PendingRegistrationSafetyService;
 use App\Services\UserRoleAssignmentService;
 use App\Support\OrganizationalStructure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -26,12 +30,13 @@ class UserAdministrationController extends Controller
 {
     public function index(Request $request): View
     {
+        Gate::authorize('viewAny', User::class);
         $activeClassifications = array_map(
             fn (AccessClassification $classification) => $classification->value,
-            AccessClassification::assignableCases(),
+            app(UserPolicy::class)->assignableClassifications($request->user()),
         );
 
-        $query = User::with(['roles', 'organizationalUnit', 'authorizedOrganizationalUnits'])
+        $query = User::with(['roles', 'organizationalUnit', 'authorizedOrganizationalUnits', 'borrowerRegistration'])
             ->whereIn('access_classification', $activeClassifications);
 
         /*
@@ -66,6 +71,7 @@ class UserAdministrationController extends Controller
 
     public function create(): View
     {
+        Gate::authorize('create', User::class);
         return $this->form(new User);
     }
 
@@ -75,6 +81,7 @@ class UserAdministrationController extends Controller
             $user->access_classification?->isPortalEnabled(),
             404
         );
+        Gate::authorize('update', $user);
 
         return $this->form($user->load(['roles', 'organizationalUnit', 'authorizedOrganizationalUnits']));
     }
@@ -85,7 +92,7 @@ class UserAdministrationController extends Controller
         UserRoleAssignmentService $roleAssignments,
         EmailVerificationService $emailVerification,
     ): RedirectResponse {
-        $this->authorizeIctu($request);
+        abort_unless(Gate::forUser($request->user())->allows('create', User::class), 403);
 
         $data = $this->validated($request, null, $emailVerification);
 
@@ -164,7 +171,7 @@ class UserAdministrationController extends Controller
         UserRoleAssignmentService $roleAssignments,
         NotificationService $notifications,
     ): RedirectResponse {
-        $this->authorizeIctu($request);
+        abort_unless(Gate::forUser($request->user())->allows('update', $user), 403);
 
         $emailVerification = app(EmailVerificationService::class);
         $data = $this->validated($request, $user, $emailVerification);
@@ -186,8 +193,22 @@ class UserAdministrationController extends Controller
         $emailChanged = false;
         $accountChanged = false;
         $passwordChanged = filled($data['password'] ?? null);
+        $isExternalAccount = false;
 
-        DB::transaction(function () use ($data, $user, $audit, $roleAssignments, $request, &$accountDisabled, &$emailChanged, &$accountChanged, $passwordChanged): void {
+        DB::transaction(function () use ($data, $user, $audit, $roleAssignments, $request, &$accountDisabled, &$emailChanged, &$accountChanged, &$isExternalAccount, $passwordChanged, $emailVerification): void {
+            // Match SAO review's registration -> User lock order.
+            $user->borrowerRegistration()->lockForUpdate()->first();
+            User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $user->refresh();
+            // Actor/target/type may have changed since binding or initial validation.
+            $actor = $request->user()->fresh();
+            abort_unless($actor && Gate::forUser($actor)->allows('update', $user), 403);
+            $data = $this->validated($request, $user, $emailVerification, $actor);
+            if ($actor->id === $user->id) {
+                $data['account_status'] = $user->account_status->value;
+                $data['access_classification'] = $user->access_classification->value;
+            }
+            $isExternalAccount = app(BorrowerRequestAffiliationService::class)->isExternal($user);
             /*
              * Compare only meaningful account information. Technical timestamps
              * and pivot metadata must never turn an unchanged form submission
@@ -203,7 +224,7 @@ class UserAdministrationController extends Controller
             $beforeAccountStatus = $user->account_status?->value;
             $beforeEmail = strtolower(trim((string) $user->email));
             $classification = AccessClassification::from($data['access_classification']);
-            $unit = $this->resolveOrganizationalUnit($data, $classification, $user);
+            $unit = $isExternalAccount ? null : $this->resolveOrganizationalUnit($data, $classification, $user);
 
             $updates = collect($data)
                 ->except([
@@ -214,7 +235,9 @@ class UserAdministrationController extends Controller
                 ])
                 ->all();
 
-            $updates['organizational_unit_id'] = $unit->id;
+            if (! $isExternalAccount) {
+                $updates['organizational_unit_id'] = $unit->id;
+            }
 
             if (filled($data['password'] ?? null)) {
                 $updates['password'] = $data['password'];
@@ -230,19 +253,17 @@ class UserAdministrationController extends Controller
             $accountDisabled = $beforeAccountStatus === AccountStatus::Active->value
                 && in_array($user->account_status?->value, [AccountStatus::Inactive->value, AccountStatus::Suspended->value], true);
 
-            $this->synchronizeOrganizationalAssignments(
-                $user,
-                $classification,
-                (int) $unit->id,
-                $data['additional_organizational_unit_ids'] ?? [],
-                $request->user()->id,
-            );
+            if (! $isExternalAccount) {
+                $this->synchronizeOrganizationalAssignments(
+                    $user,
+                    $classification,
+                    (int) $unit->id,
+                    $data['additional_organizational_unit_ids'] ?? [],
+                    $actor->id,
+                );
 
-            $roleAssignments->synchronize(
-                $user,
-                $classification,
-                $request->user()->id,
-            );
+                $roleAssignments->synchronize($user, $classification, $actor->id);
+            }
 
             $after = $this->accountAuditSnapshot($user);
 
@@ -290,7 +311,9 @@ class UserAdministrationController extends Controller
                 ->route('administration.users.index')
                 ->with('status', $sent
                     ? 'Account updated. A new OTP was sent to the changed email; verification is required again before sign-in.'
-                    : 'Account updated and its changed email is unverified. OTP delivery failed; open Manage to resend the OTP.');
+                    : ($isExternalAccount
+                        ? 'Account updated and its changed email is unverified. OTP delivery failed; contact ICTU for mail assistance or request a new OTP on the account verification page.'
+                        : 'Account updated and its changed email is unverified. OTP delivery failed; open Manage to resend the OTP.'));
         }
 
         return redirect()
@@ -298,7 +321,9 @@ class UserAdministrationController extends Controller
             ->with(
                 'status',
                 $accountChanged
-                    ? 'Account and authorized organizational assignments updated with an audit record.'
+                    ? ($isExternalAccount
+                        ? 'External borrower account updated with an audit record.'
+                        : 'Account and authorized organizational assignments updated with an audit record.')
                     : 'No account changes were detected.'
             );
     }
@@ -310,18 +335,13 @@ class UserAdministrationController extends Controller
         AuditService $audit,
         NotificationService $notifications,
     ): RedirectResponse {
-        $this->authorizeIctu($request);
-        abort_unless($user->access_classification?->isPortalEnabled(), 404);
-
-        if ((int) $request->user()->getKey() === (int) $user->getKey()) {
-            return redirect()->route('administration.users.index')
-                ->withErrors(['account_status' => 'You cannot deactivate your own ICTU account.']);
-        }
+        Gate::authorize('deactivate', $user);
 
         // Lock the account to prevent two simultaneous deactivation requests
         // from writing duplicate status-change audit events.
-        $changed = DB::transaction(function () use ($user, $audit): bool {
+        $changed = DB::transaction(function () use ($request, $user, $audit): bool {
             $account = User::query()->lockForUpdate()->findOrFail($user->getKey());
+            Gate::authorize('deactivate', $account);
             if ($account->account_status !== AccountStatus::Active) {
                 return false;
             }
@@ -336,7 +356,8 @@ class UserAdministrationController extends Controller
                 before: $before,
                 after: [
                     'account_status' => AccountStatus::Inactive->value,
-                    'change_source' => 'ICTU_DIRECTORY_DEACTIVATION',
+                    'change_source' => $request->user()->access_classification === AccessClassification::IctuMaintainer
+                        ? 'ICTU_DIRECTORY_DEACTIVATION' : 'ADMIN_DIRECTORY_DEACTIVATION',
                 ],
             );
 
@@ -352,7 +373,7 @@ class UserAdministrationController extends Controller
         $notifications->send(
             'ACCOUNT_ACCESS_DISABLED',
             collect([$user]),
-            'Your account access has been disabled. Contact ICTU for assistance.',
+            'Your account access has been disabled. Contact Admin or ICTU for assistance.',
             $user,
             ['SYSTEM', 'EMAIL'],
         );
@@ -492,8 +513,8 @@ class UserAdministrationController extends Controller
             return 'active_session';
         }
 
-        if ($this->pendingAccountHasBorrowingRecords((int) $user->getKey())) {
-            return 'borrowing_records';
+        if (app(PendingRegistrationSafetyService::class)->hasLinkedRecords((int) $user->getKey())) {
+            return 'linked_records';
         }
 
         return null;
@@ -502,10 +523,11 @@ class UserAdministrationController extends Controller
     private function pendingRegistrationDeletionBlockerMessage(string $blocker): string
     {
         return match ($blocker) {
-            'current_user' => 'You cannot delete your own ICTU account.',
-            'verified_email', 'previous_login' => 'Only unverified accounts that have never signed in can be deleted. Use Deactivate for established users.',
-            'active_session' => 'This pending account currently has an active session and cannot be deleted yet.',
-            'borrowing_records' => 'This account cannot be deleted because it has borrowing restrictions or borrowing and accountability records that must be preserved. Use Deactivate instead.',
+            'current_user' => 'You cannot delete the account you are currently using.',
+            'verified_email' => 'Account deactivation is handled in the User Accounts list.',
+            'previous_login' => 'This account cannot be deleted because it has previously signed in.',
+            'active_session' => 'This account cannot be deleted while an active session exists.',
+            'linked_records' => 'This account cannot be deleted because linked system records must be preserved.',
             default => 'This account is not eligible for deletion.',
         };
     }
@@ -584,6 +606,8 @@ class UserAdministrationController extends Controller
 
     private function form(User $user): View
     {
+        $registration = $user->exists ? $user->borrowerRegistration()->first() : null;
+        $deletionBlocker = $this->pendingRegistrationDeletionBlocker($user);
         $units = OrganizationalUnit::query()
             ->activeSelectable()
             ->orderBy('unit_name')
@@ -612,7 +636,10 @@ class UserAdministrationController extends Controller
 
         return view('administration.users.form', [
             'user' => $user,
-            'pendingRegistrationDeletionBlocker' => $this->pendingRegistrationDeletionBlocker($user),
+            'isExternalAccount' => $registration?->registration_type === RegistrationType::External,
+            'externalRegistration' => $registration,
+            'pendingRegistrationDeletionBlocker' => $deletionBlocker,
+            'pendingRegistrationDeletionMessage' => $deletionBlocker === null ? null : $this->pendingRegistrationDeletionBlockerMessage($deletionBlocker),
             'units' => $units,
             'additionalUnitIds' => $additionalUnitIds,
             'historicalPrimaryUnit' => $historicalPrimaryUnit,
@@ -622,19 +649,22 @@ class UserAdministrationController extends Controller
                 'division_code',
                 $user->organizationalUnit?->divisionCode() ?? ''
             ),
-            'classifications' => AccessClassification::assignableCases(),
+            'classifications' => app(UserPolicy::class)->assignableClassifications(auth()->user()),
             'employmentTypes' => EmploymentType::cases(),
             'accountStatuses' => AccountStatus::cases(),
         ]);
     }
 
-    private function validated(Request $request, ?User $user = null, ?EmailVerificationService $emailVerification = null): array
+    private function validated(Request $request, ?User $user = null, ?EmailVerificationService $emailVerification = null, ?User $actor = null): array
     {
         $emailVerification ??= app(EmailVerificationService::class);
         $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
+        if ($user?->exists && app(BorrowerRequestAffiliationService::class)->isExternal($user)) {
+            return $this->validatedExternalAccount($request, $user);
+        }
         $allowedClassifications = array_map(
             fn (AccessClassification $classification) => $classification->value,
-            AccessClassification::assignableCases(),
+            app(UserPolicy::class)->assignableClassifications($actor ?? $request->user()),
         );
 
         $retainsHistoricalPrimary = $this->retainsHistoricalPrimary(
@@ -750,6 +780,37 @@ class UserAdministrationController extends Controller
         }
 
         return $data;
+    }
+
+    private function validatedExternalAccount(Request $request, User $user): array
+    {
+        if ($user->access_classification !== AccessClassification::BorrowerOnly) {
+            throw ValidationException::withMessages(['account' => 'The saved external registration and access classification disagree. Account-type conversion requires a separate reviewed correction.']);
+        }
+
+        $rules = [
+            'full_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'mobile_no' => ['nullable', 'string', 'max:30'],
+            'account_status' => ['required', Rule::enum(AccountStatus::class)],
+            'access_classification' => ['required', Rule::in([AccessClassification::BorrowerOnly->value])],
+            'password' => ['nullable', 'confirmed', Password::min(12)->letters()->numbers()->symbols()],
+        ];
+
+        // These are reviewed evidence/affiliation or employee-only assignments,
+        // not editable account fields. Reject presence, including null overrides.
+        foreach ([
+            'employee_no', 'designation', 'employment_type', 'employment_status',
+            'division_code', 'office_unit', 'organizational_unit_id', 'additional_organizational_unit_ids',
+            'new_organizational_unit_name', 'requesting_organizational_unit_id', 'accountable_unit_id',
+            'company_name', 'external_company_name', 'affiliation_type', 'registration_type',
+            'registration_status', 'status', 'valid_id', 'valid_id_file_id', 'reviewed_by_user_id',
+            'reviewed_at', 'review_remarks', 'email_verified_at', 'roles', 'role_ids',
+        ] as $field) {
+            $rules[$field] = ['missing'];
+        }
+
+        return $request->validate($rules);
     }
 
     private function resolveOrganizationalUnit(
@@ -874,7 +935,7 @@ class UserAdministrationController extends Controller
         abort_unless(
             $request->user()?->access_classification === AccessClassification::IctuMaintainer,
             403,
-            'Only ICTU may administer user accounts.'
+            'Only ICTU may perform this account maintenance action.'
         );
     }
 

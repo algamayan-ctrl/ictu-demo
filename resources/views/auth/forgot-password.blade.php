@@ -379,9 +379,9 @@ body:has(.forgot-login-page) .app-main {
         </h1>
 
         <p class="forgot-login-subtitle">
-            Enter your registered CSPC email address
+            Enter your registered email address
             and we will send password reset instructions
-            to your institutional inbox.
+            to your email inbox.
         </p>
 
 

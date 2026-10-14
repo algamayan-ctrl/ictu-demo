@@ -47,7 +47,6 @@ class AnalyticsDetailService
  'returns',
  'borrower',
  'coverage',
- 'forecast',
  'trend',
  /* Request Outcomes cohort, whole or one outcome group. */
  'outcomes',
@@ -62,7 +61,6 @@ class AnalyticsDetailService
  public function __construct(
  private readonly AnalyticsService $analytics,
  private readonly InventoryService $inventory,
- private readonly ForecastService $forecasts,
  private readonly AnalyticsCardDetailService $cards,
  private readonly ReturnMetricsService $returnMetrics,
  ) {}
@@ -83,7 +81,7 @@ class AnalyticsDetailService
  ?int $borrower = null,
  ?int $recordLimit = null
  ): ?array {
- if (! in_array($type, self::TYPES, true)) {
+ if (! in_array($type, self::TYPES, true) || ($type === 'card' && str_starts_with((string) $request->input('for', ''), 'forecast.'))) {
  return null;
  }
 
@@ -108,7 +106,6 @@ class AnalyticsDetailService
  'returns' => $this->returns($scope, (string) $request->input('state', 'on-time')),
  'borrower' => $this->borrower($scope, (string) $request->input('for', '')),
  'coverage' => $this->coverage($scope, (string) $request->input('item', '')),
- 'forecast' => $this->forecast($scope, (string) $request->input('metric', 'demand')),
  'trend' => $this->trend($scope, (int) $request->input('bucket', 0)),
  'outcomes' => $this->outcomes($scope, (string) $request->input('outcome', '')),
  'overdue-aging' => $this->overdueAging($scope, (string) $request->input('bucket', '')),
@@ -324,7 +321,7 @@ class AnalyticsDetailService
  'context' => 'Released and still out past the due date',
  'note' => 'Late returns are already returned and are counted separately.',
  'table' => $rows->isEmpty() ? null : [
- 'columns' => ['Borrower', 'Custody No.', 'Due', 'Days overdue', 'Issue', 'State'],
+ 'columns' => ['Borrower', 'Custody No.', 'Due', 'Open return days overdue', 'Issue', 'State'],
  'rows' => $rows->map(function (CustodyTransaction $custody): array {
  $days = $this->analytics->daysOverdue($custody);
 
@@ -529,42 +526,7 @@ class AnalyticsDetailService
  }
 
  /** @param array<string, mixed> $scope */
- private function coverage(array $scope, string $itemId): ?array
- {
- $coverage = $this->analytics->stockCoverage(
- $this->inventory, $scope['from'], $scope['to'], 200, $scope['division'], $scope['unit']
- );
 
- $row = collect($coverage['items'])->firstWhere('item_id', (int) $itemId);
-
- if (! $row) {
- return null;
- }
-
- /*
- * Recorded facts only: what is usable now and what the custody records
- * show went out in the period. No usage rate, projected days of stock
- * or risk band is derived from them.
- */
- return [
- 'title' => $row['name'],
- 'value' => $row['available'],
- 'value_label' => 'units available now',
- 'context' => 'Available stock and release history',
- 'note' => 'Available stock is the current count. Released quantity and release '
- .'transactions are those recorded in the selected reporting period.',
- 'stats' => [
- ['label' => 'Current usable stock', 'value' => $row['available']],
- ['label' => 'Serviceable stock', 'value' => $row['stock']],
- ['label' => 'Released in this period', 'value' => $row['released']],
- ['label' => 'Release transactions', 'value' => $row['releases']],
- ['label' => 'Reporting period', 'value' => $coverage['window_days'].' days'],
- ],
- 'reports_url' => AnalyticsDrilldown::utilization(
- $scope['period'], null, null, ['equipment' => $row['item_id']]
- ),
- ];
- }
 
  /* ------------------------------------------------------------------ */
  /* Organisation */
@@ -849,120 +811,13 @@ class AnalyticsDetailService
  /* ------------------------------------------------------------------ */
 
  /** @param array<string, mixed> $scope */
- private function forecast(array $scope, string $metric): array
- {
- [$forecastFrom, $forecastTo] = $this->forecasts->forecastWindow($scope['from'], $scope['to']);
 
- if ($metric === 'equipment') {
- return $this->equipmentForecast($scope, $forecastFrom, $forecastTo);
- }
-
- if ($metric === 'busy') {
- return $this->busyForecast($scope, $forecastFrom, $forecastTo);
- }
-
- $demand = $this->forecasts->demand(
- $this->analytics, $scope['from'], $scope['to'], $scope['division'], $scope['unit']
- );
-
- $history = $demand['history'] ?? [];
- $available = $demand['available'] ?? false;
-
- return [
- 'title' => 'Forecasted Demand',
- 'value' => $available ? $demand['forecast'] : null,
- 'value_label' => $available ? 'projected requests' : null,
- 'context' => 'Projected for '.$forecastFrom->format('d M').' – '.$forecastTo->format('d M Y'),
- 'note' => $available
- ? 'Estimated from completed comparable periods using the configured weighted moving average.'
- : trim(($demand['reason'] ?? '').' '.($demand['requirement'] ?? '')),
- 'stats' => $available ? [
- ['label' => 'Historical Periods Used', 'value' => count($history)],
-                ['label' => 'Current Period', 'value' => $demand['current'].' requests'],
- ['label' => 'Forecast Next Period', 'value' => $demand['forecast'].' requests'],
- ['label' => 'Direction', 'value' => ucfirst($demand['direction'])],
- ] : [],
- 'table' => $history === [] ? null : [
- 'columns' => ['Historical Period', 'Observed Requests', 'Weight', 'Weighted Contribution'],
- 'rows' => collect($history)->map(fn (array $row): array => [
- $row['label'],
- (string) $row['count'],
- (string) $row['weight'],
- (string) ((int) $row['count'] * (int) $row['weight']),
- ])->all(),
- ],
- 'formula' => null,
- 'empty' => (! $available && $history === [])
- ? 'No completed comparable periods have been recorded yet.'
- : null,
- /*
- * The headline figure is a weighted projection for a period that
- * has not happened yet, not a count of filed records, so no
- * report can reproduce it - the historical inputs table above is
- * the honest accounting of what it was built from.
- */
- ];
- }
 
  /** @param array<string, mixed> $scope */
- private function equipmentForecast(array $scope, CarbonInterface $from, CarbonInterface $to): array
- {
- $forecast = $this->forecasts->equipment(
- $scope['from'], $scope['to'], ForecastService::EQUIPMENT_LIMIT,
- $scope['division'], $scope['unit']
- );
- $items = $forecast['items'] ?? [];
 
- return [
- 'title' => 'Equipment Shortage Risk',
- 'value' => $forecast['at_risk_count'] ?? 0,
- 'value_label' => 'equipment types to watch',
- 'context' => 'Projected for '.$from->format('d M').' – '.$to->format('d M Y'),
- 'note' => 'Compares projected equipment demand with expected available stock.',
- 'table' => $items === [] ? null : [
- 'columns' => ['Item', 'Forecast demand', 'Expected availability', 'Outlook'],
- 'rows' => collect($items)->map(fn (array $row): array => [
- $row['name'],
- (string) $row['demand'],
- (string) $row['expected_available'],
- $row['status'],
- ])->all(),
- ],
- 'empty' => $items === []
- ? ($forecast['reason'] ?? $forecast['summary'] ?? 'Not enough historical data to forecast equipment demand.')
- : null,
- /* Forecast demand and expected availability are both projections, not raw records. */
- ];
- }
 
  /** @param array<string, mixed> $scope */
- private function busyForecast(array $scope, CarbonInterface $from, CarbonInterface $to): array
- {
- $busy = $this->forecasts->busyPeriod(
- $this->analytics, $scope['from'], $scope['to'], $scope['division'], $scope['unit']
- );
- $available = $busy['available'] ?? false;
 
- return [
- 'title' => 'Expected Busy Period',
- 'value' => null,
- 'context' => 'Projected for '.$from->format('d M').' – '.$to->format('d M Y'),
- 'note' => $available
- ? 'Projected distribution of demand across the next period.'
- : 'Not enough history to estimate a busy period.',
- 'table' => $available ? [
- 'columns' => ['Slice', 'Range', 'Expected requests', 'Level'],
- 'rows' => collect($busy['buckets'])->map(fn (array $row): array => [
- $row['label'],
- $row['range'],
- (string) $row['expected'],
- $row['level'],
- ])->all(),
- ] : null,
- 'empty' => $available ? null : 'Not enough historical data yet.',
- /* An expected distribution across a future period is a projection, not a raw-record population. */
- ];
- }
 
  /** @param array<string, mixed> $scope */
  private function trend(array $scope, int $bucket): ?array
@@ -1267,9 +1122,9 @@ class AnalyticsDetailService
  : ($selected['count'] === 1 ? 'borrowing' : 'borrowings')
  .($selected['share'] === null ? '' : ' - '.$selected['share'].'% of currently overdue'),
  'context' => 'Current state as of today, not limited to the reporting period',
- 'note' => 'Physically unreturned custody past its effective due date, grouped by whole days since that '
+ 'note' => 'Physically unreturned custody past its effective due date, grouped by open return days after that '
  .'date. A borrowing that has come back late is a completed return and is counted elsewhere, never '
- .'here, even while its accountability remains open.'.$reportsNote,
+ .'here, even while its accountability remains open. Days follow the Admin Transaction Schedule, including special-date changes.'.$reportsNote,
  'stats' => $stats,
  'bars' => $aging['total'] === 0 ? null : array_map(
  static fn (array $row): array => [
@@ -1281,7 +1136,7 @@ class AnalyticsDetailService
  ),
  'bars_title' => 'Share of currently overdue',
  'table' => $records['rows']->isEmpty() ? null : [
- 'columns' => ['Custody No.', 'Request No.', 'Borrower', 'Office / College / Unit', 'Due', 'Days overdue', 'Custody status'],
+ 'columns' => ['Custody No.', 'Request No.', 'Borrower', 'Office / College / Unit', 'Due', 'Open return days overdue', 'Custody status'],
  'rows' => $records['rows']->map(function (CustodyTransaction $custody): array {
  $days = $this->analytics->daysOverdue($custody);
  $version = $custody->requestVersion;
@@ -1446,21 +1301,7 @@ class AnalyticsDetailService
  /* ------------------------------------------------------------------ */
 
  /** @param list<array<string, mixed>> $history */
- private function weightedFormula(array $history, int $forecast): string
- {
- /* Oldest first in the table; the formula reads most recent first. */
- $ordered = array_reverse($history);
 
- $numerator = collect($ordered)
- ->map(fn (array $row): string => $row['count'].'×'.$row['weight'])
- ->implode(' + ');
-
- $weights = collect($ordered)->sum('weight');
- $raw = collect($ordered)->sum(fn (array $row): int => $row['count'] * $row['weight']);
-
- return '('.$numerator.') ÷ '.$weights.' = '
- .round($raw / max(1, $weights), 2).' ≈ '.$forecast;
- }
 
  private function quantity(CustodyTransaction $custody): string
  {
@@ -1502,5 +1343,43 @@ class AnalyticsDetailService
  private function date(mixed $value): string
  {
  return $value ? Carbon::parse($value)->format('d M Y') : '—';
+ }
+
+ // Pulled-main descriptive stock/release history; no projected values.
+ private function coverage(array $scope, string $itemId): ?array
+ {
+ $coverage = $this->analytics->stockCoverage(
+ $this->inventory, $scope['from'], $scope['to'], 200, $scope['division'], $scope['unit'], $scope['borrower'] ?? null
+ );
+
+ $row = collect($coverage['items'])->firstWhere('item_id', (int) $itemId);
+
+ if (! $row) {
+ return null;
+ }
+
+ /*
+ * Recorded facts only: what is usable now and what the custody records
+ * show went out in the period. No usage rate, projected days of stock
+ * or risk band is derived from them.
+ */
+ return [
+ 'title' => $row['name'],
+ 'value' => $row['available'],
+ 'value_label' => 'units available now',
+ 'context' => 'Available stock and release history',
+ 'note' => 'Available stock is the current count. Released quantity and release '
+ .'transactions are those recorded in the selected reporting period.',
+ 'stats' => [
+ ['label' => 'Current usable stock', 'value' => $row['available']],
+ ['label' => 'Serviceable stock', 'value' => $row['stock']],
+ ['label' => 'Released in this period', 'value' => $row['released']],
+ ['label' => 'Release transactions', 'value' => $row['releases']],
+ ['label' => 'Reporting period', 'value' => $coverage['window_days'].' days'],
+ ],
+ 'reports_url' => AnalyticsDrilldown::utilization(
+ $scope['period'], null, null, ['equipment' => $row['item_id']]
+ ),
+ ];
  }
 }

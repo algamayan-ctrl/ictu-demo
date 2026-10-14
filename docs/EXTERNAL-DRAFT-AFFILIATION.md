@@ -1,0 +1,53 @@
+# S1-REG-02: External affiliation in borrowing drafts
+
+## Requirements analysis before implementation
+
+Objective: approved external borrowers can create, save, reopen, and edit their own borrowing drafts with their actual SAO-reviewed company/agency/institution, without inventing a CSPC employee number, office, division, or permission grant.
+
+Confirmed foundations: the supplied workflow's External Borrower registration fields and Pending/SAO review; S1-REG-01's approval and email gates; the user's explicit S1-REG-02 authorization to preserve employee-unit permissions and prevent fabricated assignments. Walk-ins, revised financial/eligibility policies, new staff powers, predictive analytics, and general account-management redesign are outside this increment.
+
+Existing code: `BorrowingRequestController` requires an authorized requesting unit, derives division/office server-side, and stores `accountable_unit_id`; the original request table makes that FK mandatory. Request versions already snapshot nullable division/office. Form resume logic assumes internal affiliation, and several detail displays read today's user unit instead of the request snapshot. Existing employee tests verify primary/additional active assignments, server-derived division, and rejection of unknown/unauthorized units. The current request submission service already contains on-campus direct-Head and off-campus SAO routing; its wider acceptance is a separate task.
+
+Actors/stories: a mailbox-verified, active, SAO-approved external Borrower prepares and edits their own draft; an employee retains existing authorized-unit selection; an authorized reviewer sees the saved affiliation. Guests, Pending/Rejected/inactive applicants, and other borrowers cannot write this draft. External status is determined from the stored registration type, never inferred merely from a missing employee number or unit.
+
+Preconditions: existing access/obligation gates, valid request details/dates/items, and an approved external registration with company details. Postconditions: one atomic draft header/version/items update, null internal unit/division/office for external affiliation, a server-derived company snapshot, and actor-attributed draft audit evidence. No role/unit grants or inventory reservation are introduced by saving a draft.
+
+Proposed database design: make the existing accountable-unit FK nullable while retaining its FK protection; add nullable `affiliation_type` and `external_company_name` on request versions. Existing historical rows remain unchanged. New internal requests still require the authorized internal unit; new external requests have a dedicated EXTERNAL marker and company snapshot. Once recorded for an external request, the affiliation is retained when editing that draft or creating a returned revision; profile changes must not rewrite prior request history. Rollback must refuse before destructive DDL when external snapshots/null-unit requests exist.
+
+Inputs: existing purpose/location/date/item fields; employee requesting-unit selection where applicable. External company is read-only and sourced from the approved registration/saved snapshot. External payloads supplying CSPC assignment or affiliation override fields are rejected. Outputs: saved/reopened draft, truthful company label, preserved request history, validation/authorization responses, audit evidence. States remain the existing DRAFT and RETURNED_FOR_REVISION → new DRAFT-version workflow; this increment adds no approval/cancellation state.
+
+Acceptance: external create/save/edit/reopen and request-detail rendering; null internal assignments; immutable affiliation after profile changes and across revisions; forged unit/division/office/company/type fields rejected without writes; legacy unitless accounts do not become external; employee primary/additional permissions preserved; revoked/inactive/unknown units still rejected; ownership and approval gates enforced; invalid input and transaction/audit failures leave consistent data; locked updates preserve header/version consistency; migration preserves existing rows/index/FK and refuses unsafe rollback. Test on isolated SQLite and MariaDB 11.4 and review the local browser form/resume behavior.
+
+Dependencies/risks: document renderers and analytics use internal snapshot fields, so external company must not be written into `office_unit` and counted as a CSPC unit. Request-detail/letter display must use the saved affiliation safely when the unit is null. Broader external release/return/document/report acceptance and external Admin editing remain separate; no live database migration or institutional deployment acceptance is implied by these tests. Missing institutional hosting/ICTU documents remain unresolved.
+
+## Implemented changes
+
+Added `BorrowerRequestAffiliationService` and migration `2026_10_12_000002_add_external_request_affiliation.php`. Request versions cast/store the new type and company fields and provide snapshot-based display helpers. The controller excludes external accounts from internal unit options, prohibits affiliation overrides, derives the company server-side, locks/refreshes edits, rechecks ownership/status, and records create/update audits inside the draft transaction. Creation records its audit before supporting-file writes, so an audit failure does not start an upload. Existing unit validation, borrowing restrictions, dates, items, signatures, and approval authority remain enforced.
+
+The form renders a read-only company instead of CSPC unit/division inputs, adapts its stage-resume and review summary, and retains the frozen affiliation when editing. My Requests and detail views use the saved company; internal detail views use their recorded office snapshot. The retained legacy request-letter Blade template now handles nullable units and displays saved affiliation safely; its disabled legacy generation was not reintroduced. Active document runtime/company mappings are still a separate acceptance scope.
+
+## Verified results and evidence
+
+Runtime: PHP 8.4.26, Laravel source 13.25.0, PHPUnit 12.5.33, MariaDB 11.4.12 in a disposable localhost-only container. No framework/database-engine change was made.
+
+Baseline: two external form/save checks failed against the prior isolated code, including the expected required-internal-unit error. Initial changed-code run: 31/32 passed; its one failure was an incorrect test assumption that a DRAFT detail page returns 200. Existing behavior intentionally redirects the owner to the editor. The corrected test preserves that redirect and a separate returned-history case verifies the detail view. Expanded focused run passed 33/33. Additional negative employee/type-drift/guest cases were included in final regression.
+
+Final selected regression: **206/206 passed, 1144 assertions, exit 0 on each of SQLite and MariaDB**. These are the same cases on two engines, not 412 distinct cases. Scope includes ExternalBorrowingDraftTest, CreateRequestOrganizationalUnitTest, BorrowerDraftResumeTest, CreateRequestLayoutTest, EditRequestRevisionRemarksTest, PremisesApprovalRoutingTest, and the previous 150-case registration/identity/access/safety regression. SQLite preceded an import-order-only tidy-up; the final matched source was then exercised on MariaDB and in the browser.
+
+Evidence retained in the ChatGPT project workspace `sprint1/`: `external-draft-baseline.txt`, `external-draft-focused-sqlite.txt`, `external-draft-regression-sqlite.txt`, and `external-draft-regression-mariadb.txt`. Frontend scope (premises, revision remarks, submission label, duplicate submit): **19/19 passed**, in `external-draft-frontend.txt`.
+
+MariaDB migration rehearsal: existing header/version data remained unchanged, and the accountable-unit FK was retained and rejected a nonexistent unit. Evidence: `external-draft-upgrade.txt`. Two independent PHP workers both bound the same returned revision before a readiness barrier. Locked updates left exactly two versions (original plus one correction), preserved original company/signed timestamp, retained null internal assignment, and recorded two successful update audits. Evidence: `external-draft-worker1.txt`, `external-draft-worker2.txt`, and `external-draft-concurrency.txt`. This is a two-worker consistency test, not load certification.
+
+The first browser attempt encountered failed/blocked calendar requests, expired test-session state, and a browser connection reset. It is excluded from end-to-end acceptance. After restoring the available in-app browser, a fresh owned SQLite UI fixture with a separate session cookie completed create → date validation → item selection → external review summary → Save Draft → resume at Documents & Review → edit → Save Draft Changes. Screenshots were visually inspected. No calendar rule or security guard was changed or bypassed. Final browser data inspection confirmed one request/version, EXTERNAL/company snapshot, null unit/division/office, one creation and one update audit, and no allocations. Evidence: `external-draft-browser-verification.md` and `external-draft-browser-data.txt`. The successful browser run used SQLite; complete MariaDB browser-flow/performance verification is not claimed.
+
+## Usage, limits, and gate
+
+1. Review and apply the two registration migrations normally to a backed-up development/staging database. Never use the verification-only fresh/reset helpers on a real application database.
+2. Complete external registration, mailbox proof, and SAO approval.
+3. Create a request using the displayed company, dates, and items; save it as a draft. No CSPC office selection is available.
+4. Reopen through My Requests; edit permitted request details and save. The saved company remains part of that request's history.
+5. Verify employee primary/additional assignments continue to work and that revoked/inactive/unknown assignments remain denied.
+
+Status: **VERIFIED COMPLETE** for S1-REG-02; selected gate **PASS**. No working/live migration, deployment, commit, or push was performed. External account corrections, real SMTP/OAuth, complete external E-sign/document submission, active official document/CSV/PDF company mapping, broad external operational reports, inventory reservation/release/return, and institutional hosting acceptance remain separate tasks. Overall deployment remains NOT READY.
+
+Later dependency resolution: S1-ROUTE-01 has now verified external E-sign/document submission and current reviewer routing; see EXTERNAL-SUBMISSION-ROUTING.md. Its 272-case both-engine regression retains this draft/unit scope. Broader external official output and approval/operational acceptance remain separate.

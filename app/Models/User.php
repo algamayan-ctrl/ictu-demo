@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AccessClassification;
 use App\Enums\AccountStatus;
 use App\Enums\EmploymentType;
+use App\Enums\RegistrationStatus;
 use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -61,6 +62,25 @@ class User extends Authenticatable
     public function hasVerifiedInstitutionalEmail(): bool
     {
         return $this->email_verified_at !== null;
+    }
+
+    public function borrowerRegistration(): HasOne
+    {
+        return $this->hasOne(BorrowerRegistration::class);
+    }
+
+    public function hasApprovedRegistration(): bool
+    {
+        // Existing Admin/ICTU-provisioned accounts retain their established access.
+        // Always query current state so cached relationships cannot bypass review.
+        return ! $this->borrowerRegistration()->where('status', '!=', RegistrationStatus::Approved->value)->exists();
+    }
+
+    public function registrationAccessMessage(): string
+    {
+        return $this->borrowerRegistration()->first()?->status === RegistrationStatus::Rejected
+            ? 'Your borrower registration was not approved. Contact SAO for clarification.'
+            : 'Your borrower registration is Pending SAO approval. Email verification does not approve registration.';
     }
 
     /**
@@ -154,7 +174,7 @@ class User extends Authenticatable
 
     public function mayBorrow(): bool
     {
-        return $this->resolvedAccessClassification()?->mayBorrow() ?? false;
+        return ($this->resolvedAccessClassification()?->mayBorrow() ?? false) && $this->hasApprovedRegistration();
     }
 
     public function hasWorkspace(string $workspace): bool

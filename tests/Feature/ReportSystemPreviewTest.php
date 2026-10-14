@@ -31,6 +31,7 @@ class ReportSystemPreviewTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed(\Database\Seeders\RoleSeeder::class);
 
         Carbon::setTestNow(Carbon::create(2026, 9, 20, 9));
 
@@ -45,6 +46,7 @@ class ReportSystemPreviewTest extends TestCase
             'access_classification' => AccessClassification::SpmuHead,
             'full_name' => 'Preview Head',
         ]);
+        app(\App\Services\UserRoleAssignmentService::class)->synchronize($this->head, AccessClassification::SpmuHead);
     }
 
     protected function tearDown(): void
@@ -331,7 +333,7 @@ class ReportSystemPreviewTest extends TestCase
         $page->assertSee('data-report-live="results"', false);
         $page->assertSee('data-report-live="filters-heading"', false);
         $page->assertSee('id="report-options"', false);
-        $page->assertSee('Refresh Preview', false);
+        $page->assertSee('data-report-records', false);
 
         // The retired institutional form is no longer served at all.
         $this->asHead()->get('/reports/official/equipment?from=2026-09-01&to=2026-09-30')->assertNotFound();

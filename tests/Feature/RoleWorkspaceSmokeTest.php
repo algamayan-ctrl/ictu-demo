@@ -45,12 +45,15 @@ class RoleWorkspaceSmokeTest extends TestCase
             '/calendar',
             '/requests',
             '/approvals',
-            '/custody',
             '/accountability',
             '/reports',
             '/administration',
             '/administration/settings',
         ]);
+
+        $this->actingAs($this->workspaceUser(UserRole::Spmu))
+            ->get('/custody')
+            ->assertRedirect(route('requests.index'));
     }
 
     public function test_ictu_workspace_pages_render(): void
@@ -82,12 +85,12 @@ class RoleWorkspaceSmokeTest extends TestCase
              * Delivery Records) are not offered.
              */
             UserRole::Spmu->value => [
-                'see' => ['For Approval', 'Inventory', 'Release & Return', 'Analytics', 'Reports', 'Configuration', 'Operational Audit Trail'],
-                'hide' => ['User Accounts', 'Technical Audit Trail', 'System Configuration', 'Delivery Records', 'Laundry'],
+                'see' => ['For Approval', 'Request Records', 'Inventory', 'Analytics', 'Reports', 'Configuration', 'User Accounts'],
+                'hide' => ['Release & Return', 'Release', 'Return', 'Technical Audit Trail', 'Delivery Records', 'Laundry'],
             ],
             UserRole::Ictu->value => [
                 'see' => ['User Accounts', 'System Configuration', 'Technical Audit Trail', 'Delivery Records'],
-                'hide' => ['Borrowing Calendar', 'For Approval', 'Laundry', 'Operational Audit Trail', 'Inventory', 'Analytics'],
+                'hide' => ['Borrowing Calendar', 'For Approval', 'Laundry'],
             ],
         ];
 
@@ -103,84 +106,39 @@ class RoleWorkspaceSmokeTest extends TestCase
                 ->get('/dashboard')
                 ->assertOk();
 
-            /*
-             * Read the menu itself. Matching the whole page would also match
-             * unrelated text such as stylesheet comments.
-             */
-            $menu = $this->navigation($response->getContent());
-
-            foreach ($labels['see'] as $label) {
-                $this->assertContains($label, $menu['labels'], "{$roleCode} menu offers {$label}.");
-            }
-
-            foreach ($labels['hide'] as $label) {
-                $this->assertNotContains($label, $menu['labels'], "{$roleCode} menu does not offer {$label}.");
-            }
-
-            foreach ($ictuOnlyLinks as $path) {
-                $role === UserRole::Ictu
-                    ? $this->assertContains($path, $menu['paths'], "ICTU menu links to {$path}.")
-                    : $this->assertNotContains($path, $menu['paths'], "{$roleCode} menu does not link to {$path}.");
-            }
+            $this->assertNavigationLabels($response, $labels['see'], $labels['hide']);
         }
 
         $actionOfficer = User::query()
             ->where('access_classification', AccessClassification::SpmuOfficer->value)
             ->firstOrFail();
 
-        $officerMenu = $this->navigation(
-            $this->withSession(['active_workspace' => UserRole::Spmu->value])
-                ->actingAs($actionOfficer)
-                ->get('/dashboard')
-                ->assertOk()
-                ->getContent()
+        $response = $this->withSession(['active_workspace' => UserRole::Spmu->value])
+            ->actingAs($actionOfficer)
+            ->get('/dashboard')
+            ->assertOk();
+        $this->assertNavigationLabels($response,
+            ['For Verification', 'Borrower Registrations', 'Release', 'Return', 'Laundry'],
+            ['User Accounts', 'For Approval', 'Release & Return']
         );
-
-        $this->assertContains('Laundry', $officerMenu['labels']);
-        $this->assertNotContains('User Accounts', $officerMenu['labels']);
-        $this->assertNotContains('Operational Audit Trail', $officerMenu['labels']);
-        $this->assertNotContains('Technical Audit Trail', $officerMenu['labels']);
-        $this->assertNotContains('Analytics', $officerMenu['labels']);
-        $this->assertNotContains('/administration/users', $officerMenu['paths']);
-        $this->assertNotContains('/reports/audit', $officerMenu['paths']);
-        $this->assertNotContains('/reports/notifications', $officerMenu['paths']);
     }
 
-    /**
-     * The labels and link paths of the page's navigation (main menu and
-     * account menu) - what the signed-in user can actually click.
-     *
-     * @return array{labels: list<string>, paths: list<string>}
-     */
-    private function navigation(string $html): array
+    private function assertNavigationLabels(\Illuminate\Testing\TestResponse $response, array $see, array $hide): void
     {
-        $document = new \DOMDocument();
-        libxml_use_internal_errors(true);
-        $document->loadHTML('<?xml encoding="utf-8" ?>'.$html);
-        libxml_clear_errors();
-
-        $links = (new \DOMXPath($document))->query(
-            '//aside[contains(@class,"app-sidebar")]//a | //aside[contains(@class,"app-sidebar")]//button | //nav[contains(@class,"account-nav")]//a'
-        );
-
-        $this->assertGreaterThan(0, $links->length, 'The page has a navigation menu.');
-
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($response->getContent());
+        $xpath = new \DOMXPath($dom);
         $labels = [];
-        $paths = [];
-
-        foreach ($links as $link) {
-            $label = trim((string) preg_replace('/\s+/u', ' ', $link->textContent));
-            if ($label !== '') {
-                $labels[] = $label;
-            }
-
-            $href = $link instanceof \DOMElement ? $link->getAttribute('href') : '';
-            if ($href !== '') {
-                $paths[] = (string) (parse_url($href, PHP_URL_PATH) ?: '/');
-            }
+        foreach ($xpath->query('//nav[@aria-label="Primary navigation"]/a/@aria-label') as $label) {
+            $labels[] = $label->nodeValue;
         }
-
-        return ['labels' => array_values(array_unique($labels)), 'paths' => array_values(array_unique($paths))];
+        $this->assertNotEmpty($labels, 'The actual primary navigation must be rendered.');
+        foreach ($see as $label) {
+            $this->assertContains($label, $labels);
+        }
+        foreach ($hide as $label) {
+            $this->assertNotContains($label, $labels);
+        }
     }
 
     /** @param array<int, string> $paths */

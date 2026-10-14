@@ -1268,6 +1268,28 @@ class CustodyService
         User $spmu,
         ?string $remarks = null
     ): void {
+        abort_unless($spmu->access_classification === AccessClassification::SpmuOfficer
+            && $custody->borrower_user_id !== $spmu->id, 403);
+        DB::transaction(function () use ($custody, $spmu, $remarks): void {
+            // Serialize with cancellation before validation or fallback output
+            // generation, so a stale release cannot regenerate voided forms.
+            $request = $custody->request()->lockForUpdate()->firstOrFail();
+            if (! $request->status->isOpen()) {
+                throw ValidationException::withMessages(['release' => 'The borrowing request is already closed. Physical release is unavailable.']);
+            }
+            $current = $custody->fresh();
+            if ($current->released_at) {
+                return;
+            }
+            $this->releaseUnderRequestLock($current, $spmu, $remarks);
+        }, 3);
+    }
+
+    private function releaseUnderRequestLock(
+        CustodyTransaction $custody,
+        User $spmu,
+        ?string $remarks
+    ): void {
         abort_unless(
             $spmu->access_classification === AccessClassification::SpmuOfficer
                 && $custody->borrower_user_id !== $spmu->id
@@ -2638,6 +2660,19 @@ class CustodyService
             throw ValidationException::withMessages([
                 'documents' => 'The required approved Laundry Form is missing or invalid. Physical preparation and release remain blocked.',
             ]);
+        }
+
+        foreach (array_filter([$borrowerSlip, $gatePassDocument, $laundryForm]) as $document) {
+            $version = $custody->request?->currentVersion;
+            if (! $version || $document->request_version_id !== $version->id
+                || $custody->request->borrower_user_id !== $custody->borrower_user_id
+                || ! $document->file
+                || ! hash_equals((string) $document->sha256, (string) $document->file->sha256)) {
+                throw ValidationException::withMessages([
+                    'documents' => 'The approved document packet does not match this custody and current request version. Preparation and release remain blocked.',
+                ]);
+            }
+            app(SubmissionEvidenceService::class)->verifiedBytes($document->file, 'documents');
         }
 
         return [

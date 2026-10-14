@@ -112,8 +112,9 @@
         default => 'review',
     };
 
-    $context = $version?->student_organization
-        ?: ($version?->office_unit ?: $version?->location);
+    $context = $version?->isExternalAffiliation()
+        ? $version->affiliationLabel()
+        : ($version?->student_organization ?: ($version?->office_unit ?: $version?->location));
 
     $submittedAt = $version?->submitted_at ?: $request->created_at;
     $borrowingDate = $version?->schedule_date ?: $version?->needed_from;

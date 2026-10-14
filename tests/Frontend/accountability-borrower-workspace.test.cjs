@@ -16,20 +16,21 @@ test('borrower Accountability workspace stays grouped and does not route normal 
   assert.doesNotMatch(workspace, /View Case/);
 });
 
-test('role-owned Accountability actions use focused controls instead of forward-arrow navigation', () => {
+test('role-owned Accountability actions preserve focused processing and explicit Head review navigation', () => {
   assert.match(workspace, /accountability-action-button/);
   assert.match(workspace, /\$shouldAutoOpenFocusedAction/);
   assert.match(workspace, /class="accountability-action-panel"/);
   assert.match(workspace, /Review Assessment/);
-  assert.match(workspace, /Confirm \/ Clear/);
+  assert.match(workspace, /Review Finding/);
   assert.match(workspace, /Record Verification/);
   assert.match(workspace, /Record Receipt/);
-  assert.match(workspace, /Resolve Case/);
+  assert.match(workspace, /Finalize Case/);
   assert.match(workspace, /Resolve Accountability/);
   assert.match(workspace, /name="f2f_processing_completed"/);
   assert.doesNotMatch(workspace, /route\('incidents\.rslddp\.upload'/);
   assert.doesNotMatch(workspace, /route\('incidents\.disposition\.record'/);
-  assert.doesNotMatch(workspace, /→/);
+  assert.match(workspace, /\$statusKey === 'OPEN' && \$isHead \? 'Open Decision →' : \$actionLabel/);
+  assert.equal((workspace.match(/→/g) || []).length, 2, 'only View All Cases and Head Open Decision use forward navigation');
 });
 
 test('workspace uses compact readable sizing and wraps long status/action text', () => {
@@ -62,24 +63,24 @@ test('staff borrower History loads the shared resolved-row interaction script', 
 });
 
 
-test('staff borrower accountability summary uses the same universal accountability cards and separates case count from restrictions', () => {
-  assert.equal((workspace.match(/class="accountability-summary-card tone-/g) || []).length, 3);
-  assert.match(workspace, /Open Accountability Matters/);
-  assert.match(workspace, /\$openMatterCount = \$openIncidents->count\(\) \+ \$openOverdueCases->count\(\) \+ \$standaloneBillingCount/);
-  assert.match(workspace, /Pending Borrower Compliance/);
-  assert.match(workspace, /\$pendingBorrowerNote/);
+// The current workspace groups live matters rather than duplicating staff overview KPIs.
+test('staff borrower workspace scopes cases and keeps restrictions separate from property matters', () => {
   assert.match(workspace, /id="accountability-active-cases"/);
   assert.match(workspace, /\$standaloneRows = collect\(\$rows\)[\s\S]*?whereIn\('category', \['billing', 'restriction'\]\)/);
+  assert.match(workspace, /'status' => collect\(\$rows\)->where\('restricted', true\)/);
+  assert.match(workspace, /'open' => collect\(\$rows\)->whereIn\('category', \['property', 'overdue', 'billing'\]\)/);
   assert.match(workspace, /accountability-standalone-groups/);
+  assert.match(workspace, /\$verified = \(float\) \$billing->payments->where\('status', 'VERIFIED'\)->sum\('amount'\)/);
 });
 
 
-test('standalone accountability disclosures stay anchored and use a compact separate detail panel', () => {
+test('simple standalone details stay visible while complex evidence retains compact controls', () => {
   assert.match(workspace, /data-accountability-standalone-toggle/);
   assert.match(workspace, /aria-controls="\{\{ \$standaloneDetailId \}\}"/);
   assert.match(workspace, /class="accountability-standalone-detail-body" hidden/);
   assert.match(workspace, /accountability-standalone-toggle \{ justify-self: end; min-width: 118px; \}/);
-  assert.match(workspace, /accountability-standalone-detail-body\[hidden\] \{ display: none; \}/);
+  assert.match(workspace, /\.borrower-accountability-workspace \.accountability-standalone-detail-body \{\s*display: grid !important;/);
+  assert.match(workspace, /\.borrower-accountability-workspace \.accountability-standalone-toggle \{\s*display: none !important;/);
   assert.doesNotMatch(workspace, /<details class="accountability-standalone-details">/);
   assert.match(workspace, /class="accountability-custody-groups accountability-standalone-groups"[\s\S]*?class="ob-case-card accountability-custody-case accountability-standalone-case tone-/);
 });

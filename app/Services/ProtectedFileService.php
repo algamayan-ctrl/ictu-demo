@@ -5,9 +5,12 @@ namespace App\Services;
 use App\Exceptions\ProtectedFileStorageException;
 use App\Models\StoredFile;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
+use RuntimeException;
 use Throwable;
 
 class ProtectedFileService
@@ -22,9 +25,15 @@ class ProtectedFileService
      */
     public function writeDisk(): string
     {
-        $disk = trim((string) config('filesystems.protected_disk', 'local'));
+        // Both branches used different names. Accept either configured private
+        // disk, but never silently choose between conflicting non-default values.
+        $incoming = trim((string) config('filesystems.protected', 'local')) ?: 'local';
+        $main = trim((string) config('filesystems.protected_disk', 'local')) ?: 'local';
+        if ($incoming !== 'local' && $main !== 'local' && $incoming !== $main) {
+            throw new InvalidArgumentException('Conflicting protected storage disks are configured.');
+        }
 
-        return $disk !== '' ? $disk : 'local';
+        return $incoming !== 'local' ? $incoming : $main;
     }
 
     public function storeUpload(UploadedFile $upload, string $folder, string $classification = 'PROTECTED'): StoredFile
@@ -43,16 +52,33 @@ class ProtectedFileService
 
     public function storeBytes(#[\SensitiveParameter] string $bytes, string $folder, #[\SensitiveParameter] string $originalName, string $mimeType, string $extension, string $classification = 'PROTECTED', ?int $uploaderId = null): StoredFile
     {
-        $disk = $this->writeDisk();
-        $path = trim($folder, '/').'/'.Str::uuid().'.'.ltrim($extension, '.');
-
-        $this->write($disk, $path, $bytes);
-
+        $folder = trim($folder, '/');
+        $extension = ltrim($extension, '.');
+        if (! preg_match('~\A[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)*\z~', $folder)
+            || ! preg_match('/\A[a-zA-Z0-9]+\z/', $extension)) {
+            throw new InvalidArgumentException('Invalid protected file location.');
+        }
+        $diskName = $this->writeDisk();
+        $diskConfig = config('filesystems.disks.'.$diskName);
+        if (! is_array($diskConfig)) {
+            throw new ProtectedFileStorageException('The configured protected storage disk is unavailable.');
+        }
+        if ($diskName === 'public' || ($diskConfig['visibility'] ?? 'private') !== 'private') {
+            throw new InvalidArgumentException('Protected evidence requires a configured private disk.');
+        }
+        $path = $folder.'/'.Str::uuid().'.'.$extension;
+        $disk = Storage::disk($diskName);
+        $this->write($diskName, $path, $bytes);
         try {
+            if (DB::transactionLevel() > 0) {
+                // Capture only this newly allocated UUID path, never an existing file.
+                // Laravel carries nested callbacks to the outer transaction rollback.
+                DB::afterRollBack(fn () => $this->cleanup($diskName, $path));
+            }
+
             return StoredFile::query()->create([
                 'uploaded_by_user_id' => $uploaderId ?? auth()->id(),
-                /* The disk actually written to, so the file is always read back from there. */
-                'disk' => $disk,
+                'disk' => $diskName,
                 'storage_path' => $path,
                 'original_name' => $originalName,
                 'mime_type' => $mimeType,
@@ -61,33 +87,28 @@ class ProtectedFileService
                 'classification' => $classification,
             ]);
         } catch (Throwable $exception) {
-            /*
-             * The object was written but its record was not. Nothing is
-             * deleted here: removing objects automatically is how a stored
-             * document gets lost, and the path is a fresh UUID that no
-             * record points to. The location is logged for reconciliation
-             * and the original failure is passed on unchanged.
-             *
-             * Only the location and the failure type are logged: never the
-             * bytes, the file name, or the failure message, which for a
-             * database error carries the statement and its values.
-             */
-            Log::error('Protected file was stored but its record could not be saved.', [
-                'disk' => $disk,
+            Log::error('Protected file metadata could not be saved; cleaning up the new object.', [
+                'disk' => $diskName,
                 'storage_path' => $path,
                 'byte_size' => strlen($bytes),
                 'sha256' => hash('sha256', $bytes),
                 'classification' => $classification,
                 'error' => $exception::class,
             ]);
-
+            $this->cleanup($diskName, $path);
             throw $exception;
         }
     }
 
     public function bytes(StoredFile $file): string
     {
-        return Storage::disk($file->disk)->get($file->storage_path);
+        $bytes = Storage::disk($file->disk)->get($file->storage_path);
+        if (! is_string($bytes) || strlen($bytes) !== (int) $file->byte_size
+            || ! hash_equals((string) $file->sha256, hash('sha256', $bytes))) {
+            throw new RuntimeException('Protected file is missing or its integrity check failed.');
+        }
+
+        return $bytes;
     }
 
     /**
@@ -104,8 +125,9 @@ class ProtectedFileService
     private function write(string $disk, string $path, #[\SensitiveParameter] string $bytes): void
     {
         try {
-            $written = Storage::disk($disk)->put($path, $bytes);
+            $written = Storage::disk($disk)->put($path, $bytes, ['visibility' => 'private']);
         } catch (Throwable $exception) {
+            $this->cleanup($disk, $path);
             Log::error('Protected file could not be written.', [
                 'disk' => $disk,
                 'storage_path' => $path,
@@ -116,7 +138,21 @@ class ProtectedFileService
         }
 
         if ($written === false) {
+            $this->cleanup($disk, $path);
             throw new ProtectedFileStorageException("The file could not be written to the [{$disk}] disk.");
+        }
+    }
+
+    /** Only a fresh UUID allocated by this write may be cleaned up. */
+    private function cleanup(string $disk, string $path): void
+    {
+        try {
+            if (! Storage::disk($disk)->delete($path)) {
+                Log::warning('New protected object cleanup was not confirmed.', ['disk' => $disk, 'storage_path' => $path]);
+            }
+        } catch (Throwable $exception) {
+            // Preserve the original write/database failure; no raw provider response.
+            Log::warning('New protected object cleanup failed.', ['disk' => $disk, 'storage_path' => $path, 'error' => $exception::class]);
         }
     }
 

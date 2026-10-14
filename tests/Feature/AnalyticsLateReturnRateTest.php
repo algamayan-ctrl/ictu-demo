@@ -254,7 +254,7 @@ class AnalyticsLateReturnRateTest extends TestCase
 
         $card = $this->card($page->getContent());
         $this->assertStringContainsString('100%', $card->textContent);
-        $this->assertStringContainsString('1 late · 1 completed', $card->textContent);
+        $this->assertStringContainsString('1 late - 1 completed', $card->textContent);
     }
 
     public function test_no_completed_returns_is_a_sentence_not_a_zero_rate(): void
@@ -416,7 +416,7 @@ class AnalyticsLateReturnRateTest extends TestCase
         );
         /* The bar is the rate on a 0-100 track: 20%, not 100% for the top row. */
         $this->assertSame('width: 20%', $x->query('.//*[contains(@class,"analytics-laterate-fill")]', $academic)->item(0)->getAttribute('style'));
-        $this->assertStringContainsString('4 late · 20 completed', $academic->textContent);
+        $this->assertStringContainsString('4 late - 20 completed', $academic->textContent);
         $this->assertStringContainsString('detail=late-rate', $academic->getAttribute('href'));
         $this->assertStringContainsString('level=division', $academic->getAttribute('href'));
         $this->assertStringContainsString('for=ACADEMIC', $academic->getAttribute('href'));
@@ -476,7 +476,7 @@ class AnalyticsLateReturnRateTest extends TestCase
             'for' => 'ADMINISTRATION', 'segment' => $this->hrmo(),
         ]));
         $row->assertOk();
-        $row->assertSee($this->hrmo().' - Administrative');
+        $row->assertSee($this->hrmo())->assertSee('Administrative');
         $row->assertSee('1 late of 4 completed');
 
         $x = $this->xpath($row->getContent());

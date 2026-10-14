@@ -140,7 +140,9 @@ class PreventDuplicateSubmission
             ], 409);
         }
 
-        return redirect()->back()->withInput()->with('status', $message);
+        return redirect()->back()
+            ->withInput($request->except(['password', 'password_confirmation', 'current_password']))
+            ->with('status', $message);
     }
 
     private function requestFingerprint(Request $request): string

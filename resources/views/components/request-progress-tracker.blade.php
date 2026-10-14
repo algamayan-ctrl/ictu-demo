@@ -109,7 +109,10 @@
         $firstReturn?->received_at
         ?: $laundry?->worker_received_at;
 
-    $completedAt = $custody?->closed_at;
+    // A cancellation closes custody without certifying a completed return.
+    $completedAt = $custodyStatus === 'CLOSED' && $statusValue !== 'CANCELLED'
+        ? $custody?->closed_at
+        : null;
 
     /*
     |--------------------------------------------------------------------------
@@ -152,7 +155,7 @@
     );
 
     $isClosed =
-        $custodyStatus === 'CLOSED';
+        $custodyStatus === 'CLOSED' && $statusValue !== 'CANCELLED';
 
     /*
      * Accountability is a post-return branch, not another name for physical
@@ -529,9 +532,11 @@
         'icon' => 'success',
         'time' => $completedAt,
         'description' =>
-            $isClosed
-                ? 'Transaction completed.'
-                : 'Completed after final SPMU return reconciliation.',
+            $statusValue === 'CANCELLED'
+                ? 'Not applicable: this request was cancelled before completion.'
+                : ($isClosed
+                    ? 'Transaction completed.'
+                    : 'Completed after final SPMU return reconciliation.'),
     ];
 
     ksort($steps);

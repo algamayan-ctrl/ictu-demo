@@ -328,7 +328,7 @@ class PremisesApprovalRoutingTest extends TestCase
             return;
         }
 
-        $bytes = "\x89PNG\r\n\x1a\n".'signature-ink-'.$user->id;
+        $bytes = \Tests\Support\EvidenceFixtures::signatureBytes('signature-ink-'.$user->id);
         $path = 'tests/signatures/'.$user->id.'/signature.png';
         Storage::disk('local')->put($path, $bytes);
 
@@ -361,7 +361,8 @@ class PremisesApprovalRoutingTest extends TestCase
         $version,
         User $borrower
     ): void {
-        $bytes = '%PDF-1.4 premises-routing-test';
+        $bytes = \Tests\Support\EvidenceFixtures::pdfBytes('Synthetic premises-routing evidence');
+        Storage::disk('local')->put('tests/request-supporting-documents/'.$request->id.'/signed-approved-request-letter.pdf', $bytes);
 
         $file = StoredFile::create([
             'uploaded_by_user_id' => $borrower->id,

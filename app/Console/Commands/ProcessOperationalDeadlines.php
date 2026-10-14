@@ -23,7 +23,7 @@ class ProcessOperationalDeadlines extends Command
 {
     protected $signature = 'spmu:process-deadlines';
 
-    protected $description = 'Expire pickup reservations, lock prior-day issuance records, and process date-based due/overdue custody records';
+    protected $description = 'Detect elapsed pickup windows without cancelling reservations, lock prior-day issuance records, and process due/overdue custody records';
 
     public function handle(
         CustodyService $custodyService,
@@ -36,7 +36,7 @@ class ProcessOperationalDeadlines extends Command
         /*
          * A missed pickup is never auto-cancelled. It stays
          * "Pickup Missed - For SPMU Review" indefinitely; only an explicit SPMU
-         * decision (Continue Release or Cancel Borrowing) resolves it.
+         * decision resolves it; missed-pickup cancellation requires SAO confirmation.
          */
         $pickupExpired = $custodyService->expirePickupWindows();
         $legacyLaundryReconciled = $custodyService->reconcileLegacyLaundryAvailability();

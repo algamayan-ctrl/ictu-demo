@@ -343,6 +343,23 @@ class RsldppWorkflowTest extends TestCase
             'status' => 'ACTIVE',
         ]);
 
+        $this->actingAs($officer)
+            ->withSession(['active_workspace' => 'SPMU'])
+            ->post(route('incidents.rslddp.resolve', $incident), [
+                'resolution_remarks' => 'AO cannot perform the final review.',
+                'rslddp_attachment' => UploadedFile::fake()->create('unauthorized-final.pdf', 5, 'application/pdf'),
+            ])->assertForbidden();
+        $this->assertSame('RSLDDP_FOR_RESOLUTION', $incident->fresh()->status);
+
+        $this->actingAs($head)
+            ->withSession(['active_workspace' => 'SPMU'])
+            ->post(route('incidents.rslddp.resolve', $incident), [
+                'resolution_remarks' => 'A supplied negative confirmation is invalid.',
+                'f2f_processing_completed' => '0',
+                'rslddp_attachment' => UploadedFile::fake()->create('declined-final.pdf', 5, 'application/pdf'),
+            ])->assertSessionHasErrors('f2f_processing_completed');
+        $this->assertSame('RSLDDP_FOR_RESOLUTION', $incident->fresh()->status);
+
         $this->actingAs($head)
             ->withSession(['active_workspace' => 'SPMU'])
             ->post(route('incidents.rslddp.resolve', $incident), [
@@ -406,6 +423,7 @@ class RsldppWorkflowTest extends TestCase
             ->withSession(['active_workspace' => 'SPMU'])
             ->post(route('incidents.rslddp.resolve', $incident), [
                 'resolution_remarks' => 'Replacement and AO verification accepted.',
+                'f2f_processing_completed' => '1',
                 'rslddp_attachment' => UploadedFile::fake()->create('final-rslddp.pdf', 5, 'application/pdf'),
                 '_action_token' => 'test-replacement-final-resolution',
             ])
@@ -791,13 +809,10 @@ class RsldppWorkflowTest extends TestCase
         foreach ($expected as $status => [$label, $tone]) {
             $html = \Illuminate\Support\Facades\Blade::render('<x-status-badge :status="$status" />', ['status' => $status]);
 
-            $this->assertStringContainsString($label, $html, "Expected label \"{$label}\" for status {$status}.");
+            $badgeText = html_entity_decode(trim(strip_tags($html)), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $this->assertSame($label, $badgeText, "Expected the complete canonical label for status {$status}.");
             $this->assertStringContainsString('status-'.$tone, $html, "Expected tone \"{$tone}\" for status {$status}.");
-            $this->assertStringNotContainsString(
-                str($status)->replace('_', ' ')->lower()->title()->toString(),
-                $html,
-                "Raw auto-formatted key leaked into the badge for {$status}."
-            );
+            $this->assertStringNotContainsString($status, $badgeText, "Raw status key leaked into the badge for {$status}.");
         }
     }
 
@@ -856,11 +871,11 @@ class RsldppWorkflowTest extends TestCase
             ->get(route('custody.return.index'));
 
         $response->assertOk();
-        $response->assertSee('RSLDDP Processing', false);
+        $response->assertSee('Pending In-Person Resolution', false);
         $response->assertSee('For Accounting Processing', false);
         $response->assertSee('Payment Required', false);
         $response->assertSee('For Final Review', false);
-        $response->assertSee('Compliance - RSLDDP Pending', false);
+        $response->assertSee('Compliance Verification (Legacy)', false);
         $response->assertSee('Billing Statement Pending (Legacy)', false);
         $response->assertSee('Billing Pending (Legacy)', false);
     }
@@ -1027,7 +1042,7 @@ class RsldppWorkflowTest extends TestCase
             return;
         }
 
-        $bytes = "\x89PNG\r\n\x1a\n".'signature-ink-'.$user->id;
+        $bytes = \Tests\Support\EvidenceFixtures::signatureBytes('signature-ink-'.$user->id);
         $path = 'tests/signatures/'.$user->id.'/signature.png';
 
         Storage::disk('local')->put($path, $bytes);

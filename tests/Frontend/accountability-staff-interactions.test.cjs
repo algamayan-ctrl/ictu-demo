@@ -30,9 +30,11 @@ test('staff accountability KPI cards are whole-card links with universal navigat
   assert.match(index, /href="\{\{ \$card\['href'\] \}\}"/);
   assert.match(index, /accountability-overview-arrow/);
   assert.match(index, /\['queue' => 'work'\]/);
-  assert.match(index, /\['queue' => 'waiting'\]/);
+  assert.match(index, /\['queue' => 'work', 'metric' => 'verification'\]/);
+  // Main consolidates receipt follow-up under Needs action; the receipt filter remains available.
+  assert.match(index, /'receipts' => \$staffWorkQueue->filter/);
   assert.match(index, /\['queue' => 'all'\]/);
-  assert.match(index, /\['queue' => 'history'\]/);
+  assert.match(index, /\$activeStaffTab === 'history'/);
   assert.doesNotMatch(index, /accountability-overview-card[^\n]*is-static/);
 });
 

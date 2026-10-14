@@ -23,6 +23,7 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
+use Tests\Support\EvidenceFixtures;
 
 /**
  * Coverage for the borrower-initiated Cancel Request workflow
@@ -37,9 +38,18 @@ class RequestCancellationWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
+    // These workflow steps sign in again after fixture clock jumps. Preserve
+    // real idle enforcement; its expiry behavior remains in IdleSessionTest.
+    public function actingAs(\Illuminate\Contracts\Auth\Authenticatable $user, $guard = null)
+    {
+        $this->withSession(['last_user_activity_at' => now()->timestamp]);
+        return parent::actingAs($user, $guard);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake('local');
         $this->seed(DatabaseSeeder::class);
 
         // Deterministic Pickup / Release hours regardless of which weekday
@@ -324,7 +334,8 @@ class RequestCancellationWorkflowTest extends TestCase
 
     private function attachApprovedRequestLetter(BorrowingRequest $request, $version, User $borrower): void
     {
-        $bytes = '%PDF-1.4 cancellation-workflow-test';
+        $bytes = EvidenceFixtures::pdfBytes('Synthetic cancellation workflow letter');
+        Storage::disk('local')->put('tests/request-supporting-documents/'.$request->id.'/signed-approved-request-letter.pdf', $bytes);
 
         $file = StoredFile::create([
             'uploaded_by_user_id' => $borrower->id,
@@ -357,7 +368,7 @@ class RequestCancellationWorkflowTest extends TestCase
             return;
         }
 
-        $bytes = "\x89PNG\r\n\x1a\n".'signature-ink-'.$user->id;
+        $bytes = EvidenceFixtures::signatureBytes('Synthetic signature '.$user->id);
         $path = 'tests/signatures/'.$user->id.'/signature.png';
 
         Storage::disk('local')->put($path, $bytes);

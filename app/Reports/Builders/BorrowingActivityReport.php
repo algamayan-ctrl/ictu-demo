@@ -92,18 +92,16 @@ class BorrowingActivityReport implements ReportBuilder
                 return [
                     '_status_code' => $statusCode,
                     '_borrower_user_id' => (int) $request->borrower_user_id,
-                    '_division_code' => (string) ($version?->division_code ?? ''),
-                    '_office_unit' => (string) ($version?->office_unit ?? ''),
-                    '_request_id' => (int) $request->id,
+                    '_division_code' => \App\Support\ReportAffiliation::divisionCode($version),
+                    '_office_unit' => \App\Support\ReportAffiliation::employeeUnit($version),
                     '_link' => route('requests.show', $request),
+                    '_request_id' => $request->id,
                     '_tone_status' => self::statusTone($statusCode),
 
                     'request_no' => (string) $request->request_no,
                     'borrower' => (string) ($request->borrower?->full_name ?? ''),
-                    'division' => $version?->division_code
-                        ? OrganizationalStructure::label($version->division_code)
-                        : '',
-                    'office_unit' => (string) ($version?->office_unit ?? ''),
+                    'division' => \App\Support\ReportAffiliation::division($version),
+                    'office_unit' => \App\Support\ReportAffiliation::display($version),
                     'purpose_event' => (string) ($version?->purpose_event ?? ''),
                     'schedule_date' => $this->date(
                         $version?->schedule_date ?: $version?->needed_from
@@ -143,7 +141,7 @@ class BorrowingActivityReport implements ReportBuilder
                 ['key' => 'request_no', 'label' => 'Request No.'],
                 ['key' => 'borrower', 'label' => 'Borrower'],
                 ['key' => 'division', 'label' => 'Division'],
-                ['key' => 'office_unit', 'label' => 'Office / College / Unit'],
+                ['key' => 'office_unit', 'label' => 'Office / Unit / External Company'],
                 ['key' => 'purpose_event', 'label' => 'Event / Purpose'],
                 ['key' => 'schedule_date', 'label' => 'Schedule Date'],
                 ['key' => 'return_date', 'label' => 'Expected Return'],

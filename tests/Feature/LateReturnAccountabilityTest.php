@@ -125,7 +125,7 @@ class LateReturnAccountabilityTest extends TestCase
             return;
         }
 
-        $bytes = "\x89PNG\r\n\x1a\n".'late-return-signature-'.$user->id;
+        $bytes = \Tests\Support\EvidenceFixtures::signatureBytes('late-return-signature-'.$user->id);
         $path = 'tests/signatures/'.$user->id.'/signature.png';
 
         \Illuminate\Support\Facades\Storage::disk('local')->put($path, $bytes);
@@ -1179,7 +1179,7 @@ class LateReturnAccountabilityTest extends TestCase
             ->get(route('custody.return.show', $custody))
             ->assertOk()
             ->assertSee('Laundry Received Date')
-            ->assertSee('Use the RECEIVED BY date written on the accomplished form.');
+            ->assertSee('Enter the actual RECEIVED BY date on the signed form.');
     }
 
     public function test_linen_with_worker_received_date_but_no_accomplished_form_still_requires_form_upload(): void
@@ -1193,7 +1193,7 @@ class LateReturnAccountabilityTest extends TestCase
             ->assertOk()
             ->assertSee('Record Form')
             ->assertSee('Laundry Received Date')
-            ->assertSee('Use the RECEIVED BY date written on the accomplished form.')
+            ->assertSee('Enter the actual RECEIVED BY date on the signed form.')
             ->assertSee('name="laundry_received_on"', false)
             ->assertDontSee('03 Sep 2026');
     }
@@ -1320,12 +1320,16 @@ class LateReturnAccountabilityTest extends TestCase
 
         $this->assertSame('WAIVED', $billing->fresh()->status);
 
-        $this->withSession(['active_workspace' => 'SPMU'])
+        $response = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
             ->get(route('accountability.index', ['view' => 'resolved']))
-            ->assertOk()
-            ->assertSee('Waived')
-            ->assertDontSee('Resolved - Paid');
+            ->assertOk();
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($response->getContent());
+        $rows = (new \DOMXPath($dom))->query('//*[@data-resolved-history-row]');
+        $this->assertSame(1, $rows->length);
+        $this->assertSame('Waived', $rows->item(0)->getAttribute('data-outcome'));
+        $this->assertStringNotContainsString('Resolved - Paid', $rows->item(0)->textContent);
     }
 
     public function test_resolved_history_shows_a_zero_state_when_nothing_is_closed(): void

@@ -223,7 +223,7 @@ class AuditRecoveryTest extends TestCase
         $this->as($this->head)
             ->delete(route('inventory.destroy', $unused), [
                 'confirm_item_name' => 'Recovery Unused Item',
-                'deletion_reason' => 'Created by mistake.',
+                'delete_reason' => 'Created by mistake.',
             ])
             ->assertSessionHasNoErrors();
         $deletion = $this->latestEvent('INVENTORY_ITEM_DELETED', $unused->id);

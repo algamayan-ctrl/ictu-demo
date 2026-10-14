@@ -2,6 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\BorrowerRegistration;
+use App\Models\BorrowingRequest;
+use App\Models\User;
+use App\Policies\BorrowerRegistrationPolicy;
+use App\Policies\BorrowingRequestPolicy;
+use App\Policies\UserPolicy;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,12 +27,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        /*
-         * Outside debug mode, a logged stack trace must not quote the values
-         * passed to each call: they can be the start of a document or a
-         * person's details. Set here so it holds on any host, whatever its
-         * php.ini says. Debug mode keeps full traces for development.
-         */
+        // Reset emails and OAuth entry links use the configured system address,
+        // including when a request arrives through a hostname alias or proxy.
+        $applicationUrl = rtrim((string) config('app.url'), '/');
+        if (filter_var($applicationUrl, FILTER_VALIDATE_URL)) {
+            URL::forceRootUrl($applicationUrl);
+            URL::forceScheme((string) parse_url($applicationUrl, PHP_URL_SCHEME));
+        }
+
+        Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(BorrowerRegistration::class, BorrowerRegistrationPolicy::class);
+        Gate::policy(BorrowingRequest::class, BorrowingRequestPolicy::class);
+
+        // Keep main's production trace privacy guard alongside Incoming policies.
         if (! config('app.debug')) {
             ini_set('zend.exception_ignore_args', '1');
         }

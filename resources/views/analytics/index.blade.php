@@ -20,7 +20,7 @@
  <div>
  <p class="eyebrow">Borrowing insights</p>
  <h1>Analytics</h1>
- <p>Understand borrowing activity, equipment usage, inventory, and returns at a glance.</p>
+ <p>Understand borrowing activity, equipment usage, returns, and scheduled bookings at a glance.</p>
  </div>
 </section>
 
@@ -78,7 +78,7 @@
  @endif
  </p>
 
- 
+
  </form>
 
  {{--
@@ -103,4 +103,3 @@
  </div>
 </section>
 @endsection
-

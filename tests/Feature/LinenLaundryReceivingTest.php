@@ -869,18 +869,19 @@ class LinenLaundryReceivingTest extends TestCase
 
         /* Visible in the Action Officer's work queue and on the return workspace, as provisional. */
         $this->officerGet(route('custody.return.index'))
-            ->assertOk()->assertSee('Provisionally Overdue - Pending Return Verification');
+            ->assertOk()->assertSee('Pending Laundry Form - Return Date Unverified');
         $this->officerGet(route('custody.return.show', $custody))
             ->assertOk()
-            ->assertSee('data-linen-provisional', false)
-            ->assertSee('This is not a finding that the linen was not returned');
+            ->assertSee('Laundry Form Pending')
+            ->assertSee('name="laundry_received_on"', false)
+            ->assertDontSee('Confirmed Not Returned');
 
         /* In overdue monitoring, identified as provisional rather than confirmed. */
         $aging = app(AnalyticsService::class)->overdueAging(null, null);
         $this->assertSame(1, $aging['total']);
         $this->assertSame(1, $aging['provisional']);
         $current = app(AnalyticsService::class)->currentOverdue(null, null, 5);
-        $this->assertSame('Provisionally Overdue - Pending Return Verification', $current['cases'][0]['linen_state_label']);
+        $this->assertSame('Pending Laundry Form - Return Date Unverified', $current['cases'][0]['linen_state_label']);
         $this->assertSame(1, $current['cases'][0]['days_overdue']);
     }
 

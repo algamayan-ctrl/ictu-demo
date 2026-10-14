@@ -47,17 +47,12 @@ class AnalyticsCardDrilldownTest extends TestCase
                 'inventory.available', 'inventory.reserved', 'inventory.custody',
                 'inventory.attention', 'inventory.availability', 'inventory.distribution',
                 'inventory.low-availability', 'inventory.utilization', 'inventory.operational',
-                'inventory.coverage',
             ],
             'returns' => [
                 'returns.trend', 'returns.outcome', 'returns.lifecycle', 'returns.followup',
                 'returns.condition', 'returns.summary', 'returns.issues',
             ],
-            'predictive' => [
-                'forecast.readiness', 'forecast.scheduled', 'forecast.outlook',
-                'forecast.division', 'forecast.unit', 'forecast.equipment',
-                'forecast.busy', 'forecast.notes', 'forecast.methodology',
-            ],
+            'scheduled' => ['scheduled.summary'],
         ];
 
         $cases = [];
@@ -154,9 +149,6 @@ class AnalyticsCardDrilldownTest extends TestCase
     {
         return [
             'priority insights' => ['overview', 'overview.insights'],
-            'inventory coverage estimate' => ['inventory', 'inventory.coverage'],
-            'forecast outlook' => ['predictive', 'forecast.outlook'],
-            'forecast methodology' => ['predictive', 'forecast.methodology'],
             /*
              * Awaiting/preparing release live in Borrowing Activity Report, on
              * custody belongs to Release & Custody, and returned belongs to
@@ -248,10 +240,10 @@ class AnalyticsCardDrilldownTest extends TestCase
     {
         $this->actingAs($this->spmuHead())
             ->get(route('analytics.index', [
-                'section' => 'predictive',
+                'section' => 'scheduled',
                 'academic_period' => 'month',
                 'detail' => 'card',
-                'for' => 'forecast.scheduled',
+                'for' => 'scheduled.summary',
             ]))
             ->assertOk()
             ->assertSee('requests already filed', false);

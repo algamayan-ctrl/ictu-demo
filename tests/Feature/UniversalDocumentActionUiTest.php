@@ -97,12 +97,13 @@ class UniversalDocumentActionUiTest extends TestCase
         $releaseProcess = (string) file_get_contents(resource_path('views/custody/partials/release-process.blade.php'));
         $returnWorkspace = (string) file_get_contents(resource_path('views/custody/partials/return-workspace.blade.php'));
 
-        $this->assertStringContainsString('Not available', $requestShow);
+        $this->assertStringContainsString('No current approved document is available.', $requestShow);
+        $this->assertStringContainsString('@if($borrowingRequest->custody && $borrowingRequest->final_approved_at)', $requestShow);
+        $this->assertStringContainsString('@forelse($operationalDocuments as $document)', $requestShow);
+        $this->assertStringContainsString("->where('status', 'FINAL')", $requestShow);
         $this->assertStringNotContainsString('>Preparing</span>', $requestShow);
         $this->assertStringNotContainsString('>Missing approved document</span>', $requestShow);
 
-        $this->assertStringContainsString('@if($requestHasLaundry)', $requestShow);
-        $this->assertStringContainsString('@if($requestHasOffCampus)', $requestShow);
         $this->assertStringNotContainsString('>Not applicable</span>', $requestShow);
 
         $this->assertStringContainsString('@if($hasOffCampusItem)', $releaseProcess);

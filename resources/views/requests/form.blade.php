@@ -9,6 +9,7 @@
 
 @php
     $editing = $borrowingRequest->exists;
+    $isExternalBorrower = $isExternalBorrower ?? false;
     $hasCurrentESignature = auth()->user()->currentSignature()->whereHas('file')->exists();
 
     $selectedItems = $version->exists
@@ -52,6 +53,10 @@
         'document_type',
         App\Models\RequestSupportingDocument::TYPE_PERMISSION_TO_CONDUCT
     );
+
+    // Returned evidence remains previewable, but a new correction needs fresh uploads.
+    $requestLetterForSubmission = $isReturned ? null : $requestLetter;
+    $ptcForSubmission = $isReturned ? null : $ptc;
 
     $maxUploadMb = max(1, (int) ($maxUploadMb ?? 5));
 
@@ -109,9 +114,9 @@
     $stageOneValues = [
         old('purpose_event', $version->purpose_event),
         old('location', $version->location),
-        $selectedRequestingUnitId,
-        $selectedDivision,
-        $selectedOfficeUnit,
+        ...($isExternalBorrower
+            ? [$externalCompanyName]
+            : [$selectedRequestingUnitId, $selectedDivision, $selectedOfficeUnit]),
         old('schedule_date', optional($version->schedule_date ?: $version->needed_from)->format('Y-m-d')),
         old('return_date', optional($version->return_date ?: $version->return_due_at)->format('Y-m-d')),
     ];
@@ -1459,11 +1464,11 @@
                     <strong id="summary-location">&mdash;</strong>
                 </div>
                 <div class="review-summary-field">
-                    <span>Division</span>
+                    <span>{{ $isExternalBorrower ? 'Borrower type' : 'Division' }}</span>
                     <strong id="summary-division">&mdash;</strong>
                 </div>
                 <div class="review-summary-field">
-                    <span>Office / Academic Unit / Research Unit</span>
+                    <span>{{ $isExternalBorrower ? 'Company / Agency / Institution' : 'Office / Academic Unit / Research Unit' }}</span>
                     <strong id="summary-office">&mdash;</strong>
                 </div>
                 <div class="review-summary-field">
@@ -1522,11 +1527,11 @@
                             <span class="document-required">Required</span>
                         </strong>
 
-                        <p>Upload the signed borrowing request letter.</p>
+                        <p>{{ $isReturned ? 'Upload the corrected signed borrowing request letter for the new version.' : 'Upload the signed borrowing request letter.' }}</p>
 
                         @if($requestLetter)
                             <p class="document-current">
-                                Current file:
+                                {{ $isReturned ? 'Previous version:' : 'Current file:' }}
                                 <a href="{{ route('files.preview', $requestLetter->file) }}">
                                     Preview
                                 </a>
@@ -1562,11 +1567,11 @@
                             <span class="document-required">Required</span>
                         </strong>
 
-                        <p>Upload the signed Permission to Conduct Letter.</p>
+                        <p>{{ $isReturned ? 'Upload the corrected signed Permission to Conduct Letter for the new version.' : 'Upload the signed Permission to Conduct Letter.' }}</p>
 
                         @if($ptc)
                             <p class="document-current">
-                                Current file:
+                                {{ $isReturned ? 'Previous version:' : 'Current file:' }}
                                 <a href="{{ route('files.preview', $ptc->file) }}">
                                     Preview
                                 </a>
@@ -1786,7 +1791,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const divisionSelect = document.getElementById('division_code');
     const divisionDisplay = document.getElementById('division-display');
-    const officeInput = document.getElementById('office_unit');
+    const officeInput = document.getElementById('office_unit') || document.getElementById('external-company-name');
+    const externalBorrower = @json($isExternalBorrower);
     const requestingUnitSelect = document.getElementById('requesting_organizational_unit_id');
     const officeDatalist = document.getElementById('office-unit-options');
 
@@ -1827,8 +1833,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const stageTwoNextButton = document.querySelector('[data-stage-next="3"]');
     const requestLetterInput = form?.querySelector('[name="approved_request_letter"]');
     const ptcInput = form?.querySelector('[name="permission_to_conduct_letter"]');
-    const requestLetterAlreadyUploaded = {{ $requestLetter ? 'true' : 'false' }};
-    const ptcAlreadyUploaded = {{ $ptc ? 'true' : 'false' }};
+    const requestLetterAlreadyUploaded = {{ $requestLetterForSubmission ? 'true' : 'false' }};
+    const ptcAlreadyUploaded = {{ $ptcForSubmission ? 'true' : 'false' }};
     const selectedItemsTableWrap = document.getElementById('selected-items-table')?.closest('.selected-items-table');
 
     const stagePanels = Array.from(
@@ -1869,7 +1875,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setSummaryText(summaryLocation, locationField?.value);
         setSummaryText(
             summaryDivision,
-            divisionLabels[divisionSelect?.value || ''] || divisionDisplay?.textContent
+            externalBorrower ? 'External Borrower' : (divisionLabels[divisionSelect?.value || ''] || divisionDisplay?.textContent)
         );
         setSummaryText(summaryOffice, officeInput?.value);
         setSummaryText(summaryFrom, formatDateLabel(scheduleDate?.value));
@@ -3232,11 +3238,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const requestLetterInput = form.querySelector('[name="approved_request_letter"]');
         const ptcInput = form.querySelector('[name="permission_to_conduct_letter"]');
         const requestLetterReady = Boolean(
-            requestLetterInput?.files?.length || {{ $requestLetter ? 'true' : 'false' }}
+            requestLetterInput?.files?.length || {{ $requestLetterForSubmission ? 'true' : 'false' }}
         );
         const ptcRequired = Boolean(studentToggle?.checked);
         const ptcReady = Boolean(
-            !ptcRequired || ptcInput?.files?.length || {{ $ptc ? 'true' : 'false' }}
+            !ptcRequired || ptcInput?.files?.length || {{ $ptcForSubmission ? 'true' : 'false' }}
         );
 
         if (!requestLetterReady) {

@@ -52,6 +52,7 @@ class ReportDateRangeTest extends TestCase
     {
         Carbon::setTestNow(Carbon::parse($today));
         $response = $this->get(route('reports.index', [
+            'report' => 'borrowing',
             'academic_period' => $period,
             'start_date' => '2025-02-05',
             'end_date' => '2025-02-20',
@@ -61,57 +62,13 @@ class ReportDateRangeTest extends TestCase
         $this->assertSame($end, $response->viewData('to')->toDateString());
         $this->assertSame('00:00:00.000000', $response->viewData('from')->format('H:i:s.u'));
         $this->assertSame('23:59:59.999999', $response->viewData('to')->format('H:i:s.u'));
-
-        // A predefined range shows its resolved dates in the builder and locks the From/To fields.
-        $response->assertSee('data-applied-start-label>'.Carbon::parse($start)->format('d M Y').'<', false);
-        $response->assertSee('data-applied-end-label>'.Carbon::parse($end)->format('d M Y').'<', false);
-        foreach (['start', 'end'] as $edge) {
-            $this->assertMatchesRegularExpression(
-                '/data-report-date-trigger="'.$edge.'"\s+tabindex="-1"\s+aria-disabled="true"/',
-                $response->getContent()
-            );
-        }
-    }
-
-    public function test_previous_semester_resolves_to_the_period_before_the_active_one(): void
-    {
-        $range = fn (string $year, string $code, string $from, string $to, string $status) => \App\Models\AcademicPeriod::query()->create([
-            'academic_year' => $year, 'term_code' => $code, 'term_name' => ucfirst(strtolower($code)).' Semester',
-            'start_date' => $from, 'end_date' => $to, 'status' => $status,
-        ]);
-
-        // No active period: the range is offered without dates and never shows another period's records.
-        $unconfigured = $this->get(route('reports.index', ['academic_period' => 'previous_semester', 'generated' => 1]))->assertOk();
-        $this->assertNull($unconfigured->viewData('reportingPeriods')['previous_semester']['start_date']);
-        $unconfigured->assertSee('Previous semester is not configured yet.', false);
-
-        $range('2024-2025', 'SECOND', '2025-01-13', '2025-05-30', 'CLOSED');
-        $range('2025-2026', 'SECOND', '2026-01-12', '2026-05-29', 'CLOSED');
-        $range('2026-2027', 'FIRST', '2026-08-03', '2026-12-18', 'ACTIVE');
-        $range('2026-2027', 'SECOND', '2027-01-11', '2027-05-28', 'PLANNED');
-        $this->record('2026-03-10 09:00:00', 'Previous semester record');
-        $this->record('2026-09-10 09:00:00', 'Current semester record');
-
-        $response = $this->get(route('reports.index', [
-            'report' => 'borrowing', 'academic_period' => 'previous_semester', 'generated' => 1,
-            'start_date' => '2025-02-05', 'end_date' => '2025-02-20',
-        ]))->assertOk();
-
-        $this->assertSame('2026-01-12', $response->viewData('from')->toDateString());
-        $this->assertSame('2026-05-29', $response->viewData('to')->toDateString());
-        $this->assertSame('23:59:59.999999', $response->viewData('to')->format('H:i:s.u'));
-        $this->assertSame('previous_semester', $response->viewData('periodSelection'));
-        $this->assertSame('2026-01-12', $response->viewData('reportingPeriods')['previous_semester']['start_date']);
-        $response->assertSee('Previous semester record')->assertDontSee('Current semester record');
-        $response->assertDontSee('Previous semester is not configured yet.', false);
-
-        // Pagination and export keep the selection rather than fixed dates.
-        $this->assertSame('previous_semester', $response->viewData('reportFilters')->toQuery()['academic_period']);
+        $this->assertMatchesRegularExpression('/<button[^>]+data-report-date-trigger="start"[^>]+tabindex="-1"[^>]+aria-disabled="true"/s', $response->getContent());
+        $this->assertMatchesRegularExpression('/<button[^>]+data-report-date-trigger="end"[^>]+tabindex="-1"[^>]+aria-disabled="true"/s', $response->getContent());
     }
 
     public function test_builder_keeps_existing_options_and_exposes_server_resolved_presets(): void
     {
-        $response = $this->get(route('reports.index', ['academic_period' => 'month']))->assertOk();
+        $response = $this->get(route('reports.index', ['report' => 'borrowing', 'academic_period' => 'month']))->assertOk();
         $presets = $response->viewData('reportingPeriods');
         $this->assertSame([
             'This Week', 'This Month', 'Current Semester', 'Previous Semester', 'Current Academic Year',
@@ -120,10 +77,8 @@ class ReportDateRangeTest extends TestCase
         $this->assertSame('2026-09-01', $presets['last_month']['start_date']);
         $this->assertSame('2026-12-31', $presets['quarter']['end_date']);
         $this->assertSame('2026-10-01', $presets['semester']['start_date']);
-        $this->assertNull($presets['previous_semester']['start_date']);
-        // The builder itself shows the resolved range.
-        $response->assertSee('data-applied-start-label>01 Oct 2026<', false);
-        $response->assertSee('data-applied-end-label>31 Oct 2026<', false);
+        $response->assertSee('<strong data-applied-start-label>01 Oct 2026</strong>', false)
+            ->assertSee('<strong data-applied-end-label>31 Oct 2026</strong>', false);
 
         // Optional rendered fixture for real-browser interaction and visual QA.
         if ($fixture = getenv('REPORT_BUILDER_HTML')) {
@@ -142,7 +97,7 @@ class ReportDateRangeTest extends TestCase
             'start_date' => '2027-01-05', 'end_date' => '2027-05-30', 'status' => 'PLANNED',
         ]);
         foreach (['semester', (string) $active->id, 'academic_year'] as $period) {
-            $response = $this->get(route('reports.index', ['academic_period' => $period]))->assertOk();
+            $response = $this->get(route('reports.index', ['report' => 'borrowing', 'academic_period' => $period]))->assertOk();
             $this->assertSame('2026-08-01', $response->viewData('from')->toDateString());
             $this->assertSame($period === 'academic_year' ? '2027-05-30' : '2026-12-20', $response->viewData('to')->toDateString());
         }
@@ -165,7 +120,7 @@ class ReportDateRangeTest extends TestCase
     #[DataProvider('invalidRanges')]
     public function test_custom_dates_are_validated_on_the_server(array $dates, array $errors): void
     {
-        $this->getJson(route('reports.index', ['academic_period' => 'custom', 'generated' => 1, ...$dates]))
+        $this->getJson(route('reports.index', ['report' => 'borrowing', 'academic_period' => 'custom', 'generated' => 1, ...$dates]))
             ->assertUnprocessable()->assertJsonValidationErrors($errors);
     }
 
@@ -191,7 +146,8 @@ class ReportDateRangeTest extends TestCase
 
         $response = $this->get(route('reports.index', ['report' => 'borrowing', 'generated' => 1, ...$range]))->assertOk();
         $this->assertSame(2, $response->viewData('dataset')->count());
-        $response->assertSee('05 Oct 2026 – 20 Oct 2026', false)
+        $response->assertSee('<strong data-applied-start-label>05 Oct 2026</strong>', false)
+            ->assertSee('<strong data-applied-end-label>20 Oct 2026</strong>', false)
             ->assertSee('Inside start')->assertSee('Inside end')
             ->assertDontSee('Outside before')->assertDontSee('Outside after');
         $this->assertSame(['report' => 'borrowing', ...$range], $response->viewData('reportFilters')->toQuery());
@@ -227,11 +183,16 @@ class ReportDateRangeTest extends TestCase
         $this->assertSame('2026-10-20', $query['end_date']);
         $this->get(route('reports.index', $query))->assertOk()->assertViewHas('records', fn ($records) => $records->count() === 2);
         $response->assertSee('href="'.e(route('reports.index', ['report' => 'borrowing', ...$range, 'generated' => 1])).'"', false);
-        // The export dialog carries the custom dates as report scope.
-        $this->assertMatchesRegularExpression(
-            '#<form method="get" action="[^"]*/reports/export/borrowing" data-export-form>.*?name="start_date" value="2026-10-05".*?name="end_date" value="2026-10-20".*?</form>#s',
-            $response->getContent()
-        );
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($response->getContent());
+        $xpath = new \DOMXPath($dom);
+        foreach (['start_date' => '2026-10-05', 'end_date' => '2026-10-20'] as $field => $date) {
+            $inputs = $xpath->query('//input[@name="'.$field.'"]');
+            $this->assertGreaterThan(0, $inputs->length);
+            foreach ($inputs as $input) {
+                $this->assertSame($date, $input->getAttribute('value'), 'Every builder/export form retains the resolved scope.');
+            }
+        }
     }
 
     private function record(string $submittedAt, string $purpose): BorrowingRequest

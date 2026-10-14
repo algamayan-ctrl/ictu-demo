@@ -236,7 +236,13 @@
                     @endforeach
                 </select>
             </label>
-
+            <label>Borrowing eligibility
+                <select id="spmu-inventory-eligibility">
+                    <option value="">All borrowing locations</option>
+                    <option value="off-campus">Off-campus eligible</option>
+                    <option value="on-campus">On-campus only</option>
+                </select>
+            </label>
 
             <label>
                 Record status

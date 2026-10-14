@@ -1,8 +1,10 @@
 {
     "terminal.integrated.cwd": "${workspaceFolder}",
     "files.exclude": {
-        "vendor": true
+        "vendor": false
     },
+    "intelephense.environment.phpVersion": "8.4.0",
+    "intelephense.environment.includePaths": ["vendor"],
     "search.exclude": {
         "vendor": true,
         "storage": true

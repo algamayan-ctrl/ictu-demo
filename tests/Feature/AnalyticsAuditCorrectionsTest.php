@@ -263,14 +263,53 @@ class AnalyticsAuditCorrectionsTest extends TestCase
         ]));
 
         $page->assertOk();
-        $page->assertSee('Inventory Risk Watch');
-        $page->assertSee('1 of 10 units available', false);
-        $page->assertSee('9 released this period', false);
-        $page->assertSee('released in 3 releases', false);
+        $page->assertSee('Coverage Detail');
+        $page->assertSee('1 of 10 available now', false);
+        $page->assertViewHas('coverage', function (array $data): bool {
+            $row = collect($data['items'])->firstWhere('name', 'Sound System');
+
+            return $row !== null && (float) $row['available'] === 1.0
+                && (float) $row['stock'] === 10.0 && (float) $row['released'] === 9.0
+                && $row['releases'] === 3 && ! array_key_exists('days_coverage', $row)
+                && ! array_key_exists('daily_rate', $row) && ! array_key_exists('risk', $row);
+        });
+        // Incoming separates current availability from descriptive period releases.
+        $page->assertSee('Sound System: 9 released', false);
+        $page->assertViewHas('released', fn (array $data) => collect($data['items'])->contains(
+            fn (array $row) => $row['name'] === 'Sound System' && (float) $row['released'] === 9.0
+        ));
 
         foreach (['days coverage', 'Insufficient history', 'per day', 'An estimate, not a probability'] as $projected) {
             $page->assertDontSee($projected, false);
         }
+
+        $scope = ['section' => 'inventory', 'academic_period' => 'month'];
+        $this->get(route('analytics.index', $scope + ['detail' => 'card', 'for' => 'inventory.coverage']))
+            ->assertOk()->assertViewHas('detail', fn (array $detail) => $detail['title'] === 'Coverage Detail'
+                && $detail['value'] === 1 && $detail['stats'][0]['value'] === '1 available - 9 released');
+        $this->get(route('analytics.index', $scope + ['detail' => 'coverage', 'item' => $item->id]))
+            ->assertOk()->assertViewHas('detail', fn (array $detail) => $detail['title'] === 'Sound System'
+                && (float) $detail['value'] === 1.0 && $detail['value_label'] === 'units available now');
+    }
+
+    public function test_stock_history_filters_borrowers_and_never_assigns_external_releases_to_a_cspc_unit(): void
+    {
+        $item = $this->item('Scoped stock history', 20);
+        $external = $this->request('ACADEMIC', 'College of Computer Studies', RequestStatus::ApprovedReadyForRelease,
+            lines: [['item' => $item, 'released' => 2]],
+            custody: ['status' => 'ACTIVE', 'released_at' => $this->from->copy()->addDays(2)]);
+        $external->versions()->first()->update(['affiliation_type' => 'EXTERNAL', 'external_company_name' => 'Reviewed Agency']);
+        $this->releaseOnce($item, 3, $this->from->copy()->addDays(3));
+        $inventory = app(InventoryService::class);
+
+        $all = $this->analytics->stockCoverage($inventory, $this->from, $this->to);
+        $employee = $this->analytics->stockCoverage($inventory, $this->from, $this->to, 10, 'ACADEMIC', 'College of Computer Studies');
+        $selected = $this->analytics->stockCoverage($inventory, $this->from, $this->to, 10, null, null, $external->borrower_user_id);
+        $this->assertSame(5.0, (float) $all['items'][0]['released']);
+        $this->assertSame(3.0, (float) $employee['items'][0]['released']);
+        $this->assertSame(2.0, (float) $selected['items'][0]['released']);
+        $this->assertSame(15.0, (float) $selected['items'][0]['available'], 'Current stock remains institution-wide.');
+        $this->assertSame([], $this->analytics->stockCoverage($inventory, $this->from, $this->to, 10, 'ACADEMIC', null, $external->borrower_user_id)['items']);
     }
 
     public function test_the_low_availability_rule_is_the_same_on_overview_and_inventory_health(): void

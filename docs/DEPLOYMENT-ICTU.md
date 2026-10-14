@@ -1,5 +1,7 @@
 # ICTU Deployment and Operations
 
+Evidence boundary: this runbook describes the supplied implementation and proposed technical operating controls. The hosting DOCX, nine-deliverable ICTU letter/screenshot, and applicable TD RSC PDF were unavailable in this local project mirror. It is not proof that ICTU approved the infrastructure or deployment. The reported TD RSC project/title “Bolivia” mismatch must be checked against the actual file. Configured email-domain lists are current code settings; government-domain/Google eligibility still needs its separate decision.
+
 ## Production architecture
 
 The supplied stack contains:
@@ -26,8 +28,8 @@ Copy `.env.docker.example` to the protected, untracked `.env.docker` file. Do no
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | Required only when enabling Google sign-in | Register the exact HTTPS callback `${APP_URL}/auth/google/callback` in Google Cloud Console. Missing values keep Google sign-in unavailable; local account authorization remains unchanged. |
 | `GOOGLE_ALLOWED_DOMAINS` | Required deployment policy when Google sign-in is enabled | Set to `cspc.edu.ph` for CSPC production. The variable supports a comma-separated list only when ICTU has an approved institutional exception. |
 | `MAIL_*` | Required for production email delivery | Use the approved institutional SMTP service and sender identity. |
-| `SEED_DEMO_USERS` | Required | Set `false` in production. |
-| `RUN_MIGRATIONS` | Environment-specific | `true` makes the entrypoint run migrations on every container start and seed the reference data once, on a new database only (`php artisan spmu:bootstrap`). Use `true` for the first start, then set `false` once the system is in use and apply migrations explicitly. See "Initialization and repeat seeding" below. |
+| `SEED_DEMO_USERS` | Required | Set `false` in production. `DemoUserSeeder` also refuses all demo-user writes when the application environment is `production`, even if this flag is accidentally enabled or seeding uses `--force`. Explicitly enabled local/testing demos still work. |
+| `RUN_MIGRATIONS` | Environment-specific | `true` lets the entrypoint run migrations and idempotent master/reference seeders; set `false` only for a planned maintenance/recovery procedure. |
 
 The Google OAuth domain allow-list is an additional CSPC production control. It does not create accounts or assign roles: Google proves identity, while the pre-existing active local user record still controls access.
 
@@ -90,7 +92,8 @@ docker compose exec app php artisan spmu:user ictu.admin@cspc.edu.ph --name="ICT
 
 The command securely prompts for a 12+ character password with uppercase, lowercase, number, and symbol.
 
-8. Sign in and create only the approved Borrower, SPMU Admin / Head, SPMU Action Officer, and ICTU accounts. GSU/VPAF do not receive application accounts; their request-letter signatures are obtained physically outside the system.
+8. Sign in and create only the approved Borrower, SPMU Admin / Head, SPMU Action Officer, and ICTU accounts. GSU/VPAF do not receive application accounts. Document/signature processing must follow the confirmed E-sign workflow; remaining physical-only instructions require reconciliation before workflow acceptance.
+   Admin / Head may now use **User Accounts** to register and edit Borrower, Action Officer (SAO), and Admin / Head accounts. Admin cannot assign ICTU access or manage ICTU targets. ICTU retains technical maintenance permissions. Provisioned-account creation uses the existing verification OTP. Public borrower signup at `/register` additionally creates a Pending registration for SAO review at **Borrower Registrations**; OTP or Google identity never replaces this approval. Existing provisioned accounts without a self-registration row retain their established access. External-account editing/request affiliation compatibility is still a separate increment.
 9. Reconcile opening inventory and all values in the Configuration Register before production acceptance.
 
 ## Google OAuth and email
@@ -102,6 +105,8 @@ Laravel uses the configured SMTP transport for email. Delivery attempts and resp
 Verification links are host-independent and are prefixed with `EMAIL_VERIFICATION_BASE_URL`. This means ICTU may register an account from one computer and the recipient may verify from another device. For access from any network, the base URL must be the institution-approved public HTTPS SPMU-ACPMP address. For a same-LAN demo on Windows, `tools\configure-verification-url.cmd` can detect the server laptop's LAN address; it does not require changing PowerShell's permanent execution policy.
 
 ## Scheduled operations
+
+S1-CANCEL-01 now verifies the current processor never automatically cancels missed pickups or restores their reservations. Only SAO confirms missed-pickup cancellation; other existing manual authority is retained. See SAO-CONFIRMED-CANCELLATION.md for632/632 tests per engine, native locking/rollback and local UI evidence. This technical contract does not certify a deployed scheduler service, institutional hosting/nine-deliverable compliance or actual mail delivery.
 
 Confirm the scheduler container stays healthy. Manual verification:
 
@@ -121,6 +126,7 @@ No automated backup service is included in this deployment architecture. `backup
 
 1. Take and verify a recoverable backup.
 2. Review code/migration changes and test in staging.
+   For S1-REG-01, review `2026_10_12_000001_add_borrower_self_registration.php`: it preserves existing accounts, permits null employee-only fields for external users, and creates restricted-delete registration history. For S1-REG-02, review `2026_10_12_000002_add_external_request_affiliation.php`: it preserves the existing accountable-unit FK while allowing null for external drafts and stores company/type snapshots on request versions. Existing employee unit authorization still applies. Include private registration IDs in backup/restore checks. Both rollbacks refuse when affected history exists; use a data-preserving recovery/forward migration. See SELF-REGISTRATION.md and EXTERNAL-DRAFT-AFFILIATION.md. These migrations have been applied only to owned verification databases, not the working/live application database.
 3. Run the supported test image and code-quality checks in staging before packaging.
 4. Deploy with:
 
@@ -156,3 +162,13 @@ No automated backup service is included in this deployment architecture. `backup
 - Database logs: `docker compose logs database`.
 
 Test local SQLite and production MariaDB separately before institutional acceptance; different database engines can expose constraint or date-query differences.
+
+## S1-ROUTE-01 development evidence and storage dependency
+
+The selected external submission/routing gate passed 272/272 tests and 1806 assertions on each of isolated SQLite and actual MariaDB 11.4.12, plus 19 frontend checks, native two-worker submission and local browser/data verification. See EXTERNAL-SUBMISSION-ROUTING.md and DEVELOPMENT-PROGRESS.md. These results do not certify production hosting, official opening inventory, real SMTP/OAuth, full native PDF rendering or operational KPI improvements.
+
+Technical integration requirement: retain the database and its matching private files together during backup/restore rehearsal. In addition to `registration-ids`, signing/submission depends on `profile-signatures`, `signature-snapshots`, and `request-supporting-documents` under private local storage. Missing or altered required bytes now prevent signing/submission rather than being accepted from metadata alone. This is a verified application dependency, not an asserted infrastructure term from the absent institutional hosting form/ICTU letter. No new migration was added and no working/live database was migrated/reset for this increment. The existing S1-REG-01/02 schema prerequisites still need normal backed-up integration where not yet applied.
+
+## Laravel Cloud review
+
+See LARAVEL-CLOUD-READINESS.md for current official platform facts and actual application blockers. Managed Cloud MySQL is not confirmation to replace approved MariaDB11.4. Explicit local protected-file storage and LibreOffice/runtime dependencies require verification/adaptation. Missing Hosting DOCX, nine-deliverable letter and applicable TD RSC PDF prevent institutional approval claims; reported Bolivia title mismatch remains unverified. S1-ANALYTICS-01 is FOR REVIEW, not deployment certification.

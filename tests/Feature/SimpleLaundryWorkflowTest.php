@@ -206,7 +206,7 @@ class SimpleLaundryWorkflowTest extends TestCase
             ->assertOk()
             ->assertSeeText('Record Form')
             ->assertDontSeeText('I confirm the signed form is complete.')
-            ->assertSeeText('Use the RECEIVED BY date written on the accomplished form.');
+            ->assertSeeText('Enter the actual RECEIVED BY date on the signed form.');
     }
 
     private function recordReturn(

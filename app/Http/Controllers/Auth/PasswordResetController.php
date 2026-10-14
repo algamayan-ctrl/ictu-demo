@@ -6,6 +6,7 @@ use App\Enums\AccountStatus;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\AuthMailTransport;
 use Illuminate\Auth\Events\PasswordReset as PasswordResetEvent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,11 +56,14 @@ class PasswordResetController extends Controller
         }
 
         try {
+            if (! app(AuthMailTransport::class)->deliversMail()) {
+                throw new \RuntimeException('Password reset requires a delivery-capable mail transport.');
+            }
             $status = Password::sendResetLink([
                 'email' => $account->email,
             ]);
         } catch (Throwable $exception) {
-            report($exception);
+            \Illuminate\Support\Facades\Log::warning('Password reset delivery failed.', ['exception' => $exception::class]);
 
             $audit->record(
                 'PASSWORD_RESET_DELIVERY_FAILED',
@@ -122,6 +126,7 @@ class PasswordResetController extends Controller
         $account = User::query()
             ->where('email', strtolower(trim((string) $data['email'])))
             ->first();
+        $data['email'] = strtolower(trim((string) $data['email']));
 
         if (! $account) {
             return back()
@@ -142,7 +147,7 @@ class PasswordResetController extends Controller
         if (! $account->hasVerifiedInstitutionalEmail()) {
             return back()
                 ->withErrors([
-                    'email' => 'Verify your CSPC institutional email before resetting the password.',
+                    'email' => 'Verify your registered email before resetting the password.',
                 ])
                 ->withInput($request->only('email'));
         }

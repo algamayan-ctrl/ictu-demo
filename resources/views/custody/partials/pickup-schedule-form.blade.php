@@ -111,7 +111,8 @@
                             'cancelTriggerClass' => 'button release-outline ui-pressable',
                             'cancelTriggerLabel' => 'Cancel Borrowing',
                             'cancelDialogTitle' => 'Cancel this borrowing?',
-                            'cancelDialogCopy' => 'This borrowing will be cancelled. The reserved items will return to Available inventory and any pending pickup documents will be invalidated.',
+                            'cancelDialogCopy' => 'SAO confirmation will cancel this missed pickup. The unreleased reservation will return to Available inventory and pending pickup documents will be invalidated. Provide the reason to notify the borrower.',
+                            'cancelConfirmLabel' => 'Confirm Cancellation',
                             'cancelReasonPlaceholder' => 'Briefly explain why this borrowing is being cancelled...',
                         ])
                     @endif
@@ -126,7 +127,8 @@
                             'cancelTriggerClass' => 'button primary ui-pressable release-primary',
                             'cancelTriggerLabel' => 'Cancel Borrowing',
                             'cancelDialogTitle' => 'Cancel this borrowing?',
-                            'cancelDialogCopy' => 'This borrowing will be cancelled. The reserved items will return to Available inventory and any pending pickup documents will be invalidated.',
+                            'cancelDialogCopy' => 'SAO confirmation will cancel this missed pickup. The unreleased reservation will return to Available inventory and pending pickup documents will be invalidated. Provide the reason to notify the borrower.',
+                            'cancelConfirmLabel' => 'Confirm Cancellation',
                             'cancelReasonPlaceholder' => 'Briefly explain why this borrowing is being cancelled...',
                         ])
                     </div>

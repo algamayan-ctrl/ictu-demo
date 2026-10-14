@@ -272,11 +272,10 @@ class SpmuDocumentVerificationTest extends TestCase
             )
             ->assertOk()
             ->assertSeeText(
-                'Permission to Conduct Letter'
+                'Permission to Conduct'
             )
-            ->assertSeeText(
-                'Preview'
-            );
+            ->assertSee('role="tablist"', false)
+            ->assertSee('data-document-url="'.route('files.show', $request->currentVersion->supportingDocuments->firstWhere('document_type', RequestSupportingDocument::TYPE_PERMISSION_TO_CONDUCT)->file, false).'"', false);
     }
 
     private function underSpmuRequest(

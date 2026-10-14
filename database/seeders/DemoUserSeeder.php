@@ -18,6 +18,8 @@ class DemoUserSeeder extends Seeder
 
     public function run(UserRoleAssignmentService $roleAssignments): void
     {
+        // Production must never create or reactivate demo identities, even
+        // when the demo flag is mistakenly enabled during forced seeding.
         if (! config('app.seed_demo_users')) {
             return;
         }

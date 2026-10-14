@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditService;
 use App\Services\EmailVerificationService;
+use App\Services\BorrowerRegistrationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -68,6 +69,9 @@ class EmailVerificationController extends Controller
 
         if ($result === EmailVerificationService::RESULT_VERIFIED) {
             $account->refresh();
+            if ($registration = $account->borrowerRegistration) {
+                app(BorrowerRegistrationService::class)->notifySubmitted($registration);
+            }
 
             $audit->record(
                 'USER_EMAIL_VERIFIED',
@@ -83,16 +87,23 @@ class EmailVerificationController extends Controller
                 ->route('login')
                 ->with(
                     'status',
-                    'Your CSPC email address has been verified. You may now sign in to SPMU-ACPMP.'
+                    $account->hasApprovedRegistration()
+                        ? 'Your email address has been verified. You may now sign in to SPMU-ACPMP.'
+                        : 'Your email address has been verified. '.$account->registrationAccessMessage()
                 );
         }
 
         if ($result === EmailVerificationService::RESULT_ALREADY_VERIFIED) {
+            if ($registration = $account->borrowerRegistration) {
+                app(BorrowerRegistrationService::class)->notifySubmitted($registration);
+            }
             return redirect()
                 ->route('login')
                 ->with(
                     'status',
-                    'Your CSPC email address is already verified. You may sign in.'
+                    $account->hasApprovedRegistration()
+                        ? 'Your email address is already verified. You may sign in.'
+                        : 'Your email address is already verified. '.$account->registrationAccessMessage()
                 );
         }
 
@@ -104,7 +115,7 @@ class EmailVerificationController extends Controller
             EmailVerificationService::RESULT_MISSING =>
                 'No active OTP was found for this account. Request a new verification code.',
             default =>
-                'The verification code is incorrect. Check the latest OTP sent to your CSPC email.',
+                'The verification code is incorrect. Check the latest OTP sent to your registered email.',
         };
 
         return back()
@@ -146,7 +157,9 @@ class EmailVerificationController extends Controller
                 ->route('login')
                 ->with(
                     'status',
-                    'Your CSPC email address is already verified. You may sign in.'
+                    $account->hasApprovedRegistration()
+                        ? 'Your email address is already verified. You may sign in.'
+                        : 'Your email address is already verified. '.$account->registrationAccessMessage()
                 );
         }
 
@@ -164,7 +177,7 @@ class EmailVerificationController extends Controller
             return redirect()
                 ->route('account.verification.show', ['email' => $email])
                 ->withErrors([
-                    'otp' => 'The verification OTP could not be sent. Contact ICTU for assistance.',
+                    'delivery' => 'The verification OTP could not be sent. Resend OTP or contact ICTU for assistance.',
                 ]);
         }
 
@@ -172,7 +185,7 @@ class EmailVerificationController extends Controller
             ->route('account.verification.show', ['email' => $email])
             ->with(
                 'status',
-                'A new 6-digit OTP was sent to your registered CSPC email address.'
+                'A new 6-digit OTP was sent to your registered email address.'
             );
     }
 }

@@ -68,8 +68,8 @@ class AccountSettingsRoleTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('Default')
-            ->assertDontSee('System')
+            ->assertSee('<option value="system">Default</option>', false)
+            ->assertDontSee('<option value="system">System</option>', false)
             ->assertSee('Account Settings')
             ->assertSee('Borrower / Employee Number')
             ->assertSee($borrower->organizationalUnit->unit_name);

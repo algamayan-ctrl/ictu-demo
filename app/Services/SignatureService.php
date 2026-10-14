@@ -50,12 +50,16 @@ class SignatureService
         }
 
         $source = $signature->file;
+        if ((int) $source->uploaded_by_user_id !== (int) $user->id) {
+            throw ValidationException::withMessages(['signature' => 'Register your own E-signature before completing this signing action.']);
+        }
+        $sourceBytes = app(SubmissionEvidenceService::class)->verifiedBytes($source, 'signature', imageOnly: true);
         $extension = strtolower(pathinfo($source->storage_path, PATHINFO_EXTENSION) ?: 'png');
         $capturedAt = now();
         $purposeCode = strtoupper(trim($purpose));
 
         $snapshotFile = $this->files->storeBytes(
-            $this->files->bytes($source),
+            $sourceBytes,
             'signature-snapshots',
             'signature-'.$user->id.'-'.Str::slug($purposeCode).'.'.$extension,
             $source->mime_type,

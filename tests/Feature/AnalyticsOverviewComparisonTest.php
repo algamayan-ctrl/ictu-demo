@@ -46,20 +46,20 @@ class AnalyticsOverviewComparisonTest extends TestCase
         $response->assertSee('Demand &amp; Utilization', false);
         $response->assertSee('Inventory Health', false);
         $response->assertSee('Borrowing &amp; Return Performance', false);
-        $response->assertSee('Forecast &amp; Planning', false);
+        $response->assertSee('Scheduled Demand', false);
 
         /* Each block is a short tab summary, not a second detailed dashboard. */
         $response->assertSee('Requested quantity', false);
         $response->assertSee('Released quantity', false);
-        $response->assertSee('Available units', false);
-        $response->assertSee('Approved requests', false);
+        $response->assertSee('Available asset units (now)', false);
+        $response->assertViewHas('scheduledSummary', fn ($value) => $value['approved'] === 0);
         $response->assertDontSee('Approved for release', false);
         $response->assertSee('Completed returns', false);
-        $response->assertSee('Returned on time / Late', false);
-        $response->assertSee('Open accountability:', false);
-        $response->assertSee('On-time return rate:', false);
-        $response->assertSee('Forecast readiness', false);
-        $response->assertSee('Scheduled next period', false);
+        $response->assertSee('On-time returns', false);
+        $response->assertViewHas('returns', fn ($value) => $value['completed'] === 0);
+        $response->assertViewHas('returns', fn ($value) => $value['on_time_rate'] === null);
+        $response->assertSee('Pending / approved', false);
+        $response->assertSee('Scheduled Demand', false);
 
         /* Detailed rankings remain owned by Demand & Utilization. */
         $response->assertDontSee('<h2>Top Released Items</h2>', false);

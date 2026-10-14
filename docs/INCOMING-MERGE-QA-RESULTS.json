@@ -1,0 +1,231 @@
+{
+  "task": "S1-MERGE-INCOMING-01",
+  "evaluated_at": "2026-10-14T02:09:49.177Z",
+  "source": {
+    "checked": 687,
+    "differences": [
+      "tests/Feature/CompleteWorkflowTest.php"
+    ],
+    "application_runtime_unchanged": true,
+    "changed_test_reason": "User confirmed Head review; obsolete automatic-confirmation case replaced and independently retested."
+  },
+  "sqlite": {
+    "unique_current_cases": 1696,
+    "verified_passing_cases": 1696,
+    "unresolved_cases": [],
+    "evidence_method": "Full inventory plus explicit superseding focused retest; not a single all-green full run"
+  },
+  "mariadb": {
+    "unique_current_cases": 1696,
+    "verified_passing_cases": 1696,
+    "unresolved_cases": [],
+    "evidence_method": "Full inventory plus explicit superseding focused retest; not a single all-green full run"
+  },
+  "receipts": [
+    {
+      "name": "final-sqlite",
+      "tests": 1696,
+      "passed": 1695,
+      "failed": 1,
+      "errors": 0,
+      "assertions": 15054,
+      "log_sha256": "b8c0167fe168275c59fa2206d2448f533105193c2ffd0f48098911db1f8bae43",
+      "failures": [
+        "Tests\\Feature\\CompleteWorkflowTest::test_an_overdue_physical_return_auto_confirms_the_late_return_violation_without_error"
+      ]
+    },
+    {
+      "name": "final-mariadb-a",
+      "tests": 848,
+      "passed": 846,
+      "failed": 1,
+      "errors": 1,
+      "assertions": 8403,
+      "log_sha256": "2d8839cb93a041fe10e4574de84662c03329e8011aac4a5e2ee7ee40f9a3f8da",
+      "failures": [
+        "Tests\\Feature\\ExternalBorrowingApprovalTest::test_actual_corrected_approval_reserves_exactly_once_and_generates_only_applicable_current_packet#off-campus regular",
+        "Tests\\Feature\\CompleteWorkflowTest::test_an_overdue_physical_return_auto_confirms_the_late_return_violation_without_error"
+      ]
+    },
+    {
+      "name": "final-mariadb-b",
+      "tests": 848,
+      "passed": 848,
+      "failed": 0,
+      "errors": 0,
+      "assertions": 6568,
+      "log_sha256": "7898ef6109c466fde98061b0f99976c76249345c417f8cec0d814e3b3d14b0c5",
+      "failures": []
+    },
+    {
+      "name": "policy-focused-sqlite",
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "errors": 0,
+      "assertions": 439,
+      "log_sha256": "63145a83085d50e6cf95624bf6a5d834edeef03d4d3f1bac27fe0e60273488f6",
+      "failures": []
+    },
+    {
+      "name": "policy-focused-mariadb-02",
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "errors": 0,
+      "assertions": 439,
+      "log_sha256": "5346669430a9ac00918488b3bd8a8c143bdd69591fec447566488b4ea43d3a35",
+      "failures": []
+    }
+  ],
+  "superseding_decisions": {
+    "late_return": "User-confirmed Head review before confirmation/sanction",
+    "initial_mariadb_error": "Parallel package-manifest write collision; independently rerun with isolated manifests"
+  },
+  "no_single_green_full_run_claimed": true,
+  "bounded_gate": "PASS",
+  "deployment_gate": "NOT READY",
+  "merge": {
+    "branch": "review/spmu-main-merge-20261014-072648",
+    "current_parent": "b1fdfaafdfe08103d8b8217e8209b6219e1cdbe2",
+    "incoming_parent": "eaaade751e310d2836f1e4b1bcca8f3c20e0093c",
+    "conflict_files": 41,
+    "selected_incoming_blocks": 93,
+    "scope": "Local merge with necessary compatibility fixes; no remote push"
+  },
+  "frontend": {
+    "tests": 193,
+    "passed": 192,
+    "failed": 0,
+    "skipped": 1,
+    "skip_scope": "Existing optional case",
+    "log_sha256": "bbff54b64eeb74e1a136601d93f86b07db2a4ebb6517b9dea8c463744a4121b2"
+  },
+  "syntax": {
+    "scope": "Active first-party PHP/Blade syntax; historical backup folders excluded",
+    "files": 615,
+    "passed": 615,
+    "failed": 0,
+    "failures": []
+  },
+  "build": {
+    "passed": true,
+    "log_sha256": "a4109e570d2f17dac2af95f82c1b9faa3ac9929ea3675fedae9fe28323728229"
+  },
+  "composer": {
+    "valid": true,
+    "platform_requirements_passed": true,
+    "existing_warnings": [
+      "Exact FPDF/FPDI version constraints"
+    ],
+    "log_sha256": "e89edd49c77be6fdd70f2fc7e698f2d281fe06117c7880baae538f695b5cd450"
+  },
+  "preservation": {
+    "private_files_checked": 2,
+    "private_changed": [],
+    "references_checked": 8,
+    "changed_references": [],
+    "main_unchanged": true,
+    "incoming_unchanged": true,
+    "review_branch": "review/spmu-main-merge-20261014-072648",
+    "unmerged_entries": 0,
+    "original_database": {
+      "tables_compared": 72,
+      "schema_unchanged": true,
+      "changed_tables": [],
+      "integrity": "ok",
+      "foreign_key_errors": 0
+    },
+    "stored_evidence": {
+      "saved_files_checked": 160,
+      "changed_files": [],
+      "scope": "Kept preview evidence compared with private pre-sync backup; no writes"
+    }
+  },
+  "upgraded_preview": {
+    "url": "http://127.0.0.1:8766/login",
+    "scope": "Upgraded preview copy, not original database",
+    "original_business_tables_compared": 71,
+    "changed_original_business_data": [],
+    "applied_migrations": 76,
+    "pending_migrations": [],
+    "integrity": "ok",
+    "foreign_key_errors": 0,
+    "public_page_results": [
+      {
+        "Url": "http://127.0.0.1:8766/login",
+        "Status": 200,
+        "Title": "Welcome | SPMU-ACPMP"
+      },
+      {
+        "Url": "http://127.0.0.1:8766/register",
+        "Status": 200,
+        "Title": "Borrower registration | SPMU-ACPMP"
+      },
+      {
+        "Url": "http://127.0.0.1:8766/forgot-password",
+        "Status": 200,
+        "Title": "Forgot Password | SPMU-ACPMP"
+      },
+      {
+        "Url": "http://127.0.0.1:8766/account/verify",
+        "Status": 200,
+        "Title": "Verify Account | SPMU-ACPMP"
+      }
+    ],
+    "authenticated_kernel_smoke": {
+      "scope": "Actual merged application kernel with kept synthetic Head/SAO fixtures and upgraded database copy",
+      "method": "Read-only GET views; rollback per request; array transport only in this smoke process",
+      "results": [
+        {
+          "actor": "SPMU_HEAD",
+          "route": "dashboard",
+          "expected_status": 200,
+          "status": 200,
+          "body_nonempty": true
+        },
+        {
+          "actor": "SPMU_HEAD",
+          "route": "requests.index",
+          "expected_status": 200,
+          "status": 200,
+          "body_nonempty": true
+        },
+        {
+          "actor": "SPMU_HEAD",
+          "route": "reports.index",
+          "expected_status": 200,
+          "status": 200,
+          "body_nonempty": true
+        },
+        {
+          "actor": "SPMU_HEAD",
+          "route": "reports.audit",
+          "expected_status": 200,
+          "status": 200,
+          "body_nonempty": true
+        },
+        {
+          "actor": "SPMU_HEAD",
+          "route": "laundry.index",
+          "expected_status": 403,
+          "status": 403,
+          "body_nonempty": true
+        },
+        {
+          "actor": "SPMU_OFFICER",
+          "route": "laundry.index",
+          "expected_status": 200,
+          "status": 200,
+          "body_nonempty": true
+        }
+      ]
+    }
+  },
+  "excluded_certifications": [
+    "Actual Google authorization/account linking against provider",
+    "Real OTP/password-reset inbox delivery",
+    "Institutional hosting approval, security/backup sign-off and system-quality evaluation",
+    "Production deployment or operational KPI completion"
+  ]
+}

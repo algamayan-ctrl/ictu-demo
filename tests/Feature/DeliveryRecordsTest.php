@@ -91,7 +91,7 @@ class DeliveryRecordsTest extends TestCase
             ->assertSee('Stored in the in-system notification record.')
             ->assertSee('Not yet opened')
             ->assertSee('Attempted At')
-            ->assertSee('Status Meaning')
+            ->assertSee('Recorded Status')
             // The in-memory test mailer never sends, and the page says so instead of implying delivery.
             ->assertSee('No email left the server.')
             ->assertDontSee('Delivered')
@@ -104,7 +104,7 @@ class DeliveryRecordsTest extends TestCase
             ->assertOk()
             ->assertSee('Accepted by the configured mail transport.')
             ->assertSee('This does not confirm that it reached the recipient', false)
-            ->assertSee('Mail Transport')
+            ->assertSee('Provider')
             ->assertDontSee('Delivered');
     }
 

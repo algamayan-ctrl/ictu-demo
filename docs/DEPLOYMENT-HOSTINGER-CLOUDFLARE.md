@@ -192,6 +192,14 @@ cd /opt/spmu && git switch main
 
 ## 8. Configure the application (`.env.docker`)
 
+**Quick way (recommended):** run the helper script. It generates the database passwords and `APP_KEY` on the server, asks for the Google client ID, the **new** Google client secret and the **new** Gmail App Password (hidden while typing), and writes every value below. If you use it, skip the manual editing below and step 9.1.
+
+```bash
+cd /opt/spmu && bash tools/make-hostinger-env.sh
+```
+
+**Manual way:**
+
 ```bash
 cd /opt/spmu && cp .env.docker.example .env.docker && chmod 600 .env.docker
 ```

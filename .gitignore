@@ -51,3 +51,4 @@ return-ui-files.zip
 
 # Cloudflare Tunnel token (Hostinger deployment)
 tunnel.env
+.env.docker.before-*

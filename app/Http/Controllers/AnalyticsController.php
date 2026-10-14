@@ -7,7 +7,6 @@ use App\Models\AcademicPeriod;
 use App\Models\User;
 use App\Services\AnalyticsDetailService;
 use App\Services\AnalyticsService;
-use App\Services\ForecastService;
 use App\Services\InventoryService;
 use App\Services\ReportingPeriodService;
 use Illuminate\Http\JsonResponse;
@@ -18,14 +17,13 @@ use Illuminate\View\View;
  * Analytics workspace for the SPMU Head.
  *
  * The controller resolves the filters and the active section, then hands the
- * prepared figures to the view. Every calculation lives in AnalyticsService or
- * ForecastService, so Reports and Analytics cannot drift apart and the Blade
+ * prepared figures to the view. Every calculation lives in AnalyticsService, so Reports and Analytics cannot drift apart and the Blade
  * template stays a layout.
  *
  * Only the active section's figures are computed. Overview also prepares a
- * compact cross-tab summary (demand, inventory, returns and forecast readiness)
+ * compact cross-tab summary (demand, inventory, returns and scheduled demand)
  * so it can act as the executive snapshot without duplicating each tab's full
- * rankings, tables or forecast workspace.
+ * rankings, tables or scheduled workspace.
  */
 class AnalyticsController extends Controller
 {
@@ -35,6 +33,7 @@ class AnalyticsController extends Controller
  'demand' => 'Demand & Utilization',
  'inventory' => 'Inventory Health',
  'returns' => 'Borrowing & Return Performance',
+ 'scheduled' => 'Scheduled Demand',
  ];
 
  /**
@@ -48,6 +47,7 @@ class AnalyticsController extends Controller
  'demand' => 'demand-usage',
  'inventory' => 'inventory-health',
  'returns' => 'borrowing-returns',
+ 'scheduled' => 'scheduled-demand',
  ];
 
  /**
@@ -58,14 +58,13 @@ class AnalyticsController extends Controller
  public const SECTION_ALIASES = [
  'borrowers' => 'returns',
  'equipment' => 'demand',
- 'forecast' => 'overview',
-  'predictive' => 'overview',
+ 'forecast' => 'scheduled',
+ 'predictive' => 'scheduled',
  ];
 
  public function __invoke(
  Request $request,
  AnalyticsService $analytics,
- ForecastService $forecasts,
  InventoryService $inventory,
  ReportingPeriodService $periods,
  AnalyticsDetailService $details
@@ -74,6 +73,8 @@ class AnalyticsController extends Controller
  $request->user()?->access_classification === AccessClassification::SpmuHead,
  403
  );
+
+ \App\Support\AnalyticsFilters::validate($request);
 
  $academicPeriods = AcademicPeriod::query()
  ->orderByRaw("CASE WHEN status = 'ACTIVE' THEN 0 ELSE 1 END")
@@ -97,7 +98,9 @@ class AnalyticsController extends Controller
  }
 
  /* Units are offered per division, so the two filters stay consistent. */
- $unitOptions = $analytics->unitOptions($from, $to);
+ [$scopeFrom, $scopeTo] = $section === 'scheduled' ? $periods->nextScheduledWindow($from, $to) : [$from, $to];
+ $scheduledScope = $section === 'scheduled';
+ $unitOptions = $scheduledScope ? $analytics->scheduledUnitOptions($scopeFrom, $scopeTo) : $analytics->unitOptions($from, $to);
 
  $division = (string) $request->input('group', 'all');
 
@@ -125,10 +128,10 @@ class AnalyticsController extends Controller
  * selected Reporting Period + Division + Office / Unit.
  */
  if ($request->boolean('borrower_options')) {
- return $this->borrowerOptions($request, $analytics, $from, $to, $divisionFilter, $unitFilter);
+ return $this->borrowerOptions($request, $analytics, $scopeFrom, $scopeTo, $divisionFilter, $unitFilter, $scheduledScope);
  }
 
- $borrowerFilter = $this->resolveBorrower($request, $analytics, $from, $to, $divisionFilter, $unitFilter);
+ $borrowerFilter = $this->resolveBorrower($request, $analytics, $scopeFrom, $scopeTo, $divisionFilter, $unitFilter, $scheduledScope);
  $selectedBorrowerLabel = $borrowerFilter !== null
  ? (User::query()->find($borrowerFilter)?->full_name ?? 'Selected borrower')
  : 'All borrowers';
@@ -194,7 +197,6 @@ class AnalyticsController extends Controller
  $data + $this->sectionData(
  $section,
  $analytics,
- $forecasts,
  $inventory,
  $from,
  $to,
@@ -221,7 +223,8 @@ class AnalyticsController extends Controller
  \Carbon\CarbonInterface $from,
  \Carbon\CarbonInterface $to,
  ?string $division,
- ?string $unit
+ ?string $unit,
+ bool $scheduledScope = false
  ): ?int {
  $submitted = (int) $request->input('borrower', 0);
 
@@ -229,7 +232,7 @@ class AnalyticsController extends Controller
  return null;
  }
 
- $exists = $analytics->requestScope($from, $to, $division, $unit)
+ $exists = ($scheduledScope ? $analytics->scheduledRequestScope($from, $to, $division, $unit) : $analytics->requestScope($from, $to, $division, $unit))
  ->where('borrowing_requests.borrower_user_id', $submitted)
  ->exists();
 
@@ -250,9 +253,10 @@ class AnalyticsController extends Controller
  \Carbon\CarbonInterface $from,
  \Carbon\CarbonInterface $to,
  ?string $division,
- ?string $unit
+ ?string $unit,
+ bool $scheduledScope = false
  ): JsonResponse {
- $ids = $analytics->requestScope($from, $to, $division, $unit)
+ $ids = ($scheduledScope ? $analytics->scheduledRequestScope($from, $to, $division, $unit) : $analytics->requestScope($from, $to, $division, $unit))
  ->pluck('borrowing_requests.borrower_user_id')
  ->filter(fn ($id): bool => is_numeric($id) && (int) $id > 0)
  ->map(fn ($id): int => (int) $id)
@@ -318,14 +322,13 @@ class AnalyticsController extends Controller
  *
  * Overview intentionally computes only the small cross-tab figures needed
  * by its Analytics Summary. It still does not build the detailed rankings,
- * return breakdowns or predictive tables owned by the other tabs.
+ * return breakdowns or scheduled records owned by the other tabs.
  *
  * @return array<string, mixed>
  */
  private function sectionData(
  string $section,
  AnalyticsService $analytics,
- ForecastService $forecasts,
  InventoryService $inventory,
  \Carbon\CarbonInterface $from,
  \Carbon\CarbonInterface $to,
@@ -357,6 +360,9 @@ class AnalyticsController extends Controller
  $peakSummary = $analytics->peakBorrowing($from, $to, $division, $unit, $borrower);
  $inventorySummary = $analytics->inventory($inventory);
  $processingSummary = $analytics->processingPerformance($from, $to, $division, $unit, $borrower);
+ [$scheduledFrom, $scheduledTo] = app(ReportingPeriodService::class)->nextScheduledWindow($from, $to);
+ $scheduledSummary = $analytics->scheduledDemand($scheduledFrom, $scheduledTo, $division, $unit, $borrower);
+
  return [
  'overview' => $overview,
  'groups' => $groups,
@@ -376,6 +382,7 @@ class AnalyticsController extends Controller
  'inventorySummary' => $inventorySummary,
  'processingSummary' => $processingSummary,
  'overviewTrend' => $analytics->trend($from, $to, $division, $unit, $periodSelection, $borrower),
+                'scheduledSummary' => $scheduledSummary, 'scheduledFrom' => $scheduledFrom, 'scheduledTo' => $scheduledTo,
  ];
  }
 
@@ -408,8 +415,7 @@ class AnalyticsController extends Controller
  'inventory' => $analytics->inventory($inventory),
  'lowAvailability' => $analytics->lowAvailability($inventory, 10),
  'released' => $analytics->equipment($from, $to, $division, $unit, 5, $borrower),
- /* Current stock beside the period's recorded releases; nothing is projected. */
- 'coverage' => $analytics->stockCoverage($inventory, $from, $to, 10, $division, $unit),
+ /* Quiet items are reported on Demand & Utilization, not here. */
  ];
  }
 
@@ -437,33 +443,8 @@ class AnalyticsController extends Controller
  ];
  }
 
- /* Predictive Analytics. */
- [$forecastFrom, $forecastTo] = $forecasts->forecastWindow($from, $to);
-
- return [
- 'forecastFrom' => $forecastFrom,
- 'forecastTo' => $forecastTo,
- /*
- * Known scheduled demand: requests already filed for the period the
- * forecast covers. These are records that exist, not a projection,
- * so they are fetched and reported apart from anything the weighted
- * average produces and are never merged with it.
- */
- 'scheduled' => $analytics->scheduledDemand($forecastFrom, $forecastTo, $division, $unit, $borrower),
-
- /*
- * The projected trend, division/unit/equipment forecasts and busy
- * period are institution-level projections drawn from historical
- * completed periods. Borrower scope only applies to Scheduled
- * Demand above, which is a real, already-filed record set rather
- * than a projection.
- */
- 'demand' => $forecasts->demand($analytics, $from, $to, $division, $unit),
- 'divisionForecast' => $forecasts->divisionDemand($analytics, $from, $to, $division, $unit),
- 'unitForecast' => $forecasts->unitDemand($analytics, $from, $to, $division, $unit),
- 'equipmentForecast' => $forecasts->equipment($from, $to, ForecastService::EQUIPMENT_LIMIT, $division, $unit),
- 'busyPeriod' => $forecasts->busyPeriod($analytics, $from, $to, $division, $unit),
- 'forecastBasis' => $forecasts->basis(),
- ];
+ [$scheduledFrom, $scheduledTo] = app(ReportingPeriodService::class)->nextScheduledWindow($from, $to);
+ return ['scheduledFrom' => $scheduledFrom, 'scheduledTo' => $scheduledTo,
+ 'scheduled' => $analytics->scheduledDemand($scheduledFrom, $scheduledTo, $division, $unit, $borrower)];
  }
 }

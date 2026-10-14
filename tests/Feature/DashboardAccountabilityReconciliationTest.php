@@ -794,9 +794,10 @@ class DashboardAccountabilityReconciliationTest extends TestCase
         $view = file_get_contents(resource_path('views/accountability/index.blade.php'));
 
         $this->assertStringContainsString(
-            'Record the official disposition stated in the accomplished RSLDDP.',
+            'Confirm the recorded finding is a valid accountability, or clear it.',
             $view
         );
+        $this->assertStringNotContainsString('Record the official disposition stated in the accomplished RSLDDP.', $view);
         $this->assertStringContainsString(
             'The Action Officer verifies the presented requirement; the Action Officer does not choose the disposition.',
             $view

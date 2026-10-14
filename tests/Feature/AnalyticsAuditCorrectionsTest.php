@@ -263,10 +263,13 @@ class AnalyticsAuditCorrectionsTest extends TestCase
         ]));
 
         $page->assertOk();
-        $page->assertSee('Inventory Risk Watch');
+        $page->assertSee('Inventory Availability Watch');
         $page->assertSee('1 of 10 units available', false);
-        $page->assertSee('9 released this period', false);
-        $page->assertSee('released in 3 releases', false);
+        // Incoming separates current availability from descriptive period releases.
+        $page->assertSee('Sound System: 9 released', false);
+        $page->assertViewHas('released', fn (array $data) => collect($data['items'])->contains(
+            fn (array $row) => $row['name'] === 'Sound System' && (float) $row['released'] === 9.0
+        ));
 
         foreach (['days coverage', 'Insufficient history', 'per day', 'An estimate, not a probability'] as $projected) {
             $page->assertDontSee($projected, false);

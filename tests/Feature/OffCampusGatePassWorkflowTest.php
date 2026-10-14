@@ -140,11 +140,10 @@ class OffCampusGatePassWorkflowTest extends TestCase
             ->update(['value_json' => 50]);
 
         $payload = $this->requestPayload();
-        $payload['approved_request_letter'] = UploadedFile::fake()->create(
+        $payload['approved_request_letter'] = UploadedFile::fake()->createWithContent(
             'signed-borrowing-request-letter.pdf',
-            13 * 1024,
-            'application/pdf'
-        );
+            \Tests\Support\EvidenceFixtures::pdfBytes()
+        )->size(13 * 1024);
 
         $this->withSession(['active_workspace' => 'BORROWER'])
             ->actingAs($this->borrower)
@@ -314,19 +313,6 @@ class OffCampusGatePassWorkflowTest extends TestCase
             ->actingAs($this->borrower)
             ->get(route('requests.show', $request))
             ->assertOk()
-            // The generated forms are no longer repeated on the request page (its
-            // "Forms for Physical Processing" card and "Bring the generated
-            // documents to SPMU" callout were removed). The borrower reaches
-            // them through View Borrowing.
-            ->assertSeeText('View Borrowing')
-            ->assertSee(route('custody.show', $custody), false);
-
-        $this->withSession(['active_workspace' => 'BORROWER'])
-            ->actingAs($this->borrower)
-            ->get(route('custody.show', $custody))
-            ->assertOk()
-            ->assertSeeText('Borrower Slip')
-            ->assertSeeText('Gate Pass')
             ->assertSee(route('documents.preview', $borrowerSlip), false)
             ->assertSee(route('documents.preview', $gatePassDocument), false)
             ->assertDontSee(route('documents.download', $borrowerSlip), false)
@@ -367,12 +353,15 @@ class OffCampusGatePassWorkflowTest extends TestCase
         $gatePassDocumentId = $gatePass->pass_document_id;
         $this->travelTo($pickupAt->copy()->addMinutes(30));
 
-        $this->withSession(['active_workspace' => 'SPMU'])
+        // The time jump also expires the original HTTP session. Model the
+        // officer signing in again at pickup time, retaining the idle guard.
+        $this->withSession(['active_workspace' => 'SPMU', 'last_user_activity_at' => now()->timestamp])
             ->actingAs($this->officer)
             ->post(route('custody.release', $custody), [
                 'physical_signatures_confirmed' => '1',
                 'remarks' => 'Approved documents validated and property handed over.',
             ])
+            ->assertRedirect(route('custody.return.show', $custody))
             ->assertSessionHasNoErrors();
 
         $custody->refresh();
@@ -415,13 +404,19 @@ class OffCampusGatePassWorkflowTest extends TestCase
          * The approved request's Items Needed From date must land exactly
          * one day after a valid SPMU Pickup/Issuance operating day (weekends
          * are closed by default), or SPMU approval itself throws a
-         * validation error. Resolve the PICKUP day first and derive the
-         * schedule date from it - not the other way around - since
-         * validation checks (needed_from - 1 day), not needed_from itself.
+         * validation error. Both the request date and its preceding pickup
+         * day must be open; choosing Friday pickup plus one day incorrectly
+         * makes a normal-flow request start on a closed Saturday.
          */
-        $pickupDay = app(OperationalCalendarService::class)
-            ->nextOpenDate(OperationalCalendarService::PICKUP, now()->addDays(2), true);
-        $scheduleDate = $pickupDay->copy()->addDay();
+        $calendar = app(OperationalCalendarService::class);
+        $scheduleDate = $calendar->nextOpenDate(OperationalCalendarService::REQUEST, now()->addDays(3), true);
+        while (! $calendar->isOpenDate($scheduleDate)
+            || ! $calendar->isOpenFor(OperationalCalendarService::PICKUP, $scheduleDate->copy()->subDay())) {
+            $scheduleDate = $calendar->nextOpenDate(OperationalCalendarService::REQUEST, $scheduleDate->copy()->addDay(), true);
+        }
+        // A Friday schedule must not make the normal-flow fixture return on Saturday.
+        $returnDate = app(OperationalCalendarService::class)
+            ->nextOpenDate(OperationalCalendarService::RETURN, $scheduleDate->copy()->addDay(), true);
 
         $payload = [
             'purpose_event' => 'Off-campus institutional activity',
@@ -436,7 +431,7 @@ class OffCampusGatePassWorkflowTest extends TestCase
              */
             'requesting_organizational_unit_id' => $this->borrower->organizational_unit_id,
             'schedule_date' => $scheduleDate->toDateString(),
-            'return_date' => $scheduleDate->copy()->addDay()->toDateString(),
+            'return_date' => $returnDate->toDateString(),
             'represents_student_activity' => $studentActivity ? '1' : '0',
             'off_campus' => '1',
             'intent' => 'submit',
@@ -445,18 +440,16 @@ class OffCampusGatePassWorkflowTest extends TestCase
             'item_ids' => [$this->offCampusItem->id],
             'quantities' => [$this->offCampusItem->id => 1],
             'locations' => [$this->offCampusItem->id => 'OFF_CAMPUS'],
-            'approved_request_letter' => UploadedFile::fake()->create(
+            'approved_request_letter' => UploadedFile::fake()->createWithContent(
                 'borrowing-request-letter.pdf',
-                24,
-                'application/pdf'
+                \Tests\Support\EvidenceFixtures::pdfBytes()
             ),
         ];
 
         if ($includePtc) {
-            $payload['permission_to_conduct_letter'] = UploadedFile::fake()->create(
+            $payload['permission_to_conduct_letter'] = UploadedFile::fake()->createWithContent(
                 'permission-to-conduct.pdf',
-                24,
-                'application/pdf'
+                \Tests\Support\EvidenceFixtures::pdfBytes('Synthetic PTC')
             );
         }
 
@@ -493,7 +486,7 @@ class OffCampusGatePassWorkflowTest extends TestCase
 
     private function registerSignature(User $user): void
     {
-        $bytes = "\x89PNG\r\n\x1a\n".'workflow-signature-'.$user->id;
+        $bytes = \Tests\Support\EvidenceFixtures::signatureBytes('workflow-signature-'.$user->id);
         $path = 'tests/signatures/'.$user->id.'/signature.png';
         Storage::disk('local')->put($path, $bytes);
 

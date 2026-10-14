@@ -16,11 +16,13 @@ const reportingWorkspaceStyles = fs.readFileSync(path.join(root, 'resources/view
 
 // Borrower summary KPIs stay useful at zero: every card drills into its own
 // focused result/empty state instead of becoming a static look-alike.
-test('My Obligations keeps all four summary cards clickable even at zero or Clear', () => {
+test('My Obligations keeps visible summary cards clickable and omits a redundant zero-action card', () => {
   assert.match(obligations, /\['focus' => 'active'\]/);
   assert.match(obligations, /\['focus' => 'action'\]/);
   assert.match(obligations, /\['focus' => 'payment'\]/);
-  assert.match(obligations, /\['focus' => 'status'\]/);
+  // A blocking unresolved incident without a formal restriction drills into active cases.
+  assert.match(obligations, /\['focus' => \$activeRestrictionCount > 0 \|\| ! \$borrowingBlocked \? 'status' : 'active'\]/);
+  assert.match(obligations, /if \(\$needsActionCount > 0\)\s*\{\s*\$summaryCards\[\] = \['warning', 'warning', \(string\) \$needsActionCount, 'Needs My Action'/);
   assert.match(obligations, /class="ob-summary-card is-\{\{ \$tone \}\} is-clickable/);
   assert.doesNotMatch(obligations, /ob-summary-card[^\n]*is-static/);
   assert.match(obligations, /\$focusMeta = match \(\$focus\)/);
@@ -32,7 +34,7 @@ test('My Obligations keeps all four summary cards clickable even at zero or Clea
 // Resolved history is a dedicated staff workspace tab, not permanent default-page content.
 test('staff resolved history appears only in the History workspace', () => {
   assert.match(index, /\$resolvedHistoryRequested = ! \$isBorrower && request\('view'\) === 'resolved'/);
-  assert.match(index, /\['queue' => 'history'\]/);
+  assert.match(index, /\$requestedStaffTab = 'history'/);
   assert.match(index, /@if\(\$activeStaffTab === 'history' \|\| \$resolvedHistoryRequested\)[\s\S]*?@include\('accountability\.partials\.resolved-history'/);
   assert.match(index, /greaterThanOrEqualTo\(\$resolvedPeriodStart\)/);
 });
@@ -64,7 +66,8 @@ test('every inline View Details or Case Details disclosure uses the approved blu
   );
   assert.match(index, /<summary class="button secondary small ui-pressable disclosure-trigger"><span>Case details<\/span>/);
   assert.match(notifications, /class="notification-delivery-view-button button secondary small ui-pressable disclosure-trigger"/);
-  assert.match(audit, /<summary class="button secondary small ui-pressable disclosure-trigger">\s*<span>View Details<\/span>/);
+  assert.match(audit, /<button class="ictu-audit-view-button button secondary small ui-pressable disclosure-trigger"/);
+  assert.match(audit, /data-audit-details-toggle[\s\S]*?<span>View Details<\/span>/);
 
   assert.doesNotMatch(oversightStyles, /\.accountability-cases-card \[data-case-toggle\]/);
   assert.doesNotMatch(oversightStyles, /\.accountability-view-detail\s*\{/);

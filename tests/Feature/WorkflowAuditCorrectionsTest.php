@@ -150,7 +150,7 @@ class WorkflowAuditCorrectionsTest extends TestCase
          * close - the scheduled spmu:process-deadlines command's own
          * production path.
          */
-        $this->withSession(['active_workspace' => 'SPMU'])
+        $this->withSession(['active_workspace' => 'SPMU', 'last_user_activity_at' => now()->timestamp])
             ->actingAs($spmuOfficer)
             ->post(route('laundry.spmu.upload-form', $job), [
                 'evidence' => UploadedFile::fake()->create('accomplished-form.pdf', 10, 'application/pdf'),
@@ -494,7 +494,7 @@ class WorkflowAuditCorrectionsTest extends TestCase
     {
         [, , $spmuOfficer, $custody] = $this->offCampusApprovedCustody();
 
-        $this->withSession(['active_workspace' => 'SPMU'])
+        $this->withSession(['active_workspace' => 'SPMU', 'last_user_activity_at' => now()->timestamp])
             ->actingAs($spmuOfficer)
             ->post(route('custody.release', $custody), [
                 'physical_signatures_confirmed' => '1',
@@ -529,7 +529,7 @@ class WorkflowAuditCorrectionsTest extends TestCase
         $this->assertSame('READY_FOR_PRINTING', $gatePass->status);
         $this->assertNull($custody->released_at);
 
-        $this->withSession(['active_workspace' => 'SPMU'])
+        $this->withSession(['active_workspace' => 'SPMU', 'last_user_activity_at' => now()->timestamp])
             ->actingAs($spmuOfficer)
             ->post(route('gate-passes.verify', $gatePass), [
                 'accomplished_form' => \Illuminate\Http\UploadedFile::fake()->create('scan.pdf', 20, 'application/pdf'),
@@ -680,7 +680,7 @@ class WorkflowAuditCorrectionsTest extends TestCase
 
     private function fakeStoredFile(string $name): StoredFile
     {
-        $bytes = '%PDF-1.4 test-'.uniqid();
+        $bytes = \Tests\Support\EvidenceFixtures::pdfBytes('Workflow audit supporting document');
         $path = 'tests/wf-audit/'.uniqid().'-'.$name;
         Storage::disk('local')->put($path, $bytes);
 
@@ -689,7 +689,7 @@ class WorkflowAuditCorrectionsTest extends TestCase
             'disk' => 'local',
             'storage_path' => $path,
             'original_name' => $name,
-            'mime_type' => 'application/octet-stream',
+            'mime_type' => 'application/pdf',
             'byte_size' => strlen($bytes),
             'sha256' => hash('sha256', $bytes),
             'classification' => 'PROTECTED',
@@ -698,7 +698,7 @@ class WorkflowAuditCorrectionsTest extends TestCase
 
     private function registerSignature(User $user): void
     {
-        $bytes = "\x89PNG\r\n\x1a\n".'signature-ink-'.$user->id;
+        $bytes = \Tests\Support\EvidenceFixtures::signatureBytes('signature-ink-'.$user->id);
         $path = 'tests/signatures/'.$user->id.'/signature.png';
 
         Storage::disk('local')->put($path, $bytes);
@@ -810,7 +810,7 @@ class WorkflowAuditCorrectionsTest extends TestCase
             'use_location' => $offCampus ? 'OFF_CAMPUS' : 'ON_CAMPUS',
         ]);
 
-        $bytes = '%PDF-1.4 wf-audit-request-letter';
+        $bytes = \Tests\Support\EvidenceFixtures::pdfBytes('Workflow audit approved request letter');
         $letterPath = 'tests/wf-audit/'.$request->id.'/letter.pdf';
         Storage::disk('local')->put($letterPath, $bytes);
 
@@ -858,7 +858,7 @@ class WorkflowAuditCorrectionsTest extends TestCase
          * (see OffCampusGatePassWorkflowTest::verifyByOfficer()).
          */
         if ($offCampus) {
-            $this->withSession(['active_workspace' => 'SPMU'])
+            $this->withSession(['active_workspace' => 'SPMU', 'last_user_activity_at' => now()->timestamp])
                 ->actingAs($spmuOfficer)
                 ->post(route('verifications.verify', $request), [
                     'decision' => 'VERIFIED',
@@ -870,7 +870,7 @@ class WorkflowAuditCorrectionsTest extends TestCase
                 ->assertSessionHasNoErrors();
         }
 
-        $this->withSession(['active_workspace' => 'SPMU'])
+        $this->withSession(['active_workspace' => 'SPMU', 'last_user_activity_at' => now()->timestamp])
             ->actingAs($spmu)
             ->post(route('approvals.decide', $request), [
                 'decision' => 'APPROVED',
@@ -901,14 +901,14 @@ class WorkflowAuditCorrectionsTest extends TestCase
 
         $this->travelTo($pickupAt->copy()->subHour());
 
-        $this->withSession(['active_workspace' => 'SPMU'])
+        $this->withSession(['active_workspace' => 'SPMU', 'last_user_activity_at' => now()->timestamp])
             ->actingAs($spmuOfficer)
             ->post(route('custody.schedule-pickup', $custody))
             ->assertSessionHasNoErrors();
 
         $preparedQuantities = $custody->lines->mapWithKeys(fn ($line) => [$line->id => (int) $line->approved_quantity])->all();
 
-        $this->withSession(['active_workspace' => 'SPMU'])
+        $this->withSession(['active_workspace' => 'SPMU', 'last_user_activity_at' => now()->timestamp])
             ->actingAs($spmuOfficer)
             ->post(route('custody.prepare', $custody), ['quantities' => $preparedQuantities])
             ->assertSessionHasNoErrors();
@@ -916,13 +916,15 @@ class WorkflowAuditCorrectionsTest extends TestCase
         $this->travelTo($pickupAt->copy()->addMinutes(30));
 
         if (! $offCampus) {
-            $this->withSession(['active_workspace' => 'SPMU'])
+            $this->withSession(['active_workspace' => 'SPMU', 'last_user_activity_at' => now()->timestamp])
                 ->actingAs($spmuOfficer)
                 ->post(route('custody.release', $custody), [
                     'physical_signatures_confirmed' => '1',
                     'remarks' => 'Workflow audit correction test release.',
                 ])
                 ->assertSessionHasNoErrors();
+            $this->assertSame('ACTIVE', $custody->fresh()->status);
+            $this->assertNotNull($custody->fresh()->released_at);
         }
 
         $custody->refresh()->load('lines');

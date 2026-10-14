@@ -158,7 +158,7 @@ class AuditTrailInvestigationTest extends TestCase
         $this->as($this->head)
             ->delete(route('inventory.destroy', $item), [
                 'confirm_item_name' => 'Investigation Duplicate Entry',
-                'deletion_reason' => 'Duplicate encoding.',
+                'delete_reason' => 'Duplicate encoding.',
             ])
             ->assertSessionHasNoErrors();
 
@@ -620,7 +620,7 @@ class AuditTrailInvestigationTest extends TestCase
         ];
 
         if ($letterFilename !== null) {
-            $payload['approved_request_letter'] = UploadedFile::fake()->create($letterFilename, 24, 'application/pdf');
+            $payload['approved_request_letter'] = UploadedFile::fake()->createWithContent($letterFilename, \Tests\Support\EvidenceFixtures::pdfBytes($letterFilename));
         }
 
         return $payload;
@@ -645,7 +645,7 @@ class AuditTrailInvestigationTest extends TestCase
 
     private function registerSignature(User $user): void
     {
-        $bytes = "\x89PNG\r\n\x1a\n".'investigation-signature-'.$user->id;
+        $bytes = \Tests\Support\EvidenceFixtures::signatureBytes('investigation-signature-'.$user->id);
         $path = 'tests/signatures/'.$user->id.'/signature.png';
         Storage::disk('local')->put($path, $bytes);
 

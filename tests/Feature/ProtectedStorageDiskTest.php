@@ -246,7 +246,7 @@ class ProtectedStorageDiskTest extends TestCase
         }
     }
 
-    public function test_a_database_failure_after_the_write_deletes_nothing(): void
+    public function test_a_database_failure_removes_only_the_new_object_and_preserves_existing_evidence(): void
     {
         config(['filesystems.protected_disk' => 's3']);
 
@@ -273,11 +273,11 @@ class ProtectedStorageDiskTest extends TestCase
         Storage::disk('s3')->assertExists($existing->storage_path);
         $this->assertSame('%PDF-1.4 existing', $this->files->bytes($existing));
 
-        /* The object that was written is left in place, not removed automatically. */
-        $this->assertCount(2, Storage::disk('s3')->allFiles('generated-documents'));
+        // Incoming rollback policy: only the fresh UUID is removed, never saved evidence.
+        $this->assertSame([$existing->storage_path], Storage::disk('s3')->allFiles('generated-documents'));
     }
 
-    public function test_the_orphaned_object_log_entry_names_the_location_and_nothing_confidential(): void
+    public function test_the_failed_metadata_log_names_the_new_location_and_nothing_confidential(): void
     {
         config(['filesystems.protected_disk' => 's3']);
 

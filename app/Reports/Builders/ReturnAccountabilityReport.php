@@ -205,8 +205,8 @@ class ReturnAccountabilityReport implements ReportBuilder
                     '_completed_in_period' => false,
                     '_accountability_open' => $accountabilityOpen,
                     '_accountability_in_period' => $accountabilityInPeriodIds->contains($custody->id),
-                    '_division_code' => (string) ($version?->division_code ?? ''),
-                    '_office_unit' => (string) ($version?->office_unit ?? ''),
+                    '_division_code' => \App\Support\ReportAffiliation::divisionCode($version),
+                    '_office_unit' => \App\Support\ReportAffiliation::employeeUnit($version),
                     '_link' => route('custody.show', $custody),
                     '_returned_at_raw' => $returnedAt,
                     '_tone_return_status' => match ($returnState) {
@@ -220,10 +220,8 @@ class ReturnAccountabilityReport implements ReportBuilder
                     'custody_no' => (string) $custody->custody_no,
                     'request_no' => (string) ($custody->request?->request_no ?? ''),
                     'borrower' => (string) ($custody->borrower?->full_name ?? ''),
-                    'division' => $version?->division_code
-                        ? OrganizationalStructure::label($version->division_code)
-                        : '',
-                    'office_unit' => (string) ($version?->office_unit ?? ''),
+                    'division' => \App\Support\ReportAffiliation::division($version),
+                    'office_unit' => \App\Support\ReportAffiliation::display($version),
                     'released_at' => $this->dateTime($custody->released_at),
                     'due_at' => $this->date($due),
                     'last_return_at' => $this->dateTime($returnedAt),
@@ -309,7 +307,7 @@ class ReturnAccountabilityReport implements ReportBuilder
                 ['key' => 'request_no', 'label' => 'Request No.'],
                 ['key' => 'borrower', 'label' => 'Borrower'],
                 ['key' => 'division', 'label' => 'Division'],
-                ['key' => 'office_unit', 'label' => 'Office / College / Unit'],
+                ['key' => 'office_unit', 'label' => 'Office / Unit / External Company'],
                 ['key' => 'released_at', 'label' => 'Released'],
                 ['key' => 'due_at', 'label' => 'Expected Return'],
                 ['key' => 'last_return_at', 'label' => 'Returned'],

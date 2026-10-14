@@ -27,7 +27,7 @@ function element(dataset = {}) {
         addEventListener(name, callback) {
             handlers.set(name, [...(handlers.get(name) || []), callback]);
         },
-        dispatch(name) { (handlers.get(name) || []).forEach((callback) => callback()); },
+        dispatch(name, event = {}) { (handlers.get(name) || []).forEach((callback) => callback(event)); },
         focus() { this.focused = true; },
     };
 }
@@ -63,10 +63,45 @@ function mount({ paginated = false, recordsPresent = true } = {}) {
         querySelector: (selector) => controls[selector],
         querySelectorAll: () => records,
     };
-    const context = { document: { querySelector: () => browser } };
+    const context = { document: { querySelector: (selector) => selector === '[data-laundry-browser]' ? browser : null } };
     vm.runInNewContext(script, context);
     return { records, list, search, status, sort, count, empty, reset, context };
 }
+
+test('laundry tabs show completed pagination and support keyboard navigation without changing records', () => {
+    for (const address of ['http://localhost/laundry?completed_page=2', 'http://localhost/laundry#completed-laundry-cases', 'http://localhost/laundry']) {
+        const tabs = ['active', 'completed'].map((name) => {
+            const tab = element({ laundryTab: name });
+            tab.attributes = {};
+            tab.classList = { toggle: (_, selected) => { tab.selected = selected; } };
+            tab.setAttribute = (key, value) => { tab.attributes[key] = value; };
+            return tab;
+        });
+        const panels = ['active', 'completed'].map((name) => element({ laundryPanel: name }));
+        const workspace = { querySelectorAll: (selector) => selector === '[data-laundry-tab]' ? tabs : panels };
+        vm.runInNewContext(script, {
+            URL,
+            window: { location: { href: address } },
+            document: { querySelector: (selector) => selector === '[data-laundry-tabs]' ? workspace : null },
+        });
+        const initial = address.endsWith('/laundry') ? 0 : 1;
+        assert.equal(panels[initial].hidden, false);
+        assert.equal(panels[1 - initial].hidden, true);
+        assert.equal(tabs[initial].attributes['aria-selected'], 'true');
+        assert.equal(tabs[initial].tabIndex, 0);
+        let prevented = false;
+        tabs[initial].dispatch('keydown', { key: 'Home', preventDefault: () => { prevented = true; } });
+        assert.equal(prevented, true);
+        assert.equal(panels[0].hidden, false);
+        assert.equal(tabs[0].focused, true);
+        tabs[0].dispatch('keydown', { key: 'ArrowRight', preventDefault() {} });
+        assert.equal(panels[1].hidden, false);
+        assert.equal(tabs[1].tabIndex, 0);
+        tabs[0].dispatch('click');
+        assert.equal(panels[0].hidden, false);
+        assert.equal(tabs[1].attributes['aria-selected'], 'false');
+    }
+});
 
 /*
  * The standalone "Laundry flow" guide/tracker card was intentionally removed
@@ -79,11 +114,12 @@ function mount({ paginated = false, recordsPresent = true } = {}) {
  */
 test('the page keeps active and completed laundry records in one workspace', () => {
     assert.match(page, /\$hasLaundryCases = \$jobs->total\(\) > 0;/);
-    assert.match(page, /\$hasCompletedCases = \$completedJobs->total\(\) > 0;/);
-    assert.match(page, /@if\(\$hasLaundryCases\)\s+<section class="card record-browser-toolbar laundry-toolbar"/);
-    assert.match(page, /<h2 id="laundry-cases-title">Active Laundry Cases<\/h2>/);
-    assert.match(page, /<div class="laundry-completed-block" id="completed-laundry-cases" data-completed-laundry>/);
-    assert.match(page, /<h2 id="completed-laundry-title">Completed Laundry Cases<\/h2>/);
+    assert.match(page, /data-laundry-tabs/);
+    assert.match(page, /data-laundry-panel="active"/);
+    assert.match(page, /data-laundry-panel="completed"/);
+    assert.equal((page.match(/id="laundry-search"/g) || []).length, 1, 'active filters must not be duplicated during merge');
+    assert.ok(page.indexOf('aria-label="Active laundry case filters"') < page.indexOf('@if($hasLaundryCases)'), 'filters remain available above both empty and populated states');
+    assert.match(page, /@else\s+<div class="laundry-inline-empty"/);
     assert.match(page, /No active laundry cases need action\./);
     assert.match(page, /Finished cases will stay visible here for record review\./);
     assert.doesNotMatch(page, /Completed Records/);
@@ -124,10 +160,11 @@ test('return workspace keeps the linen instructions concise', () => {
      * the inline upload form, its one-line date helper, and the recorded/
      * awaiting status text are the whole instruction set now.
      */
-    assert.match(returnWorkspace, /Use the RECEIVED BY date written on the accomplished form\./);
+    assert.match(returnWorkspace, /Enter the actual RECEIVED BY date on the signed form\./);
+    assert.match(returnWorkspace, /The physical receipt date, not the SPMU recording date, determines return timing\./);
     assert.match(returnWorkspace, />Record Laundry Form</);
     assert.match(returnWorkspace, /Accomplished form recorded\./);
-    assert.match(returnWorkspace, /Awaiting accomplished form\./);
+    assert.match(returnWorkspace, /Awaiting accomplished copy\./);
     assert.doesNotMatch(returnWorkspace, /I confirm this is the accomplished Laundry Form signed by Laundry Personnel\.|Open (?:Internal )?Laundry Processing/);
 });
 
@@ -168,7 +205,7 @@ test('filters are read-only and both active and completed queues keep local cont
     assert.match(page, /type="button" data-completed-reset/);
     assert.match(page, /role="status" aria-live="polite"/);
     assert.doesNotMatch(page, /<form|->(?:save|update|create|delete)\(/);
-    assert.doesNotMatch(interactions, /fetch\(|XMLHttpRequest|\.submit\(|requestSubmit\(|location\./);
+    assert.doesNotMatch(interactions, /fetch\(|XMLHttpRequest|\.submit\(|requestSubmit\(|location\.(?:assign|replace)\(|location(?:\.href)?\s*=/);
 });
 
 test('newest and oldest sorting use the correct date direction', () => {
@@ -220,7 +257,7 @@ test('paginated and empty results never claim that hidden cases do not exist', (
     assert.equal(noRows.count.textContent, 'Showing 0 of 0 cases on this page (47 total)');
     assert.equal(noRows.empty.hidden, false);
     assert.doesNotThrow(() => vm.runInNewContext(script, {
-        document: { querySelector: () => ({ dataset: {}, querySelector: () => null }) },
+        document: { querySelector: (selector) => selector === '[data-laundry-browser]' ? ({ dataset: {}, querySelector: () => null }) : null },
     }));
 });
 

@@ -4,19 +4,32 @@ namespace Tests\Feature;
 
 use App\Enums\AccessClassification;
 use App\Enums\RequestStatus;
+use App\Models\Allocation;
 use App\Models\BorrowingRequest;
 use App\Models\CustodyLine;
 use App\Models\CustodyTransaction;
 use App\Models\GatePass;
+use App\Models\GeneratedDocument;
 use App\Models\Incident;
+use App\Models\InventoryCategory;
+use App\Models\InventoryItem;
 use App\Models\NotificationDelivery;
 use App\Models\NotificationEvent;
+use App\Models\OrganizationalUnit;
 use App\Models\RequestItem;
 use App\Models\RequestVersion;
+use App\Models\Role;
+use App\Models\UnitOfMeasure;
 use App\Models\User;
 use App\Services\BorrowerObligationService;
+use App\Services\ProtectedFileService;
+use App\Services\UserRoleAssignmentService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\EvidenceFixtures;
 use Tests\TestCase;
 
 /**
@@ -36,6 +49,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake('local');
 
         Carbon::setTestNow(Carbon::create(2026, 9, 11, 9));
     }
@@ -44,6 +58,48 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
     {
         Carbon::setTestNow();
         parent::tearDown();
+    }
+
+    private function grantDirectoryRole(User $actor): void
+    {
+        // This class intentionally has no reference seed; provision the actor's
+        // canonical role without adding unrelated users or changing KPI counts.
+        Role::firstOrCreate(['role_code' => 'ICTU'], ['role_name' => 'Information and Communications Technology Unit', 'active' => true]);
+        app(UserRoleAssignmentService::class)->synchronize($actor, AccessClassification::IctuMaintainer);
+    }
+
+    public static function staffDashboardRoles(): array
+    {
+        return ['Admin' => ['SPMU_HEAD', 'Priority Actions'], 'SAO' => ['SPMU_OFFICER', 'Verification Queue']];
+    }
+
+    private function htmlXPath(string $html): \DOMXPath
+    {
+        $previous = libxml_use_internal_errors(true);
+        try {
+            $document = new \DOMDocument;
+            $document->loadHTML('<?xml encoding="utf-8" ?>'.$html);
+
+            return new \DOMXPath($document);
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
+    }
+
+    private function operationalDocument(CustodyTransaction $custody, string $type, string $status = 'FINAL'): GeneratedDocument
+    {
+        $file = app(ProtectedFileService::class)->storeBytes(
+            EvidenceFixtures::pdfBytes('Synthetic QA '.$type), 'tests/qa-documents',
+            $type.'.pdf', 'application/pdf', 'pdf', 'GENERATED_DOCUMENT', $custody->borrower_user_id,
+        );
+
+        return GeneratedDocument::create([
+            'stored_file_id' => $file->id, 'request_version_id' => $custody->request_version_id,
+            'subject_type' => CustodyTransaction::class, 'subject_id' => $custody->id,
+            'document_no' => 'QA-'.Str::uuid(), 'document_type' => $type, 'version_no' => 1,
+            'sha256' => $file->sha256, 'status' => $status, 'generated_at' => now(),
+        ]);
     }
 
     private function borrower(): User
@@ -59,17 +115,17 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
      */
     private function custody(User $borrower, bool $released, bool $returned): CustodyTransaction
     {
-        $category = \App\Models\InventoryCategory::query()->firstOrCreate(
+        $category = InventoryCategory::query()->firstOrCreate(
             ['category_code' => 'DASHFIX'],
             ['category_name' => 'Dashboard Fixture', 'active' => true]
         );
 
-        $measure = \App\Models\UnitOfMeasure::query()->firstOrCreate(
+        $measure = UnitOfMeasure::query()->firstOrCreate(
             ['unit_code' => 'PC'],
             ['unit_name' => 'Piece', 'active' => true]
         );
 
-        $item = \App\Models\InventoryItem::query()->create([
+        $item = InventoryItem::query()->create([
             'category_id' => $category->id,
             'unit_id' => $measure->id,
             'unique_description' => 'Dashboard Fixture Item '.fake()->unique()->numberBetween(1, 99999),
@@ -82,7 +138,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
             'active' => true,
         ]);
 
-        $unit = \App\Models\OrganizationalUnit::query()->firstOrCreate(
+        $unit = OrganizationalUnit::query()->firstOrCreate(
             ['unit_code' => 'DASHFIX'],
             ['unit_name' => 'Dashboard Fixture Unit', 'unit_type' => 'OFFICE', 'active' => true]
         );
@@ -122,7 +178,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
             'use_location' => 'OFF_CAMPUS',
         ]);
 
-        $allocation = \App\Models\Allocation::query()->create([
+        $allocation = Allocation::query()->create([
             'request_item_id' => $requestItem->id,
             'period_start' => now()->subDays(4)->startOfDay(),
             'period_end' => $dueAt,
@@ -169,7 +225,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
     }
 
     /* ================================================================== */
-    /* Gate Pass processing must never present as a borrower obligation   */
+    /* Gate Pass processing must never present as a borrower obligation */
     /* ================================================================== */
 
     public function test_gate_pass_only_pending_does_not_count_as_a_borrower_obligation(): void
@@ -191,14 +247,13 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->unverifiedGatePass($custody);
 
         $response = $this->withSession(['active_workspace' => 'BORROWER'])
-            ->actingAs($borrower)
-            ->get(route('custody.show', $custody));
+            ->actingAs($borrower)->get(route('custody.index'));
 
-        $response->assertOk()
-            ->assertSee('Gate Pass Processing')
-            ->assertDontSee('Accountability Pending')
-            ->assertDontSee('Accountability processing')
-            ->assertDontSee('View Obligation');
+        $response->assertOk()->assertSee($custody->custody_no)->assertSee('Gate Pass Processing')
+            ->assertSee('data-borrowings-status="GATE_PASS_PROCESSING"', false)
+            ->assertDontSee('Accountability Pending')->assertDontSee('View Obligation');
+        $this->assertSame('OBLIGATION_OPEN', $custody->fresh()->status);
+        $this->assertSame(0, app(BorrowerObligationService::class)->overview($borrower->id)['count']);
     }
 
     public function test_gate_pass_only_pending_shows_as_info_not_accountability_pending_on_my_requests(): void
@@ -263,22 +318,42 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
     }
 
     /* ================================================================== */
-    /* Forms for Physical Processing is lifecycle-aware                   */
+    /* Forms for Physical Processing is lifecycle-aware */
     /* ================================================================== */
 
-    public function test_pre_release_forms_show_pickup_instruction(): void
+    public function test_pre_release_document_access_and_pickup_guidance_follow_existing_records(): void
     {
         $borrower = $this->borrower();
         $custody = $this->custody($borrower, released: false, returned: false);
 
-        $response = $this->withSession(['active_workspace' => 'BORROWER'])
-            ->actingAs($borrower)
-            ->get(route('requests.show', $custody->request));
+        // No documents or schedule exist yet: never claim they were generated.
+        $empty = $this->withSession(['active_workspace' => 'BORROWER'])
+            ->actingAs($borrower)->get(route('requests.show', $custody->request));
+        $empty->assertOk()->assertSee('Borrowing documents')->assertSee('No current approved document is available.')
+            ->assertDontSee('Proceed to SPMU on the scheduled pickup date');
 
-        $response->assertOk()
-            ->assertSee('Forms for Physical Processing')
-            ->assertSee('Bring the generated documents to SPMU.')
-            ->assertSee('Proceed to SPMU on the scheduled pickup date');
+        $start = now()->addDays(5)->startOfDay();
+        $due = $start->copy()->addDays(2);
+        $custody->request->currentVersion->forceFill([
+            'schedule_date' => $start->toDateString(), 'needed_from' => $start,
+            'return_date' => $due->toDateString(), 'return_due_at' => $due,
+        ])->save();
+        $custody->forceFill([
+            'due_at' => $due, 'prepared_at' => now(),
+            'pickup_scheduled_at' => now(), 'scheduled_release_at' => now()->subMinute(),
+            'pickup_expires_at' => now()->addHour(),
+        ])->save();
+        $slip = $this->operationalDocument($custody, 'BORROWER_SLIP');
+        $pass = $this->operationalDocument($custody, 'GATE_PASS');
+
+        $this->get(route('requests.show', $custody->request))->assertOk()
+            ->assertSee(route('documents.preview', $slip), false)
+            ->assertSee(route('documents.preview', $pass), false);
+        $this->get(route('custody.show', $custody))->assertOk()
+            ->assertSee('Ready for physical release')
+            ->assertSee('Your pickup window is open. Proceed to SPMU for the handover and Borrower Slip.');
+        $this->assertNull($custody->fresh()->released_at);
+        $this->assertSame('PREPARING_RELEASE', $custody->fresh()->status);
     }
 
     public function test_post_release_forms_no_longer_show_stale_pickup_instruction(): void
@@ -291,7 +366,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
             ->get(route('requests.show', $custody->request));
 
         $response->assertOk()
-            ->assertSee('Transaction Forms')
+            ->assertSee('Borrowing documents')
             ->assertDontSee('Proceed to SPMU on the scheduled pickup date')
             ->assertDontSee('Forms for Physical Processing');
     }
@@ -300,20 +375,74 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
     {
         $borrower = $this->borrower();
         $custody = $this->custody($borrower, released: true, returned: true);
+        $this->unverifiedGatePass($custody)->forceFill(['status' => 'VERIFIED'])->save();
+        $custody->forceFill(['status' => 'CLOSED', 'closed_at' => now()])->save();
+        $slip = $this->operationalDocument($custody, 'BORROWER_SLIP');
+        $pass = $this->operationalDocument($custody, 'GATE_PASS');
+        $invalidated = $this->operationalDocument($custody, 'BORROWER_SLIP', 'INVALIDATED');
+        $before = $slip->file->getAttributes();
 
         $response = $this->withSession(['active_workspace' => 'BORROWER'])
-            ->actingAs($borrower)
-            ->get(route('requests.show', $custody->request));
+            ->actingAs($borrower)->get(route('requests.show', $custody->request));
+        $response->assertOk()->assertSee('Completed')->assertSee('Borrowing documents')
+            ->assertSee(route('documents.preview', $slip), false)
+            ->assertSee(route('documents.preview', $pass), false)
+            ->assertDontSee(route('documents.preview', $invalidated), false)
+            ->assertDontSee('Proceed to SPMU on the scheduled pickup date');
+        $this->get(route('documents.preview', $slip))->assertOk();
+        $this->get(route('documents.view', $slip))->assertOk();
+        $this->assertSame('CLOSED', $custody->fresh()->status);
+        $this->assertSame($before, $slip->file->fresh()->getAttributes());
+    }
 
-        $response->assertOk()
-            ->assertSee('Transaction Forms')
-            ->assertSee('The transaction is complete. These documents remain available here for reference.')
-            ->assertDontSee('Proceed to SPMU on the scheduled pickup date')
-            ->assertSee('Borrower Slip');
+    public function test_request_document_links_exclude_another_custody_and_version(): void
+    {
+        $borrower = $this->borrower();
+        $custody = $this->custody($borrower, released: true, returned: false);
+        $other = $this->custody($this->borrower(), released: true, returned: false);
+        $current = $this->operationalDocument($custody, 'BORROWER_SLIP');
+        $wrongSubject = $this->operationalDocument($other, 'GATE_PASS');
+        // Simulate mismatched historical metadata; matching the version alone
+        // must not leak a link belonging to another custody transaction.
+        $wrongSubject->forceFill(['request_version_id' => $custody->request_version_id])->save();
+        $wrongVersion = $this->operationalDocument($custody, 'GATE_PASS');
+        $wrongVersion->forceFill(['request_version_id' => $other->request_version_id])->save();
+
+        $this->withSession(['active_workspace' => 'BORROWER'])->actingAs($borrower)
+            ->get(route('requests.show', $custody->request))->assertOk()
+            ->assertSee(route('documents.preview', $current), false)
+            ->assertDontSee(route('documents.preview', $wrongSubject), false)
+            ->assertDontSee(route('documents.preview', $wrongVersion), false);
+        $this->get(route('documents.preview', $wrongSubject))->assertForbidden();
+        $this->get(route('documents.view', $wrongSubject))->assertForbidden();
+        $this->get(route('documents.preview', $wrongVersion))->assertForbidden();
+        $this->get(route('documents.download', $wrongSubject))->assertForbidden();
+    }
+
+    public function test_recorded_delivery_status_and_provider_content_are_escaped_and_preserved(): void
+    {
+        $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $event = NotificationEvent::create(['event_code' => 'QA_HISTORY', 'source_type' => User::class,
+            'source_id' => $ictu->id, 'occurred_at' => now()]);
+        $recorded = '<b>RAW</b>';
+        $provider = '<script>QA-INJECTION</script>';
+        $delivery = NotificationDelivery::create(['notification_event_id' => $event->id,
+            'recipient_user_id' => $ictu->id, 'channel' => 'SMS', 'delivery_status' => $recorded,
+            'provider_response' => $provider, 'attempted_at' => now()]);
+
+        $response = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)
+            ->get(route('reports.notifications', ['legacy' => 1]));
+        $response->assertOk()->assertSee(e($recorded), false)->assertSee(e($provider), false)
+            ->assertDontSee($provider, false)->assertDontSee('Mark as Resolved');
+        $dom = $this->htmlXPath($response->getContent());
+        $this->assertCount(0, $dom->query('//script[contains(.,"QA-INJECTION")]'));
+        $this->assertSame($recorded, $delivery->fresh()->delivery_status);
+        $this->assertSame($provider, $delivery->fresh()->provider_response);
+        $this->assertNull($delivery->fresh()->resolved_at);
     }
 
     /* ================================================================== */
-    /* KPI drilldowns land on exactly the counted record subset           */
+    /* KPI drilldowns land on exactly the counted record subset */
     /* ================================================================== */
 
     public function test_head_active_custodies_kpi_drilldown_matches_exact_count(): void
@@ -333,15 +462,16 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
 
         $drilldown = $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
-            ->get(route('custody.index', ['kpi' => 'active_custodies']));
+            ->get(route('requests.index', ['kpi' => 'active_custodies']));
 
-        $drilldown->assertOk()->assertSee($active->custody_no);
-        $this->assertSame($expectedCount, $drilldown->viewData('custodies')->count());
+        $drilldown->assertOk()->assertSee($active->request->request_no)->assertSee('Active Custodies');
+        $this->assertSame($expectedCount, $drilldown->viewData('requests')->count());
     }
 
     public function test_ictu_active_accounts_kpi_drilldown_matches_exact_count(): void
     {
         $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $this->grantDirectoryRole($ictu);
         User::factory()->create(['access_classification' => AccessClassification::BorrowerOnly, 'account_status' => 'ACTIVE']);
         User::factory()->create(['access_classification' => AccessClassification::BorrowerOnly, 'account_status' => 'INACTIVE']);
 
@@ -361,6 +491,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
     public function test_ictu_inactive_accounts_kpi_drilldown_matches_exact_count(): void
     {
         $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $this->grantDirectoryRole($ictu);
         User::factory()->create(['access_classification' => AccessClassification::BorrowerOnly, 'account_status' => 'ACTIVE']);
         User::factory()->create(['access_classification' => AccessClassification::BorrowerOnly, 'account_status' => 'INACTIVE']);
 
@@ -386,7 +517,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
             'source_type' => User::class,
             'source_id' => $ictu->id,
             'occurred_at' => now(),
-            'correlation_id' => (string) \Illuminate\Support\Str::uuid(),
+            'correlation_id' => (string) Str::uuid(),
         ]);
 
         NotificationDelivery::query()->create([
@@ -499,7 +630,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         // Legacy audit context preserves original channel, raw status,
         // provider response, and timestamp.
         $legacy->assertSee($sms->channel);
-        $legacy->assertSee('Raw Status');
+        $legacy->assertSee('Recorded Status');
         $legacy->assertSee($sms->provider_response);
     }
 
@@ -737,14 +868,17 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->assertSame(3, substr_count($content, 'data-delivery-status="SMS_NOT_CONFIGURED"'));
         // The filter dropdown offers exactly one "SMS Not Configured" option,
         // not three separate raw-status options.
-        $this->assertSame(1, substr_count($content, '<option value="SMS_NOT_CONFIGURED">SMS Not Configured</option>'));
+        $this->assertSame(1, $this->htmlXPath($content)->query('//select[@id="delivery-status-filter"]/option[@value="SMS_NOT_CONFIGURED" and normalize-space()="SMS Not Configured"]')->length);
 
         // The literal, raw delivery_status remains visible per row in the
         // audit details, distinct from the shared presentational label.
-        $log->assertSee('Raw Status');
-        $log->assertSee('Failed');
-        $log->assertSee('Not Configured');
-        $log->assertSee('Skipped');
+        $log->assertSee('Recorded Status');
+        $dom = $this->htmlXPath($content);
+        foreach ([$failed, $notConfigured, $skipped] as $delivery) {
+            $status = $dom->query('//tr[@id="delivery-details-'.$delivery->id.'"]//dt[normalize-space()="Recorded Status"]/following-sibling::dd');
+            $this->assertCount(1, $status);
+            $this->assertSame($delivery->delivery_status, trim($status->item(0)->textContent));
+        }
 
         // Nothing in the database was rewritten.
         $this->assertSame('FAILED', $failed->fresh()->delivery_status);
@@ -1058,66 +1192,60 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->assertNull($sms->fresh()->resolved_at);
     }
 
-    public function test_dns_error_rows_are_flagged_for_bulk_prefill_and_unrelated_failures_are_not(): void
+    public function test_provider_error_details_preserve_dns_and_smtp_errors_without_automatic_repair_claims(): void
     {
         $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-        $event = NotificationEvent::query()->create([
-            'event_code' => 'TEST_EVENT',
-            'source_type' => User::class,
-            'source_id' => $ictu->id,
-            'occurred_at' => now(),
-        ]);
+        $event = NotificationEvent::create(['event_code' => 'TEST_EVENT', 'source_type' => User::class,
+            'source_id' => $ictu->id, 'occurred_at' => now()]);
+        $dns = NotificationDelivery::create(['notification_event_id' => $event->id, 'recipient_user_id' => $ictu->id,
+            'channel' => 'EMAIL', 'delivery_status' => 'FAILED',
+            'provider_response' => 'getaddrinfo for smtp.example.test failed: Name or service not known', 'attempted_at' => now()]);
+        $smtp = $this->genuineEmailFailure($event, $ictu);
 
-        $dnsFailure = NotificationDelivery::query()->create([
-            'notification_event_id' => $event->id,
-            'recipient_user_id' => $ictu->id,
-            'channel' => 'EMAIL',
-            'delivery_status' => 'FAILED',
-            'provider_response' => 'Connection could not be established: getaddrinfo for smtp.gmail.com failed: Name or service not known',
-            'attempted_at' => now(),
-        ]);
-        $otherFailure = $this->genuineEmailFailure($event, $ictu);
-
-        $log = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('reports.notifications'));
-        $log->assertOk();
-
-        $content = $log->getContent();
-        $this->assertMatchesRegularExpression('/value="'.$dnsFailure->id.'"[^>]*data-dns-error="1"/', $content);
-        $this->assertMatchesRegularExpression('/value="'.$otherFailure->id.'"[^>]*data-dns-error="0"/', $content);
-        // The suggested note text is embedded via Js::from() (JSON-encoded,
-        // so a literal "/" is escaped) - match a slash-free portion of it.
-        $log->assertSee('connectivity was verified operational.');
+        $response = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)
+            ->get(route('reports.notifications'));
+        $response->assertOk()->assertSee($dns->provider_response)->assertSee($smtp->provider_response)
+            ->assertDontSee('connectivity was verified operational.');
+        $dom = $this->htmlXPath($response->getContent());
+        foreach ([$dns, $smtp] as $failure) {
+            $forms = $dom->query('//tr[@id="delivery-details-'.$failure->id.'"]//form[@action="'.route('reports.notifications.resolve', $failure).'"]');
+            $this->assertCount(1, $forms);
+            $notes = $dom->query('.//textarea[@name="resolution_note"]', $forms->item(0));
+            $this->assertCount(1, $notes);
+            $this->assertSame('', trim($notes->item(0)->textContent));
+            $this->assertSame('FAILED', $failure->fresh()->delivery_status);
+            $this->assertNull($failure->fresh()->resolved_at);
+        }
     }
 
-    public function test_bulk_checkboxes_never_render_for_historical_sms_or_sent_rows(): void
+    public function test_individual_resolution_controls_only_render_for_current_failures(): void
     {
         $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
-        $event = NotificationEvent::query()->create([
-            'event_code' => 'TEST_EVENT',
-            'source_type' => User::class,
-            'source_id' => $ictu->id,
-            'occurred_at' => now(),
-        ]);
-
+        $this->grantDirectoryRole($ictu);
+        $event = NotificationEvent::create(['event_code' => 'TEST_EVENT', 'source_type' => User::class,
+            'source_id' => $ictu->id, 'occurred_at' => now()]);
         $current = $this->genuineEmailFailure($event, $ictu);
         $historical = $this->resolvedEmailFailure($event, $ictu, $ictu);
         $sms = $this->unconfiguredSmsFailure($event, $ictu);
-        $sent = NotificationDelivery::query()->create([
-            'notification_event_id' => $event->id,
-            'recipient_user_id' => $ictu->id,
-            'channel' => 'EMAIL',
-            'delivery_status' => 'SENT',
-            'attempted_at' => now(),
-        ]);
+        $sent = NotificationDelivery::create(['notification_event_id' => $event->id, 'recipient_user_id' => $ictu->id,
+            'channel' => 'EMAIL', 'delivery_status' => 'SENT', 'attempted_at' => now()]);
 
-        $log = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('reports.notifications'));
-        $log->assertOk();
-
-        // Exactly one selectable checkbox on the page: the current failure.
-        // (The bare class name also appears once in the page's own JS
-        // querySelector call, so match the rendered attribute specifically.)
-        $this->assertSame(1, substr_count($log->getContent(), 'class="notification-delivery-select-checkbox"'));
-        $this->assertStringContainsString('value="'.$current->id.'"', $log->getContent());
+        $response = $this->withSession(['active_workspace' => 'ICTU'])->actingAs($ictu)->get(route('reports.notifications'));
+        $response->assertOk()->assertSee(route('reports.notifications.resolve', $current), false)
+            ->assertDontSee(route('reports.notifications.resolve', $historical), false)
+            ->assertDontSee(route('reports.notifications.resolve', $sms), false)
+            ->assertDontSee(route('reports.notifications.resolve', $sent), false);
+        $dom = $this->htmlXPath($response->getContent());
+        $this->assertCount(1, $dom->query('//textarea[@name="resolution_note"]'));
+        $this->assertCount(0, $dom->query('//input[@name="delivery_ids[]"]'));
+        $this->get(route('reports.notifications', ['legacy' => 1]))->assertOk()->assertDontSee('Mark as Resolved');
+        $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
+        $this->withSession(['active_workspace' => 'SPMU'])->actingAs($head)->get(route('reports.notifications'))
+            ->assertForbidden();
+        $this->assertNull($current->fresh()->resolved_at);
+        $this->assertNull($sms->fresh()->resolved_at);
+        $this->assertNull($sent->fresh()->resolved_at);
+        $this->assertNotNull($historical->fresh()->resolved_at);
     }
 
     public function test_ictu_pending_verification_kpi_drilldown_matches_exact_count(): void
@@ -1126,6 +1254,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
             'access_classification' => AccessClassification::IctuMaintainer,
             'email_verified_at' => now(),
         ]);
+        $this->grantDirectoryRole($ictu);
 
         User::factory()->create([
             'access_classification' => AccessClassification::BorrowerOnly,
@@ -1156,7 +1285,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
     }
 
     /* ================================================================== */
-    /* Canonical KPI color/tone semantics                                 */
+    /* Canonical KPI color/tone semantics */
     /* ================================================================== */
 
     /** The tone class applied to the KPI card `<a>` whose aria-label starts with $label. */
@@ -1231,6 +1360,7 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
     public function test_dashboard_filtered_drilldown_uses_compact_universal_filter_banner(): void
     {
         $ictu = User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer]);
+        $this->grantDirectoryRole($ictu);
         User::factory()->create(['access_classification' => AccessClassification::IctuMaintainer, 'account_status' => 'ACTIVE']);
 
         $response = $this->withSession(['active_workspace' => 'ICTU'])
@@ -1292,7 +1422,8 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         // offer the same "View all" affordance - not just Custody Watch.
         $this->assertSame(2, substr_count($content, 'class="dashboard-view-all"'), 'Both lower panels should offer a View all link.');
         $this->assertStringContainsString('href="'.route('approvals.index').'"', $content);
-        $this->assertStringContainsString('href="'.route('custody.index').'"', $content);
+        $this->assertStringContainsString('href="'.route('requests.index').'"', $content);
+        $this->assertStringNotContainsString('href="'.route('custody.index').'"', $content);
     }
 
     public function test_action_officer_dashboard_priority_actions_panel_has_a_view_all_link_like_its_sibling_panel(): void
@@ -1312,33 +1443,21 @@ class DashboardKpiAndGatePassStatusTest extends TestCase
         $this->assertStringContainsString('href="'.route('custody.index').'"', $content);
     }
 
-    public function test_dashboard_lower_operational_panels_stack_full_width_instead_of_splitting_the_row(): void
+    #[DataProvider('staffDashboardRoles')]
+    public function test_staff_dashboard_retains_zip_paired_panels_and_responsive_collapse(string $classification, string $actionTitle): void
     {
-        $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
-        $borrower = $this->borrower();
-        $custody = $this->custody($borrower, released: true, returned: false);
+        $staff = User::factory()->create(['access_classification' => AccessClassification::from($classification)]);
+        $custody = $this->custody($this->borrower(), released: true, returned: false);
         $custody->forceFill(['due_at' => now()->addDays(2)])->save();
 
-        $response = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($head)->get(route('dashboard'));
-
-        $response->assertOk();
-        $content = $response->getContent();
-
-        // Priority Actions and Custody Watch remain separate operational
-        // panels, but each now uses the full dashboard content width.
-        $this->assertStringContainsString('dashboard-stacked-panels', $content);
-        $this->assertStringContainsString('<h2>Priority Actions</h2>', $content);
-        $this->assertStringContainsString('<h2>Custody Watch</h2>', $content);
-        $this->assertStringContainsString(
-            '.dashboard-balanced-grid.dashboard-stacked-panels,',
-            $content
-        );
-        $this->assertStringNotContainsString('dashboard-two-panel', $content);
-        $this->assertDoesNotMatchRegularExpression(
-            '/\.dashboard-balanced-grid(?:\.dashboard-stacked-panels)?\s*\{[^}]*grid-template-columns\s*:\s*repeat\(2/',
-            $content,
-            'Major lower dashboard panels must not use a 50/50 two-column layout.'
-        );
+        $response = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($staff)->get(route('dashboard'));
+        $response->assertOk()->assertSee($actionTitle)->assertSee($classification === 'SPMU_HEAD' ? 'Custody Watch' : 'Upcoming Operations');
+        $dom = $this->htmlXPath($response->getContent());
+        $panels = $dom->query('//section[@id="dashboard-actions" and contains(@class,"dashboard-two-panel")]');
+        $this->assertCount(1, $panels);
+        $this->assertCount(2, $dom->query('./article', $panels->item(0)));
+        $this->assertMatchesRegularExpression('/\.dashboard-balanced-grid\.dashboard-two-panel\s*\{\s*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/', $response->getContent());
+        $this->assertMatchesRegularExpression('/@media\s*\(max-width:980px\)\s*\{[^}]*\}\s*\.dashboard-balanced-grid\.dashboard-two-panel\s*\{\s*grid-template-columns:minmax\(0,1fr\)/', $response->getContent());
     }
 
     public function test_normal_delivery_records_channel_filter_never_offers_sms(): void

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\RegistrationType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +19,8 @@ class RequestVersion extends Model
         'location',
         'division_code',
         'office_unit',
+        'affiliation_type',
+        'external_company_name',
 
         /*
          * Canonical date-only borrowing period used by the
@@ -62,6 +65,7 @@ class RequestVersion extends Model
     protected function casts(): array
     {
         return [
+            'affiliation_type' => RegistrationType::class,
             'schedule_date' => 'date',
             'return_date' => 'date',
 
@@ -87,6 +91,20 @@ class RequestVersion extends Model
             BorrowingRequest::class,
             'request_id'
         );
+    }
+
+    public function isExternalAffiliation(): bool
+    {
+        return $this->affiliation_type === RegistrationType::External;
+    }
+
+    public function affiliationLabel(): string
+    {
+        if ($this->isExternalAffiliation()) {
+            return $this->external_company_name ?: 'External borrower';
+        }
+
+        return $this->office_unit ?: ($this->request?->accountableUnit?->unit_name ?: '—');
     }
 
     public function items(): HasMany

@@ -10,4 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('spmu:process-deadlines')
     ->everyMinute()
-    ->withoutOverlapping(10);
+    ->onOneServer()
+    ->withoutOverlapping();

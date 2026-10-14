@@ -101,8 +101,8 @@ class LaundryOperationsReport implements ReportBuilder
                 return [
                     '_borrower_user_id' => (int) ($custody?->borrower_user_id ?? 0),
                     '_status' => (string) $job->status,
-                    '_division_code' => (string) ($version?->division_code ?? ''),
-                    '_office_unit' => (string) ($version?->office_unit ?? ''),
+                    '_division_code' => \App\Support\ReportAffiliation::divisionCode($version),
+                    '_office_unit' => \App\Support\ReportAffiliation::employeeUnit($version),
                     '_item_ids' => $itemIds,
                     '_link' => $custody ? route('custody.show', $custody) : null,
                     '_tone_laundry_status' => match ((string) $job->status) {
@@ -114,10 +114,8 @@ class LaundryOperationsReport implements ReportBuilder
                     'custody_no' => (string) ($custody?->custody_no ?? ''),
                     'request_no' => (string) ($custody?->request?->request_no ?? ''),
                     'borrower' => (string) ($custody?->borrower?->full_name ?? ''),
-                    'division' => $version?->division_code
-                        ? OrganizationalStructure::label($version->division_code)
-                        : '',
-                    'office_unit' => (string) ($version?->office_unit ?? ''),
+                    'division' => \App\Support\ReportAffiliation::division($version),
+                    'office_unit' => \App\Support\ReportAffiliation::display($version),
                     'linen_items' => $items->implode('; '),
                     'issued_at' => $this->dateTime($custody?->released_at),
                     'issued_quantity' => $this->number($issued),
@@ -176,7 +174,7 @@ class LaundryOperationsReport implements ReportBuilder
                 ['key' => 'request_no', 'label' => 'Request No.'],
                 ['key' => 'borrower', 'label' => 'Borrower'],
                 ['key' => 'division', 'label' => 'Division'],
-                ['key' => 'office_unit', 'label' => 'Office / College / Unit'],
+                ['key' => 'office_unit', 'label' => 'Office / Unit / External Company'],
                 ['key' => 'linen_items', 'label' => 'Linen'],
                 ['key' => 'issued_at', 'label' => 'Issue Date'],
                 ['key' => 'issued_quantity', 'label' => 'Issued Qty', 'align' => 'numeric'],

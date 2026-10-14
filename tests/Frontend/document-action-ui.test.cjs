@@ -75,10 +75,11 @@ test('protected uploaded files have a defined in-system preview route', () => {
 });
 
 test('non-applicable documents are hidden and unavailable applicable documents say Not available', () => {
-  assert.match(requestShow, /@if\(\$requestHasLaundry\)/);
-  assert.match(requestShow, /@if\(\$requestHasOffCampus\)/);
+  assert.match(requestShow, /@include\('requests\.partials\.operational-details'\)/);
+  assert.match(requestOperational, /@if\(\$requestHasLaundry\)/);
+  assert.match(requestOperational, /@if\(\$requestHasOffCampus\)/);
   assert.doesNotMatch(requestShow, />Not applicable<\/span>/);
-  assert.match(requestShow, /Not available/);
+  assert.match(requestOperational, /Not available/);
   assert.match(releaseProcess, /@if\(\$hasOffCampusItem\)/);
   assert.match(releaseProcess, /@(?:if|elseif)\(\$hasLaundryItem\)/);
   assert.match(returnWorkspace, /@if\(\$hasOperationalReturnDocuments\)/);

@@ -6,6 +6,7 @@ use App\Enums\AccessClassification;
 use App\Enums\AccountStatus;
 use App\Models\OrganizationalUnit;
 use App\Models\User;
+use App\Services\UserRoleAssignmentService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -25,12 +26,15 @@ class IctuPendingRegistrationDeletionTest extends TestCase
 
     private function ictu(): User
     {
-        return User::factory()->create([
+        $actor = User::factory()->create([
             'email' => 'ictu.pending-cleanup@cspc.edu.ph',
             'access_classification' => AccessClassification::IctuMaintainer,
             'account_status' => AccountStatus::Active,
             'organizational_unit_id' => OrganizationalUnit::where('unit_code', 'ICTU')->firstOrFail()->id,
         ]);
+        app(UserRoleAssignmentService::class)->synchronize($actor, AccessClassification::IctuMaintainer);
+
+        return $actor;
     }
 
     public function test_manage_form_shows_paired_additional_unit_fields_and_delete_only_for_pending_accounts(): void
@@ -49,7 +53,7 @@ class IctuPendingRegistrationDeletionTest extends TestCase
 
         $this->get(route('administration.users.edit', $verified))
             ->assertOk()
-            ->assertDontSee('ictu-delete-pending-registration-button')
+            ->assertDontSee('id="ictu-delete-pending-registration-button"', false)
             ->assertDontSee(route('administration.users.delete-pending', $verified), false);
 
         $this->get(route('administration.users.create'))
@@ -119,26 +123,27 @@ class IctuPendingRegistrationDeletionTest extends TestCase
 
         $this->actingAs($ictu)->get(route('administration.users.edit', $previouslySignedIn))
             ->assertOk()
-            ->assertDontSee('ictu-delete-pending-registration-button')
+            ->assertDontSee('id="ictu-delete-pending-registration-button"', false)
             ->assertSee('This account cannot be deleted because it has previously signed in.');
 
         $this->get(route('administration.users.edit', $activeSession))
             ->assertOk()
-            ->assertDontSee('ictu-delete-pending-registration-button')
+            ->assertDontSee('id="ictu-delete-pending-registration-button"', false)
             ->assertSee('This account cannot be deleted while an active session exists.');
         $this->delete(route('administration.users.delete-pending', $activeSession))
             ->assertSessionHasErrors('account');
         $this->assertDatabaseHas('users', ['id' => $activeSession->id]);
 
-        $pendingIctu = User::factory()->unverified()->create([
+        $pendingIctu = User::factory()->create([
             'email' => 'self-protected-pending@cspc.edu.ph',
             'access_classification' => AccessClassification::IctuMaintainer,
             'account_status' => AccountStatus::Active,
             'organizational_unit_id' => OrganizationalUnit::where('unit_code', 'ICTU')->firstOrFail()->id,
         ]);
+        app(UserRoleAssignmentService::class)->synchronize($pendingIctu, AccessClassification::IctuMaintainer);
         $this->actingAs($pendingIctu)->get(route('administration.users.edit', $pendingIctu))
             ->assertOk()
-            ->assertDontSee('ictu-delete-pending-registration-button')
+            ->assertDontSee('id="ictu-delete-pending-registration-button"', false)
             ->assertSee('You cannot delete the account you are currently using.');
     }
 
@@ -233,7 +238,7 @@ class IctuPendingRegistrationDeletionTest extends TestCase
             $this->delete(route('administration.users.delete-pending', $pending))
                 ->assertRedirect(route('administration.users.edit', $pending))
                 ->assertSessionHasErrors([
-                    'account' => 'This account cannot be deleted because it has borrowing restrictions or borrowing and accountability records that must be preserved. Use Deactivate instead.',
+                    'account' => 'This account cannot be deleted because linked system records must be preserved.',
                 ]);
 
             $this->assertDatabaseHas('users', ['id' => $pending->id]);

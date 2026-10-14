@@ -80,8 +80,8 @@ class ReleaseCustodyReport implements ReportBuilder
                     '_early_returned' => $custody->returns->contains(
                         fn ($return): bool => (string) $return->return_type === 'EARLY'
                     ),
-                    '_division_code' => (string) ($version?->division_code ?? ''),
-                    '_office_unit' => (string) ($version?->office_unit ?? ''),
+                    '_division_code' => \App\Support\ReportAffiliation::divisionCode($version),
+                    '_office_unit' => \App\Support\ReportAffiliation::employeeUnit($version),
                     '_item_ids' => $custody->lines
                         ->map(fn ($line) => $line->requestItem?->inventory_item_id)
                         ->filter()
@@ -100,10 +100,8 @@ class ReleaseCustodyReport implements ReportBuilder
                     'custody_no' => (string) $custody->custody_no,
                     'request_no' => (string) ($custody->request?->request_no ?? ''),
                     'borrower' => (string) ($custody->borrower?->full_name ?? ''),
-                    'division' => $version?->division_code
-                        ? OrganizationalStructure::label($version->division_code)
-                        : '',
-                    'office_unit' => (string) ($version?->office_unit ?? ''),
+                    'division' => \App\Support\ReportAffiliation::division($version),
+                    'office_unit' => \App\Support\ReportAffiliation::display($version),
                     'equipment' => $custody->lines
                         ->map(fn ($line) => $line->requestItem?->description_snapshot)
                         ->filter()
@@ -167,7 +165,7 @@ class ReleaseCustodyReport implements ReportBuilder
                 ['key' => 'request_no', 'label' => 'Request No.'],
                 ['key' => 'borrower', 'label' => 'Borrower'],
                 ['key' => 'division', 'label' => 'Division'],
-                ['key' => 'office_unit', 'label' => 'Office / College / Unit'],
+                ['key' => 'office_unit', 'label' => 'Office / Unit / External Company'],
                 ['key' => 'equipment', 'label' => 'Equipment'],
                 ['key' => 'prepared_at', 'label' => 'Preparation Confirmed'],
                 ['key' => 'scheduled_release_at', 'label' => 'Pickup Scheduled'],

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureRegistrationIsApproved;
 use App\Http\Middleware\EnsureActiveWorkspace;
 use App\Http\Middleware\EnsureInstitutionalEmailIsVerified;
 use App\Http\Middleware\EnforceIdleSession;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         PreventDuplicateSubmission::class,
     ]);
         $middleware->alias([
+            'approved-registration' => EnsureRegistrationIsApproved::class,
             'active' => EnsureAccountIsActive::class,
             'verified-email' => EnsureInstitutionalEmailIsVerified::class,
             'idle' => EnforceIdleSession::class,

@@ -1,6 +1,7 @@
 @php
     $cancelTriggerClass = $cancelTriggerClass ?? 'button secondary ui-pressable borrower-cancel-trigger is-danger';
     $cancelTriggerLabel = $cancelTriggerLabel ?? 'Cancel Request';
+    $cancelConfirmLabel = $cancelConfirmLabel ?? 'Cancel Request';
     $cancelDialogTitle = $cancelDialogTitle ?? 'Cancel this borrowing request?';
     $cancelDialogCopy = $cancelDialogCopy
         ?? 'This request will be cancelled immediately. Cancellation is allowed only before physical release. Any approved but unreleased allocation returns to Available inventory and any pending pickup documents will be invalidated.';
@@ -25,6 +26,7 @@
         hidden
     >
         @csrf
+        <input type="hidden" name="reviewed_version_id" value="{{ $borrowingRequest->currentVersion?->id }}">
         <input type="hidden" name="reason" value="" data-request-cancel-reason>
     </form>
 
@@ -55,7 +57,7 @@
 
             <div class="spmu-confirm-dialog__actions">
                 <button class="button secondary ui-pressable" type="button" data-request-cancel-back>Keep Request</button>
-                <button class="button danger ui-pressable" type="button" data-request-cancel-confirm>Cancel Request</button>
+                <button class="button danger ui-pressable" type="button" data-request-cancel-confirm>{{ $cancelConfirmLabel }}</button>
             </div>
         </div>
     </dialog>

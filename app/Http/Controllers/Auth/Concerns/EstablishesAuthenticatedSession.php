@@ -55,7 +55,14 @@ trait EstablishesAuthenticatedSession
 
         if (! $user->hasVerifiedInstitutionalEmail()) {
             $this->abandonSession($request);
-            return 'Your institutional email is pending verification. Enter the OTP sent to your CSPC email or ask ICTU to resend a new OTP.';
+            return 'Your email is pending verification. Enter the OTP sent to your registered email or ask ICTU to resend a new OTP.';
+        }
+
+        if (! $user->hasApprovedRegistration()) {
+            $message = $user->registrationAccessMessage();
+            $this->abandonSession($request);
+
+            return $message;
         }
 
         $user->forceFill(['last_login_at' => now()])->save();

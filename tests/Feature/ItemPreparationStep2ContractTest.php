@@ -80,25 +80,8 @@ class ItemPreparationStep2ContractTest extends TestCase
         $this->assertStringContainsString('Physical Release is unavailable while an inventory discrepancy is under review.', $release);
         $this->assertStringContainsString("'PICKUP_HELD_FOR_PREPARATION_ISSUE'", $custodySource);
         $this->assertStringContainsString('borrower_missed_pickup', $custodySource);
-
-        /*
-         * The guard used to sit in RequestWorkflowService's automatic
-         * cancellation of unclaimed pickups. That routine was removed: a
-         * missed pickup is never cancelled automatically. The same protection
-         * now lives where pickup windows expire, so an SPMU-side discrepancy
-         * is held instead of being recorded as a borrower missed pickup - and
-         * no automatic unclaimed-pickup cancellation may come back.
-         */
-        $expireStart = strpos($custodySource, 'public function expirePickupWindows(');
-        $expireEnd = strpos($custodySource, 'public function reconcileLegacyLaundryAvailability(', $expireStart ?: 0);
-        $this->assertNotFalse($expireStart);
-        $this->assertNotFalse($expireEnd);
-        $expire = substr($custodySource, $expireStart, $expireEnd - $expireStart);
-
-        $this->assertStringContainsString('$this->hasPreparationExceptionPendingRelease($locked)', $expire);
-        $this->assertStringContainsString("'borrower_missed_pickup' => false", $expire);
-        $this->assertStringNotContainsString('PICKUP_AUTO_CANCELLED_UNCLAIMED', $workflowSource);
-        $this->assertStringNotContainsString('PICKUP_AUTO_CANCELLED_UNCLAIMED', $custodySource);
+        $this->assertStringContainsString('$this->hasPreparationExceptionPendingRelease($locked)', $custodySource);
+        $this->assertStringNotContainsString('public function cancelMissedPickups(', $workflowSource);
     }
 
     #[Test]

@@ -3,7 +3,7 @@
     'topbarTitle' => session('active_workspace') === 'BORROWER'
         ? 'My Borrowings'
         : (auth()->user()?->access_classification?->value === 'SPMU_HEAD'
-            ? 'Release & Return Oversight'
+            ? 'Request Transaction Oversight'
             : (($spmuMode ?? null) === 'return' ? 'Return' : 'Release')),
     'inlinePageNotices' => ($spmuMode ?? null) === 'return',
 ])
@@ -145,7 +145,7 @@
 
     if ($isBorrower && $gatePassOnlyPending) {
         $operationalStatusKey = 'GATE_PASS_PROCESSING';
-        $operationalLabel = 'Gate Pass Pending';
+        $operationalLabel = \App\Support\StatusLabels::label($operationalStatusKey);
     }
 
     [$borrowerStateTitle, $borrowerStateCopy, $borrowerStateTone] = match (true) {

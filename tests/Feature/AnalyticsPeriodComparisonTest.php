@@ -110,10 +110,6 @@ class AnalyticsPeriodComparisonTest extends TestCase
         $this->assertSame('2026-07-31', $semTo->toDateString());
         $this->assertSame(142, (int) $semFrom->diffInDays($semTo->copy()->startOfDay()) + 1);
 
-        /* The same rule ForecastService uses for its first history window. */
-        $forecastWindow = app(\App\Services\ForecastService::class)->historyWindows($this->from, $this->to, 1)[0];
-        $this->assertSame($from->toDateTimeString(), $forecastWindow[0]->toDateTimeString());
-        $this->assertSame($to->toDateTimeString(), $forecastWindow[1]->toDateTimeString());
     }
 
     /* ------------------------------------------------------------------ */
@@ -368,15 +364,17 @@ class AnalyticsPeriodComparisonTest extends TestCase
         $this->assertKpiHasDelta($demand, 'Active Borrowing Units', false);
     }
 
-    public function test_forecast_and_planning_carries_no_previous_period_line(): void
+    public function test_scheduled_demand_carries_no_historical_comparison_line(): void
     {
         $this->request('ACADEMIC', $this->ccs(), Carbon::create(2026, 4, 3, 10));
 
         $predictive = $this->page($this->spmuHead(), 'predictive');
 
         $this->assertSame(0, $this->countDeltas($predictive));
-        foreach (['Forecast Readiness', 'Scheduled Demand', 'Forecasted Demand', 'Equipment Coverage Risk'] as $label) {
-            $this->assertKpiHasDelta($predictive, $label, false);
+        foreach (['Scheduled Demand', 'Pending Review', 'Approved Requests'] as $label) {
+            $cards = $this->xpath($predictive)->query('//section[contains(@class,"analytics-card")][.//h2[normalize-space(text())="'.$label.'"]]');
+            $this->assertSame(1, $cards->length, $label.' is displayed once.');
+            $this->assertSame(0, $this->xpath($predictive)->query('.//*[@data-period-delta]', $cards->item(0))->length);
         }
     }
 
@@ -498,12 +496,12 @@ class AnalyticsPeriodComparisonTest extends TestCase
 
         $summary = $details->resolve($scope, 'returns.summary');
         $rows = collect($summary['comparison']['rows'])->mapWithKeys(fn (array $row): array => [$row[0] => $row[1]]);
-        $this->assertSame('1 return', $rows['Completed returns · Current period']);
-        $this->assertSame('1 return', $rows['Completed returns · Previous period']);
-        $this->assertSame('No change', $rows['Completed returns · Change']);
-        $this->assertSame('100%', $rows['On-time rate · Current period']);
-        $this->assertSame('0%', $rows['On-time rate · Previous period']);
-        $this->assertSame('+100 percentage points', $rows['On-time rate · Difference']);
+        $this->assertSame('1 return', $rows['Completed returns Current period']);
+        $this->assertSame('1 return', $rows['Completed returns Previous period']);
+        $this->assertSame('No change', $rows['Completed returns Change']);
+        $this->assertSame('100%', $rows['On-time rate Current period']);
+        $this->assertSame('0%', $rows['On-time rate Previous period']);
+        $this->assertSame('+100 percentage points', $rows['On-time rate Difference']);
 
         $compliance = $details->resolve($scope, 'overview.return-compliance');
         $this->assertSame(['Difference', '+100 percentage points'], $compliance['comparison']['rows'][2]);
@@ -511,7 +509,7 @@ class AnalyticsPeriodComparisonTest extends TestCase
         /* A current-state card detail has no comparison at all. */
         $this->assertArrayNotHasKey('comparison', $details->resolve($scope, 'inventory.available'));
         $this->assertArrayNotHasKey('comparison', $details->resolve($scope, 'returns.followup'));
-        $this->assertArrayNotHasKey('comparison', $details->resolve($scope, 'forecast.scheduled'));
+        $this->assertArrayNotHasKey('comparison', $details->resolve($scope, 'scheduled.summary'));
     }
 
     /* ------------------------------------------------------------------ */

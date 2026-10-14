@@ -1,4 +1,13 @@
 <style>
+.analytics-scheduled-count {
+ display: block;
+ color: var(--heading);
+ font-size: 30px;
+ font-weight: 750;
+ line-height: 1.05;
+ letter-spacing: -.02em;
+ font-variant-numeric: tabular-nums;
+}
 /*
 |--------------------------------------------------------------------------
 | Analytics
@@ -614,22 +623,6 @@ html[data-theme="dark"] .analytics-kpi-link.tone-stock {
  text-transform: uppercase;
 }
 
-.analytics-bar-row.is-forecast .analytics-bar-fill {
- background: repeating-linear-gradient(
- 135deg,
- var(--interactive),
- var(--interactive) 6px,
- transparent 6px,
- transparent 12px
- ), var(--interactive);
- opacity: .85;
-}
-
-.analytics-bar-row.is-forecast .analytics-tag {
- background: var(--info-bg);
- color: var(--info);
-}
-
 /* ---------------------------------------------------------------- */
 /* Tables and supporting copy */
 /* ---------------------------------------------------------------- */
@@ -691,24 +684,6 @@ html[data-theme="dark"] .analytics-kpi-link.tone-stock {
 
 .analytics-watch strong { display: block; color: var(--heading); font-size: 14.5px; }
 .analytics-watch span { color: var(--text-muted); font-size: 12.5px; }
-
-.analytics-forecast-window {
- display: grid;
- grid-template-columns: repeat(2, minmax(0, 1fr));
- gap: 14px;
- padding: 16px 20px;
- background: var(--surface-elevated);
- border: 1px solid var(--border);
- border-radius: var(--radius);
- box-shadow: var(--shadow-sm);
-}
-
-.analytics-forecast-window strong {
- display: block;
- margin-top: 4px;
- color: var(--heading);
- font-size: 14px;
-}
 
 .analytics-details { margin-top: 12px; font-size: 12px; }
 .analytics-details summary { color: var(--interactive); cursor: pointer; font-weight: 700; }
@@ -3159,153 +3134,8 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
  }
 }
 
-/* ========================================================================
- Forecast & Planning.
-
- Reuses the card, KPI, ranking and peak components the other Analytics tabs
- use. What is defined here is only what this tab needs: an outlook plot that
- draws observed and projected differently, a readiness checklist, coverage
- comparison bars, planning notes, and the methodology strip.
-
- One rule runs through it: a solid blue mark is something that happened, a
- dashed violet mark is something projected. A reader should never have to
- check a label to tell which is which.
- ======================================================================== */
-
-/* Row grids -------------------------------------------------------------- */
-.analytics-forecast-main {
- display: grid;
- grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
- align-items: stretch;
- gap: 13px;
- margin-bottom: 13px;
-}
-
-.analytics-forecast-pair {
- display: grid;
- grid-template-columns: repeat(2, minmax(0, 1fr));
- align-items: stretch;
- gap: 13px;
- margin-bottom: 13px;
-}
-
-.analytics-forecast-equipment { margin-bottom: 13px; }
-
 /* A KPI whose value is a state rather than a count. */
 .analytics-kpi-card-value.is-text { font-size: 19px; line-height: 1.2; }
-
-/* Outlook plot ----------------------------------------------------------- */
-.analytics-outlook-legend {
- display: flex;
- flex-wrap: wrap;
- gap: 4px 16px;
- margin: 0 0 10px;
- padding: 0;
- list-style: none;
-}
-
-.analytics-outlook-legend li {
- display: inline-flex;
- align-items: center;
- gap: 7px;
- color: var(--text-muted);
- font-size: 10.5px;
- font-weight: 700;
-}
-
-.analytics-outlook-key { width: 16px; height: 0; border-top: 2px solid var(--text-soft); }
-.analytics-outlook-key.is-observed { border-top-color: #2563eb; }
-.analytics-outlook-key.is-forecast { border-top-style: dashed; border-top-color: #7a4bc4; }
-
-.analytics-outlook { display: grid; gap: 6px; }
-.analytics-outlook-plot { position: relative; height: 150px; }
-
-.analytics-outlook-plot svg {
- position: absolute;
- inset: 0;
- width: 100%;
- height: 100%;
- overflow: visible;
-}
-
-/* The path is stretched to the box, so the stroke keeps a true width. */
-.analytics-outlook-solid { fill: none; stroke: #2563eb; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.analytics-outlook-dashed { fill: none; stroke: #7a4bc4; stroke-width: 2; stroke-dasharray: 4 4; stroke-linecap: round; }
-
-.analytics-outlook-markers { position: absolute; inset: 0; }
-
-.analytics-outlook-marker {
- position: absolute;
- display: grid;
- justify-items: center;
- transform: translate(-50%, -50%);
-}
-
-.analytics-outlook-dot {
- width: 9px;
- height: 9px;
- border: 2px solid var(--surface);
- border-radius: 50%;
- background: #2563eb;
-}
-
-/* A projected point is hollow, so it never reads as a recorded one. */
-.analytics-outlook-marker.is-forecast .analytics-outlook-dot {
- border-color: #7a4bc4;
- background: var(--surface);
-}
-
-.analytics-outlook-tip {
- position: absolute;
- bottom: 11px;
- color: var(--heading);
- font-size: 10px;
- font-weight: 800;
- font-variant-numeric: tabular-nums;
-}
-
-.analytics-outlook-marker.is-forecast .analytics-outlook-tip { color: #7a4bc4; }
-
-.analytics-outlook-axis {
- display: flex;
- justify-content: space-between;
- gap: 6px;
- padding-top: 6px;
- border-top: 1px solid var(--border);
-}
-
-.analytics-outlook-axis span {
- flex: 1 1 0;
- min-width: 0;
- color: var(--text-muted);
- font-size: 9.5px;
- line-height: 1.3;
- text-align: center;
-}
-
-.analytics-outlook-axis span:first-child { text-align: left; }
-.analytics-outlook-axis span:last-child { text-align: right; }
-.analytics-outlook-axis span.is-forecast { color: #7a4bc4; font-weight: 800; }
-
-.analytics-outlook-note {
- display: flex;
- align-items: flex-start;
- gap: 9px;
- margin: 12px 0 0;
- padding: 10px 12px;
- border: 1px solid var(--border);
- border-radius: 9px;
- background: var(--surface-subtle);
- color: var(--text-secondary);
- font-size: 11px;
- line-height: 1.5;
-}
-
-.analytics-outlook-note .ui-icon { flex: 0 0 auto; margin-top: 1px; color: var(--text-soft); }
-.analytics-outlook-note strong { display: block; color: var(--heading); font-size: 11.5px; }
-
-.analytics-outlook-note.is-scheduled { border-color: rgba(14, 124, 102, .3); background: rgba(14, 124, 102, .06); }
-.analytics-outlook-note.is-scheduled .ui-icon { color: #0e7c66; }
 
 /* Readiness checklist ---------------------------------------------------- */
 .analytics-check { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
@@ -3512,17 +3342,14 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 
 /* Responsive ------------------------------------------------------------- */
 @media (max-width: 1180px) {
- .analytics-forecast-main { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 900px) {
- .analytics-forecast-pair { grid-template-columns: minmax(0, 1fr); }
  .analytics-coverbars { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 560px) {
  .analytics-method { grid-template-columns: minmax(0, 1fr); }
- .analytics-outlook-axis span { font-size: 9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4343,15 +4170,6 @@ body.analytics-detail-open { overflow: hidden; }
  font-variant-numeric: tabular-nums;
 }
 .analytics-condition-legend small { color: var(--text-muted); }
-
-/* Forecast cards that cannot calculate yet stay present but quiet. */
-.analytics-forecast-pair.is-waiting .analytics-card {
- background: color-mix(in srgb, var(--surface-subtle) 72%, var(--surface-elevated));
- box-shadow: none;
-}
-.analytics-forecast-pair.is-waiting .analytics-card-head {
- opacity: .78;
-}
 
 @media (max-width: 980px) {
  .analytics-detail-support.is-split {
@@ -5181,42 +4999,6 @@ body.analytics-detail-open { overflow: hidden; }
 
 
 /* =========================================================
- FORECAST CARDS
- Prevent older forecast-specific sizing from overriding
- the universal Dashboard card geometry.
- ========================================================= */
-
-.analytics-page .analytics-forecast-kpis .analytics-kpi-card {
- grid-template-columns: 58px minmax(0, 1fr) 30px !important;
- grid-template-rows: auto auto auto auto !important;
-
- min-height: 138px !important;
-
- padding: 17px 14px 17px 19px !important;
-}
-
-.analytics-page .analytics-forecast-kpis .analytics-kpi-card-icon {
- grid-column: 1 !important;
- grid-row: 1 / span 4 !important;
-}
-
-.analytics-page .analytics-forecast-kpis .analytics-kpi-card-label {
- grid-column: 2 !important;
- grid-row: 1 !important;
-}
-
-.analytics-page .analytics-forecast-kpis .analytics-kpi-card-value {
- grid-column: 2 !important;
- grid-row: 2 !important;
-}
-
-.analytics-page .analytics-forecast-kpis .analytics-kpi-card-note {
- grid-column: 2 / span 2 !important;
- grid-row: 3 !important;
-}
-
-
-/* =========================================================
  RESPONSIVE
  ========================================================= */
 
@@ -5508,32 +5290,6 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* ============================================================
- FORECAST & PLANNING
- Purple | Blue | Green | Red
- ============================================================ */
-
-.analytics-page .analytics-kpis-forecast > .analytics-kpi-card:nth-child(1) {
- background: linear-gradient(135deg, #8c70f6 0%, #5f43df 100%) !important;
- --card-shadow: rgba(95,67,223,.23) !important;
-}
-
-.analytics-page .analytics-kpis-forecast > .analytics-kpi-card:nth-child(2) {
- background: linear-gradient(135deg, #39a7f4 0%, #176bdd 100%) !important;
- --card-shadow: rgba(23,107,221,.24) !important;
-}
-
-.analytics-page .analytics-kpis-forecast > .analytics-kpi-card:nth-child(3) {
- background: linear-gradient(135deg, #35c7a4 0%, #0c987b 100%) !important;
- --card-shadow: rgba(12,152,123,.23) !important;
-}
-
-.analytics-page .analytics-kpis-forecast > .analytics-kpi-card:nth-child(4) {
- background: linear-gradient(135deg, #ff6268 0%, #df2d36 100%) !important;
- --card-shadow: rgba(223,45,54,.23) !important;
-}
-
-
 /* keep text/icons consistently white regardless of old tone rules */
 .analytics-page
 .analytics-kpis-overview > .analytics-kpi-card,
@@ -5586,6 +5342,25 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 /* ANALYTICS FORCED UNIQUE KPI PALETTE END */
+
+/* Keep paired record cards equal without clipping their content. */
+@media (min-width: 1101px) {
+ .analytics-page :is(.analytics-overview-main, .analytics-demand-main, .analytics-inventory-main, .analytics-return-main, .analytics-return-pair) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+ }
+}
+.analytics-page .analytics-kpi-card-value.is-text {
+ font-size: clamp(16px, 1.6vw, 21px) !important;
+ overflow-wrap: anywhere;
+ white-space: normal;
+}
+.analytics-page .analytics-filters > :is(label, .analytics-filter-field) {
+ min-height: 68px;
+ box-sizing: border-box;
+ padding-block: 8px;
+}
+.analytics-page .analytics-card { height: 100%; min-width: 0; }
 
 
 

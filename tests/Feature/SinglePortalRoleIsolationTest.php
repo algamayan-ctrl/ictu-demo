@@ -122,7 +122,7 @@ class SinglePortalRoleIsolationTest extends TestCase
         $this->post(route('login.store'), [
             'email' => $user->email,
             'password' => DemoUserSeeder::PASSWORD,
-        ])->assertSessionHasErrors('email');
+        ])->assertSessionHasErrors('password');
 
         $this->assertGuest();
     }
@@ -215,7 +215,6 @@ class SinglePortalRoleIsolationTest extends TestCase
                 ->count(),
         );
     }
-
 
     public function test_user_administration_hides_retired_non_portal_accounts(): void
     {

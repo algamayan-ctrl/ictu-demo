@@ -182,6 +182,9 @@
         @case('sort')
             <path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3" />
             @break
+        @case('phone')
+            <path d="M7 3H4a1 1 0 0 0-1 1c0 9.4 7.6 17 17 17a1 1 0 0 0 1-1v-3l-5-2-2 2a14 14 0 0 1-7-7l2-2-2-5Z" />
+            @break
         @default
             <circle cx="12" cy="12" r="9" />
     @endswitch

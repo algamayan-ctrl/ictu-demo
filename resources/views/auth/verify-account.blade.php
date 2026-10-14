@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Verify Account'])
+@extends('layouts.app', ['title' => 'Verify Account', 'inlinePageNotices' => true])
 
 @section('content')
 
@@ -519,9 +519,9 @@ body > footer {
         </div>
 
         <header class="otp-auth-heading">
-            <h1 id="otp-verification-title">Verify your CSPC account</h1>
+            <h1 id="otp-verification-title">Verify your email</h1>
             <p>
-                Enter the 6-digit OTP sent to your registered institutional email.
+                Enter your 6-digit verification code. Verified registrations proceed to SAO review.
             </p>
         </header>
 
@@ -540,7 +540,7 @@ body > footer {
                 </span>
                 <span>{{ session('status') }}</span>
             </div>
-        @elseif($errors->any())
+        @elseif($errors->has('delivery'))
             <div class="otp-card-notice is-error" role="alert">
                 <span class="otp-card-notice-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none">
@@ -553,7 +553,7 @@ body > footer {
                         <circle cx="12" cy="16.5" r="1" fill="currentColor"/>
                     </svg>
                 </span>
-                <span>{{ $errors->first() }}</span>
+                <span>{{ $errors->first('delivery') }}</span>
             </div>
         @endif
 
@@ -588,16 +588,17 @@ body > footer {
                         type="email"
                         name="email"
                         value="{{ $verificationEmail }}"
-                        placeholder="name@my.cspc.edu.ph"
+                        placeholder="Enter your registered email"
                         autocomplete="email"
                         autocapitalize="none"
                         spellcheck="false"
+                        @error('email') aria-invalid="true" aria-describedby="verification-email-error" @enderror
                         required
                     >
                 </span>
 
                 @error('email')
-                    <span class="otp-field-error">{{ $message }}</span>
+                    <span class="otp-field-error" id="verification-email-error" role="alert">{{ $message }}</span>
                 @enderror
             </label>
 
@@ -610,6 +611,7 @@ body > footer {
                     class="otp-digit-grid"
                     role="group"
                     aria-label="6-digit verification code"
+                    @error('otp') aria-describedby="otp-error" @enderror
                     data-otp-grid
                 >
                     @for($index = 0; $index < 6; $index++)
@@ -622,6 +624,7 @@ body > footer {
                             autocomplete="{{ $index === 0 ? 'one-time-code' : 'off' }}"
                             value="{{ $otpDigits[$index] ?? '' }}"
                             aria-label="Verification digit {{ $index + 1 }}"
+                            @error('otp') aria-invalid="true" aria-describedby="otp-error" @enderror
                             data-otp-digit
                             required
                         >
@@ -636,7 +639,7 @@ body > footer {
                 >
 
                 @error('otp')
-                    <span class="otp-field-error">{{ $message }}</span>
+                    <span class="otp-field-error" id="otp-error" role="alert">{{ $message }}</span>
                 @enderror
             </div>
 

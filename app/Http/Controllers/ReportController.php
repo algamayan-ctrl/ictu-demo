@@ -84,15 +84,9 @@ class ReportController extends Controller
         $previewFailed = false;
 
         /*
-         * Reports always opens on the actual records of the resolved scope
-         * (the default report and period when nothing was chosen); the
-         * builder then refreshes this same view as its options change. Print
-         * and every export format generate their own full data set from this
-         * same resolved scope.
-         *
-         * The preview is the system view of that data set: search, sorting
-         * and pagination only arrange its rows (ReportRecordTable) and are
-         * never passed on to print or export.
+         * Show actual records for the resolved scope on first load. Rendering
+         * does not record approval or imply that an operator reviewed them.
+         * CSV and print resolve the same filters independently.
          */
         if ($showPreview) {
             try {
@@ -758,6 +752,7 @@ class ReportController extends Controller
         return view('reports.audit', [
             'events' => $events,
             'totalEvents' => $totalEvents,
+            'totalVisibleEvents' => $totalEvents,
             'auditMode' => $auditMode,
             'categoryOptions' => $categoryOptions,
             'filters' => $filters,

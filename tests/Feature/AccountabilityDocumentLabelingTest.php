@@ -128,7 +128,7 @@ class AccountabilityDocumentLabelingTest extends TestCase
             return;
         }
 
-        $bytes = "\x89PNG\r\n\x1a\n".'batch-2-signature-'.$user->id;
+        $bytes = \Tests\Support\EvidenceFixtures::signatureBytes('batch-2-signature-'.$user->id);
         $path = 'tests/signatures/'.$user->id.'/signature.png';
 
         Storage::disk('local')->put($path, $bytes);

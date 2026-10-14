@@ -15,6 +15,10 @@ return [
 
     'default' => env('FILESYSTEM_DISK', 'local'),
 
+    // Private evidence uses its own disk; every StoredFile retains the disk
+    // it was written to so existing local evidence remains readable.
+    'protected' => env('PROTECTED_FILESYSTEM_DISK', 'local'),
+
     /*
     |--------------------------------------------------------------------------
     | Protected Files Disk

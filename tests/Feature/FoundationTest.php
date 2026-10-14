@@ -18,9 +18,12 @@ class FoundationTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertSee('SPMU-ACPMP')
-            ->assertSee('SPMU verifies the request')
-            ->assertSee('obtain wet signatures')
-            ->assertSee('Laundry workflow')
+            ->assertSee('Sign in')
+            ->assertSee('Continue with Google')
+            ->assertSee('Sign up')
+            ->assertSee('Verify with OTP')
+            ->assertSee(route('login.store'), false)
+            ->assertSee(route('register'), false)
             ->assertDontSee('GSU Approval')
             ->assertDontSee('VPAF Approval');
     }

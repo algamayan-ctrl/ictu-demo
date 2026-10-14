@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => $user->exists ? 'Edit institutional account' : 'Register a CSPC account'])
+@extends('layouts.app', ['title' => $user->exists ? ($isExternalAccount ? 'Edit external borrower account' : 'Edit institutional account') : 'Register a CSPC account'])
 @section('content')
 @php
     $isSelfProtected = auth()->check() && auth()->id() === $user->id;
@@ -7,18 +7,24 @@
     $addingNewUnit = filled($newUnitName) || old('organizational_unit_id') === '__NEW__';
     $historicalPrimaryUnit = $historicalPrimaryUnit ?? null;
     $historicalAdditionalUnits = $historicalAdditionalUnits ?? collect();
-    // UI rule: every existing unverified account gets the pending-account delete action.
-    // The DELETE endpoint still performs the final server-side safety checks.
-    $isPendingUnverified = $user->exists && !$user->hasVerifiedInstitutionalEmail();
+    // Only ICTU can remove an unused pending registration. The controller
+    // rechecks record/session preservation before deleting the account.
+    $isIctu = auth()->user()->access_classification === App\Enums\AccessClassification::IctuMaintainer;
+    $isPendingUnverified = $isIctu && $user->exists && !$user->hasVerifiedInstitutionalEmail();
+    $canDeletePending = $isPendingUnverified && $pendingRegistrationDeletionBlocker === null;
     $selectedAdditionalUnitIds = collect(old('additional_organizational_unit_ids', $additionalUnitIds ?? []))
         ->map(fn ($id) => (int) $id)->unique()->values();
 @endphp
 
 <section class="page-heading ictu-form-page-heading">
     <div>
-        <p class="eyebrow">ICTU identity administration</p>
-        <h1>{{ $user->exists ? 'Edit institutional account' : 'Register a CSPC account' }}</h1>
-        <p>ICTU may register eligible employees, faculty, and staff. Institutional email verification is required before sign-in, and the selected classification controls borrowing eligibility and portal access.</p>
+        <p class="eyebrow">Account administration</p>
+        <h1>{{ $user->exists ? ($isExternalAccount ? 'Edit external borrower account' : 'Edit institutional account') : 'Register a CSPC account' }}</h1>
+        @if($isExternalAccount)
+            <p>Maintain the external borrower's account and contact details. SAO-reviewed registration details are retained. Email verification is required before sign-in.</p>
+        @else
+            <p>Register eligible employees, faculty, and staff. Institutional email verification is required before sign-in, and the selected classification controls borrowing eligibility and portal access.</p>
+        @endif
     </div>
 </section>
 
@@ -38,25 +44,29 @@
                 <p>{{ $user->exists ? 'Saved official account details are loaded automatically.' : 'Enter the employee\'s official CSPC account details.' }}</p>
             </header>
             <div class="ictu-field-grid ictu-field-grid-two">
+                @unless($isExternalAccount)
                 <label class="ictu-field" for="ictu-employee-number">
                     <span>Employee number</span>
                     <input id="ictu-employee-number" name="employee_no" value="{{ old('employee_no', $user->employee_no) }}" placeholder="Enter employee number" autocomplete="off" required>
                     @error('employee_no') <small class="field-error">{{ $message }}</small> @enderror
                 </label>
+                @endunless
                 <label class="ictu-field" for="ictu-full-name">
                     <span>Full name</span>
                     <input id="ictu-full-name" name="full_name" value="{{ old('full_name', $user->full_name) }}" placeholder="Enter full name" autocomplete="name" required>
                     @error('full_name') <small class="field-error">{{ $message }}</small> @enderror
                 </label>
+                @unless($isExternalAccount)
                 <label class="ictu-field" for="ictu-designation">
                     <span>Designation</span>
                     <input id="ictu-designation" name="designation" value="{{ old('designation', $user->designation) }}" placeholder="Enter official designation / position" autocomplete="organization-title" required>
                     @error('designation') <small class="field-error">{{ $message }}</small> @enderror
                 </label>
+                @endunless
                 <div class="ictu-field ictu-email-field">
                     <div class="ictu-email-label-row">
-                        <label for="ictu-official-email">Official CSPC email</label>
-                        @if($user->exists && !$user->hasVerifiedInstitutionalEmail())
+                        <label for="ictu-official-email">{{ $isExternalAccount ? 'Email' : 'Official CSPC email' }}</label>
+                        @if($isIctu && $user->exists && !$user->hasVerifiedInstitutionalEmail())
                             <button type="submit" form="ictu-resend-email-verification-form" class="ictu-email-verification-link" title="Send a new 6-digit OTP to the currently saved email address: {{ $user->email }}">
                                 <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false">
                                     <rect x="3" y="5" width="18" height="14" rx="2"></rect>
@@ -67,7 +77,7 @@
                         @endif
                     </div>
                     <input id="ictu-official-email" type="email" name="email" value="{{ old('email', $user->exists ? $user->email : '') }}"
-                           placeholder="Enter official CSPC email" autocomplete="off" autocapitalize="none" spellcheck="false"
+                           placeholder="{{ $isExternalAccount ? 'Enter email address' : 'Enter official CSPC email' }}" autocomplete="off" autocapitalize="none" spellcheck="false"
                            data-lpignore="true" data-1p-ignore="true"
                            @if(!$user->exists) readonly onfocus="this.removeAttribute('readonly')" onpointerdown="this.removeAttribute('readonly')" @endif required>
                     @error('email') <small class="field-error">{{ $message }}</small> @enderror
@@ -80,6 +90,34 @@
             </div>
         </section>
 
+        @if($isExternalAccount)
+        <section class="ictu-form-card" aria-labelledby="ictu-external-registration-heading">
+            <header class="ictu-form-section-header">
+                <h2 id="ictu-external-registration-heading">External Registration</h2>
+                <p>Saved registration details are read-only. Account edits do not approve a registration or replace its evidence.</p>
+            </header>
+            <div class="ictu-field-grid ictu-field-grid-two">
+                <label class="ictu-field" for="ictu-reviewed-company">
+                    <span>Company / Agency / Institution</span>
+                    <input id="ictu-reviewed-company" value="{{ $externalRegistration->company_name }}" title="{{ $externalRegistration->company_name }}" readonly>
+                </label>
+                <label class="ictu-field" for="ictu-registration-status">
+                    <span>SAO registration status</span>
+                    <input id="ictu-registration-status" value="{{ $externalRegistration->status->value }}" readonly>
+                </label>
+                <label class="ictu-field" for="ictu-registration-type">
+                    <span>Account type</span>
+                    <input id="ictu-registration-type" value="External Borrower" readonly>
+                </label>
+                <label class="ictu-field" for="ictu-registration-id">
+                    <span>Saved Valid ID reference</span>
+                    <input id="ictu-registration-id" value="{{ $externalRegistration->valid_id_file_id ? 'Recorded' : 'No recorded file' }}" readonly>
+                </label>
+            </div>
+        </section>
+        @endif
+
+        @unless($isExternalAccount)
         <section class="ictu-form-card" aria-labelledby="ictu-organization-heading">
             <header class="ictu-form-section-header">
                 <h2 id="ictu-organization-heading">Organizational Assignment</h2>
@@ -216,11 +254,17 @@
             @error('additional_organizational_unit_ids.*') <small class="field-error">{{ $message }}</small> @enderror
         </section>
 
+        @endunless
+
         <section class="ictu-form-card" aria-labelledby="ictu-access-heading">
             <header class="ictu-form-section-header"><h2 id="ictu-access-heading">Classification, Status, and Contact</h2></header>
             <div class="ictu-field-grid ictu-field-grid-three">
                 <div class="ictu-field">
                     <label for="ictu-access-classification">Access classification</label>
+                    @if($isExternalAccount)
+                        <input id="ictu-access-classification" value="{{ $user->access_classification->label() }}" readonly>
+                        <input type="hidden" name="access_classification" value="{{ $user->access_classification->value }}">
+                    @else
                     <select name="access_classification" id="ictu-access-classification" required @disabled($isSelfProtected)>
                         @foreach($classifications as $classification)
                             <option value="{{ $classification->value }}" @selected(old('access_classification', $user->access_classification?->value ?? 'BORROWER_ONLY') === $classification->value)>{{ $classification->label() }}</option>
@@ -229,6 +273,7 @@
                     @if($isSelfProtected)
                         <input type="hidden" name="access_classification" value="{{ $user->access_classification?->value }}">
                         <small class="field-note">You cannot change your own access classification.</small>
+                    @endif
                     @endif
                     @error('access_classification') <small class="field-error">{{ $message }}</small> @enderror
                 </div>
@@ -296,17 +341,17 @@
             @if($user->exists)
                 <div class="ictu-form-actions ictu-administrative-actions-row">
                     <div class="ictu-form-action-left">
-                        @if($isPendingUnverified && ($pendingRegistrationDeletionBlocker ?? null) !== 'borrowing_records')
+                        @if($canDeletePending)
                             <button type="submit" form="ictu-delete-pending-registration-form"
                                     class="button secondary ictu-delete-account-button"
                                     id="ictu-delete-pending-registration-button"
                                     aria-label="Delete unverified account for {{ $user->full_name }}">
                                 <x-icon name="trash" size="16" /> Delete Account
                             </button>
-                        @else
+                        @elseif($isIctu)
                             <small class="ictu-account-action-note is-danger">
                                 <x-icon name="information" size="13" />
-                                <span>This account cannot be deleted because linked system records must be preserved.</span>
+                                <span>{{ $pendingRegistrationDeletionMessage }}</span>
                             </small>
                         @endif
                     </div>
@@ -328,7 +373,7 @@
         @endunless
     </form>
 
-    @if($isPendingUnverified)
+    @if($canDeletePending)
         {{-- Separate form: Delete must never submit the unsaved changes in the Edit User form. --}}
         <form id="ictu-delete-pending-registration-form" method="post"
               action="{{ route('administration.users.delete-pending', $user) }}"
@@ -339,7 +384,7 @@
     @endif
 
 
-    @if($user->exists && !$user->hasVerifiedInstitutionalEmail())
+    @if($isIctu && $user->exists && !$user->hasVerifiedInstitutionalEmail())
         <form id="ictu-resend-email-verification-form" method="post" action="{{ route('administration.users.email-verification.resend', $user) }}" data-preserve-submit-label="true" hidden>@csrf</form>
     @endif
 </section>
@@ -357,6 +402,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const additionalPicker = document.getElementById('ictu-additional-unit-picker');
     const additionalList = document.getElementById('ictu-additional-unit-list');
     const addAdditionalButton = document.getElementById('ictu-add-additional-unit');
+    document.querySelectorAll('[data-password-toggle]').forEach(toggle => {
+        const input = document.getElementById(toggle.dataset.passwordTarget || '');
+        if (!input) return;
+
+        const eye = toggle.querySelector('.ictu-password-eye');
+        const eyeOff = toggle.querySelector('.ictu-password-eye-off');
+        toggle.addEventListener('click', () => {
+            const willShow = input.type === 'password';
+            input.type = willShow ? 'text' : 'password';
+            toggle.classList.toggle('is-revealing', willShow);
+            toggle.setAttribute('aria-label', willShow ? 'Hide password' : 'Show password');
+            toggle.setAttribute('title', willShow ? 'Hide password' : 'Show password');
+            if (eye) eye.hidden = willShow;
+            if (eyeOff) eyeOff.hidden = !willShow;
+        });
+    });
+
+    const deleteButton = document.getElementById('ictu-delete-pending-registration-button');
+    deleteButton?.addEventListener('click', event => {
+        if (!window.confirm('Delete this pending or unverified account? This cannot be undone. If the mailbox is valid but mistyped, editing the email and sending a new OTP is safer.')) {
+            event.preventDefault();
+        }
+    });
+
     if (!division || !unit) return;
 
     const selectedAdditionalIds = () => Array.from(additionalList?.querySelectorAll('[data-additional-unit-item]') || [])
@@ -474,29 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addAdditionalButton?.addEventListener('click', addAdditionalUnit);
     syncUnits();
 
-    document.querySelectorAll('[data-password-toggle]').forEach(toggle => {
-        const input = document.getElementById(toggle.dataset.passwordTarget || '');
-        if (!input) return;
 
-        const eye = toggle.querySelector('.ictu-password-eye');
-        const eyeOff = toggle.querySelector('.ictu-password-eye-off');
-        toggle.addEventListener('click', () => {
-            const willShow = input.type === 'password';
-            input.type = willShow ? 'text' : 'password';
-            toggle.classList.toggle('is-revealing', willShow);
-            toggle.setAttribute('aria-label', willShow ? 'Hide password' : 'Show password');
-            toggle.setAttribute('title', willShow ? 'Hide password' : 'Show password');
-            if (eye) eye.hidden = willShow;
-            if (eyeOff) eyeOff.hidden = !willShow;
-        });
-    });
-
-    const deleteButton = document.getElementById('ictu-delete-pending-registration-button');
-    deleteButton?.addEventListener('click', event => {
-        if (!window.confirm('Delete this pending or unverified account? This cannot be undone. If the mailbox is valid but mistyped, editing the email and sending a new OTP is safer.')) {
-            event.preventDefault();
-        }
-    });
 
 });
 </script>
@@ -848,12 +895,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-    passwordInput.minLength = 8;
-    passwordInput.maxLength = 12;
+    passwordInput.minLength = 12;
+    passwordInput.removeAttribute('maxlength');
 
     if (confirmInput) {
-        confirmInput.minLength = 8;
-        confirmInput.maxLength = 12;
+        confirmInput.minLength = 12;
+        confirmInput.removeAttribute('maxlength');
     }
 
 
@@ -891,21 +938,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 class="password-requirement"
                 data-password-rule="length"
             >
-                8–12 characters
+                At least 12 characters
             </li>
 
             <li
                 class="password-requirement"
-                data-password-rule="uppercase"
+                data-password-rule="letter"
             >
-                Contains uppercase letter
-            </li>
-
-            <li
-                class="password-requirement"
-                data-password-rule="lowercase"
-            >
-                Contains lowercase letter
+                Contains a letter
             </li>
 
             <li
@@ -968,41 +1008,28 @@ document.addEventListener('DOMContentLoaded', function () {
     const rules = {
         length: {
             valid: (value) =>
-                value.length >= 8 &&
-                value.length <= 12,
+                Array.from(value).length >= 12,
 
             error: (value) => {
-                if (value.length < 8) {
-                    return 'Password must be at least 8 characters.';
-                }
-
-                if (value.length > 12) {
-                    return 'Password must not exceed 12 characters.';
+                if (Array.from(value).length < 12) {
+                    return 'Password must be at least 12 characters.';
                 }
 
                 return null;
             },
         },
 
-        uppercase: {
+        letter: {
             valid: (value) =>
-                /[A-Z]/.test(value),
+                /\p{L}/u.test(value),
 
             error: () =>
-                'Password must contain an uppercase letter.',
-        },
-
-        lowercase: {
-            valid: (value) =>
-                /[a-z]/.test(value),
-
-            error: () =>
-                'Password must contain a lowercase letter.',
+                'Password must contain a letter.',
         },
 
         number: {
             valid: (value) =>
-                /[0-9]/.test(value),
+                /\p{N}/u.test(value),
 
             error: () =>
                 'Password must contain a number.',
@@ -1010,7 +1037,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         symbol: {
             valid: (value) =>
-                /[^A-Za-z0-9]/.test(value),
+                /[\p{Z}\p{S}\p{P}]/u.test(value),
 
             error: () =>
                 'Password must contain a special character.',

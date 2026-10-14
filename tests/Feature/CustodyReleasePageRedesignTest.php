@@ -189,7 +189,19 @@ class CustodyReleasePageRedesignTest extends TestCase
         // prepare() requires the approved Borrower Slip to already exist
         // (CustodyService::validateApprovedReleaseDocuments) - unchanged,
         // pre-existing business rule, reproduced here rather than relaxed.
+        \Illuminate\Support\Facades\Storage::fake('local');
+        $bytes = \Tests\Support\EvidenceFixtures::pdfBytes('Synthetic approved Borrower Slip');
+        $path = 'tests/release/'.$custody->id.'/borrower-slip.pdf';
+        \Illuminate\Support\Facades\Storage::disk('local')->put($path, $bytes);
+        $file = \App\Models\StoredFile::query()->create([
+            'disk' => 'local', 'storage_path' => $path,
+            'original_name' => 'borrower-slip.pdf', 'mime_type' => 'application/pdf',
+            'byte_size' => strlen($bytes), 'sha256' => hash('sha256', $bytes),
+            'classification' => 'CONTROLLED_DOCUMENT',
+        ]);
         GeneratedDocument::query()->create([
+            'stored_file_id' => $file->id,
+            'sha256' => $file->sha256,
             'request_version_id' => $custody->request_version_id,
             'subject_type' => CustodyTransaction::class,
             'subject_id' => $custody->id,
@@ -208,7 +220,7 @@ class CustodyReleasePageRedesignTest extends TestCase
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($officer)
             ->post(route('custody.prepare', $custody))
-            ->assertRedirect();
+            ->assertRedirect()->assertSessionHasNoErrors();
 
         $custody->refresh();
         $this->assertNotNull($custody->prepared_at);

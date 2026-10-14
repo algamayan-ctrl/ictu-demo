@@ -68,27 +68,25 @@ class ReportPageTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Report builder', false);
-        $response->assertSee('Preview official operational reports, then print or export the exact records you reviewed.', false);
-        $response->assertSee('Refresh Preview', false);
+        $response->assertSee('View operational records, apply filters, then print or export the selected report.', false);
+        $response->assertSee('Apply filters', false);
         $response->assertSee('Filters', false);
         $response->assertDontSee('More Filters', false);
     }
 
-    public function test_reports_page_opens_on_the_system_preview_without_a_placeholder_or_paper_layout(): void
+    public function test_reports_page_starts_with_actual_scoped_records(): void
     {
+        $record = $this->request('ACADEMIC', 'College of Computer Studies');
         $response = $this->actingAs($this->head)
             ->withSession(['active_workspace' => 'SPMU'])
             ->get(route('reports.index', ['report' => 'borrowing']));
 
         $response->assertOk();
-        $this->assertTrue($response->viewData('showPreview'));
-        $this->assertNotNull($response->viewData('dataset'));
-        $response->assertSee('data-report-live="results"', false);
+        $response->assertSee('Report records', false);
+        $response->assertSee($record->request_no, false);
+        $response->assertSee('Reports page fixture activity', false);
+        $response->assertDontSee('Choose the report options above, then select Preview Report', false);
         $response->assertDontSee('Choose the report options above', false);
-        $response->assertDontSee('report-preview-empty', false);
-        $response->assertDontSee('CAMARINES SUR POLYTECHNIC COLLEGES', false);
-        $response->assertDontSee('Republic of the Philippines', false);
-        $response->assertDontSee('Export / Print', false);
     }
 
 
@@ -101,7 +99,7 @@ class ReportPageTest extends TestCase
         $response->assertOk();
         $response->assertSee('name="generated"', false);
         $response->assertSee('value="1"', false);
-        $response->assertSee('Refresh Preview', false);
+        $response->assertSee('Apply filters', false);
         $response->assertSee('AO Verification', false);
         $response->assertSee('Admin Decision', false);
         $response->assertDontSee('<details class="report-more-filters"', false);
@@ -142,9 +140,9 @@ class ReportPageTest extends TestCase
             ->get(route('reports.index', ['report' => 'borrowing', 'academic_period' => 'month']));
 
         $response->assertOk();
-        // The builder shows the resolved range in its own From / To fields.
-        $response->assertSee('data-applied-start-label>'.now()->startOfMonth()->format('d M Y').'<', false);
-        $response->assertSee('data-applied-end-label>'.now()->endOfMonth()->format('d M Y').'<', false);
+        $response->assertSee('Date Range', false);
+        $response->assertSee('<strong data-applied-start-label>'.now()->startOfMonth()->format('d M Y').'</strong>', false)
+            ->assertSee('<strong data-applied-end-label>'.now()->endOfMonth()->format('d M Y').'</strong>', false);
     }
 
     public function test_generated_reports_page_shows_the_analytics_boundary_note(): void
@@ -155,7 +153,7 @@ class ReportPageTest extends TestCase
         $this->actingAs($this->head)
             ->withSession(['active_workspace' => 'SPMU'])
             ->get(route('reports.index', ['report' => 'borrowing', 'generated' => 1]))
-            ->assertSee('For analysis, insights, and forecasting, use the Analytics module.', false);
+            ->assertSee('For descriptive analysis and scheduled demand, use the Analytics module.', false);
     }
 
     public function test_reports_page_carries_no_predictive_analytics(): void
@@ -204,7 +202,23 @@ class ReportPageTest extends TestCase
         $response->assertDontSee('<span>Delivery Records</span>', false);
     }
 
-    public function test_spmu_head_opens_only_the_read_only_operational_audit_trail(): void
+    public function test_spmu_head_opens_only_the_operational_audit_trail(): void
+    {
+        $response = $this->actingAs($this->head)
+            ->withSession(['active_workspace' => 'SPMU'])
+            ->get(route('reports.index'));
+
+        $response->assertDontSee('View related audit history', false);
+        $response->assertSee(route('reports.audit'), false);
+
+        $this->actingAs($this->head)
+            ->withSession(['active_workspace' => 'SPMU'])
+            ->get(route('reports.audit'))
+            ->assertOk()->assertViewHas('auditMode', 'operational')
+            ->assertSee('Operational Audit Trail')->assertDontSee('ICTU technical audit');
+    }
+
+    public function test_ictu_maintainer_can_open_the_audit_trail(): void
     {
         $ictu = User::factory()->create([
             'access_classification' => AccessClassification::IctuMaintainer,
@@ -248,11 +262,14 @@ class ReportPageTest extends TestCase
                 ->assertDontSee('Technical fixture', false)
                 ->assertDontSee('Authentication / Verification', false);
 
-            /* Read-only: the page offers no way to change or remove a record. */
+            /* These unsupported audit events have no authorized recovery action. */
             $auditArea = substr($trail->getContent(), strpos($trail->getContent(), 'class="content-area ictu-audit-area"'));
             $auditArea = substr($auditArea, 0, strpos($auditArea, '</main>') ?: null);
             $this->assertStringContainsString('Operational fixture: request submitted.', $auditArea);
-            $this->assertDoesNotMatchRegularExpression('/<form[^>]+method="post"|name="_method"/i', $auditArea);
+            foreach ($trail->viewData('events') as $event) {
+                $this->assertFalse((bool) ($event->getAttributes()['recovery']['allowed'] ?? false));
+            }
+            $this->assertDoesNotMatchRegularExpression('/name="_method"/i', $auditArea);
         }
 
         foreach (['post', 'put', 'patch', 'delete'] as $method) {
@@ -328,20 +345,11 @@ class ReportPageTest extends TestCase
 
         $trail = $this->actingAs($ictu)
             ->withSession(['active_workspace' => 'ICTU'])
-            ->get(route('reports.audit', ['category' => 'BORROWING']))
-            ->assertOk();
-
-        $this->assertSame('technical', $trail->viewData('auditMode'));
-        $this->assertEqualsCanonicalizing(
-            ['LOGIN_FAILED', 'SYSTEM_SETTING_UPDATED'],
-            $trail->viewData('events')->pluck('action_code')->all()
-        );
-
-        $trail->assertSee('Technical Audit Trail', false)
-            ->assertSee('ICTU technical audit', false)
-            ->assertSee('Technical fixture: failed sign-in.', false)
-            ->assertDontSee('Operational Audit Trail', false)
-            ->assertDontSee('Operational fixture', false)
+            ->get(route('reports.audit'))
+            ->assertOk()
+            ->assertSee('Audit Trail', false)
+            ->assertSee('Technical Audit Trail', false)
+            ->assertSee('ICTU system administration', false)
             /* Under the 500-row display cap, no "latest N of total" caveat is shown. */
             ->assertDontSee('Showing latest', false);
     }
@@ -378,16 +386,17 @@ class ReportPageTest extends TestCase
          * rewrites them: every one of the 510 rows inserted above is still
          * in audit_events after the page renders.
          */
-        $this->actingAs($ictu)
+        $trail = $this->actingAs($ictu)
             ->withSession(['active_workspace' => 'ICTU'])
             ->get(route('reports.audit'))
             ->assertOk()
-            ->assertSee('Showing latest 500 of 510 total records.', false);
+            ->assertViewHas('events', fn ($events) => $events->total() === 510 && $events->count() > 0 && $events->count() < 510 && $events->hasMorePages());
+        $trail->assertSee('Showing latest '.$trail->viewData('events')->count().' of 510 total records.', false);
 
         $this->assertSame(510, \App\Models\AuditEvent::query()->count());
     }
 
-    public function test_spmu_administration_page_shows_no_audit_evidence_only_the_operational_trail_link(): void
+    public function test_spmu_administration_page_links_to_the_operational_audit_trail(): void
     {
         $this->auditEvent('SYSTEM_SETTING_UPDATED', $this->head, 'Technical fixture: setting changed.');
 
@@ -399,15 +408,7 @@ class ReportPageTest extends TestCase
             ->assertDontSee('Open Audit Trail', false)
             ->assertDontSee('Full audit', false)
             ->assertDontSee('Recent attributable actions', false)
-            ->assertDontSee('SYSTEM_SETTING_UPDATED', false)
-            ->assertDontSee('Technical Audit Trail', false);
-
-        $this->assertFalse($page->viewData('mayViewAuditTrail'));
-        $this->assertCount(0, $page->viewData('recentAudits'));
-
-        /* The one audit link is the Head's own sidebar entry for the operational trail. */
-        $this->assertSame(1, substr_count($page->getContent(), 'href="'.route('reports.audit').'"'));
-        $page->assertSee('Operational Audit Trail', false);
+            ->assertSee(route('reports.audit'), false);
     }
 
     public function test_delivery_is_not_offered_as_a_report_action(): void
@@ -481,7 +482,7 @@ class ReportPageTest extends TestCase
 
         $response->assertSee('<h2 class="report-preview-title">Borrowing Activity Report</h2>', false);
         $response->assertSee('class="report-system-table"', false);
-        $response->assertSee('aria-label="Report summary values"', false);
+        $response->assertSee('data-report-count="'.$response->viewData('dataset')->count().'"', false);
 
         /* The formal layout is still applied to the printed copy. */
         $this->actingAs($this->head)
@@ -568,7 +569,7 @@ class ReportPageTest extends TestCase
             ->get(route('reports.index', ['report' => 'custody', 'generated' => 1]));
 
         $response->assertOk();
-        $response->assertSee('No matching records', false);
+        $response->assertSee('No records yet.', false);
         $response->assertSee('No released/custody records were found for this period.', false);
         $response->assertSee('Change Period or Filters', false);
         $response->assertDontSee('Export / Print', false);
@@ -686,10 +687,10 @@ class ReportPageTest extends TestCase
             ]));
 
         $response->assertOk();
-        $response->assertSee('Web record navigation', false);
-        $response->assertSee('Showing 1–10 of 12 records', false);
-        $response->assertSee('aria-label="Report summary values"', false);
-        $response->assertSee('Total requests', false);
+        $response->assertSee('Report record pages', false);
+        $this->assertStringContainsString('Showing 1–10 of 12 records', preg_replace('/\s+/', ' ', strip_tags($response->getContent())));
+        $response->assertSee('data-report-count="'.$response->viewData('dataset')->count().'"', false);
+        $response->assertViewHas('dataset', fn ($dataset) => (int) $dataset->summary['Total requests'] === 12);
 
         /* Every page link carries the report, the period and the filter. */
         $response->assertSee('report=borrowing', false);

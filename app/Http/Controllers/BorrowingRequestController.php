@@ -16,10 +16,13 @@ use App\Models\RequestVersion;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\BorrowerRequestAffiliationService;
+use App\Services\BorrowingRequestNumberService;
 use App\Services\InventoryService;
 use App\Services\OperationalCalendarService;
 use App\Services\ProtectedFileService;
 use App\Services\RequestWorkflowService;
+use App\Services\SubmissionEvidenceService;
 use App\Services\TransactionAccountabilityHistoryService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -27,6 +30,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -41,6 +45,9 @@ class BorrowingRequestController extends Controller
      */
     private function authorizedRequestingUnits(User $user)
     {
+        if (app(BorrowerRequestAffiliationService::class)->isExternal($user)) {
+            return collect();
+        }
         $unitIds = $user->authorizedOrganizationalUnits()
             ->pluck('organizational_units.id')
             ->push($user->organizational_unit_id)
@@ -247,6 +254,14 @@ class BorrowingRequestController extends Controller
             }
         }
 
+        $activeCustodiesFilter = $workspace === 'SPMU'
+            && $request->user()->access_classification === AccessClassification::SpmuHead
+            && $request->query('kpi') === 'active_custodies';
+        if ($activeCustodiesFilter) {
+            $query->whereHas('custody', fn ($custody) => $custody->whereNotNull('released_at')
+                ->whereNotIn('status', ['CLOSED', 'CANCELLED']));
+        }
+
         /*
          * The borrower workspace renders the paginated My Requests list.
          * Staff record views keep the full unpaginated table.
@@ -254,6 +269,7 @@ class BorrowingRequestController extends Controller
         return view(
             'requests.index',
             [
+                'activeCustodiesFilter' => $activeCustodiesFilter,
                 'requests' => $workspace === 'BORROWER'
                     ? $query->paginate(10)->withQueryString()
                     : $query->get(),
@@ -295,6 +311,8 @@ class BorrowingRequestController extends Controller
             [
                 'borrowingRequest' => new BorrowingRequest,
                 'version' => new RequestVersion,
+
+                ...app(BorrowerRequestAffiliationService::class)->formContext($borrower),
 
                 'borrowingBlockedReasons' => $borrowingBlockedReasons,
 
@@ -419,13 +437,7 @@ class BorrowingRequestController extends Controller
                 $isSubmission
             ): BorrowingRequest {
                 $borrowingRequest =
-                    BorrowingRequest::query()->create([
-                        'request_no' =>
-                            'BR-'
-                            .now()->format('YmdHis')
-                            .'-'
-                            .$user->id,
-
+                    app(BorrowingRequestNumberService::class)->createHeader([
                         'borrower_user_id' =>
                             $user->id,
 
@@ -457,6 +469,17 @@ class BorrowingRequestController extends Controller
                 );
 
                 $borrowingRequest->load('currentVersion');
+
+                if (! $isSubmission) {
+                    app(AuditService::class)->record('REQUEST_DRAFT_CREATED', $borrowingRequest, after: [
+                        'request_version_id' => $version->id,
+                        'affiliation_type' => $version->affiliation_type->value,
+                        'external_company_name' => $version->external_company_name,
+                        'accountable_unit_id' => $borrowingRequest->accountable_unit_id,
+                        'division_code' => $version->division_code,
+                        'office_unit' => $version->office_unit,
+                    ]);
+                }
 
                 $this->syncSupportingDocuments(
                     $request,
@@ -672,6 +695,8 @@ class BorrowingRequestController extends Controller
                 'version' =>
                     $borrowingRequest->currentVersion,
 
+                ...app(BorrowerRequestAffiliationService::class)->formContext($borrower, $borrowingRequest->currentVersion),
+
                 'borrowingBlockedReasons' => $obligations->blockingReasons($borrower->id),
 
                 'officeUnitsByDivision' => [],
@@ -717,7 +742,7 @@ class BorrowingRequestController extends Controller
         );
 
         $data =
-            $this->validateRequest($request);
+            $this->validateRequest($request, $borrowingRequest->currentVersion);
 
         if ($request->input('intent') === 'submit') {
             $this->validateESignatureConfirmation($request);
@@ -730,8 +755,14 @@ class BorrowingRequestController extends Controller
                 $borrowingRequest,
                 $data,
                 $request,
-                $inventory
+                $inventory,
+                $files,
+                $workflow
             ): void {
+                BorrowingRequest::query()->whereKey($borrowingRequest->id)->lockForUpdate()->firstOrFail();
+                $borrowingRequest->refresh();
+                abort_unless($borrowingRequest->borrower_user_id === $request->user()->id
+                    && in_array($borrowingRequest->status, [RequestStatus::Draft, RequestStatus::ReturnedForRevision], true), 403);
                 $borrowingRequest->update([
                     'accountable_unit_id' => $data['requesting_organizational_unit_id'],
                 ]);
@@ -796,33 +827,25 @@ class BorrowingRequestController extends Controller
                     $data,
                     $inventory
                 );
+                app(AuditService::class)->record('REQUEST_DRAFT_UPDATED', $borrowingRequest, after: [
+                    'request_version_id' => $version->id,
+                    'affiliation_type' => $version->affiliation_type->value,
+                    'external_company_name' => $version->external_company_name,
+                    'accountable_unit_id' => $borrowingRequest->accountable_unit_id,
+                    'division_code' => $version->division_code,
+                    'office_unit' => $version->office_unit,
+                ]);
+                $borrowingRequest->refresh()->load('currentVersion');
+                $this->syncSupportingDocuments($request, $borrowingRequest, $files,
+                    (bool) ($data['represents_student_activity'] ?? false));
+                if ($request->input('intent') === 'submit') {
+                    $workflow->submit($borrowingRequest->fresh(), $request->user(), $request->boolean('confirm_e_signature'));
+                }
             },
             3
         );
 
-        $borrowingRequest->refresh();
-
-        $borrowingRequest->load(
-            'currentVersion'
-        );
-
-        $this->syncSupportingDocuments(
-            $request,
-            $borrowingRequest,
-            $files,
-            (bool) (
-                $data['represents_student_activity']
-                ?? false
-            )
-        );
-
         if ($request->input('intent') === 'submit') {
-            $workflow->submit(
-                $borrowingRequest->fresh(),
-                $request->user(),
-                $request->boolean('confirm_e_signature')
-            );
-
             return redirect()
                 ->route('requests.show', $borrowingRequest)
                 ->with(
@@ -899,37 +922,10 @@ class BorrowingRequestController extends Controller
         BorrowingRequest $borrowingRequest,
         RequestWorkflowService $workflow
     ): RedirectResponse {
-        if (strtoupper((string) $request->session()->get('active_workspace')) === 'SPMU') {
-            $user = $request->user();
-            $borrowingRequest->loadMissing('custody');
-
-            $pickupMissedPendingReview = (bool) $borrowingRequest->custody?->pickup_expired_at
-                && ! $borrowingRequest->custody?->released_at
-                && $borrowingRequest->custody?->status === 'PREPARING_RELEASE';
-
-            /*
-             * Missed pickup is an operational release decision. The Action
-             * Officer may either Continue Release or Cancel Borrowing without
-             * a second Head/Admin approval. Outside this exact state, keep the
-             * existing Head/delegated-AO cancellation authority unchanged.
-             */
-            $hasFinalAuthority = $user?->access_classification === AccessClassification::SpmuHead
-                || (
-                    $user?->access_classification === AccessClassification::SpmuOfficer
-                    && (
-                        $pickupMissedPendingReview
-                        || $user->activeDelegationFor('SPMU') !== null
-                    )
-                );
-
-            abort_unless(
-                $hasFinalAuthority,
-                403,
-                'Only the SPMU Head/Admin, a formally delegated Action Officer, or the Action Officer handling a missed pickup may cancel this unreleased approved request.'
-            );
-        }
+        Gate::forUser($request->user())->authorize('cancel', $borrowingRequest);
 
         $data = $request->validate([
+            'reviewed_version_id' => ['sometimes', 'required', 'integer', 'min:1'],
             'reason' => [
                 'required',
                 'string',
@@ -940,7 +936,8 @@ class BorrowingRequestController extends Controller
         $workflow->cancel(
             $borrowingRequest,
             $request->user(),
-            $data['reason']
+            $data['reason'],
+            isset($data['reviewed_version_id']) ? (int) $data['reviewed_version_id'] : null
         );
 
         $message = 'Request cancelled. Any approved but unreleased allocation has been restored to Available inventory, and any pending pickup schedule/documents are no longer active.';
@@ -958,9 +955,11 @@ class BorrowingRequestController extends Controller
     }
 
     private function validateRequest(
-        Request $request
+        Request $request,
+        ?RequestVersion $existingVersion = null
     ): array {
         $maxUploadKb = $this->uploadLimitMb() * 1024;
+        $external = app(BorrowerRequestAffiliationService::class)->isExternal($request->user());
 
         /*
          * Date-only UI contract.
@@ -1019,9 +1018,16 @@ class BorrowingRequestController extends Controller
             ],
 
             'requesting_organizational_unit_id' => [
-                'required',
+                $external ? 'prohibited' : 'required',
+                'nullable',
                 'integer',
             ],
+            'accountable_unit_id' => ['prohibited'],
+            'organizational_unit_id' => ['prohibited'],
+            'affiliation_type' => ['prohibited'],
+            'external_company_name' => ['prohibited'],
+            'company_name' => ['prohibited'],
+            ...($external ? ['division_code' => ['prohibited'], 'office_unit' => ['prohibited']] : []),
 
             'schedule_date' => [
                 'required',
@@ -1158,42 +1164,41 @@ class BorrowingRequestController extends Controller
             ],
         ]);
 
+        foreach (['approved_request_letter', 'permission_to_conduct_letter'] as $field) {
+            if ($request->hasFile($field)) {
+                app(SubmissionEvidenceService::class)->validateUpload($request->file($field), $field);
+            }
+        }
+
         $borrower = $request->user()->loadMissing([
             'organizationalUnit',
             'authorizedOrganizationalUnits',
         ]);
 
-        $authorizedUnit = $this->authorizedRequestingUnits($borrower)
-            ->firstWhere(
-                'id',
-                (int) $data['requesting_organizational_unit_id']
-            );
+        $data = array_merge($data, app(BorrowerRequestAffiliationService::class)->snapshot($borrower, $existingVersion));
+        if ($external) {
+            $data['requesting_organizational_unit_id'] = null;
+            $data['division_code'] = null;
+            $data['office_unit'] = null;
+        } else {
+            $authorizedUnit = $this->authorizedRequestingUnits($borrower)
+                ->firstWhere('id', (int) $data['requesting_organizational_unit_id']);
 
-        if (! $authorizedUnit) {
-            throw ValidationException::withMessages([
-                'requesting_organizational_unit_id' =>
-                    $this->requestingUnitNotice($borrower),
-            ]);
+            if (! $authorizedUnit) {
+                throw ValidationException::withMessages([
+                    'requesting_organizational_unit_id' => $this->requestingUnitNotice($borrower),
+                ]);
+            }
+            $divisionCode = $authorizedUnit->divisionCode();
+            if (! $divisionCode) {
+                throw ValidationException::withMessages([
+                    'requesting_organizational_unit_id' => 'The selected Office / College / Unit does not have a valid Division. Contact ICTU.',
+                ]);
+            }
+            // Preserve the existing server-derived employee assignment snapshot.
+            $data['division_code'] = $divisionCode;
+            $data['office_unit'] = $authorizedUnit->unit_name;
         }
-
-        $divisionCode = $authorizedUnit->divisionCode();
-        $officeUnit = $authorizedUnit->unit_name;
-
-        if (! $divisionCode) {
-            throw ValidationException::withMessages([
-                'requesting_organizational_unit_id' =>
-                    'The selected Office / College / Unit does not have a valid Division. Contact ICTU.',
-            ]);
-        }
-
-        /*
-         * Snapshot the official ICTU-managed affiliation onto this request
-         * version. Analytics already reads division_code / office_unit from
-         * the request snapshot, so later profile changes do not rewrite
-         * historical borrowing results.
-         */
-        $data['division_code'] = $divisionCode;
-        $data['office_unit'] = $officeUnit;
 
         $timezone =
             config('app.timezone')
@@ -1316,6 +1321,9 @@ class BorrowingRequestController extends Controller
 
             'office_unit' =>
                 $data['office_unit'],
+
+            'affiliation_type' => $data['affiliation_type'],
+            'external_company_name' => $data['external_company_name'],
 
             /*
              * Canonical date-only fields.

@@ -83,6 +83,7 @@ class AnalyticsService
  ];
  }
 
+
  /**
  * Requests needed before a weekday or hour peak is reported.
  *
@@ -90,6 +91,7 @@ class AnalyticsService
  * records rather than a pattern anyone should plan around.
  */
  public const PEAK_MINIMUM_OBSERVATIONS = 10;
+
 
  public function __construct(
  private readonly ReturnMetricsService $returnMetrics,
@@ -163,7 +165,7 @@ class AnalyticsService
  * timestamp is today. That is why this scope follows the requested
  * schedule date rather than submitted_at.
  */
- private function scheduledRequestScope(
+ public function scheduledRequestScope(
  CarbonInterface $from,
  CarbonInterface $to,
  ?string $division,
@@ -192,19 +194,27 @@ class AnalyticsService
  array_map(static fn (RequestStatus $status): string => $status->value, $excluded)
  )
  ->where(function ($schedule) use ($from, $to): void {
- /*
- * Inclusive of the final day on every database: the upper bound is
- * "before the next day", so a schedule date stored with a midnight
- * time part still falls inside the window.
- */
- $schedule->where(function ($window) use ($from, $to): void {
- $window->where('request_versions.schedule_date', '>=', Carbon::parse($from)->toDateString())
- ->where('request_versions.schedule_date', '<', Carbon::parse($to)->addDay()->toDateString());
+ $schedule->where(function ($canonical) use ($from, $to): void {
+ $canonical->whereDate('request_versions.schedule_date', '>=', $from->toDateString())
+ ->whereDate('request_versions.schedule_date', '<=', $to->toDateString());
  })->orWhere(function ($legacy) use ($from, $to): void {
  $legacy->whereNull('request_versions.schedule_date')
  ->whereBetween('request_versions.needed_from', [$from, $to]);
  });
+ })
+ ->whereNotExists(function ($custody): void {
+ $custody->selectRaw('1')->from('custody_transactions')
+ ->whereColumn('custody_transactions.request_id', 'borrowing_requests.id')
+ ->where(function ($issued): void {
+ $issued->whereNotNull('released_at')->orWhereNotIn('status', ['PREPARING_RELEASE']);
  });
+ });
+
+ // External saved affiliation cannot become a CSPC assignment through a filter.
+ if (($division !== null && $division !== '' && $division !== 'all') || ($unit !== null && $unit !== '' && $unit !== 'all')) {
+ $query->where(fn ($scope) => $scope->whereNull('request_versions.affiliation_type')
+ ->orWhere('request_versions.affiliation_type', '!=', 'EXTERNAL'));
+ }
 
  if ($division !== null && $division !== '' && $division !== 'all') {
  $query->where('request_versions.division_code', $division);
@@ -233,79 +243,55 @@ class AnalyticsService
  ?string $unit = null,
  ?int $borrower = null
  ): array {
- $base = $this->scheduledRequestScope($from, $to, $division, $unit, $borrower);
- $requests = (clone $base)->count('borrowing_requests.id');
-
- $divisionCounts = (clone $base)
- ->select('request_versions.division_code')
- ->selectRaw('COUNT(borrowing_requests.id) AS total')
- ->groupBy('request_versions.division_code')
- ->get()
- ->groupBy(fn ($row): string => (string) ($row->division_code ?? ''))
- ->map(fn ($rows): int => (int) $rows->sum('total'));
-
- $groups = collect(self::divisions())
- ->map(fn (string $label, string $code): array => [
- 'code' => $code,
- 'label' => $label,
- 'count' => (int) ($divisionCounts[$code] ?? 0),
- 'percentage' => $requests > 0
- ? (int) round(((int) ($divisionCounts[$code] ?? 0)) / $requests * 100)
- : 0,
- ])
- ->filter(fn (array $row): bool => $row['count'] > 0)
- ->values();
-
- $unitRows = (clone $base)
- ->select('request_versions.division_code', 'request_versions.office_unit')
- ->selectRaw('COUNT(borrowing_requests.id) AS total')
- ->groupBy('request_versions.division_code', 'request_versions.office_unit')
- ->get();
-
- $columns = collect(self::divisions())
- ->map(function (string $label, string $code) use ($unitRows): array {
- $units = $unitRows
- ->where('division_code', $code)
- ->filter(fn ($row): bool => filled($row->office_unit))
- ->sortByDesc('total')
- ->values();
- $highest = (int) ($units->max('total') ?: 0);
-
+ // Aggregate the same saved current-version rows once for all breakdowns.
+ $rows = $this->scheduledRequestScope($from, $to, $division, $unit, $borrower)
+ ->get(['borrowing_requests.id', 'borrowing_requests.status', 'request_versions.affiliation_type',
+ 'request_versions.division_code', 'request_versions.office_unit', 'request_versions.external_company_name']);
+ $requests = $rows->count();
+ $approved = $rows->filter(fn ($row): bool => in_array($row->status, $this->approvedStatuses(), true))->count();
+ $divisions = self::divisions();
+ $classified = $rows->groupBy(function ($row) use ($divisions): string {
+ if ($row->affiliation_type === 'EXTERNAL') { return 'EXTERNAL'; }
+ return array_key_exists((string) $row->division_code, $divisions) ? $row->division_code : 'UNCLASSIFIED';
+ });
+ $labels = $divisions + ['EXTERNAL' => 'External Borrowers', 'UNCLASSIFIED' => 'Unclassified Affiliation'];
+ $groups = collect($labels)->map(fn (string $label, string $code): array => [
+ 'code' => $code, 'label' => $label, 'count' => ($classified[$code] ?? collect())->count(),
+ 'percentage' => $requests > 0 ? (int) round(($classified[$code] ?? collect())->count() / $requests * 100) : 0,
+ ])->filter(fn ($row): bool => $row['count'] > 0)->values();
+ $columns = collect($divisions)->map(function (string $label, string $code) use ($classified): array {
+ $units = ($classified[$code] ?? collect())->filter(fn ($row): bool => filled($row->office_unit))
+ ->groupBy('office_unit')->map(fn ($records, string $name): array => ['name' => $name, 'count' => $records->count()])
+ ->sortByDesc('count')->values();
+ $highest = (int) ($units->max('count') ?? 0);
+ return ['code' => $code, 'label' => $label, 'units' => $units->map(fn ($row) => $row + [
+ 'share' => $highest > 0 ? (int) round($row['count'] / $highest * 100) : 0,
+ ])->all(), 'leader' => $units->first()['name'] ?? null, 'leader_count' => $units->first()['count'] ?? 0];
+ })->filter(fn ($column): bool => $column['units'] !== [])->values();
+ $companies = ($classified['EXTERNAL'] ?? collect())
+ ->groupBy(fn ($row): string => filled($row->external_company_name) ? $row->external_company_name : 'Company not recorded')
+ ->map(fn ($records, string $name): array => ['name' => $name, 'count' => $records->count()])->sortByDesc('count')->values();
  return [
- 'code' => $code,
- 'label' => $label,
- 'units' => $units->map(fn ($row): array => [
- 'name' => (string) $row->office_unit,
- 'count' => (int) $row->total,
- 'share' => $highest > 0
- ? (int) round(((int) $row->total) / $highest * 100)
- : 0,
- ])->all(),
- 'leader' => $units->first()?->office_unit,
- 'leader_count' => (int) ($units->first()->total ?? 0),
- ];
- })
- ->filter(fn (array $column): bool => $column['units'] !== [])
- ->values();
-
- return [
- 'requests' => $requests,
- 'divisions' => [
- 'total' => $requests,
- 'groups' => $groups,
- 'summary' => $requests === 0
- ? 'No requests are scheduled for the next period yet.'
- : $requests.' '.($requests === 1 ? 'request is' : 'requests are').' already scheduled for the next period.',
- ],
- 'units' => [
- 'columns' => $columns,
- 'summary' => $columns->map(fn (array $column): string =>
- $column['leader'].' has the most scheduled demand among '
- .strtolower($column['label']).' units ('.$column['leader_count'].').'
- )->all(),
- ],
+ 'requests' => $requests, 'pending' => $requests - $approved, 'approved' => $approved,
+ 'divisions' => ['total' => $requests, 'groups' => $groups,
+ 'summary' => $requests === 0 ? 'No requests are scheduled for this window.' : $requests.' requests recorded for this window.'],
+ 'units' => ['columns' => $columns, 'summary' => $columns->map(fn ($column): string =>
+ $column['leader'].' has the most scheduled requests among '.strtolower($column['label']).' units ('.$column['leader_count'].').')->all()],
+ 'external' => ['companies' => $companies->all()],
  ];
  }
+
+ public function scheduledUnitOptions(CarbonInterface $from, CarbonInterface $to): Collection
+ {
+ return $this->scheduledRequestScope($from, $to, null, null)
+ ->whereIn('request_versions.division_code', array_keys(self::divisions()))
+ ->where(fn ($scope) => $scope->whereNull('request_versions.affiliation_type')->orWhere('request_versions.affiliation_type', '!=', 'EXTERNAL'))
+ ->whereNotNull('request_versions.office_unit')
+ ->get(['request_versions.division_code', 'request_versions.office_unit'])
+ ->groupBy('division_code')
+ ->map(fn ($rows): array => $rows->pluck('office_unit')->filter()->unique()->sort()->values()->all());
+ }
+
 
  /**
  * Custody transactions belonging to requests filed inside the period.
@@ -1485,7 +1471,7 @@ class AnalyticsService
  * The equal-length period immediately before the selected one.
  *
  * This is the module's one definition of "the previous period", shared
- * with ForecastService::historyWindows(): the same number of days,
+ * with the preceding reporting window: the same number of days,
  * ending the day before the selected period starts. A calendar month is
  * therefore compared with the same number of days before it, not with
  * the previous calendar month; ReportingPeriodService offers no other
@@ -2613,10 +2599,6 @@ class AnalyticsService
  }
 
  /* ------------------------------------------------------------------ */
- /* Section J - Stock coverage */
- /* ------------------------------------------------------------------ */
-
- /* ------------------------------------------------------------------ */
  /* Section F2 - Return performance detail */
  /* ------------------------------------------------------------------ */
 
@@ -3000,9 +2982,9 @@ class AnalyticsService
  * third. The bounds are inclusive; `max` null means open-ended.
  */
  public const OVERDUE_AGING_BANDS = [
- ['key' => '1-7', 'label' => '1–7 days', 'min' => 1, 'max' => 7],
- ['key' => '8-30', 'label' => '8–30 days', 'min' => 8, 'max' => 30],
- ['key' => '31-plus', 'label' => '31+ days', 'min' => 31, 'max' => null],
+ ['key' => '1-7', 'label' => '1–7 open return days', 'min' => 1, 'max' => 7],
+ ['key' => '8-30', 'label' => '8–30 open return days', 'min' => 8, 'max' => 30],
+ ['key' => '31-plus', 'label' => '31+ open return days', 'min' => 31, 'max' => null],
  ];
 
  /**
@@ -3098,7 +3080,7 @@ class AnalyticsService
  'insight' => match (true) {
  $total === 0 => null,
  $longest > 0 => $longest.' current overdue '.($longest === 1 ? 'borrowing has' : 'borrowings have')
- .' been overdue for more than 30 days.',
+ .' been overdue for more than 30 open return days.',
  $leader !== null && ! $tied => 'Most currently overdue borrowings are within '.$leader['label'].' past due.',
  default => null,
  },
@@ -3294,116 +3276,6 @@ class AnalyticsService
  'share' => $highest > 0 ? (int) round((float) $row->quantity / $highest * 100) : 0,
  'is_fine' => strtoupper((string) $row->code) === 'FINE',
  ])->all(),
- ];
- }
-
- /* ------------------------------------------------------------------ */
- /* Section J - Stock and release history */
- /* ------------------------------------------------------------------ */
-
- /**
- * Current usable stock beside the period's recorded release history.
- *
- * Descriptive only. Each row states recorded facts about an item that was
- * physically released in the period: what is usable right now
- * (InventoryService's borrower_available, the figure allocation uses) and
- * what the custody records show went out - the quantity and the number of
- * separate release transactions.
- *
- * Nothing here is divided into a usage rate, projected into days of
- * remaining stock or graded into a risk band. Forecasting is outside the
- * Analytics scope, and a projection drawn from a handful of releases reads
- * as a measurement it is not. An item with no release in the period has no
- * history to show and is left out rather than listed at zero.
- *
- * Rows are ordered by the least usable stock first, then by the larger
- * released quantity, then by name, so the order is stable.
- *
- * @return array<string, mixed>
- */
- public function stockCoverage(
- InventoryService $inventoryService,
- CarbonInterface $from,
- CarbonInterface $to,
- int $limit = 10,
- ?string $division = null,
- ?string $unit = null
- ): array {
- $days = max(1, (int) Carbon::parse($from)->startOfDay()->diffInDays(Carbon::parse($to)->startOfDay()) + 1);
-
- $usageQuery = DB::table('custody_lines')
- ->join('custody_transactions', 'custody_transactions.id', '=', 'custody_lines.custody_transaction_id')
- ->join('request_items', 'request_items.id', '=', 'custody_lines.request_item_id')
- ->whereNotNull('custody_transactions.released_at')
- ->whereBetween('custody_transactions.released_at', [$from, $to]);
-
- if (($division !== null && $division !== '' && $division !== 'all')
- || ($unit !== null && $unit !== '' && $unit !== 'all')) {
- $versionIds = DB::table('request_versions')
- ->when(
- $division !== null && $division !== '' && $division !== 'all',
- fn ($versions) => $versions->where('division_code', $division)
- )
- ->when(
- $unit !== null && $unit !== '' && $unit !== 'all',
- fn ($versions) => $versions->where('office_unit', $unit)
- )
- ->select('id');
-
- $usageQuery->whereIn('custody_transactions.request_version_id', $versionIds);
- }
-
- $usage = $usageQuery
- ->groupBy('request_items.inventory_item_id')
- ->select('request_items.inventory_item_id AS item_id')
- ->selectRaw('SUM(custody_lines.actual_released_quantity) AS quantity')
- ->selectRaw('COUNT(DISTINCT custody_transactions.id) AS releases')
- ->selectRaw('MAX(custody_transactions.released_at) AS last_released_at')
- ->get()
- ->keyBy('item_id');
-
- $items = InventoryItem::query()
- ->where('active', true)
- ->where('borrowable', true)
- ->get();
-
- $balances = $inventoryService->portfolio($items, now()->startOfDay(), now()->endOfDay());
- $rows = [];
-
- foreach ($items as $item) {
- $activity = $usage->get($item->id);
- $released = (float) ($activity->quantity ?? 0);
-
- if ($released <= 0) {
- continue;
- }
-
- $balance = $balances[$item->id] ?? [];
-
- $rows[] = [
- 'item_id' => $item->id,
- 'name' => $item->unique_description,
- 'available' => (float) ($balance['borrower_available'] ?? $balance['current_available'] ?? 0) + 0,
- 'stock' => (float) ($balance['serviceable_total'] ?? 0) + 0,
- 'released' => $released + 0,
- 'releases' => (int) ($activity->releases ?? 0),
- 'last_released_at' => $activity->last_released_at ?? null,
- ];
- }
-
- usort($rows, fn (array $a, array $b): int => [$a['available'], -$a['released'], $a['name']]
- <=> [$b['available'], -$b['released'], $b['name']]);
-
- $count = count($rows);
-
- return [
- 'available' => $rows !== [],
- 'window_days' => $days,
- 'total' => $count,
- 'items' => array_slice($rows, 0, $limit),
- 'summary' => $rows === []
- ? 'No equipment was released during this period, so there is no release history to show.'
- : $count.' '.($count === 1 ? 'item was' : 'items were').' released during this period.',
  ];
  }
 

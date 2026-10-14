@@ -193,10 +193,9 @@ class LinenReturnInspectionFormTest extends TestCase
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($this->classificationUser(AccessClassification::SpmuOfficer))
             ->post(route('laundry.spmu.upload-form', $job), [
-                'evidence' => UploadedFile::fake()->create(
+                'evidence' => UploadedFile::fake()->createWithContent(
                     'accomplished-laundry-form.pdf',
-                    20,
-                    'application/pdf'
+                    \Tests\Support\EvidenceFixtures::pdfBytes('Synthetic accomplished Laundry Form')
                 ),
                 'laundry_received_on' => now()->toDateString(),
             ])
@@ -578,14 +577,8 @@ class LinenReturnInspectionFormTest extends TestCase
 
     public function test_actual_linen_return_date_can_be_after_due_date_once_that_date_has_arrived(): void
     {
-        /*
-         * setUp() pins "now" to a Monday, which would make the one late day
-         * below a Saturday - a closed day that, by policy, is not a
-         * chargeable late day (covered in LateReturnAccountabilityTest).
-         * Move to a Thursday so the custody is due on Monday and the linen
-         * is received on Tuesday: one genuinely open late day.
-         */
-        $this->travelTo(Carbon::now()->next(Carbon::THURSDAY)->setTime(10, 0));
+        // Friday encoding, Tuesday due, Wednesday physical receipt: one open return day.
+        $this->travelTo(now()->next(Carbon::FRIDAY)->setTime(10, 0));
 
         ['custody' => $custody, 'lines' => $lines, 'job' => $job] = $this->outstandingCustody(linen: true);
 
@@ -776,7 +769,7 @@ class LinenReturnInspectionFormTest extends TestCase
         array $accounting,
         array $extra = []
     ) {
-        return $this->withSession(['active_workspace' => 'SPMU'])
+        return $this->withSession(['active_workspace' => 'SPMU', 'last_user_activity_at' => now()->timestamp])
             ->actingAs($this->classificationUser(AccessClassification::SpmuOfficer))
             ->post(
                 route('custody.return', $custody),
@@ -786,13 +779,12 @@ class LinenReturnInspectionFormTest extends TestCase
 
     private function uploadAccomplishedForm(LaundryJob $job, ?string $laundryReceivedOn = null)
     {
-        return $this->withSession(['active_workspace' => 'SPMU'])
+        return $this->withSession(['active_workspace' => 'SPMU', 'last_user_activity_at' => now()->timestamp])
             ->actingAs($this->classificationUser(AccessClassification::SpmuOfficer))
             ->post(route('laundry.spmu.upload-form', $job), [
-                'evidence' => UploadedFile::fake()->create(
+                'evidence' => UploadedFile::fake()->createWithContent(
                     'accomplished-laundry-form.pdf',
-                    20,
-                    'application/pdf'
+                    \Tests\Support\EvidenceFixtures::pdfBytes('Synthetic accomplished Laundry Form')
                 ),
                 'laundry_received_on' => $laundryReceivedOn ?: now()->toDateString(),
             ]);
@@ -927,7 +919,7 @@ class LinenReturnInspectionFormTest extends TestCase
         CustodyTransaction $custody,
         $version
     ): GeneratedDocument {
-        $bytes = '%PDF-1.4 travelling laundry form';
+        $bytes = \Tests\Support\EvidenceFixtures::pdfBytes('Synthetic travelling Laundry Form');
         $path = 'tests/laundry/'.uniqid().'.pdf';
         Storage::disk('local')->put($path, $bytes);
 

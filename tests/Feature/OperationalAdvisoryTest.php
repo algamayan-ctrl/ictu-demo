@@ -82,7 +82,7 @@ class OperationalAdvisoryTest extends TestCase
     {
         $regular = $this->advisory();
         $this->assertSame('2026-09-14', $regular['date']);
-        $this->assertSame('Open Today', $regular['badge']);
+        $this->assertSame('On-site Open', $regular['badge']);
         $this->assertSame('8:00 AM–5:00 PM', $regular['hours']);
         $this->assertNull($regular['upcoming']);
 
@@ -93,14 +93,14 @@ class OperationalAdvisoryTest extends TestCase
         // Today itself is then closed.
         $this->special('2026-09-14', 'CLOSED', ['reason' => 'Emergency closure']);
         $closed = $this->advisory();
-        $this->assertSame('Temporary Closure', $closed['badge']);
+        $this->assertSame('On-site Closed', $closed['badge']);
         $this->assertSame('Emergency closure', $closed['reason']);
-        $this->assertSame('Tue, Sep 15', $closed['next_available']);
+        $this->assertSame('Tue, Sep 15 at 8:00 AM', $closed['next_available']);
         $this->assertNull($closed['hours']);
 
         // Removing the Special Dates restores the regular advisory.
         OperationalDateException::query()->delete();
-        $this->assertSame('Open Today', $this->advisory()['badge']);
+        $this->assertSame('On-site Open', $this->advisory()['badge']);
         $this->assertNull($this->advisory()['upcoming']);
 
         // A change to the weekly Transaction Schedule is picked up as well.
@@ -113,16 +113,16 @@ class OperationalAdvisoryTest extends TestCase
         $this->travelTo(Carbon::create(2026, 9, 19, 9, 0)); // Saturday
 
         $saturday = $this->advisory();
-        $this->assertSame('Closed Today', $saturday['badge']);
-        $this->assertSame('No on-site transactions today. Online requests remain available.', $saturday['message']);
-        $this->assertSame('Mon, Sep 21', $saturday['next_available']);
+        $this->assertSame('On-site Closed', $saturday['badge']);
+        $this->assertSame('No on-site transactions are scheduled today. Next on-site opening: Mon, Sep 21 at 8:00 AM. Online borrowing requests remain available.', $saturday['message']);
+        $this->assertSame('Mon, Sep 21 at 8:00 AM', $saturday['next_available']);
         $this->assertNull($saturday['upcoming']);
 
         // A special opening today makes on-site transactions available.
         $this->special('2026-09-19', 'OPEN', ['reason' => 'Enrollment support']);
         $opened = $this->advisory();
         $this->assertSame('special', $opened['tone']);
-        $this->assertSame('Special Opening', $opened['badge']);
+        $this->assertSame('On-site Open', $opened['badge']);
         $this->assertSame('9:00 AM–12:00 PM', $opened['hours']);
         $this->assertSame('Enrollment support', $opened['reason']);
         $this->assertNull($opened['next_available']);
@@ -167,8 +167,8 @@ class OperationalAdvisoryTest extends TestCase
 
         $this->asBorrower()->get(route('dashboard'))->assertOk()
             ->assertSee('SPMU Transaction Advisory')
-            ->assertSee('Closed Today')
-            ->assertSee('No on-site transactions today. Online requests remain available.')
+            ->assertSee('On-site Closed')
+            ->assertSee('No on-site transactions are scheduled today. Next on-site opening: Mon, Sep 21 at 8:00 AM. Online borrowing requests remain available.')
             ->assertSee('Next available: Mon, Sep 21')
             ->assertSee('View Calendar →')
             ->assertSee('href="'.route('calendar.index').'"', false)

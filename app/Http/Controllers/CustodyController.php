@@ -16,6 +16,7 @@ use App\Services\RequestWorkflowService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -41,8 +42,12 @@ class CustodyController extends Controller
      */
     private const HEAD_KPI_FILTERS = ['active_custodies'];
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
+        if ($request->user()->access_classification === AccessClassification::SpmuHead) {
+            return redirect()->route('requests.index', $request->query('kpi') === 'active_custodies'
+                ? ['kpi' => 'active_custodies'] : []);
+        }
         $query = CustodyTransaction::with(['borrower.organizationalUnit', 'request.currentVersion', 'lines.requestItem.inventoryItem', 'laundryJob.latestEvidence.file', 'incidents', 'overdueCase'])->latest();
         $isBorrower = strtoupper((string) $request->session()->get('active_workspace')) === 'BORROWER';
         $borrowerKpiFilter = null;
@@ -299,22 +304,11 @@ class CustodyController extends Controller
                 && $nextPickupRescheduleAt->copy()->startOfDay()->lte($neededFromDay);
         }
 
-        // Missed-pickup cancellation is an operational release action owned
-        // by the Action Officer. No second Head/Admin approval is required.
-        // Outside this exact state, the existing Head/delegated-AO authority
-        // remains unchanged.
+        // Reuse the same authority as the POST and terminal transaction.
+        // Only SAO confirms missed pickup; other manual authority is retained.
         $cancelActor = $request->user();
-        $pickupMissedPendingReview = (bool) $custody->pickup_expired_at
-            && ! $custody->released_at
-            && $custody->status === 'PREPARING_RELEASE';
-        $canCancelBorrowing = $cancelActor?->access_classification === AccessClassification::SpmuHead
-            || (
-                $cancelActor?->access_classification === AccessClassification::SpmuOfficer
-                && (
-                    $pickupMissedPendingReview
-                    || $cancelActor->activeDelegationFor('SPMU') !== null
-                )
-            );
+        $canCancelBorrowing = $cancelActor && $custody->request
+            && Gate::forUser($cancelActor)->allows('cancel', $custody->request);
 
         $pickupRescheduleRequestEvent = $pickupNotificationEvents->get('PICKUP_RESCHEDULE_REQUESTED');
         $pickupRescheduleRequested = (bool) $pickupRescheduleRequestEvent

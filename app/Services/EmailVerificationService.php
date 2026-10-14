@@ -14,9 +14,9 @@ use Throwable;
 /**
  * Handles institutional mailbox ownership verification using a short-lived OTP.
  *
- * ICTU remains responsible for account creation, role assignment, organizational
- * assignment, and account status. The OTP proves only that the account holder
- * can access the CSPC institutional mailbox recorded by ICTU.
+ * The OTP proves mailbox ownership only. It cannot assign a role, approve a
+ * self-registration, or reactivate an account. CSPC employee domain validation
+ * is separate from external borrower mailbox verification.
  */
 class EmailVerificationService
 {
@@ -41,6 +41,10 @@ class EmailVerificationService
             $this->invalidate($user);
 
             return true;
+        }
+        if (! app(AuthMailTransport::class)->deliversMail()) {
+            Log::warning('Email verification requires a delivery-capable mail transport.', ['user_id' => $user->getKey()]);
+            return false;
         }
 
         $code = str_pad(
@@ -68,7 +72,7 @@ class EmailVerificationService
             ]
         );
 
-        $recipientName = e($user->full_name ?: 'CSPC User');
+        $recipientName = e($user->full_name ?: 'User');
         $safeCode = e($code);
         $expiration = self::OTP_MINUTES;
 
@@ -94,15 +98,15 @@ class EmailVerificationService
                     </tr>
                     <tr>
                         <td style="padding:30px 32px;">
-                            <h1 style="margin:0 0 18px;font-size:24px;color:#102a43;">Verify your CSPC email address</h1>
+                            <h1 style="margin:0 0 18px;font-size:24px;color:#102a43;">Verify your registered email address</h1>
 
                             <p style="margin:0 0 16px;font-size:15px;line-height:1.7;">
                                 Dear {$recipientName},
                             </p>
 
                             <p style="margin:0 0 22px;font-size:15px;line-height:1.7;">
-                                ICTU registered an SPMU-ACPMP account using this institutional email address.
-                                Enter the verification code below in SPMU-ACPMP to confirm mailbox ownership.
+                                An SPMU-ACPMP account was registered using this email address.
+                                Enter the code below to confirm mailbox ownership. Self-registration still requires SAO approval.
                             </p>
 
                             <div style="margin:0 0 22px;padding:18px 20px;background:#eef5ff;border:1px solid #cfe1fb;border-radius:10px;text-align:center;">
@@ -156,7 +160,6 @@ HTML;
                 'user_id' => $user->getKey(),
                 'email' => $user->email,
                 'exception' => $exception::class,
-                'message' => $exception->getMessage(),
             ]);
 
             return false;

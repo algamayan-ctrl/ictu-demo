@@ -34,16 +34,14 @@ trait AssertsReportSystemPreview
         $this->assertSame($expected->count(), $page->viewData('records')->total());
         $this->assertSame($filters, $page->viewData('reportFilters')->all());
 
-        /* Rendered as the system table with its summary cards, not an empty state or a paper form. */
+        /* Main's compact preview keeps actual rows/counts; summary values belong to report output. */
         $page->assertSee('class="report-system-table"', false);
         $page->assertDontSee('id="report-no-results-title"', false);
         $page->assertDontSee('Republic of the Philippines', false);
         $page->assertDontSee('doc-sheet', false);
         $this->assertGreaterThan(0, count($expected->summary));
-        $this->assertSame(
-            count($expected->summary),
-            substr_count($page->getContent(), 'class="report-system-summary-card"')
-        );
+        $this->assertSame($expected->summary, $page->viewData('dataset')->summary);
+        $page->assertSee('data-report-count="'.$expected->count().'"', false);
 
         foreach ($expected->columnLabels() as $label) {
             $page->assertSee(e($label), false);

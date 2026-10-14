@@ -177,11 +177,14 @@ cd /opt/spmu && git switch main
    cd /opt/spmu && printf 'TUNNEL_TOKEN=PASTE_TOKEN_HERE\n' > tunnel.env && chmod 600 tunnel.env
    ```
 
-5. Back in Cloudflare, click **Next → Public Hostnames → Add a public hostname**:
+5. Back in Cloudflare, add the route that sends the domain to the app. Cloudflare now calls this a **Published application** route; older screens called it a *Public Hostname*. Open the tunnel (**Networking → Tunnels**, or **Zero Trust → Networks → Tunnels**) → **Routes → Add route → Published application**. The creation wizard may also show it as a *Route traffic* step.
    - Subdomain: *(leave empty)*
    - Domain: `yourdomain.com`
+   - Path: *(leave empty)*
    - Service type: **HTTP**
-   - URL: **`app:80`** (the Docker service name, not `localhost`)
+   - Service URL: **`app:80`** (the Docker service name, not `localhost`)
+
+   If the domain is missing from the dropdown, the domain is not **Active** in Cloudflare yet. If Cloudflare reports an existing record, delete the A/CNAME record for the root domain under **DNS → Records** and add the route again. The site shows error 1033/502 until the containers are running (step 9.2).
 
    Save. Cloudflare creates the DNS record for you.
 

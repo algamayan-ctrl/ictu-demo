@@ -1661,7 +1661,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         @endunless
         @yield('content')
     </main>
-    <footer><span>Camarines Sur Polytechnic Colleges</span><span>Official operational time: Asia/Manila</span></footer>
+    <footer><span>Camarines Sur Polytechnic Colleges</span><span><a href="{{ route('legal.privacy') }}">Privacy Policy</a> &middot; <a href="{{ route('legal.terms') }}">Terms of Service</a></span><span>Official operational time: Asia/Manila</span></footer>
 @endauth
 
 {{-- Universal transaction/detail typography: keep operational details readable and compact. --}}

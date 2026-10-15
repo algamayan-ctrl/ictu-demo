@@ -607,7 +607,11 @@ Existing user accounts aren't affected by a new client: the system links Google 
 1. **Branding:**
    - App name `SPMU-ACPMP`; support email = team Gmail.
    - **Application home page:** `https://spmu-acpmp.tech`
+   - **Application privacy policy link:** `https://spmu-acpmp.tech/privacy-policy`
+   - **Application Terms of Service link:** `https://spmu-acpmp.tech/terms-of-service`
    - **Authorized domains → Add domain:** `spmu-acpmp.tech`
+
+   Both pages are part of the system (`resources/views/legal/`) and are linked from the footer of every public page, as Google requires. They load only after Part K, so save these fields now and Google checks them when you publish. The contact email shown on them is `MAIL_FROM_ADDRESS`; to show a different mailbox, add `PRIVACY_CONTACT_EMAIL=...` to `.env.docker` (Part J4).
    - **Developer contact:** team Gmail → **Save**.
 2. **Audience:**
    - *Testing* status: only accounts listed under **Test users** can sign in (up to 100). Click **Add users** and enter every panelist's and tester's Gmail.

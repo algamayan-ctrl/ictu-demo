@@ -65,6 +65,12 @@ return [
     'canonical_redirect' => (bool) env('CANONICAL_HOST_REDIRECT', env('APP_ENV') === 'local'),
 
     /*
+    | Mailbox named on the public Privacy Policy and Terms of Service pages
+    | for privacy requests and questions. Falls back to the system sender.
+    */
+    'privacy_contact' => env('PRIVACY_CONTACT_EMAIL', env('MAIL_FROM_ADDRESS')),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------

@@ -39,6 +39,10 @@ Route::get('/', function () {
     return view('welcome');
  })->name('home');
 
+// Public legal pages; Google's OAuth consent screen links to both.
+Route::view('/privacy-policy', 'legal.privacy')->name('legal.privacy');
+Route::view('/terms-of-service', 'legal.terms')->name('legal.terms');
+
 Route::middleware('guest')->group(function (): void {
     Route::get('/register', [BorrowerRegistrationController::class, 'create'])->name('register');
     Route::post('/register', [BorrowerRegistrationController::class, 'store'])

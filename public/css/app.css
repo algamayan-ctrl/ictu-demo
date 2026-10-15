@@ -1864,6 +1864,12 @@ body > footer span:last-child {
     color: #6d8297;
     font-size: 10px;
 }
+body > footer a {
+    color: #dce8f5;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+body > footer a:hover { color: #fff; }
 .public-header .brand-mark { background: var(--navy-700); }
 .public-header nav {
     display: flex;

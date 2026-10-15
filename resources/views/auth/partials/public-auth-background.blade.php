@@ -20,7 +20,7 @@
             rgba(255,255,255,.42) 78%,
             rgba(255,255,255,.10) 100%
         ),
-        url('{{ asset('images/cspc-campus-hero.png') }}');
+        url('{{ \App\Support\StaticAsset::url('images/cspc-campus-hero.png') }}');
 
     background-repeat:
         no-repeat,

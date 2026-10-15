@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="icon" type="image/png" href="{{ asset('images/cspc-logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ \App\Support\StaticAsset::url('images/cspc-logo.png') }}">
     <title>{{ isset($title) ? $title.' | ' : '' }}{{ config('app.name') }}</title>
     <script>
         (() => {
@@ -44,8 +44,8 @@
         })();
     </script>
     @endauth
-    <link rel="stylesheet" href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ filemtime(public_path('css/app.css')) }}">
+    <link rel="stylesheet" href="{{ \App\Support\StaticAsset::url('vendor/bootstrap/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ \App\Support\StaticAsset::url('css/app.css') }}?v={{ filemtime(public_path('css/app.css')) }}">
 
     <style>
         .app-sidebar {
@@ -451,9 +451,9 @@
 </style>
     @endguest
     @if(request()->routeIs('reports.audit'))
-        <link rel="stylesheet" href="{{ asset('css/reports-audit.css') }}?v={{ filemtime(public_path('css/reports-audit.css')) }}">
+        <link rel="stylesheet" href="{{ \App\Support\StaticAsset::url('css/reports-audit.css') }}?v={{ filemtime(public_path('css/reports-audit.css')) }}">
     @elseif(request()->routeIs('reports.notifications'))
-        <link rel="stylesheet" href="{{ asset('css/reports-notifications.css') }}?v={{ filemtime(public_path('css/reports-notifications.css')) }}">
+        <link rel="stylesheet" href="{{ \App\Support\StaticAsset::url('css/reports-notifications.css') }}?v={{ filemtime(public_path('css/reports-notifications.css')) }}">
     @endif
     {{-- ICTU COMPACT WORKSPACE START --}}
     <style id="ictu-compact-workspace">
@@ -1385,7 +1385,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                 <a class="brand sidebar-brand sidebar-brand-logo" href="{{ route('dashboard') }}" aria-label="SPMU-ACPMP dashboard">
                     <img
                         class="sidebar-brand-logo-image"
-                        src="{{ asset('images/spmu-acpmp-logo.png') }}"
+                        src="{{ \App\Support\StaticAsset::url('images/spmu-acpmp-logo.png') }}"
                         alt="SPMU-ACPMP Ã¢â‚¬â€ Supply and Property Management Unit, Asset Custody Monitoring Program"
                     >
                 </a>
@@ -1642,7 +1642,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         <a class="brand" href="{{ route('home') }}" aria-label="SPMU-ACPMP home">
             <img
                 class="brand-logo-image"
-                src="{{ asset('images/spmu-acpmp-logo.png') }}"
+                src="{{ \App\Support\StaticAsset::url('images/spmu-acpmp-logo.png') }}"
                 alt="SPMU-ACPMP Ã¢â‚¬â€ Supply and Property Management Unit, Asset Custody Monitoring Program"
             >
         </a>
@@ -1740,8 +1740,8 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
     }
 </style>
 
-<script src="{{ asset('vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
-<script src="{{ asset('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}" defer></script>
+<script src="{{ \App\Support\StaticAsset::url('vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ \App\Support\StaticAsset::url('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}" defer></script>
     {{-- SPMU-ACPMP ANTI-DUPLICATE-SUBMISSION START --}}
     <script>
     (() => {

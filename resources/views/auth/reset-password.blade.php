@@ -11,7 +11,7 @@
 
         <img
             class="auth-recovery-logo"
-            src="{{ asset('images/spmu-acpmp-logo.png') }}"
+            src="{{ \App\Support\StaticAsset::url('images/spmu-acpmp-logo.png') }}"
             alt="SPMU-ACPMP"
         >
 

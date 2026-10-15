@@ -180,6 +180,22 @@ class LaundryController extends Controller
             }
 
             /*
+             * The first accomplished form may always be archived. Once one is
+             * on file, it is recorded again only while the linen is still
+             * FOR_LAUNDRY (correcting a mistyped Received date; the earlier
+             * submission is kept). After return encoding, or on a Closed
+             * transaction, the archived form is never replaced.
+             */
+            if ($job->latest_evidence_submission_id
+                && ($job->status !== 'FOR_LAUNDRY' || $job->custody->closed_at)) {
+                throw ValidationException::withMessages([
+                    'evidence' => $job->custody->closed_at
+                        ? 'This transaction is already closed. The archived Laundry Form cannot be replaced.'
+                        : 'The signed Laundry Form for this record is already archived and cannot be replaced.',
+                ]);
+            }
+
+            /*
              * FOR_LAUNDRY starts at physical release and remains the portal
              * state while the physical/offline Laundry process is underway.
              * The Laundry Worker is not a system user. The Action Officer uploads

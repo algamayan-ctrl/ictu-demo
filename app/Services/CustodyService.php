@@ -1278,6 +1278,9 @@ class CustodyService
                 throw ValidationException::withMessages(['release' => 'The borrowing request is already closed. Physical release is unavailable.']);
             }
             $current = $custody->fresh();
+            if ($current->closed_at) {
+                throw ValidationException::withMessages(['release' => 'The borrowing transaction is already closed. Physical release is unavailable.']);
+            }
             if ($current->released_at) {
                 return;
             }

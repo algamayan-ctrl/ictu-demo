@@ -223,6 +223,210 @@ class CompleteWorkflowTest extends TestCase
             ->count());
     }
 
+    public function test_a_closed_transaction_refuses_ordinary_processing_by_every_role_and_changes_nothing(): void
+    {
+        [$borrower, $head, $officer, $request, $version, $custody] = $this->closedTransaction('BR-CLOSED-RO-001');
+        $line = $custody->lines()->firstOrFail();
+        $snapshot = $this->closedTransactionSnapshot($request, $custody);
+
+        $decision = fn (string $value): array => [
+            'decision' => $value,
+            'remarks' => 'Attempt on a Closed transaction.',
+            'details_complete' => '1',
+            'documents_complete' => '1',
+            'availability_verified' => '1',
+            'confirm_e_signature' => '1',
+            'reviewed_version_id' => $version->id,
+        ];
+
+        /* SPMU Admin/Head: no decision, revision or cancellation. */
+        foreach (['APPROVED', 'REJECTED', 'RETURNED_FOR_REVISION'] as $value) {
+            $this->assertClosedDenied($this->asWorkspace($head, 'SPMU')->post(route('approvals.decide', $request), $decision($value)), "Head {$value}");
+        }
+        $this->assertClosedDenied($this->asWorkspace($head, 'SPMU')->post(route('requests.cancel', $request), [
+            'reason' => 'Attempt to cancel a Closed transaction.',
+            'reviewed_version_id' => $version->id,
+        ]), 'Head cancel');
+
+        /* SPMU Action Officer: no verification, allocation, issuance or repeat return. */
+        $this->assertClosedDenied($this->asWorkspace($officer, 'SPMU')->post(route('verifications.verify', $request), $decision('VERIFIED')), 'Officer verify');
+        $this->assertClosedDenied($this->asWorkspace($officer, 'SPMU')->post(route('custody.schedule-pickup', $custody)), 'Officer schedule pickup');
+        $this->assertClosedDenied($this->asWorkspace($officer, 'SPMU')->post(route('custody.prepare', $custody), [
+            'quantities' => [$line->id => (int) $line->approved_quantity],
+        ]), 'Officer prepare');
+        $this->assertClosedDenied($this->asWorkspace($officer, 'SPMU')->post(route('custody.release', $custody), [
+            'physical_signatures_confirmed' => '1',
+            'remarks' => 'Second release attempt.',
+        ]), 'Officer release');
+        $this->assertClosedDenied($this->asWorkspace($officer, 'SPMU')->post(route('custody.return', $custody), [
+            'quantities' => [$line->id => 6],
+            'conditions' => [$line->id => 'FINE'],
+            'remarks' => 'Second return attempt.',
+        ]), 'Officer repeat return');
+        $this->assertClosedDenied($this->asWorkspace($officer, 'SPMU')->post(route('requests.cancel', $request), [
+            'reason' => 'Attempt to cancel a Closed transaction.',
+        ]), 'Officer cancel');
+
+        /* Borrower: no edit, resubmission, cancellation, document replacement or rescheduling. */
+        $this->asWorkspace($borrower, 'BORROWER')->get(route('requests.edit', $request))->assertForbidden();
+        $this->assertClosedDenied($this->asWorkspace($borrower, 'BORROWER')->put(route('requests.update', $request), [
+            'purpose_event' => 'Changed after closure',
+            'location' => 'Changed location',
+            'schedule_date' => now()->addDays(5)->toDateString(),
+            'return_date' => now()->addDays(7)->toDateString(),
+            'intent' => 'draft',
+            'approved_request_letter' => UploadedFile::fake()->create('replacement-letter.pdf', 20, 'application/pdf'),
+        ]), 'Borrower update');
+        $this->assertClosedDenied($this->asWorkspace($borrower, 'BORROWER')->post(route('requests.submit', $request), [
+            'borrower_acknowledgement' => '1',
+            'confirm_e_signature' => '1',
+        ]), 'Borrower resubmit');
+        $this->assertClosedDenied($this->asWorkspace($borrower, 'BORROWER')->post(route('requests.cancel', $request), [
+            'reason' => 'Attempt to cancel a Closed transaction.',
+        ]), 'Borrower cancel');
+        $this->assertClosedDenied($this->asWorkspace($borrower, 'BORROWER')->post(route('custody.request-pickup-reschedule', $custody), [
+            'reason' => 'Attempt to reschedule a Closed transaction.',
+        ]), 'Borrower reschedule');
+
+        $this->assertSame($snapshot, $this->closedTransactionSnapshot($request, $custody));
+    }
+
+    public function test_a_closed_transaction_stays_readable_with_no_processing_controls(): void
+    {
+        [$borrower, $head, $officer, $request, $version, $custody] = $this->closedTransaction('BR-CLOSED-RO-002');
+
+        $borrowerPage = $this->asWorkspace($borrower, 'BORROWER')->get(route('requests.show', $request))->assertOk();
+        $borrowerPage->assertDontSee(route('requests.edit', $request), false)
+            ->assertDontSee(route('requests.submit', $request), false)
+            ->assertDontSee(route('requests.cancel', $request), false);
+        $this->asWorkspace($borrower, 'BORROWER')->get(route('custody.show', $custody))->assertOk();
+
+        $headPage = $this->asWorkspace($head, 'SPMU')->get(route('requests.show', $request))->assertOk();
+        $headPage->assertDontSee(route('approvals.decide', $request), false)
+            ->assertDontSee(route('requests.cancel', $request), false);
+
+        $officerPage = $this->asWorkspace($officer, 'SPMU')->get(route('requests.show', $request))->assertOk();
+        $officerPage->assertDontSee(route('verifications.verify', $request), false);
+        $returnPage = $this->asWorkspace($officer, 'SPMU')->get(route('custody.return.show', $custody))->assertOk();
+        $returnPage->assertDontSee('action="'.route('custody.return', $custody).'"', false)
+            ->assertDontSee('action="'.route('custody.release', $custody).'"', false);
+
+        /* Existing generated documents remain downloadable. */
+        $document = GeneratedDocument::query()
+            ->where('request_version_id', $version->id)
+            ->whereNotNull('stored_file_id')
+            ->firstOrFail();
+        $this->asWorkspace($borrower, 'BORROWER')->get(route('documents.download', $document))->assertOk();
+        $this->asWorkspace($head, 'SPMU')->get(route('documents.download', $document))->assertOk();
+    }
+
+    public function test_a_borrower_with_a_closed_transaction_may_create_a_new_independent_request(): void
+    {
+        [$borrower, , , $request, , $custody] = $this->closedTransaction('BR-CLOSED-NEW-001');
+        $snapshot = $this->closedTransactionSnapshot($request, $custody);
+
+        $this->asWorkspace($borrower, 'BORROWER')->get(route('requests.create'))->assertOk();
+
+        $item = InventoryItem::query()->where('unique_description', 'Round Table')->firstOrFail();
+        $calendar = app(\App\Services\OperationalCalendarService::class);
+        $scheduleDate = $calendar->nextOpenDate(\App\Services\OperationalCalendarService::PICKUP, now()->addDays(2));
+        $returnDate = $calendar->nextOpenDate(\App\Services\OperationalCalendarService::RETURN, $scheduleDate->addDay());
+
+        $this->asWorkspace($borrower, 'BORROWER')->post(route('requests.store'), [
+            'purpose_event' => 'New request after a Closed transaction',
+            'location' => 'Campus',
+            'requesting_organizational_unit_id' => $borrower->organizational_unit_id,
+            'schedule_date' => $scheduleDate->toDateString(),
+            'return_date' => $returnDate->toDateString(),
+            'intent' => 'draft',
+            'item_ids' => [$item->id],
+            'quantities' => [$item->id => 1],
+            'locations' => [$item->id => 'ON_CAMPUS'],
+        ])->assertSessionHasNoErrors();
+
+        $new = BorrowingRequest::query()
+            ->where('borrower_user_id', $borrower->id)
+            ->whereKeyNot($request->id)
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertSame(RequestStatus::Draft, $new->status);
+        $this->assertNotSame($request->request_no, $new->request_no);
+        $this->assertNull($new->custody);
+        $this->assertSame($snapshot, $this->closedTransactionSnapshot($request, $custody));
+
+        /* The Closed transaction remains in the borrower's history. */
+        $this->asWorkspace($borrower, 'BORROWER')->get(route('requests.index'))
+            ->assertOk()
+            ->assertSee($request->request_no, false)
+            ->assertSee($new->request_no, false);
+    }
+
+    /** @return array{0: User, 1: User, 2: User, 3: BorrowingRequest, 4: mixed, 5: CustodyTransaction} */
+    private function closedTransaction(string $requestNo): array
+    {
+        [$borrower, $head, $officer, $request, $version] = $this->approvedRequest(6, $requestNo, 'Round Table');
+
+        $custody = CustodyTransaction::query()->where('request_id', $request->id)->with('lines')->firstOrFail();
+        $this->schedulePickupAndPrepare($custody, $officer, $version);
+
+        $this->asWorkspace($officer, 'SPMU')->post(route('custody.release', $custody), [
+            'physical_signatures_confirmed' => '1',
+            'remarks' => 'Physical handover completed.',
+        ])->assertSessionHasNoErrors();
+
+        $this->travelTo($this->safeReturnMoment($custody->fresh()->due_at));
+        $line = $custody->lines->firstOrFail();
+
+        $this->asWorkspace($officer, 'SPMU')->post(route('custody.return', $custody), [
+            'quantities' => [$line->id => 6],
+            'conditions' => [$line->id => 'FINE'],
+            'remarks' => 'All items returned serviceable.',
+        ])->assertSessionHasNoErrors();
+
+        $custody->refresh();
+        $this->assertSame('CLOSED', $custody->status);
+
+        return [$borrower, $head, $officer, $request->fresh(), $version, $custody];
+    }
+
+    private function closedTransactionSnapshot(BorrowingRequest $request, CustodyTransaction $custody): array
+    {
+        $rows = fn ($query): array => $query->get()->map(fn ($row): array => (array) $row)->all();
+        $versionIds = DB::table('request_versions')->where('request_id', $request->id)->pluck('id');
+
+        return [
+            'request' => (array) DB::table('borrowing_requests')->where('id', $request->id)->first(),
+            'versions' => $rows(DB::table('request_versions')->where('request_id', $request->id)->orderBy('id')),
+            'custody' => (array) DB::table('custody_transactions')->where('id', $custody->id)->first(),
+            'custody_lines' => $rows(DB::table('custody_lines')->where('custody_transaction_id', $custody->id)->orderBy('id')),
+            'returns' => $rows(DB::table('return_transactions')->where('custody_transaction_id', $custody->id)->orderBy('id')),
+            'allocations' => $rows(DB::table('allocations')->orderBy('id')),
+            'inventory' => $rows(DB::table('inventory_items')->orderBy('id')),
+            'approval_steps' => $rows(DB::table('approval_steps')->whereIn('request_version_id', $versionIds)->orderBy('id')),
+            'supporting_documents' => $rows(DB::table('request_supporting_documents')->whereIn('request_version_id', $versionIds)->orderBy('id')),
+            'generated_documents' => $rows(DB::table('generated_documents')->whereIn('request_version_id', $versionIds)->orderBy('id')),
+            'cancellations' => DB::table('request_cancellations')->where('request_id', $request->id)->count(),
+        ];
+    }
+
+    private function asWorkspace(User $user, string $workspace): static
+    {
+        $this->app['auth']->forgetGuards();
+        $this->flushSession();
+
+        return $this->withSession(['active_workspace' => $workspace])->actingAs($user);
+    }
+
+    private function assertClosedDenied(\Illuminate\Testing\TestResponse $response, string $action): void
+    {
+        $errors = app('session.store')->get('errors');
+        $hasErrors = $errors instanceof \Illuminate\Support\ViewErrorBag ? $errors->any() : filled($errors);
+        $refused = $response->status() === 403 || ($response->isRedirect() && $hasErrors);
+
+        $this->assertTrue((bool) $refused, "{$action} must be refused on a Closed transaction (HTTP {$response->status()}).");
+    }
+
     public function test_spmu_preparation_uses_the_verified_approved_quantity_without_a_manual_quantity_edit_route(): void
     {
         [$borrower, $spmu, $spmuOfficer, $request, $version] =

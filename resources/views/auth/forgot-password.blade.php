@@ -366,7 +366,7 @@ body:has(.forgot-login-page) .app-main {
         {{-- LOGO --}}
         <div class="forgot-login-logo-wrap">
             <img
-                src="{{ asset('images/spmu-acpmp-logo.png') }}"
+                src="{{ \App\Support\StaticAsset::url('images/spmu-acpmp-logo.png') }}"
                 alt="SPMU-ACPMP"
                 class="forgot-login-logo"
             >

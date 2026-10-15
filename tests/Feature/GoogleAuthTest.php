@@ -415,7 +415,7 @@ class GoogleAuthTest extends TestCase
         $this->assertSame($home->getContent(), $login->getContent());
         $css = preg_replace('/\s+/', '', $home->getContent());
         $this->assertStringContainsString(
-            'linear-gradient(90deg,rgba(255,255,255,.98)0%,rgba(255,255,255,.96)30%,rgba(255,255,255,.84)48%,rgba(255,255,255,.42)66%,rgba(255,255,255,.10)100%),url("http://localhost/images/cspc-campus-hero.png")centerright/coverno-repeat;',
+            'linear-gradient(90deg,rgba(255,255,255,.98)0%,rgba(255,255,255,.96)30%,rgba(255,255,255,.84)48%,rgba(255,255,255,.42)66%,rgba(255,255,255,.10)100%),url("/images/cspc-campus-hero.png")centerright/coverno-repeat;',
             $css
         );
         $this->assertSame(1, substr_count($css, 'images/cspc-campus-hero.png'));

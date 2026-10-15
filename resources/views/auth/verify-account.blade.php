@@ -78,7 +78,7 @@ body > footer {
             rgba(255,255,255,.42) 67%,
             rgba(255,255,255,.10) 100%
         ),
-        url('{{ asset('images/cspc-campus-hero.png') }}')
+        url('{{ \App\Support\StaticAsset::url('images/cspc-campus-hero.png') }}')
         center right / cover no-repeat;
 
     overflow-x: hidden;
@@ -440,7 +440,7 @@ body > footer {
                 rgba(255,255,255,.94) 48%,
                 rgba(255,255,255,.63) 100%
             ),
-            url('{{ asset('images/cspc-campus-hero.png') }}')
+            url('{{ \App\Support\StaticAsset::url('images/cspc-campus-hero.png') }}')
             center right / cover no-repeat;
     }
 }
@@ -455,7 +455,7 @@ body > footer {
                 rgba(247,250,254,.95),
                 rgba(247,250,254,.95)
             ),
-            url('{{ asset('images/cspc-campus-hero.png') }}')
+            url('{{ \App\Support\StaticAsset::url('images/cspc-campus-hero.png') }}')
             center / cover no-repeat;
     }
 
@@ -513,7 +513,7 @@ body > footer {
 
         <div class="otp-auth-brand">
             <img
-                src="{{ asset('images/spmu-acpmp-logo.png') }}"
+                src="{{ \App\Support\StaticAsset::url('images/spmu-acpmp-logo.png') }}"
                 alt="SPMU-ACPMP — Supply and Property Management Unit, Asset Custody Monitoring Program"
             >
         </div>

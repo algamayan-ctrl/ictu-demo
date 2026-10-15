@@ -57,6 +57,14 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     /*
+    | Redirect browser GET/HEAD requests that arrive through another hostname
+    | to APP_URL (RedirectToCanonicalHost). On by default for local
+    | development only; enable it elsewhere once the HTTPS proxy is known to
+    | forward the public Host header.
+    */
+    'canonical_redirect' => (bool) env('CANONICAL_HOST_REDIRECT', env('APP_ENV') === 'local'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------

@@ -24,7 +24,7 @@
                 rgba(255,255,255,.42) 66%,
                 rgba(255,255,255,.10) 100%
             ),
-            url("{{ asset('images/cspc-campus-hero.png') }}") center right / cover no-repeat;
+            url("{{ \App\Support\StaticAsset::url('images/cspc-campus-hero.png') }}") center right / cover no-repeat;
     }
 
     .landing-shell .spmu-shared-login-card {

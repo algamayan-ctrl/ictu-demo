@@ -175,7 +175,7 @@
                     <!-- LOGIN CARD LOGO SWAP START -->
         <div class="landing-login-badge landing-login-badge--logo">
             <img
-                src="{{ asset('images/spmu-acpmp-logo.png') }}"
+                src="{{ \App\Support\StaticAsset::url('images/spmu-acpmp-logo.png') }}"
                 alt="SPMU-ACPMP"
                 class="landing-login-badge-logo"
             >

@@ -32,6 +32,7 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -90,6 +91,152 @@ class LinenLaundryReceivingTest extends TestCase
 
         $this->assertSame(0, $this->lateReturns->chargeableLateDays($custody->fresh()));
         $this->assertNull($this->headCase($custody));
+    }
+
+    public function test_a_closed_transaction_keeps_its_archived_laundry_form(): void
+    {
+        ['custody' => $custody, 'lines' => $lines, 'job' => $job] = $this->custody(linen: true);
+
+        $this->upload($job, self::FRI)->assertSessionHasNoErrors();
+        $this->encodeLinen($custody, $lines)->assertSessionHasNoErrors();
+        $this->assertSame('CLOSED', $custody->fresh()->status);
+
+        $snapshot = $this->laundryEvidenceSnapshot($custody);
+
+        /* A crafted re-upload cannot replace the archived form of a Closed transaction. */
+        $this->travel(30)->seconds();
+        $this->upload($job, self::MON)->assertSessionHasErrors('evidence');
+
+        $this->assertSame($snapshot, $this->laundryEvidenceSnapshot($custody));
+    }
+
+    public function test_an_archived_laundry_form_is_not_replaced_while_the_custody_is_obligation_open(): void
+    {
+        ['custody' => $custody, 'lines' => $lines, 'job' => $job] = $this->custody(linen: true);
+
+        /* Monday is one late day: the case waits for the Head, so the custody stays open. */
+        $this->upload($job, self::MON)->assertSessionHasNoErrors();
+        $this->encodeLinen($custody, $lines)->assertSessionHasNoErrors();
+        $this->assertSame('OBLIGATION_OPEN', $custody->fresh()->status);
+        $this->assertSame('LAUNDRY_COMPLETED', $job->fresh()->status);
+
+        $snapshot = $this->laundryEvidenceSnapshot($custody);
+
+        $this->travel(30)->seconds();
+        $this->upload($job, self::FRI)->assertSessionHasErrors('evidence');
+
+        /* The archived form, its verifier and the late-day case all stay exactly as recorded. */
+        $this->assertSame($snapshot, $this->laundryEvidenceSnapshot($custody));
+        $this->assertSame(1, (int) $this->headCase($custody)->late_days);
+    }
+
+    public function test_a_closed_legacy_transaction_may_archive_its_first_laundry_form_once(): void
+    {
+        ['custody' => $custody, 'lines' => $lines, 'job' => $job] = $this->custody(linen: true);
+
+        $this->upload($job, self::FRI)->assertSessionHasNoErrors();
+        $this->encodeLinen($custody, $lines)->assertSessionHasNoErrors();
+        $this->assertSame('CLOSED', $custody->fresh()->status);
+
+        /*
+         * An older record: the linen return was encoded and the transaction
+         * closed before the accomplished form reached SPMU.
+         */
+        $job->refresh()->update([
+            'status' => 'TURNED_OVER_TO_LAUNDRY',
+            'latest_evidence_submission_id' => null,
+            'form_verified_by_user_id' => null,
+            'form_verified_at' => null,
+        ]);
+        $closedAt = $custody->fresh()->closed_at->toIso8601String();
+        $quantities = $this->custodyQuantities($custody);
+        $submissions = EvidenceSubmission::query()->count();
+
+        $this->travel(30)->seconds();
+        $this->upload($job, self::FRI)->assertSessionHasNoErrors();
+
+        $job->refresh();
+        $submission = EvidenceSubmission::query()->findOrFail($job->latest_evidence_submission_id);
+        $this->assertSame($submissions + 1, EvidenceSubmission::query()->count());
+        $this->assertSame($this->user(AccessClassification::SpmuOfficer)->id, (int) $submission->uploaded_by_user_id);
+        $this->assertNotNull($submission->submitted_at);
+        $this->assertNotNull($job->form_verified_at);
+        $this->assertTrue($this->audited('LAUNDRY_SIGNED_FORM_ARCHIVED', $job));
+        $this->assertSame('CLOSED', $custody->fresh()->status);
+        $this->assertSame($closedAt, $custody->fresh()->closed_at->toIso8601String());
+        $this->assertSame($quantities, $this->custodyQuantities($custody));
+
+        /* A duplicate or racing second submission finds the form on file and is refused. */
+        $snapshot = $this->laundryEvidenceSnapshot($custody);
+        $this->travel(30)->seconds();
+        $this->upload($job, self::FRI)->assertSessionHasErrors('evidence');
+        $this->assertSame($snapshot, $this->laundryEvidenceSnapshot($custody));
+
+        /* The scheduler's legacy reconciliation completes the job without reopening the transaction. */
+        $closedNotices = NotificationEvent::query()->where('event_code', 'TRANSACTION_CLOSED')->count();
+        $this->runScheduler(2);
+
+        $this->assertSame('LAUNDRY_COMPLETED', $job->fresh()->status);
+        $this->assertSame('CLOSED', $custody->fresh()->status);
+        $this->assertSame($closedAt, $custody->fresh()->closed_at->toIso8601String());
+        $this->assertSame($closedNotices, NotificationEvent::query()->where('event_code', 'TRANSACTION_CLOSED')->count());
+        $this->assertSame($quantities, $this->custodyQuantities($custody));
+    }
+
+    public function test_a_closed_transaction_stays_closed_and_unchanged_through_scheduler_runs(): void
+    {
+        ['custody' => $custody, 'lines' => $lines, 'job' => $job] = $this->custody(linen: true);
+
+        $this->upload($job, self::FRI)->assertSessionHasNoErrors();
+        $this->encodeLinen($custody, $lines)->assertSessionHasNoErrors();
+        $this->assertSame('CLOSED', $custody->fresh()->status);
+
+        $closedAt = $custody->fresh()->closed_at->toIso8601String();
+
+        /* The first run only applies the existing one-time issuance lock. */
+        $this->runScheduler();
+        $this->assertNotNull($custody->fresh()->issuance_locked_at);
+        $this->assertSame('CLOSED', $custody->fresh()->status);
+        $this->assertSame($closedAt, $custody->fresh()->closed_at->toIso8601String());
+
+        $snapshot = $this->laundryEvidenceSnapshot($custody);
+
+        $this->runScheduler(2);
+        $this->at(self::WED);
+        $this->runScheduler();
+
+        $this->assertSame($snapshot, $this->laundryEvidenceSnapshot($custody));
+    }
+
+    /** Custody, laundry evidence, quantities, inventory and accountability rows for one transaction. */
+    private function laundryEvidenceSnapshot(CustodyTransaction $custody): array
+    {
+        $rows = fn ($query): array => $query->orderBy('id')->get()->map(fn ($row): array => (array) $row)->all();
+        $jobIds = DB::table('laundry_jobs')->where('custody_transaction_id', $custody->id)->pluck('id');
+
+        return [
+            'custody' => (array) DB::table('custody_transactions')->where('id', $custody->id)->first(),
+            'laundry_jobs' => $rows(DB::table('laundry_jobs')->whereIn('id', $jobIds)),
+            'laundry_job_lines' => $rows(DB::table('laundry_job_lines')->whereIn('laundry_job_id', $jobIds)),
+            'evidence' => $rows(DB::table('evidence_submissions')->where('borrower_user_id', $custody->borrower_user_id)),
+            'returns' => $rows(DB::table('return_transactions')->where('custody_transaction_id', $custody->id)),
+            'overdue_cases' => $rows(DB::table('overdue_cases')->where('custody_transaction_id', $custody->id)),
+            'incidents' => $rows(DB::table('incidents')->where('custody_transaction_id', $custody->id)),
+            'penalties' => $rows(DB::table('penalties')->where('custody_transaction_id', $custody->id)),
+            'billing_statements' => DB::table('billing_statements')->count(),
+            'restrictions' => $rows(DB::table('borrower_restrictions')->where('borrower_user_id', $custody->borrower_user_id)),
+            'quantities' => $this->custodyQuantities($custody),
+        ];
+    }
+
+    private function custodyQuantities(CustodyTransaction $custody): array
+    {
+        $rows = fn ($query): array => $query->orderBy('id')->get()->map(fn ($row): array => (array) $row)->all();
+
+        return [
+            'custody_lines' => $rows(DB::table('custody_lines')->where('custody_transaction_id', $custody->id)),
+            'inventory' => $rows(DB::table('inventory_items')),
+        ];
     }
 
     public function test_friday_due_and_an_authorized_saturday_receipt_is_one_late_day(): void

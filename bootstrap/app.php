@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureActiveWorkspace;
 use App\Http\Middleware\EnsureInstitutionalEmailIsVerified;
 use App\Http\Middleware\EnforceIdleSession;
 use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\RedirectToCanonicalHost;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\PreventDuplicateSubmission;
 use Illuminate\Foundation\Application;
@@ -26,6 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
         if ($trustedProxies !== []) {
             $middleware->trustProxies(at: $trustedProxies);
         }
+        // Before the session starts, so no cookie is issued for a non-canonical host.
+        $middleware->web(prepend: [
+            RedirectToCanonicalHost::class,
+        ]);
         $middleware->web(append: [
         SecurityHeaders::class,
         PreventDuplicateSubmission::class,

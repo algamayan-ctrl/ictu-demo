@@ -1,8 +1,18 @@
 # SPMU-ACPMP Deployment Guide: Hostinger VPS + Cloudflare
 
-A complete, step-by-step guide that takes SPMU-ACPMP from this GitHub repository to **https://spmu-acpmp.tech**, where Google sign-in, Google registration, OTP email verification and password reset work on **any device**.
+A complete, step-by-step guide that takes SPMU-ACPMP from the folder on your laptop (`C:\Users\Admin\capstone-spmu-acpmp`), through the GitHub repository **<https://github.com/algamayan-ctrl/spmuacpmp>**, to a live website at **https://spmu-acpmp.tech**, hosted on a **Hostinger VPS** and published through **Cloudflare**. When you finish, **Google sign-in, Google registration, OTP email verification and password reset work on any device.**
 
 Follow the parts **in order**. Every step says **where** to do it, **what** to click or type, and **what you should see**. Tick each checkbox as you go.
+
+| Dashboard | Link |
+|---|---|
+| GitHub repository | <https://github.com/algamayan-ctrl/spmuacpmp> |
+| Hostinger hPanel | <https://hpanel.hostinger.com/> |
+| Cloudflare (your account) | <https://dash.cloudflare.com/54f5f8f9eaed1396dd5936154a2ed27f/home> |
+| Google Cloud Console | <https://console.cloud.google.com/> |
+| Google Account (Gmail security, App Passwords) | <https://myaccount.google.com/> |
+
+> **Using a different domain?** This guide uses `spmu-acpmp.tech`. If your domain is different, replace `spmu-acpmp.tech` with it **everywhere** (Cloudflare, Google Console, and the helper script's first question). No program code has to change: the domain is set only in `.env.docker` on the server.
 
 > This guide covers the technical setup only. It does not replace any approval CSPC or ICTU requires before real borrowers use the system.
 
@@ -11,7 +21,7 @@ Follow the parts **in order**. Every step says **where** to do it, **what** to c
 ## Contents
 
 - [0. Read this first](#0-read-this-first)
-- [Part A. Put the deployment files on `main` (GitHub)](#part-a-put-the-deployment-files-on-main-github)
+- [Part A. Prepare the code and push it to GitHub](#part-a-prepare-the-code-and-push-it-to-github)
 - [Part B. Buy and set up the Hostinger VPS](#part-b-buy-and-set-up-the-hostinger-vps)
 - [Part C. Hostinger firewall](#part-c-hostinger-firewall)
 - [Part D. Connect the domain to Cloudflare](#part-d-connect-the-domain-to-cloudflare)
@@ -30,6 +40,7 @@ Follow the parts **in order**. Every step says **where** to do it, **what** to c
 - [Part Q. Security and go-live checklist](#part-q-security-and-go-live-checklist)
 - [Appendix 1. What each file does](#appendix-1-what-each-file-does)
 - [Appendix 2. Command cheat sheet](#appendix-2-command-cheat-sheet)
+- [Appendix 3. Where everything is located](#appendix-3-where-everything-is-located)
 
 ---
 
@@ -80,6 +91,8 @@ Every command block in this guide is marked with **where** to run it. Running a 
 | Placeholder | Meaning | Example / where to get it |
 |---|---|---|
 | `spmu-acpmp.tech` | Your public domain | Already in Cloudflare |
+| `algamayan-ctrl/spmuacpmp` | The GitHub repository | <https://github.com/algamayan-ctrl/spmuacpmp> |
+| `C:\Users\Admin\capstone-spmu-acpmp` | The project folder on your laptop | Open it in VS Code |
 | `YOUR_VPS_IP` | The VPS public IPv4 address | hPanel → VPS → **Overview** (Part B) |
 | `deploy` | Linux user that runs the system | Created in Part E |
 | `/opt/spmu` | Folder on the VPS that holds the code | Created in Part F |
@@ -89,7 +102,8 @@ Whenever a command shows `YOUR_VPS_IP`, replace it with the real IP, for example
 
 ### 0.5 What you need before starting
 
-- [ ] Admin access to the GitHub repository `arbasagre-ctrl/capstone-spmu-acpmp` (or the owner available to help)
+- [ ] Push access to the GitHub repository `algamayan-ctrl/spmuacpmp` (or the owner available to help)
+- [ ] Git installed on the laptop (`git --version` prints a version)
 - [ ] A Hostinger account and a payment method
 - [ ] Access to Cloudflare where `spmu-acpmp.tech` is added
 - [ ] A Gmail account your **team** controls (Part G)
@@ -105,44 +119,109 @@ Whenever a command shows `YOUR_VPS_IP`, replace it with the real IP, for example
 
 ---
 
-## Part A. Put the deployment files on `main` (GitHub)
+## Part A. Prepare the code and push it to GitHub
 
-The VPS downloads the code from the `main` branch. The deployment files below must be on `main` before Part F:
+The VPS downloads the code from the **`main`** branch of <https://github.com/algamayan-ctrl/spmuacpmp>. Part A makes sure `main` holds the exact code you want to deploy, and that **no secret** is in it.
 
-- `docs/DEPLOYMENT-HOSTINGER-CLOUDFLARE.md` (this guide)
-- `docker-compose.hostinger.yml`
+### A1. What to edit in the code (short answer: nothing)
+
+The program code is already production-ready. **Do not edit PHP files, `config/*.php`, `docker-compose.yml` or the `Dockerfile` to deploy.** Everything that differs between your laptop and the live server is a **setting**, and every setting lives in one file, `.env.docker`, that is created **on the VPS** in Part J and never uploaded to GitHub.
+
+| What changes for production | Where it is set | When |
+|---|---|---|
+| Website address (`APP_URL`) → `https://spmu-acpmp.tech` | `.env.docker` on the VPS | Part J (helper script, question 1) |
+| Google sign-in Client ID + Secret, callback URL | `.env.docker` on the VPS | Part J (questions 2–3) |
+| Gmail sender + App Password (OTP, reset, notifications) | `.env.docker` on the VPS | Part J (questions 4–5) |
+| `APP_KEY`, database passwords | `.env.docker` on the VPS | Part J (generated automatically) |
+| Trust the Cloudflare tunnel (`TRUSTED_PROXIES`) | `.env.docker` on the VPS | Part J (written automatically) |
+| Cloudflare Tunnel token | `tunnel.env` on the VPS | Part I |
+
+Why each feature works after deployment, and which code reads the setting (for reference only; no edits):
+
+| Feature | Code that handles it | Setting it depends on |
+|---|---|---|
+| Google sign-in / registration | `app/Http/Controllers/Auth/GoogleAuthController.php`, `config/services.php` (`google`) | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` = `APP_URL` + `/auth/google/callback` |
+| OTP email verification (6 digits, 10 minutes, 5 tries) | `app/Services/EmailVerificationService.php`, `app/Http/Controllers/Auth/EmailVerificationController.php` | `MAIL_*` (Gmail SMTP) |
+| Forgot / reset password (link valid 60 minutes, one use) | `app/Http/Controllers/Auth/PasswordResetController.php`, `config/auth.php` | `MAIL_*`, `APP_URL` (the link is built from it) |
+| All links use the public `https://` address | `app/Providers/AppServiceProvider.php` (forces `APP_URL`) | `APP_URL` |
+| App sees `https` behind Cloudflare (no redirect loop, no 419) | `bootstrap/app.php` (trusted proxies) | `TRUSTED_PROXIES=172.30.0.0/24` |
+| Tunnel + private port binding | `docker-compose.hostinger.yml` | `tunnel.env` |
+
+**Only edit code if** your team deliberately changes a policy, for example the OTP lifetime (`OTP_MINUTES` in `EmailVerificationService.php`) or the reset-link lifetime (`expire` in `config/auth.php`). If you do, commit and push it as in A3 **before** Part F.
+
+### A2. Make sure no secret is committed
+
+The repository is **public**: anyone on the internet can read every committed file. 🖥 Laptop, in VS Code: **Terminal → New Terminal** (it opens in `C:\Users\Admin\capstone-spmu-acpmp`). Run:
+
+```bash
+git ls-files .env .env.docker tunnel.env
+```
+
+It must print **nothing**. These three files are listed in `.gitignore`, so Git ignores them. If any name is printed, stop and ask for help before pushing; that file contains passwords.
+
+Never commit: `.env`, `.env.docker`, `tunnel.env`, `database/database.sqlite`, Gmail App Passwords, Google client secrets, or screenshots of them.
+
+### A3. Commit and push your latest work to `main`
+
+🖥 Laptop (VS Code terminal, in `C:\Users\Admin\capstone-spmu-acpmp`):
+
+1. See which branch you are on and what changed:
+
+   ```bash
+   git status
+   ```
+
+   The first line says `On branch main`. If it shows another branch, either switch (`git switch main`) or merge your branch into `main` with a pull request (A4).
+
+2. If it lists changed files you want to deploy, save them in a commit:
+
+   ```bash
+   git add -A
+   ```
+
+   ```bash
+   git commit -m "Prepare for Hostinger deployment"
+   ```
+
+3. Upload to GitHub:
+
+   ```bash
+   git push origin main
+   ```
+
+   If Git asks you to sign in, a browser window opens; sign in with the GitHub account that has access to `algamayan-ctrl/spmuacpmp`.
+
+4. Confirm the laptop and GitHub match:
+
+   ```bash
+   git status -sb
+   ```
+
+   The first line must be exactly `## main...origin/main` (no `ahead` or `behind`).
+
+### A4. (Only if your work is on another branch) Merge it with a pull request
+
+🌐 <https://github.com/algamayan-ctrl/spmuacpmp>:
+
+1. Click the yellow **Compare & pull request** banner, or **Pull requests → New pull request**.
+2. Set **base:** `main` and **compare:** your branch.
+3. Confirm **✓ Able to merge** → **Create pull request** → **Merge pull request → Confirm merge**.
+4. 🖥 Laptop: `git switch main` then `git pull` so your laptop has the merged `main`.
+
+### A5. Check GitHub has the deployment files
+
+🌐 <https://github.com/algamayan-ctrl/spmuacpmp>, branch selector (top left) on **main**. These must be in the file list:
+
+- `Dockerfile`, `docker-compose.yml`, `docker-compose.hostinger.yml` (top level)
+- `docker/entrypoint.sh`, `docker/php-production.ini`
 - `tools/make-hostinger-env.sh`
+- `docs/DEPLOYMENT-HOSTINGER-CLOUDFLARE.md` (this guide)
 
-**A1. Check whether `main` already has them.** 🌐 Browser:
+And these must **not** be there: `.env`, `.env.docker`, `tunnel.env`.
 
-1. Open <https://github.com/arbasagre-ctrl/capstone-spmu-acpmp>.
-2. Make sure the branch selector (top left) shows **main**.
-3. Look for `docker-compose.hostinger.yml` in the file list and `make-hostinger-env.sh` inside the `tools` folder.
-
-If both exist, skip to Part B. If not, continue.
-
-**A2. Push your branch.** 🖥 Laptop, in the project folder:
-
-```bash
-git status
-```
-
-It must say *nothing to commit, working tree clean*. If it doesn't, commit first (`git add -A`, then `git commit -m "..."`). Then push:
-
-```bash
-git push
-```
-
-**A3. Open and merge a pull request.** 🌐 Browser:
-
-1. On the repository page, click the yellow **Compare & pull request** banner. If there's no banner, go to **Pull requests → New pull request**.
-2. Set **base:** `main` and **compare:** your branch (for example `final-spmu-acpmp`).
-3. Confirm it says **✓ Able to merge**.
-4. Title: `Add Hostinger + Cloudflare deployment files`. Click **Create pull request**.
-5. Click **Merge pull request → Confirm merge**.
-6. Repeat A1 to confirm the files are now on `main`.
-
-- [ ] Deployment files are on `main`
+- [ ] No secret files tracked by Git
+- [ ] Latest work committed and pushed; `git status -sb` shows `## main...origin/main`
+- [ ] Deployment files visible on GitHub `main`
 
 ---
 
@@ -151,6 +230,16 @@ git push
 ### B1. Choose the plan
 
 **Choose a KVM VPS. Do not buy shared hosting.** Premium, Business and Cloud hosting cannot run Docker, the background queue and scheduler, LibreOffice document conversion, or MariaDB 11.4.
+
+Why a VPS, based on what is in the project folder:
+
+| In the code | Needs |
+|---|---|
+| `Dockerfile`, `docker-compose.yml` | Docker (root access), only available on a VPS |
+| `Dockerfile` installs LibreOffice, Ghostscript, Tesseract OCR | Installing system programs; shared hosting forbids it |
+| `queue` and `scheduler` services (`queue:work`, `schedule:work`) | Programs that run 24/7; shared hosting stops them |
+| `mariadb:11.4` | A database version shared hosting may not offer |
+| Composer package `laravel/framework` 13, PHP 8.4 | Provided by the Docker image, so the VPS PHP version doesn't matter |
 
 | Plan | Specs | Use it? |
 |---|---|---|
@@ -162,16 +251,19 @@ The promo price requires a long prepaid term, and renewal costs more. Check the 
 
 ### B2. Buy and configure
 
-🌐 Browser, <https://www.hostinger.com/ph/vps-hosting>:
+🌐 Browser, <https://www.hostinger.com/ph/vps-hosting> (or in <https://hpanel.hostinger.com/>: left menu **VPS** → **Add VPS** / **Buy VPS**):
 
 1. Click **Choose plan** under **KVM 2**, pick the billing period, and pay.
-2. In the setup wizard:
+2. Back in <https://hpanel.hostinger.com/>, the new server appears under the left menu **VPS**. Click **Setup** (or **Manage**) next to it to start the setup wizard.
+3. In the setup wizard:
    - **Location:** the closest to the Philippines that is offered (Malaysia, Singapore or India).
    - **Operating system:** tab **OS with Application** (or *Applications*) → **Ubuntu 24.04 with Docker**. If it's missing, choose plain **Ubuntu 24.04 LTS**; Docker is installed in Part E.
    - **Root password:** a strong, unique password. Save it in a password manager.
    - **SSH key:** optional; you can skip it.
    - Skip any free malware scanner or panel offers.
-3. Wait until the VPS status shows **Running** (a few minutes).
+4. Wait until the VPS status shows **Running** (a few minutes).
+
+You don't need hPanel's **Docker Manager**, **Website builder**, **hosting** or **DNS** pages: Docker is driven from the command line (Part K) and DNS is managed in Cloudflare (Part D).
 
 If the VPS was already created with a different OS: hPanel → **VPS → OS & Panel → Operating System** → choose **Ubuntu 24.04 with Docker** → **Change OS**. This **erases** the VPS, so only do it before deploying.
 
@@ -219,7 +311,9 @@ Why "Any" and not your IP: home and school IP addresses change, and a "Custom" r
 
 ### D1. Make the domain Active
 
-🌐 Cloudflare dashboard → select **spmu-acpmp.tech** → **Overview**.
+🌐 Open your Cloudflare account home, <https://dash.cloudflare.com/54f5f8f9eaed1396dd5936154a2ed27f/home>. Under **Domains** (or **Websites**), click **spmu-acpmp.tech** → **Overview**.
+
+If the domain isn't listed yet: click **+ Add** → **Connect a domain** (or **Add a site**) → type `spmu-acpmp.tech` → choose the **Free** plan → continue. Cloudflare then shows the two nameservers used below.
 
 - If it says **Active**, go to D2.
 - If it says **Pending** / *nameserver update*, Cloudflare shows two nameservers (like `xxx.ns.cloudflare.com` and `yyy.ns.cloudflare.com`). Set them where the domain was **bought**:
@@ -361,77 +455,33 @@ An empty table (headers only) is correct. *Permission denied* means the group ch
 
 ## Part F. Download the code onto the VPS
 
-The repository is private, so the VPS needs its own **read-only deploy key** to download it.
+The repository <https://github.com/algamayan-ctrl/spmuacpmp> is **public**, so the VPS can download it directly with no password or key.
 
-### F1. Create the key
+### F1. Create the folder
 
-🐧 VPS (as `deploy`). Run these one at a time:
-
-```bash
-mkdir -p ~/.ssh && chmod 700 ~/.ssh
-```
-
-```bash
-ssh-keygen -t ed25519 -C "spmu-vps" -f ~/.ssh/spmu_deploy -N ""
-```
-
-Nothing in these commands needs to be changed. `-C "spmu-vps"` is just a label. `-N ""` means no passphrase, so the server can download updates without asking.
-
-### F2. Copy the PUBLIC key
-
-🐧 VPS:
-
-```bash
-cat ~/.ssh/spmu_deploy.pub
-```
-
-Select and copy the **whole single line**: it starts with `ssh-ed25519` and ends with `spmu-vps`.
-
-This is the **public** key (`.pub`), which is safe to paste into GitHub. **Never** show or copy `~/.ssh/spmu_deploy` (without `.pub`).
-
-### F3. Add it to GitHub
-
-🌐 <https://github.com/arbasagre-ctrl/capstone-spmu-acpmp> → **Settings** → left menu **Deploy keys** → **Add deploy key**:
-
-| Field | Value |
-|---|---|
-| Title | `Hostinger VPS` |
-| Key | paste the line from F2 |
-| Allow write access | **leave unchecked** |
-
-Click **Add key**. If you don't see **Settings**, you're not an admin of the repository: send the public key line to the owner and ask them to add it.
-
-### F4. Tell the VPS to use the key, then test it
-
-🐧 VPS:
-
-```bash
-printf 'Host github.com\n  IdentityFile ~/.ssh/spmu_deploy\n' >> ~/.ssh/config && chmod 600 ~/.ssh/config
-```
-
-```bash
-ssh -T git@github.com
-```
-
-Type `yes` to the first-time question. **Success message:** *"Hi arbasagre-ctrl/capstone-spmu-acpmp! You've successfully authenticated, but GitHub does not provide shell access."* (it says "exit 1"; that's normal). *Permission denied (publickey)* means F3 wasn't saved or the wrong line was pasted.
-
-### F5. Clone the code into `/opt/spmu`
-
-🐧 VPS:
+🐧 VPS (as `deploy`):
 
 ```bash
 sudo mkdir -p /opt/spmu && sudo chown deploy:deploy /opt/spmu
 ```
 
+It asks for the `deploy` password (nothing shows while typing).
+
+### F2. Clone the code into `/opt/spmu`
+
+🐧 VPS:
+
 ```bash
-git clone git@github.com:arbasagre-ctrl/capstone-spmu-acpmp.git /opt/spmu
+git clone https://github.com/algamayan-ctrl/spmuacpmp.git /opt/spmu
 ```
 
 ```bash
 cd /opt/spmu && git switch main && git log --oneline -1
 ```
 
-### F6. Confirm the deployment files are there
+The last line shows the newest commit. It must match the newest commit on GitHub (🌐 repository page, the line above the file list) and on the laptop (`git log --oneline -1`).
+
+### F3. Confirm the deployment files are there
 
 🐧 VPS:
 
@@ -439,9 +489,38 @@ cd /opt/spmu && git switch main && git log --oneline -1
 ls docker-compose.hostinger.yml tools/make-hostinger-env.sh docs/DEPLOYMENT-HOSTINGER-CLOUDFLARE.md
 ```
 
-All three names must print with no *No such file* error. If any is missing, Part A wasn't completed. Finish it, then run `git pull`.
+All three names must print with no *No such file* error. If any is missing, Part A wasn't completed. Finish it, then run `git pull` here.
 
-- [ ] Code is in `/opt/spmu` on `main`, deployment files present
+### F4. (Only if the repository is later made private) Add a read-only deploy key
+
+If someone switches the repository to **Private**, `git pull` on the VPS starts failing with *Authentication failed* or *Repository not found*. Fix it with a read-only key:
+
+1. 🐧 VPS: create the key (nothing needs to be changed in this command):
+
+   ```bash
+   mkdir -p ~/.ssh && chmod 700 ~/.ssh && ssh-keygen -t ed25519 -C "spmu-vps" -f ~/.ssh/spmu_deploy -N ""
+   ```
+
+2. 🐧 VPS: show the **public** key and copy the whole single line (starts with `ssh-ed25519`, ends with `spmu-vps`). Never copy `~/.ssh/spmu_deploy` (without `.pub`).
+
+   ```bash
+   cat ~/.ssh/spmu_deploy.pub
+   ```
+
+3. 🌐 <https://github.com/algamayan-ctrl/spmuacpmp> → **Settings** → **Deploy keys** → **Add deploy key** → Title `Hostinger VPS`, paste the key, leave **Allow write access** unchecked → **Add key**.
+4. 🐧 VPS: use the key and switch the download address to SSH:
+
+   ```bash
+   printf 'Host github.com\n  IdentityFile ~/.ssh/spmu_deploy\n' >> ~/.ssh/config && chmod 600 ~/.ssh/config
+   ```
+
+   ```bash
+   cd /opt/spmu && git remote set-url origin git@github.com:algamayan-ctrl/spmuacpmp.git && ssh -T git@github.com
+   ```
+
+   Type `yes` to the first-time question. Success: *"Hi algamayan-ctrl/spmuacpmp! You've successfully authenticated..."*. After that, `git pull` works again.
+
+- [ ] Code is in `/opt/spmu` on `main`, same commit as GitHub, deployment files present
 
 ---
 
@@ -696,6 +775,7 @@ You don't need to edit anything after the script. This table explains each value
 | `SESSION_SECURE_COOKIE` | `true` | `false` | Cookies only over HTTPS |
 | `SESSION_IDLE_TIMEOUT` | `15` | `1` | `1` logged users out after one idle minute |
 | `TRUSTED_PROXIES` | `172.30.0.0/24` | *(missing)* | **Required.** Without it, Google sign-in redirects to itself in a loop. |
+| `CANONICAL_HOST_REDIRECT` | `false` at first; `true` after Part M4 | `true` (local) | Sends visitors who arrive by another hostname to `APP_URL`. Cloudflare's `www` redirect (Part I5) already covers the usual case. |
 | `MAIL_SCHEME` | `smtp` (+ `MAIL_TIMEOUT=15`) | `null` | Correct secure connection for Gmail port 587 |
 | `MAIL_USERNAME`, `MAIL_FROM_ADDRESS` | the Gmail from Part G | old Gmail | The sender of OTP and reset emails |
 | `MAIL_PASSWORD` | the new App Password | old App Password | The old one was shared |
@@ -926,6 +1006,24 @@ Use **Device A** (laptop on Wi-Fi) and **Device B** (phone on **mobile data**, n
 
 One normal limit: a single Google sign-in must start and finish in the **same browser**. Signing in with Google works on every device.
 
+### M4. (Optional) Turn on the canonical-host redirect
+
+Do this only after all M3 tests pass. It makes the app itself send any other hostname to `https://spmu-acpmp.tech`, as a second layer behind Cloudflare's `www` redirect.
+
+🐧 VPS:
+
+```bash
+cd /opt/spmu && sed -i 's/^CANONICAL_HOST_REDIRECT=.*/CANONICAL_HOST_REDIRECT=true/' .env.docker && grep '^CANONICAL_HOST_REDIRECT' .env.docker
+```
+
+It must print `CANONICAL_HOST_REDIRECT=true`. (If it prints nothing, the line is missing: run `echo 'CANONICAL_HOST_REDIRECT=true' >> .env.docker`.) Apply it:
+
+```bash
+docker compose up -d --force-recreate app queue scheduler
+```
+
+🌐 Reload `https://spmu-acpmp.tech` and sign in once more. If the browser reports *too many redirects*, set the value back to `false` and recreate again; then check Part P (the tunnel is not forwarding the public hostname).
+
 - [ ] M1 PASS, test email received
 - [ ] M2 PASS except the expected S3 row
 - [ ] All 9 two-device tests pass
@@ -1060,7 +1158,8 @@ Keep these in the team password manager, **never** in Git or chat: `APP_KEY`, th
 |---|---|---|
 | `printf is not recognized`, `New-Item ... already exists`, prompt shows `PS C:\` | VPS command typed on the Windows laptop | Run `ssh deploy@YOUR_VPS_IP` first (Part E6) |
 | `ssh: connect to host ... timed out` | Firewall blocks port 22, or wrong IP | Check Part C (rule + **Synchronize**); use hPanel **Browser terminal** |
-| `Permission denied (publickey)` when cloning | Deploy key missing or wrong | Redo F2–F4; the key line must start with `ssh-ed25519` |
+| `git clone` / `git pull`: *Repository not found* or *Authentication failed* | Repository was made private, or the URL is mistyped | URL must be `https://github.com/algamayan-ctrl/spmuacpmp.git`; if private, add a deploy key (Part F4) |
+| `Permission denied (publickey)` when pulling | Deploy key missing or wrong (private repository only) | Redo Part F4; the key line must start with `ssh-ed25519` |
 | `permission denied ... docker.sock` | `deploy` was added to the docker group but hasn't logged in again | `exit`, then `ssh deploy@YOUR_VPS_IP` again |
 | `docker compose config` error about `!override` | Docker Compose older than v2.24.4 | Update Docker (Part E3) |
 | `env file ... tunnel.env not found` | Token file missing | Part I3 |
@@ -1153,5 +1252,59 @@ docker compose up -d --force-recreate app queue scheduler   # apply .env.docker 
 docker compose exec app php artisan spmu:auth-readiness --json --check-smtp   # auth check
 nano .env.docker                            # edit settings (Ctrl+O, Enter, Ctrl+X)
 ```
+
+## Appendix 3. Where everything is located
+
+### Websites and dashboards
+
+| I need to... | Go to |
+|---|---|
+| See or merge the code | 🌐 <https://github.com/algamayan-ctrl/spmuacpmp> (branch **main**) |
+| Buy / manage the VPS, get its IP, open the Browser terminal | 🌐 <https://hpanel.hostinger.com/> → left menu **VPS** → your server → **Overview** |
+| Hostinger firewall (port 22) | hPanel → **VPS** → your server → **Security → Firewall** |
+| VPS snapshots and weekly backups | hPanel → **VPS** → your server → **Backups & Monitoring** |
+| Reinstall the VPS operating system (erases it) | hPanel → **VPS** → your server → **OS & Panel → Operating System** |
+| Domain status, nameservers | 🌐 <https://dash.cloudflare.com/54f5f8f9eaed1396dd5936154a2ed27f/home> → **spmu-acpmp.tech** → **Overview** |
+| DNS records (tunnel CNAME, `www`) | Cloudflare → **spmu-acpmp.tech** → **DNS → Records** |
+| SSL/TLS mode, Always Use HTTPS | Cloudflare → **spmu-acpmp.tech** → **SSL/TLS** (or **Ctrl+K** and type the name) |
+| `www` → root redirect | Cloudflare → **spmu-acpmp.tech** → **Rules** |
+| Tunnel, its token and route (`app:80`) | Cloudflare → **Networking → Tunnels** or **Zero Trust → Networks → Tunnels** → `spmu-acpmp` |
+| Google sign-in client, redirect URI, test users | 🌐 <https://console.cloud.google.com/auth/clients> (pick the project in the top bar) → **Clients / Branding / Audience** |
+| Gmail 2-Step Verification and App Passwords | 🌐 <https://myaccount.google.com/security> and <https://myaccount.google.com/apppasswords> (signed in as the sender Gmail) |
+
+### Files on the laptop (`C:\Users\Admin\capstone-spmu-acpmp`)
+
+| Path | What it is |
+|---|---|
+| `docs\DEPLOYMENT-HOSTINGER-CLOUDFLARE.md` | This guide |
+| `Dockerfile`, `docker-compose.yml`, `docker-compose.hostinger.yml` | How the server builds and runs the system |
+| `docker\entrypoint.sh` | Startup steps (migrations, reference data) |
+| `tools\make-hostinger-env.sh` | Creates `.env.docker` on the VPS (Part J) |
+| `.env.docker.example` | Template showing every production setting (placeholders only) |
+| `.env`, `.env.docker` | **Your local** settings. Ignored by Git; never upload them. |
+| `app\Http\Controllers\Auth\` | Login, Google sign-in, OTP verification, password reset |
+| `config\services.php`, `config\mail.php`, `config\auth.php` | Read Google, email and reset settings from `.env.docker` |
+
+### Files and folders on the VPS
+
+| Path | What it is |
+|---|---|
+| `/opt/spmu` | The code (a copy of GitHub `main`). Run every `docker compose` command here. |
+| `/opt/spmu/.env.docker` | **Live settings and secrets** (only `deploy` can read it) |
+| `/opt/spmu/tunnel.env` | Cloudflare Tunnel token |
+| `/opt/spmu/.env.docker.before-*` | Automatic backups made by the helper script |
+| `~/backups/` (`/home/deploy/backups`) | Application backups (Part O) |
+| Docker volume `spmu_database_data` | The MariaDB database. Never delete it. |
+| Docker volume `spmu_application_storage` | Uploaded files, generated documents, logs. Never delete it. |
+| `~/.bashrc` | Holds `COMPOSE_FILE=...` (Part K1) |
+
+### Where to type commands
+
+| Command starts with / mentions | Type it in |
+|---|---|
+| `git add`, `git commit`, `git push`, `ssh deploy@...`, `scp` | 🖥 Laptop: VS Code **Terminal → New Terminal**, or PowerShell, in `C:\Users\Admin\capstone-spmu-acpmp` |
+| `apt`, `adduser`, `usermod`, `ufw` | 🐧 VPS as **root** (Part E only) |
+| `docker compose ...`, `git pull`, `nano .env.docker`, `bash tools/...` | 🐧 VPS as **deploy**, inside `/opt/spmu` |
+| `php artisan ...` | 🐧 VPS, always wrapped as `docker compose exec app php artisan ...` |
 
 Related documents: [AUTH-PUBLIC-DEPLOYMENT.md](AUTH-PUBLIC-DEPLOYMENT.md), [GOOGLE-EMAIL-SETUP.md](GOOGLE-EMAIL-SETUP.md), [DEPLOYMENT-ICTU.md](DEPLOYMENT-ICTU.md), [BACKUP-RESTORE-RUNBOOK.md](BACKUP-RESTORE-RUNBOOK.md).

@@ -3,7 +3,7 @@
 # Run on the VPS from the project folder:  bash tools/make-hostinger-env.sh
 # Database passwords and APP_KEY are generated here, on the server. The Google
 # client secret and Gmail App Password are typed in hidden and never echoed.
-# See docs/DEPLOYMENT-HOSTINGER-CLOUDFLARE.md, section 8.
+# See docs/DEPLOYMENT-HOSTINGER-CLOUDFLARE.md, Part J.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -84,6 +84,8 @@ SESSION_DOMAIN=null
 SESSION_PATH=/
 # The Docker network cloudflared runs on (docker-compose.hostinger.yml).
 TRUSTED_PROXIES=172.30.0.0/24
+# Set to true only after the live site passes the guide's Part M tests (Part M4).
+CANONICAL_HOST_REDIRECT=false
 QUEUE_CONNECTION=database
 CACHE_STORE=database
 FILESYSTEM_DISK=local
@@ -116,4 +118,4 @@ echo "Google Cloud Console must list exactly:"
 echo "  JavaScript origin: https://${domain}"
 echo "  Redirect URI:      https://${domain}/auth/google/callback"
 echo
-echo "Next: docker compose up -d --build   (with COMPOSE_FILE set, guide step 9.2)"
+echo "Next: docker compose up -d --build   (with COMPOSE_FILE set, guide Part K)"

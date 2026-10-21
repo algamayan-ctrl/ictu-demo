@@ -455,11 +455,30 @@
     border-color: rgba(255,255,255,.22) !important;
 }
 
-/* -----------------------------------
-   Open Accountability Cases = ORANGE/RED
-   ----------------------------------- */
+/* ------------------------------------------------
+   Pending Physical Verification = AMBER / ORANGE
+   ------------------------------------------------ */
+[data-accountability-card-label="Pending Physical Verification"] {
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%) !important;
+    color: #ffffff !important;
+}
+
+[data-accountability-card-label="Pending Physical Verification"] * {
+    color: inherit !important;
+}
+
+[data-accountability-card-label="Pending Physical Verification"] .accountability-overview-icon,
+[data-accountability-card-label="Pending Physical Verification"] .overview-card-icon,
+[data-accountability-card-label="Pending Physical Verification"] [class*="overview-icon"] {
+    background: rgba(255,255,255,.14) !important;
+    border-color: rgba(255,255,255,.22) !important;
+}
+
+/* ------------------------------------
+   Open Accountability Cases = RED
+   ------------------------------------ */
 [data-accountability-card-label="Open Accountability Cases"] {
-    background: linear-gradient(135deg, #ef442f 0%, #f77f2f 100%) !important;
+    background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%) !important;
     color: #ffffff !important;
 }
 

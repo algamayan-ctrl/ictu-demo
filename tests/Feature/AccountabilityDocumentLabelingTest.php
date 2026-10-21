@@ -562,10 +562,10 @@ class AccountabilityDocumentLabelingTest extends TestCase
     }
 
     /* ------------------------------------------------------------------ */
-    /* 3. Borrower-facing specific RSLDDP stage labels                    */
+    /* 3. Request Records keeps accountability stages out of borrower rows */
     /* ------------------------------------------------------------------ */
 
-    public function test_borrower_my_borrowings_and_my_requests_show_the_specific_current_rslddp_stage(): void
+    public function test_borrower_request_records_keep_an_accountability_case_out_of_the_borrowing_status(): void
     {
         $borrower = $this->borrower();
         $custody = $this->custody($borrower, 'OBLIGATION_OPEN');
@@ -599,7 +599,7 @@ class AccountabilityDocumentLabelingTest extends TestCase
             ->get(route('requests.index'));
 
         $myRequests->assertOk()
-            ->assertSee('For Accounting Processing')
+            ->assertSee('Completed')
             ->assertDontSee('>Rslddp For Accounting Processing<', false)
             ->assertDontSee('>RSLDDP_FOR_ACCOUNTING_PROCESSING<', false)
             ->assertDontSee('Accountability Pending')

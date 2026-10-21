@@ -32,6 +32,7 @@
     data-borrower-inventory-row
     data-search="{{ $searchText }}"
     data-category="{{ strtolower($categoryName) }}"
+    data-premises="{{ $item->off_campus_allowed ? 'off-campus' : 'on-campus' }}"
 >
     <td class="col-number" data-row-number></td>
 

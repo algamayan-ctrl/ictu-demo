@@ -16,28 +16,38 @@
     $custodyWorkflow = $custody?->workflowStatus();
 
     // SPMU still recording the accomplished Gate Pass is internal SPMU
-    // processing, not a borrower obligation - never show it as
-    // "Accountability Pending" in the borrower's own My Requests list.
+    // processing, not a borrower obligation or a separate request status.
     $gatePassOnlyPending = $custody?->isGatePassOnlyPending() ?? false;
     $effectiveWorkflowGroup = $gatePassOnlyPending ? 'return' : ($custodyWorkflow['group'] ?? null);
+    $accountabilityKeys = [
+        'INCIDENT_OPEN', 'OBLIGATION_OPEN', 'FOR_BILLING',
+        'BILLING_PENDING', 'BILLING_OPEN', 'BILLING_ISSUED',
+        'PAYMENT_VERIFICATION', 'RECEIPT_SUBMITTED',
+        'COMPLIANCE_REQUIRED', 'COMPLIANCE_RSLDDP_PENDING',
+        'F2F_PROCESSING', 'RSLDDP_AWAITING_UPLOAD',
+        'RSLDDP_FOR_ACCOUNTING_PROCESSING', 'RSLDDP_PAYMENT_REQUIRED',
+        'RSLDDP_DISPOSITION_PENDING', 'RSLDDP_COMPLIANCE_VERIFICATION',
+        'RSLDDP_FOR_RESOLUTION', 'BORROWING_RESTRICTED', 'LATE_RETURN',
+    ];
 
     if ($gatePassOnlyPending) {
-        [$statusKey, $statusLabel] = ['GATE_PASS_PROCESSING', 'Gate Pass Processing'];
+        [$statusKey, $statusLabel] = ['COMPLETED', 'Completed'];
+    } elseif ($custodyWorkflow && in_array($custodyWorkflow['key'], $accountabilityKeys, true)) {
+        // Accountability is handled in My Obligations. Request Records only
+        // reports the completed borrowing/return transaction.
+        [$statusKey, $statusLabel] = ['COMPLETED', 'Completed'];
     } elseif ($custodyWorkflow) {
         [$statusKey, $statusLabel] = match ($custodyWorkflow['key']) {
-            'BORROWED' => ['BORROWED', 'Released / On Custody'],
-            'RETURN_PROCESSING' => ['RETURN_PROCESSING', 'Return Processing'],
+            'BORROWED' => ['ON_CUSTODY', 'On Custody'],
+            'RETURN_PROCESSING', 'LINEN_PENDING', 'GATE_PASS_PENDING' => ['ON_CUSTODY', 'On Custody'],
             'OVERDUE' => ['OVERDUE', 'Overdue'],
-            'INCIDENT_OPEN' => ['ACCOUNTABILITY_PENDING', 'Accountability Pending'],
-            'OBLIGATION_OPEN' => ['OBLIGATION_OPEN', 'Accountability Pending'],
             'COMPLETED' => ['COMPLETED', 'Completed'],
-            'BORROWER_CLEARED' => ['BORROWER_CLEARED', 'Borrower Cleared'],
+            'BORROWER_CLEARED' => ['COMPLETED', 'Completed'],
             'CANCELLED' => ['CANCELLED', 'Cancelled'],
-            'READY_FOR_RELEASE' => ['READY_FOR_RELEASE', 'Ready for Release'],
+            'READY_FOR_RELEASE' => ['READY_FOR_PICKUP', 'Ready for Pickup'],
             'PICKUP_SCHEDULED' => ['PICKUP_SCHEDULED', 'Pickup Scheduled'],
-            'ITEM_PREPARATION' => ['ITEM_PREPARATION', 'For Item Preparation'],
-            'PICKUP_SCHEDULING' => ['PICKUP_SCHEDULING', 'For Pickup Scheduling'],
-            'PICKUP_EXPIRED' => ['PICKUP_EXPIRED', 'Pickup Missed'],
+            'ITEM_PREPARATION', 'PICKUP_SCHEDULING', 'PREPARING_RELEASE' => ['FOR_ISSUANCE', 'For Issuance'],
+            'PICKUP_EXPIRED' => ['MISSED_PICKUP', 'Missed Pickup'],
             default => [$custodyWorkflow['key'], $custodyWorkflow['label']],
         };
     } else {
@@ -46,18 +56,16 @@
                 => ['DRAFT', 'Draft'],
 
             App\Enums\RequestStatus::ReturnedForRevision
-                => ['RETURNED_FOR_REVISION', 'Returned for Revision'],
+                => ['NEEDS_REVISION', 'Needs Revision'],
 
             App\Enums\RequestStatus::UnderSpmu,
             App\Enums\RequestStatus::UnderGsu,
             App\Enums\RequestStatus::UnderVpaf
-                => ['UNDER_SPMU', 'Under SPMU Review'],
+                => ['FOR_REVIEW', 'For Review'],
 
-            App\Enums\RequestStatus::ApprovedReadyForRelease
-                => ['APPROVED_READY_FOR_RELEASE', 'Ready for Release'],
-
+            App\Enums\RequestStatus::ApprovedReadyForRelease,
             App\Enums\RequestStatus::FinalApprovedAwaitingDownload
-                => ['FINAL_APPROVED_AWAITING_DOWNLOAD', 'Approved'],
+                => ['FOR_ISSUANCE', 'For Issuance'],
 
             App\Enums\RequestStatus::Rejected
                 => ['REJECTED', 'Rejected'],
@@ -66,9 +74,9 @@
                 => ['CANCELLED', 'Cancelled'],
 
             App\Enums\RequestStatus::Expired
-                => ['INACTIVE', 'Inactive'],
+                => ['CANCELLED', 'Cancelled'],
 
-            default => ['SUBMITTED', 'In Progress'],
+            default => ['FOR_REVIEW', 'For Review'],
         };
     }
 
@@ -85,30 +93,12 @@
     ) || (($custodyWorkflow['key'] ?? null) === 'PICKUP_EXPIRED');
 
     $statusGroup = match (true) {
-        $effectiveWorkflowGroup === 'completed' => 'completed',
-        $effectiveWorkflowGroup === 'cancelled' => 'closed',
-        $effectiveWorkflowGroup === 'attention' => 'attention',
+        $statusKey === 'COMPLETED' => 'completed',
+        in_array($statusKey, ['CANCELLED', 'REJECTED'], true) => 'closed',
+        in_array($statusKey, ['MISSED_PICKUP', 'OVERDUE'], true) => 'attention',
         $requiresAction => 'action',
-        in_array($effectiveWorkflowGroup, ['custody', 'return'], true) => 'custody',
-        $effectiveWorkflowGroup === 'release' => 'approved',
-
-        in_array($requestStatus, [
-            App\Enums\RequestStatus::UnderSpmu,
-            App\Enums\RequestStatus::UnderGsu,
-            App\Enums\RequestStatus::UnderVpaf,
-        ], true) => 'review',
-
-        in_array($requestStatus, [
-            App\Enums\RequestStatus::FinalApprovedAwaitingDownload,
-            App\Enums\RequestStatus::ApprovedReadyForRelease,
-        ], true) => 'approved',
-
-        in_array($requestStatus, [
-            App\Enums\RequestStatus::Rejected,
-            App\Enums\RequestStatus::Cancelled,
-            App\Enums\RequestStatus::Expired,
-        ], true) => 'closed',
-
+        $statusKey === 'ON_CUSTODY' => 'custody',
+        in_array($statusKey, ['PICKUP_SCHEDULED', 'FOR_ISSUANCE', 'READY_FOR_PICKUP'], true) => 'approved',
         default => 'review',
     };
 
@@ -139,9 +129,8 @@
     $isDraft = $request->status === \App\Enums\RequestStatus::Draft;
 
     $rowToneClass = match (true) {
-        ($custodyWorkflow['key'] ?? $statusKey) === 'OVERDUE' => 'is-danger',
-        $effectiveWorkflowGroup === 'attention' => 'is-warning',
-        $requiresAction || $statusKey === 'RETURN_PROCESSING' => 'is-warning',
+        $statusKey === 'OVERDUE' => 'is-danger',
+        $statusKey === 'MISSED_PICKUP' || $requiresAction => 'is-warning',
         default => '',
     };
 @endphp
@@ -150,6 +139,7 @@
     class="operational-record ui-pressable {{ $rowToneClass }}"
     href="{{ $isDraft ? route('requests.edit', $request) : route('requests.show', $request) }}"
     data-request-card
+    data-status="{{ $statusKey }}"
     data-status-group="{{ $statusGroup }}"
     data-search="{{ $searchText }}"
     data-submitted="{{ optional($submittedAt)->timestamp ?? 0 }}"

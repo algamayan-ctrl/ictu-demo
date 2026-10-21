@@ -21,7 +21,6 @@ use App\Models\OverdueCase;
 use App\Models\Penalty;
 use App\Models\ReturnLine;
 use App\Models\ReturnTransaction;
-use App\Models\StoredFile;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -1584,11 +1583,11 @@ class CustodyService
         }, 3);
     }
 
-    public function receiveReturn(CustodyTransaction $custody, User $spmu, array $quantities, array $conditions, ?string $remarks, array $policeBlotterReferences = [], array $evidenceFileIds = [], array $conditionBreakdowns = [], ?\Carbon\Carbon $laundryReceivedOn = null, ?string $physicalReturnDate = null, ?string $physicalReturnReason = null, ?int $physicalEvidenceFileId = null): ReturnTransaction
+    public function receiveReturn(CustodyTransaction $custody, User $spmu, array $quantities, array $conditions, ?string $remarks, array $policeBlotterReferences = [], array $evidenceFileIds = [], array $conditionBreakdowns = [], ?\Carbon\Carbon $laundryReceivedOn = null, ?string $physicalReturnDate = null): ReturnTransaction
     {
         abort_unless($spmu->access_classification === AccessClassification::SpmuOfficer && $custody->borrower_user_id !== $spmu->id, 403);
 
-        return DB::transaction(function () use ($custody, $spmu, $quantities, $conditions, $remarks, $policeBlotterReferences, $evidenceFileIds, $conditionBreakdowns, $laundryReceivedOn, $physicalReturnDate, $physicalReturnReason, $physicalEvidenceFileId): ReturnTransaction {
+        return DB::transaction(function () use ($custody, $spmu, $quantities, $conditions, $remarks, $policeBlotterReferences, $evidenceFileIds, $conditionBreakdowns, $laundryReceivedOn, $physicalReturnDate): ReturnTransaction {
             $custody = CustodyTransaction::query()->lockForUpdate()->findOrFail($custody->id);
             $custody = $this->operationalCalendar->synchronizeCustodyDueDate($custody, $this->audit);
             $this->operationalCalendar->assertOpenFor(
@@ -1866,9 +1865,6 @@ class CustodyService
             $returnReceivedAt = now();
             $physicalReturnOn = null;
             $physicalReturnSource = null;
-            $physicalReturnReasonForRecord = null;
-            $physicalReceiptEvidenceForRecord = null;
-
             if ($nonLinenReturn) {
                 $todayDate = now()->toDateString();
                 $selectedDate = trim((string) ($physicalReturnDate ?: $todayDate));
@@ -1892,24 +1888,7 @@ class CustodyService
 
                 $physicalReturnSource = $selectedDate === $todayDate
                     ? 'AO_SAME_DAY'
-                    : 'SIGNED_RETURN_ACKNOWLEDGMENT';
-
-                if ($selectedDate < $todayDate) {
-                    $physicalReturnReasonForRecord = trim((string) $physicalReturnReason);
-                    if (mb_strlen($physicalReturnReasonForRecord) < 15) {
-                        throw ValidationException::withMessages([
-                            'physical_return_reason' => 'For delayed recording, explain why the actual physical receipt was encoded later (at least 15 characters).',
-                        ]);
-                    }
-                    if (! $physicalEvidenceFileId || ! StoredFile::query()
-                        ->whereKey($physicalEvidenceFileId)
-                        ->where('classification', 'RETURN_RECEIPT_EVIDENCE')->exists()) {
-                        throw ValidationException::withMessages([
-                            'physical_return_evidence' => 'Attach the signed Borrower Slip or return acknowledgment to support an earlier physical return date.',
-                        ]);
-                    }
-                    $physicalReceiptEvidenceForRecord = $physicalEvidenceFileId;
-                }
+                    : 'AO_RECORDED_PHYSICAL_DATE';
 
                 $isEarlyReturn = $dueDate && $physicalReturnOn->lt($dueDate);
                 $isOverdueReturn = $dueDate && $physicalReturnOn->gt($dueDate);
@@ -1990,8 +1969,10 @@ class CustodyService
                 'received_at' => $returnReceivedAt,
                 'physical_return_date' => $physicalReturnOn?->toDateString(),
                 'physical_return_source' => $physicalReturnSource,
-                'physical_return_reason' => $physicalReturnReasonForRecord,
-                'physical_return_evidence_file_id' => $physicalReceiptEvidenceForRecord,
+                // Preserve these legacy columns for historical records. New
+                // Return Inspections no longer ask for or require them.
+                'physical_return_reason' => null,
+                'physical_return_evidence_file_id' => null,
                 'status' => 'INSPECTED',
                 'remarks' => $remarks,
             ]);

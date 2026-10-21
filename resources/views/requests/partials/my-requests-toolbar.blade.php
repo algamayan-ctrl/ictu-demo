@@ -21,13 +21,18 @@
 
         <select id="request-status-filter">
             <option value="all">All statuses</option>
-            <option value="action">Action required</option>
-            <option value="review">Under review</option>
-            <option value="approved">Approved / release</option>
-            <option value="custody">Released / on custody</option>
-            <option value="attention">Needs attention / accountability</option>
-            <option value="completed">Completed</option>
-            <option value="closed">Rejected / cancelled / inactive</option>
+            <option value="DRAFT">Draft</option>
+            <option value="FOR_REVIEW">For Review</option>
+            <option value="NEEDS_REVISION">Needs Revision</option>
+            <option value="PICKUP_SCHEDULED">Pickup Scheduled</option>
+            <option value="FOR_ISSUANCE">For Issuance</option>
+            <option value="READY_FOR_PICKUP">Ready for Pickup</option>
+            <option value="MISSED_PICKUP">Missed Pickup</option>
+            <option value="ON_CUSTODY">On Custody</option>
+            <option value="OVERDUE">Overdue</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELLED">Cancelled</option>
+            <option value="REJECTED">Rejected</option>
         </select>
     </label>
 

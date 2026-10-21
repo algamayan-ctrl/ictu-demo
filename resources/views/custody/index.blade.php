@@ -91,21 +91,26 @@
 
 
     /*
-     * Release/Return status filters are built from the same status shown on
-     * each transaction row. This keeps the dropdown aligned with workflow
-     * wording instead of maintaining a second, stale list in JavaScript.
+     * The Return workspace is for the physical handover only. Financial,
+     * accountability, gate-pass, and laundry work have their own areas, so
+     * they must not turn this filter into a second accountability queue.
      */
-    $operationalStatusForCustody = static function ($custody): array {
-        $workflow = $custody->workflowStatus();
+    $returnOperationalStatusForCustody = static function ($custody): array {
+        if ((string) $custody->status === 'OVERDUE') {
+            return ['key' => 'OVERDUE', 'label' => 'Overdue'];
+        }
 
-        return ['key' => $workflow['key'], 'label' => $workflow['label']];
+        if (in_array((string) $custody->status, ['RETURN_PROCESSING', 'PARTIALLY_RETURNED', 'EARLY_RETURN'], true)) {
+            return ['key' => 'RETURN_INSPECTION', 'label' => 'Return Inspection'];
+        }
+
+        return ['key' => 'ON_CUSTODY', 'label' => 'On Custody'];
     };
 
     /*
      * Keep each operational filter stable even when its queue is empty. The
-     * options below are the same labels used by workflowStatus(), so an Action
-     * Officer can always filter by a valid stage instead of seeing a dropdown
-     * that changes based on whatever happens to be on screen today.
+     * options below are stable even when a queue is empty, so an Action
+     * Officer can always filter by a valid physical-return stage.
      */
     $releaseFilterStatuses = collect([
         ['key' => 'PICKUP_SCHEDULING', 'label' => 'For Pickup Scheduling'],
@@ -117,33 +122,9 @@
     ]);
 
     $returnFilterStatuses = collect([
-        ['key' => 'BORROWED', 'label' => 'Items Released / On Custody'],
-        ['key' => 'RETURN_PROCESSING', 'label' => 'Return Processing'],
+        ['key' => 'ON_CUSTODY', 'label' => 'On Custody'],
+        ['key' => 'RETURN_INSPECTION', 'label' => 'Return Inspection'],
         ['key' => 'OVERDUE', 'label' => 'Overdue'],
-        ['key' => 'ACCOUNTABILITY_REVIEW', 'label' => 'Accountability Review'],
-        ['key' => 'COMPLIANCE_REQUIRED', 'label' => 'Compliance Required'],
-        ['key' => 'COMPLIANCE_RSLDDP_PENDING', 'label' => 'Compliance Verification (Legacy)'],
-        ['key' => 'F2F_PROCESSING', 'label' => 'Pending In-Person Resolution'],
-        ['key' => 'RSLDDP_AWAITING_UPLOAD', 'label' => 'Pending In-Person Resolution (Legacy)'],
-        ['key' => 'RSLDDP_DISPOSITION_PENDING', 'label' => 'Pending In-Person Resolution (Legacy)'],
-        ['key' => 'RSLDDP_COMPLIANCE_VERIFICATION', 'label' => 'Compliance Verification'],
-        ['key' => 'RSLDDP_FOR_RESOLUTION', 'label' => 'For Final Review'],
-        ['key' => 'BILLING_ISSUED', 'label' => 'Billing Unpaid'],
-        ['key' => 'BILLING_OPEN', 'label' => 'Billing Pending'],
-        ['key' => 'PAYMENT_VERIFICATION', 'label' => 'Payment Verification'],
-        ['key' => 'LATE_RETURN', 'label' => 'Late Return Processing'],
-        ['key' => 'BORROWING_RESTRICTED', 'label' => 'Borrowing Restricted'],
-        ['key' => 'GATE_PASS_PENDING', 'label' => 'Gate Pass Pending'],
-        ['key' => 'LINEN_PENDING', 'label' => 'Linen Pending'],
-        ['key' => 'INCIDENT_OPEN', 'label' => 'Accountability Pending'],
-        ['key' => 'OBLIGATION_OPEN', 'label' => 'Accountability Pending'],
-        // Legacy / historical only - not reachable by any new case, kept so
-        // in-flight legacy custodies remain filterable without presenting
-        // them as current workflow stages.
-        ['key' => 'RSLDDP_FOR_ACCOUNTING_PROCESSING', 'label' => 'For Accounting Processing (Legacy)'],
-        ['key' => 'RSLDDP_PAYMENT_REQUIRED', 'label' => 'Payment Required (Legacy)'],
-        ['key' => 'FOR_BILLING', 'label' => 'Billing Statement Pending (Legacy)'],
-        ['key' => 'BILLING_PENDING', 'label' => 'Billing Pending (Legacy)'],
     ]);
 
     $operationalFilterStatuses = match ($mode) {
@@ -363,8 +344,11 @@
                         && ! $custody->pickup_expired_at;
 
                     $workflowStatus = $custody->workflowStatus();
-                    $operationalLabel = $workflowStatus['label'];
-                    $operationalStatusKey = $workflowStatus['key'];
+                    $physicalReturnStatus = $mode === 'return'
+                        ? $returnOperationalStatusForCustody($custody)
+                        : null;
+                    $operationalLabel = $physicalReturnStatus['label'] ?? $workflowStatus['label'];
+                    $operationalStatusKey = $physicalReturnStatus['key'] ?? $workflowStatus['key'];
                     $operationalFilterStatus = ['key' => $operationalStatusKey, 'label' => $operationalLabel];
                     $isCompleted = $workflowStatus['group'] === 'completed';
                     $isCancelled = $workflowStatus['group'] === 'cancelled';

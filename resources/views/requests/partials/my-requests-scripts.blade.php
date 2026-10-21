@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         cards.forEach((card) => {
             const matchesSearch = !query || (card.dataset.search || '').includes(query);
-            const matchesStatus = status === 'all' || card.dataset.statusGroup === status;
+            const matchesStatus = status === 'all' || card.dataset.status === status;
             const show = matchesSearch && matchesStatus;
 
             card.hidden = !show;

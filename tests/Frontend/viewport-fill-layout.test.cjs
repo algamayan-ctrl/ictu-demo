@@ -98,17 +98,24 @@ test('My Requests (Borrower): the empty panel grows and centers, populated resul
 });
 
 
-test('Return status filter includes the current accountability sub-stages and labels legacy-only stages explicitly', () => {
+test('Return status filter contains physical return stages only', () => {
     for (const status of [
+        'ON_CUSTODY',
+        'RETURN_INSPECTION',
+        'OVERDUE',
+    ]) {
+        assert.match(custodyIndex, new RegExp(`'key' => '${status}'`));
+    }
+
+    for (const unusedStatus of [
         'RSLDDP_DISPOSITION_PENDING',
         'RSLDDP_COMPLIANCE_VERIFICATION',
         'GATE_PASS_PENDING',
         'LINEN_PENDING',
         'BILLING_OPEN',
         'INCIDENT_OPEN',
+        'RSLDDP_FOR_ACCOUNTING_PROCESSING',
     ]) {
-        assert.match(custodyIndex, new RegExp(`'key' => '${status}'`));
+        assert.doesNotMatch(custodyIndex, new RegExp(`'key' => '${unusedStatus}'`));
     }
-    assert.match(custodyIndex, /For Accounting Processing \(Legacy\)/);
-    assert.match(custodyIndex, /Payment Required \(Legacy\)/);
 });

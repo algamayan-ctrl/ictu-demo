@@ -118,7 +118,16 @@ class BorrowingRequestController extends Controller
     public function index(Request $request): View
     {
         $query = BorrowingRequest::query()
-            ->with(['borrower', 'currentVersion.items', 'currentVersion.approvalSteps', 'custody.lines', 'custody.incidents', 'custody.overdueCase'])
+            ->with([
+                'borrower',
+                'currentVersion.items',
+                'currentVersion.approvalSteps',
+                'custody.lines.requestItem.inventoryItem',
+                'custody.returns',
+                'custody.incidents',
+                'custody.laundryJob',
+                'custody.overdueCase',
+            ])
             ->latest();
 
         $workspace = strtoupper(

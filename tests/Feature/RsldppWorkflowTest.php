@@ -862,7 +862,7 @@ class RsldppWorkflowTest extends TestCase
         }
     }
 
-    public function test_custody_return_filter_dropdown_includes_current_rslddp_statuses_and_marks_legacy(): void
+    public function test_custody_return_filter_dropdown_only_includes_physical_return_statuses(): void
     {
         [, $officer] = $this->headAndOfficer();
 
@@ -871,13 +871,23 @@ class RsldppWorkflowTest extends TestCase
             ->get(route('custody.return.index'));
 
         $response->assertOk();
-        $response->assertSee('Pending In-Person Resolution', false);
-        $response->assertSee('For Accounting Processing', false);
-        $response->assertSee('Payment Required', false);
-        $response->assertSee('For Final Review', false);
-        $response->assertSee('Compliance Verification (Legacy)', false);
-        $response->assertSee('Billing Statement Pending (Legacy)', false);
-        $response->assertSee('Billing Pending (Legacy)', false);
+        $response->assertSee('<option value="ON_CUSTODY">On Custody</option>', false);
+        $response->assertSee('<option value="RETURN_INSPECTION">Return Inspection</option>', false);
+        $response->assertSee('<option value="OVERDUE">Overdue</option>', false);
+
+        foreach ([
+            'Accountability Review',
+            'Compliance Required',
+            'Pending In-Person Resolution',
+            'For Final Review',
+            'Billing Pending',
+            'Payment Verification',
+            'Gate Pass Pending',
+            'Linen Pending',
+            'Legacy',
+        ] as $unusedReturnStatus) {
+            $response->assertDontSee($unusedReturnStatus, false);
+        }
     }
 
     public function test_legacy_property_incident_status_remains_filterable_in_accountability_cases_report(): void

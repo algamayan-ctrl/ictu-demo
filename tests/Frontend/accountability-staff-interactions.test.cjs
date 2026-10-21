@@ -38,6 +38,17 @@ test('staff accountability KPI cards are whole-card links with universal navigat
   assert.doesNotMatch(index, /accountability-overview-card[^\n]*is-static/);
 });
 
+test('physical verification and open accountability cards use distinct urgency colors', () => {
+  const pendingRule = index.match(/\[data-accountability-card-label="Pending Physical Verification"\]\s*\{([^}]*)\}/)?.[1] || '';
+  const openRule = index.match(/\[data-accountability-card-label="Open Accountability Cases"\]\s*\{([^}]*)\}/)?.[1] || '';
+
+  assert.match(pendingRule, /#d97706/);
+  assert.match(pendingRule, /#f59e0b/);
+  assert.match(openRule, /#b91c1c/);
+  assert.match(openRule, /#ef4444/);
+  assert.notEqual(pendingRule, openRule);
+});
+
 test('accountability balance focus filters to rows that actually carry an open balance', () => {
   const interactions = fs.readFileSync(path.join(root, 'resources/views/accountability/partials/cases-interactions.blade.php'), 'utf8');
   assert.match(index, /data-has-balance=/);

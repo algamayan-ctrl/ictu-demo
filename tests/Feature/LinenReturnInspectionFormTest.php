@@ -76,6 +76,29 @@ class LinenReturnInspectionFormTest extends TestCase
         );
     }
 
+    public function test_non_linen_earlier_physical_return_date_needs_no_explanation_or_signed_evidence(): void
+    {
+        ['custody' => $custody, 'lines' => $lines] = $this->outstandingCustody(linen: false);
+        $earlierReturnDate = now()->subDay()->toDateString();
+        $custody->update(['released_at' => now()->subDay()->setTime(10, 0)]);
+
+        $this->recordReturn($custody, [
+            $lines['non_linen']->id => ['FINE' => 2],
+        ], [
+            'physical_return_date' => $earlierReturnDate,
+            'remarks' => 'Returned and inspected at the SPMU office.',
+        ])->assertSessionHasNoErrors();
+
+        $return = ReturnTransaction::query()
+            ->where('custody_transaction_id', $custody->id)
+            ->sole();
+
+        $this->assertSame($earlierReturnDate, $return->physical_return_date?->toDateString());
+        $this->assertSame('AO_RECORDED_PHYSICAL_DATE', $return->physical_return_source);
+        $this->assertNull($return->physical_return_reason);
+        $this->assertNull($return->physical_return_evidence_file_id);
+    }
+
     public function test_linen_return_is_blocked_when_the_accomplished_form_is_missing(): void
     {
         ['custody' => $custody, 'lines' => $lines] = $this->outstandingCustody(linen: true);

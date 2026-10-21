@@ -69,39 +69,21 @@ class SidebarActionCountService
     /** @return array<string,int> */
     private function borrowerCounts(int $userId): array
     {
-        $now = now();
-
-        // Draft and returned-for-revision requests can be edited/resubmitted.
+        /*
+         * A Borrower sidebar badge is a record total, because My Requests
+         * and My Borrowings both open full history views. Counting only
+         * action-needed records here made the badge disagree with the page
+         * it labels (for example, 2 in the sidebar while 7 borrowings were
+         * shown in the list).
+         */
         $requests = BorrowingRequest::query()
             ->where('borrower_user_id', $userId)
-            ->whereIn('status', [
-                RequestStatus::Draft->value,
-                RequestStatus::ReturnedForRevision->value,
-            ])
             ->count();
 
-        // Count distinct custody transactions only: eligible pickup or
-        // outstanding return due by end of tomorrow, including overdue.
+        // Match the unfiltered My Borrowings list, including completed and
+        // cancelled records that remain part of the borrower's history.
         $borrowings = CustodyTransaction::query()
             ->where('borrower_user_id', $userId)
-            ->whereNotIn('status', ['CLOSED', 'CANCELLED'])
-            ->where(function ($q) use ($now): void {
-                $q->where(function ($pickup) use ($now): void {
-                    $pickup->whereNull('released_at')
-                        ->whereNotNull('scheduled_release_at')
-                        ->whereNull('pickup_expired_at')
-                        ->where(function ($window) use ($now): void {
-                            $window->whereNull('pickup_expires_at')
-                                ->orWhere('pickup_expires_at', '>=', $now);
-                        });
-                })->orWhere(function ($return) use ($now): void {
-                    $return->whereNotNull('released_at')
-                        ->whereNotNull('due_at')
-                        ->where('due_at', '<=', $now->copy()->addDay()->endOfDay())
-                        ->whereHas('lines', fn ($line) => $line
-                            ->whereColumn('returned_quantity', '<', 'actual_released_quantity'));
-                });
-            })
             ->count();
 
         // Same grouped, unresolved obligations shown by My Obligations;

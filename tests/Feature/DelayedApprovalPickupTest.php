@@ -485,7 +485,7 @@ class DelayedApprovalPickupTest extends TestCase
     // Late approval inside the suggested pickup day
     // ------------------------------------------------------------------
 
-    public function test_approval_minutes_before_closing_is_not_given_a_window_that_can_be_missed(): void
+    public function test_approval_minutes_before_closing_automatically_activates_the_remaining_window(): void
     {
         OperationalWeeklySchedule::query()->where('weekday', '<=', 5)->update(['open_time' => '08:00', 'close_time' => '17:00']);
         $request = $this->submittedRequest('DA-LASTMINUTE', '2026-09-22'); // needed Tuesday, suggested pickup Monday
@@ -493,56 +493,35 @@ class DelayedApprovalPickupTest extends TestCase
         $this->approveAt($request, Carbon::create(2026, 9, 21, 16, 50)); // ten minutes before closing
 
         $custody = $this->custody($request);
-        // Previously: a 4:50 PM to 5:00 PM window, "confirmed" and missed ten minutes later.
-        $this->assertNull($custody->scheduled_release_at);
-        $this->assertNull($custody->pickup_scheduled_at);
-        $this->assertTrue(app(CustodyService::class)->pickupScheduleReviewPending($custody));
-        $review = $this->lastAudit($custody, 'PICKUP_SCHEDULE_REVIEW_REQUIRED')->after_json;
-        $this->assertSame('APPROVED_DURING_SUGGESTED_PICKUP_WINDOW', $review['reason']);
-        $this->assertSame('2026-09-21', $review['original_suggested_pickup_date']);
-        $this->assertStringContainsString('no pickup schedule has been set automatically', $this->borrowerMessage('REQUEST_APPROVED', $request));
-
-        // The window closes: nothing expires, nobody is told they missed a pickup.
-        $this->travelTo(Carbon::create(2026, 9, 21, 17, 30));
-        $this->assertSame(0, app(CustodyService::class)->expirePickupWindows());
-        $this->artisan('spmu:process-deadlines')->assertSuccessful();
-        $this->assertNull($custody->fresh()->pickup_expired_at);
-        $this->assertNotSame('PICKUP_EXPIRED', $custody->fresh()->workflowStatus()['key']);
-        $this->assertNoMissedPickupOrPenalty($request);
-
-        // Reserved from the approval day, so a same-day pickup remained possible.
+        $this->assertSame('2026-09-21 16:50', $custody->scheduled_release_at->format('Y-m-d H:i'));
+        $this->assertSame('2026-09-21 17:00', $custody->pickup_expires_at->format('Y-m-d H:i'));
+        $this->assertNotNull($custody->pickup_scheduled_at);
+        $this->assertFalse(app(CustodyService::class)->pickupScheduleReviewPending($custody));
+        $this->assertSame(0, $this->auditCount($custody, 'PICKUP_SCHEDULE_REVIEW_REQUIRED'));
+        $this->assertStringContainsString('Pickup is scheduled for September 21, 2026 4:50 PM to 5:00 PM', $this->borrowerMessage('REQUEST_APPROVED', $request));
         $this->assertSame('2026-09-21', $this->allocation($request)->period_start->toDateString());
 
-        // SPMU can still arrange a pickup on Items Needed From itself.
-        $this->travelTo(Carbon::create(2026, 9, 22, 9, 0));
-        $this->flushSession();
         $this->releasePage($custody)
-            ->assertSee('Schedule Review Required')
-            ->assertSee('The request was approved on its suggested pickup date, so no pickup schedule was confirmed automatically.')
-            ->assertSee('How and when the borrower confirmed')
-            ->assertDontSee('Pickup Missed');
-        $this->asOfficer()->post(route('custody.reschedule-pickup', $custody), ['borrower_need_confirmed' => '1', 'borrower_confirmation_note' => 'In person at the SPMU counter'])
-            ->assertSessionHasNoErrors();
-        $this->assertSame('2026-09-22 09:00', $custody->fresh()->scheduled_release_at->format('Y-m-d H:i'));
-        $this->assertSame('2026-09-22 17:00', $custody->fresh()->pickup_expires_at->format('Y-m-d H:i'));
+            ->assertDontSee('Schedule Review Required')
+            ->assertDontSee('I contacted the borrower');
     }
 
-    public function test_any_approval_on_the_suggested_pickup_day_goes_to_schedule_review_without_a_time_threshold(): void
+    public function test_approval_during_a_remaining_suggested_pickup_window_is_automatic(): void
     {
-        // Mid-morning, with most of the day ahead: still arranged with the borrower,
-        // because no approved policy says how much notice is enough.
         $request = $this->submittedRequest('DA-MORNING', '2026-09-22');
         $this->approveAt($request, Carbon::create(2026, 9, 21, 9, 30));
 
         $custody = $this->custody($request);
-        $this->assertNull($custody->scheduled_release_at);
-        $this->assertTrue(app(CustodyService::class)->pickupScheduleReviewPending($custody));
+        $this->assertSame('2026-09-21 09:30', $custody->scheduled_release_at->format('Y-m-d H:i'));
+        $this->assertSame('2026-09-21 23:59', $custody->pickup_expires_at->format('Y-m-d H:i'));
+        $this->assertNotNull($custody->pickup_scheduled_at);
+        $this->assertFalse(app(CustodyService::class)->pickupScheduleReviewPending($custody));
+        $this->assertSame(0, $this->auditCount($custody, 'PICKUP_SCHEDULE_REVIEW_REQUIRED'));
+        $this->assertStringContainsString('Pickup is scheduled for September 21, 2026 9:30 AM to 11:59 PM', $this->borrowerMessage('REQUEST_APPROVED', $request));
 
-        // The officer may arrange the pickup for the same day right away.
-        $this->asOfficer()->post(route('custody.reschedule-pickup', $custody), ['borrower_need_confirmed' => '1', 'borrower_confirmation_note' => 'Phone call, 9:35 AM'])
-            ->assertSessionHasNoErrors();
-        $this->assertSame('2026-09-21 09:30', $custody->fresh()->scheduled_release_at->format('Y-m-d H:i'));
-        $this->assertSame('2026-09-21 23:59', $custody->fresh()->pickup_expires_at->format('Y-m-d H:i'));
+        $this->releasePage($custody)
+            ->assertDontSee('Schedule Review Required')
+            ->assertDontSee('I contacted the borrower');
     }
 
     // ------------------------------------------------------------------

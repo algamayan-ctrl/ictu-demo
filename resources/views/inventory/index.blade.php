@@ -105,6 +105,15 @@
                     @endforeach
                 </select>
             </label>
+
+            <label>
+                Premises
+                <select id="borrower-inventory-premises">
+                    <option value="">All Premises</option>
+                    <option value="on-campus">On-campus only</option>
+                    <option value="off-campus">Off-campus eligible</option>
+                </select>
+            </label>
         </div>
 
         <p class="borrower-inventory-helper" role="note">
@@ -163,7 +172,7 @@
             <div id="borrower-inventory-no-results" class="borrower-inventory-no-results" hidden>
                 <x-icon name="search" size="26" />
                 <strong>No matching available item.</strong>
-                <p>No available item matches the current search and category filter.</p>
+                <p>No available item matches the current search, category, and premises filters.</p>
             </div>
 
             <div class="borrower-inventory-footer" id="borrower-inventory-footer">

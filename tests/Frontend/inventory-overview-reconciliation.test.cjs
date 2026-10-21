@@ -8,6 +8,8 @@ const show = fs.readFileSync(path.join(root, 'resources/views/inventory/show.bla
 const row = fs.readFileSync(path.join(root, 'resources/views/inventory/partials/operations-row.blade.php'), 'utf8');
 const index = fs.readFileSync(path.join(root, 'resources/views/inventory/index.blade.php'), 'utf8');
 const interactions = fs.readFileSync(path.join(root, 'resources/views/inventory/partials/operations-interactions.blade.php'), 'utf8');
+const borrowerRow = fs.readFileSync(path.join(root, 'resources/views/inventory/partials/borrower-row.blade.php'), 'utf8');
+const borrowerInteractions = fs.readFileSync(path.join(root, 'resources/views/inventory/partials/borrower-interactions.blade.php'), 'utf8');
 const form = fs.readFileSync(path.join(root, 'resources/views/inventory/form.blade.php'), 'utf8');
 const inventoryController = fs.readFileSync(path.join(root, 'app/Http/Controllers/InventoryController.php'), 'utf8');
 const inventoryService = fs.readFileSync(path.join(root, 'app/Services/InventoryService.php'), 'utf8');
@@ -60,6 +62,16 @@ test('SPMU inventory includes a universal record-status filter', () => {
   assert.match(index, /Inactive \/ archived records/);
   assert.match(interactions, /selectedStatus/);
   assert.match(row, /data-status=/);
+});
+
+test('Borrower Available Items can filter the catalogue by premises', () => {
+  assert.match(index, /id="borrower-inventory-premises"/);
+  assert.match(index, /All Premises/);
+  assert.match(index, /On-campus only/);
+  assert.match(index, /Off-campus eligible/);
+  assert.match(borrowerRow, /data-premises="\{\{ \$item->off_campus_allowed \? 'off-campus' : 'on-campus' \}\}"/);
+  assert.match(borrowerInteractions, /const premises = document\.getElementById\('borrower-inventory-premises'\)/);
+  assert.match(borrowerInteractions, /matchesPremises/);
 });
 
 test('existing item edit delegates physical stock changes to Inventory Overview without duplicate instructions', () => {

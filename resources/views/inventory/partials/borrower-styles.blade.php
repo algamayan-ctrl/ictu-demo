@@ -5,8 +5,8 @@
 .borrower-inventory-card label { min-width: 0; margin: 0; display: grid; gap: 8px; color: var(--text-secondary); font-size: 12px; font-weight: 700; }
 .borrower-inventory-card input, .borrower-inventory-card select { width: 100%; min-height: 44px; border-radius: 9px; font-size: 12px; }
 
-/* Search and category */
-.borrower-inventory-filters { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(200px, 1fr); align-items: end; gap: 14px 18px; margin-bottom: 12px; }
+/* Search, category, and premises */
+.borrower-inventory-filters { display: grid; grid-template-columns: minmax(0, 2fr) minmax(190px, .9fr) minmax(190px, .9fr); align-items: end; gap: 14px 18px; margin-bottom: 12px; }
 .borrower-inventory-filters .search-input-shell input { padding-left: 36px; }
 
 /* Availability note */

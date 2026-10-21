@@ -11,6 +11,7 @@
         const staticEmptyRow = browser.querySelector('[data-static-empty-row]');
         const search = document.getElementById('borrower-inventory-search');
         const category = document.getElementById('borrower-inventory-category');
+        const premises = document.getElementById('borrower-inventory-premises');
         const noResults = document.getElementById('borrower-inventory-no-results');
         const footer = document.getElementById('borrower-inventory-footer');
         const pagination = document.getElementById('borrower-inventory-pagination');
@@ -28,12 +29,14 @@
         const matchingRows = () => {
             const query = (search?.value || '').trim().toLowerCase();
             const selected = (category?.value || '').trim().toLowerCase();
+            const selectedPremises = (premises?.value || '').trim().toLowerCase();
 
             return rows.filter((row) => {
                 const matchesSearch = !query || (row.dataset.search || '').includes(query);
                 const matchesCategory = !selected || (row.dataset.category || '') === selected;
+                const matchesPremises = !selectedPremises || (row.dataset.premises || '') === selectedPremises;
 
-                return matchesSearch && matchesCategory;
+                return matchesSearch && matchesCategory && matchesPremises;
             });
         };
 
@@ -179,6 +182,11 @@
         });
 
         category?.addEventListener('change', () => {
+            currentPage = 1;
+            render();
+        });
+
+        premises?.addEventListener('change', () => {
             currentPage = 1;
             render();
         });

@@ -188,6 +188,16 @@ test('success notice can be dismissed even when no items need inspection', () =>
     assert.equal(ui.flash.hidden, true);
 });
 
+test('return inspection has remarks but no delayed-return explanation or acknowledgment upload', () => {
+    const form = fs.readFileSync(path.resolve(__dirname, '../../resources/views/custody/partials/return-inspection-form.blade.php'), 'utf8');
+
+    assert.match(form, /\bRemarks\b/);
+    assert.match(form, /placeholder="Add remarks about this return inspection"/);
+    assert.doesNotMatch(form, /Delayed Encoding Explanation/);
+    assert.doesNotMatch(form, /Signed Borrower Slip \/ Return Acknowledgment/);
+    assert.doesNotMatch(form, /physical_return_reason/);
+    assert.doesNotMatch(form, /physical_return_evidence/);
+});
 
 test('operational closure is presented as a specific warning and keeps return recording disabled', () => {
     const workspace = fs.readFileSync(path.resolve(__dirname, '../../resources/views/custody/partials/return-workspace.blade.php'), 'utf8');

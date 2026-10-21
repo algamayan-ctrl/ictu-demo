@@ -7,28 +7,71 @@
     $classification = auth()->user()?->access_classification?->value;
     $isActionOfficer = ! $isBorrower && $classification === 'SPMU_OFFICER';
     $isSpmuHead = ! $isBorrower && $classification === 'SPMU_HEAD';
+    $returnMetrics = app(\App\Services\ReturnMetricsService::class);
 
     /*
-     * Request Records uses supported user-facing stages and current records.
-     * Internal/retired workflow names are
-     * normalized to the current SPMU terminology instead of appearing as
-     * separate filter choices.
+     * Request Records uses one short, role-specific label for each current
+     * borrowing stage. Accountability sub-stages and retired workflow names
+     * are grouped into the few statuses that are useful in this record list.
      */
-    $requestRecordStatus = static function ($request) use ($isBorrower, $isActionOfficer, $isSpmuHead): array {
+    $requestRecordStatus = static function ($request) use ($isBorrower, $isActionOfficer, $isSpmuHead, $returnMetrics): array {
         if ($request->custody) {
-            $workflow = $request->custody->workflowStatus();
+            $custody = $request->custody;
+            $workflow = $custody->workflowStatus();
+            $workflowKey = $workflow['key'];
+            $accountabilityKeys = [
+                'INCIDENT_OPEN', 'OBLIGATION_OPEN', 'FOR_BILLING',
+                'BILLING_PENDING', 'BILLING_OPEN', 'BILLING_ISSUED',
+                'PAYMENT_VERIFICATION', 'RECEIPT_SUBMITTED',
+                'COMPLIANCE_REQUIRED', 'COMPLIANCE_RSLDDP_PENDING',
+                'F2F_PROCESSING', 'RSLDDP_AWAITING_UPLOAD',
+                'RSLDDP_FOR_ACCOUNTING_PROCESSING', 'RSLDDP_PAYMENT_REQUIRED',
+                'RSLDDP_DISPOSITION_PENDING', 'RSLDDP_COMPLIANCE_VERIFICATION',
+                'RSLDDP_FOR_RESOLUTION', 'BORROWING_RESTRICTED', 'LATE_RETURN',
+            ];
+            $slldpKeys = [
+                'F2F_PROCESSING', 'COMPLIANCE_RSLDDP_PENDING',
+                'RSLDDP_AWAITING_UPLOAD', 'RSLDDP_FOR_ACCOUNTING_PROCESSING',
+                'RSLDDP_PAYMENT_REQUIRED', 'RSLDDP_DISPOSITION_PENDING',
+                'RSLDDP_COMPLIANCE_VERIFICATION', 'RSLDDP_FOR_RESOLUTION',
+            ];
 
-            return match ($workflow['key']) {
-                'INCIDENT_OPEN', 'OBLIGATION_OPEN' => [
-                    'key' => 'ACCOUNTABILITY_PENDING',
-                    'label' => 'Accountability Pending',
-                    'group' => 'attention',
+            if (in_array($workflowKey, $accountabilityKeys, true)) {
+                if ($isBorrower) {
+                    // The borrowing/return transaction is done; its separate
+                    // Accountability case remains available in My Obligations.
+                    return ['key' => 'COMPLETED', 'label' => 'Completed', 'group' => 'completed'];
+                }
+
+                if ($isActionOfficer || in_array($workflowKey, $slldpKeys, true)) {
+                    return ['key' => 'SLDDP', 'label' => 'SLDDP', 'group' => 'attention'];
+                }
+
+                return ['key' => 'ACCOUNTABILITY_REVIEW', 'label' => 'Accountability Review', 'group' => 'attention'];
+            }
+
+            if (($isActionOfficer || $isSpmuHead)
+                && $returnMetrics->state($custody) === \App\Services\ReturnMetricsService::RETURNED_LATE) {
+                return ['key' => 'RETURNED_LATE', 'label' => 'Returned Late', 'group' => 'attention'];
+            }
+
+            return match ($workflowKey) {
+                'PICKUP_EXPIRED' => ['key' => 'MISSED_PICKUP', 'label' => 'Missed Pickup', 'group' => 'attention'],
+                'PICKUP_SCHEDULING', 'ITEM_PREPARATION', 'PREPARING_RELEASE' => [
+                    'key' => 'FOR_ISSUANCE',
+                    'label' => 'For Issuance',
+                    'group' => 'release',
                 ],
+                'READY_FOR_RELEASE' => ['key' => 'READY_FOR_PICKUP', 'label' => 'Ready for Pickup', 'group' => 'release'],
                 'BORROWED' => [
-                    'key' => 'BORROWED',
-                    'label' => 'Items Released / On Custody',
+                    'key' => 'ON_CUSTODY',
+                    'label' => 'On Custody',
                     'group' => 'custody',
                 ],
+                'RETURN_PROCESSING', 'LINEN_PENDING', 'GATE_PASS_PENDING' => $isActionOfficer
+                    ? ['key' => 'RETURN_INSPECTION', 'label' => 'Return Inspection', 'group' => 'return']
+                    : ['key' => 'ON_CUSTODY', 'label' => 'On Custody', 'group' => 'custody'],
+                'BORROWER_CLEARED' => ['key' => 'COMPLETED', 'label' => 'Completed', 'group' => 'completed'],
                 default => $workflow,
             };
         }
@@ -38,13 +81,16 @@
 
         return match ($rawKey) {
             'DRAFT' => ['key' => 'DRAFT', 'label' => 'Draft', 'group' => 'request'],
-            'SIGNED' => ['key' => 'SUBMITTED', 'label' => 'Submitted', 'group' => 'request'],
-            'SUBMITTED' => ['key' => 'SUBMITTED', 'label' => 'Submitted', 'group' => 'request'],
+            'SIGNED', 'SUBMITTED' => [
+                'key' => $isBorrower ? 'FOR_REVIEW' : ($isActionOfficer ? 'FOR_VERIFICATION' : 'FOR_APPROVAL'),
+                'label' => $isBorrower ? 'For Review' : ($isActionOfficer ? 'For Verification' : 'For Approval'),
+                'group' => 'request',
+            ],
             'UNDER_SPMU', 'UNDER_GSU', 'UNDER_VPAF' => (function () use ($request, $isBorrower, $isActionOfficer, $isSpmuHead): array {
                 if ($isBorrower) {
                     return [
-                        'key' => 'UNDER_SPMU_REVIEW',
-                        'label' => 'Under SPMU Review',
+                        'key' => 'FOR_REVIEW',
+                        'label' => 'For Review',
                         'group' => 'request',
                     ];
                 }
@@ -73,23 +119,18 @@
                 ];
             })(),
             'RETURNED_FOR_REVISION' => [
-                'key' => 'RETURNED_FOR_REVISION',
-                'label' => 'Returned for Revision',
+                'key' => 'NEEDS_REVISION',
+                'label' => 'Needs Revision',
                 'group' => 'request',
             ],
-            'FINAL_APPROVED_AWAITING_DOWNLOAD' => [
-                'key' => 'APPROVED',
-                'label' => 'Approved',
-                'group' => 'request',
-            ],
-            'APPROVED_READY_FOR_RELEASE' => [
-                'key' => 'READY_FOR_RELEASE',
-                'label' => 'Ready for Release',
+            'FINAL_APPROVED_AWAITING_DOWNLOAD', 'APPROVED_READY_FOR_RELEASE' => [
+                'key' => 'FOR_ISSUANCE',
+                'label' => 'For Issuance',
                 'group' => 'request',
             ],
             'REJECTED' => ['key' => 'REJECTED', 'label' => 'Rejected', 'group' => 'request'],
             'CANCELLED' => ['key' => 'CANCELLED', 'label' => 'Cancelled', 'group' => 'request'],
-            'EXPIRED' => ['key' => 'INACTIVE', 'label' => 'Inactive', 'group' => 'request'],
+            'EXPIRED' => ['key' => 'CANCELLED', 'label' => 'Cancelled', 'group' => 'request'],
             default => [
                 'key' => $rawKey,
                 'label' => str($rawKey)->replace('_', ' ')->lower()->title()->toString(),
@@ -100,27 +141,23 @@
 
     $requestStatusOrder = [
         'DRAFT' => 10,
-        'SUBMITTED' => 20,
-        'UNDER_SPMU_REVIEW' => 30,
-        'FOR_VERIFICATION' => 30,
-        'FOR_APPROVAL' => 35,
-        'RETURNED_FOR_REVISION' => 40,
-        'APPROVED' => 50,
-        'PICKUP_SCHEDULING' => 60,
-        'ITEM_PREPARATION' => 70,
-        'PICKUP_SCHEDULED' => 80,
-        'READY_FOR_RELEASE' => 90,
-        'PREPARING_RELEASE' => 100,
-        'PICKUP_EXPIRED' => 110,
-        'BORROWED' => 120,
-        'RETURN_PROCESSING' => 130,
-        'OVERDUE' => 140,
-        'ACCOUNTABILITY_PENDING' => 150,
-        'BORROWER_CLEARED' => 160,
-        'COMPLETED' => 170,
-        'CANCELLED' => 180,
-        'REJECTED' => 190,
-        'INACTIVE' => 200,
+        'FOR_REVIEW' => 20,
+        'FOR_VERIFICATION' => 20,
+        'FOR_APPROVAL' => 20,
+        'NEEDS_REVISION' => 30,
+        'PICKUP_SCHEDULED' => 40,
+        'FOR_ISSUANCE' => 50,
+        'READY_FOR_PICKUP' => 60,
+        'MISSED_PICKUP' => 70,
+        'ON_CUSTODY' => 80,
+        'RETURN_INSPECTION' => 90,
+        'OVERDUE' => 100,
+        'RETURNED_LATE' => 110,
+        'SLDDP' => 120,
+        'ACCOUNTABILITY_REVIEW' => 130,
+        'COMPLETED' => 140,
+        'CANCELLED' => 150,
+        'REJECTED' => 160,
     ];
 
     /*
@@ -131,18 +168,26 @@
         ? collect($requests->items())
         : collect($requests);
 
-    // Keep every supported stage available, including stages with no current rows.
+    // Keep only the concise statuses supported by this role, even when no
+    // current row is in one of those stages. Internal and legacy keys never
+    // become filter options.
     $supportedStatusLabels = [
-        'DRAFT' => 'Draft', 'SUBMITTED' => 'Submitted',
-        ...($isBorrower ? ['UNDER_SPMU_REVIEW' => 'Under SPMU Review'] : ['FOR_APPROVAL' => 'For Approval']),
+        ...($isBorrower ? ['DRAFT' => 'Draft', 'FOR_REVIEW' => 'For Review'] : []),
         ...($isActionOfficer ? ['FOR_VERIFICATION' => 'For Verification'] : []),
-        'RETURNED_FOR_REVISION' => 'Returned for Revision', 'APPROVED' => 'Approved',
-        'PICKUP_SCHEDULING' => 'Pickup Scheduling', 'ITEM_PREPARATION' => 'Item Preparation',
-        'PICKUP_SCHEDULED' => 'Pickup Scheduled', 'READY_FOR_RELEASE' => 'Ready for Release',
-        'PICKUP_EXPIRED' => 'Pickup Missed', 'BORROWED' => 'Items Released / On Custody',
-        'RETURN_PROCESSING' => 'Return Processing', 'OVERDUE' => 'Overdue',
-        'ACCOUNTABILITY_PENDING' => 'Accountability Pending', 'BORROWER_CLEARED' => 'Borrower Cleared',
-        'COMPLETED' => 'Completed', 'CANCELLED' => 'Cancelled', 'REJECTED' => 'Rejected',
+        ...($isSpmuHead ? ['FOR_APPROVAL' => 'For Approval'] : []),
+        'NEEDS_REVISION' => 'Needs Revision',
+        'PICKUP_SCHEDULED' => 'Pickup Scheduled',
+        'FOR_ISSUANCE' => 'For Issuance',
+        'READY_FOR_PICKUP' => 'Ready for Pickup',
+        'MISSED_PICKUP' => 'Missed Pickup',
+        'ON_CUSTODY' => 'On Custody',
+        ...($isActionOfficer ? ['RETURN_INSPECTION' => 'Return Inspection'] : []),
+        'OVERDUE' => 'Overdue',
+        ...(($isActionOfficer || $isSpmuHead) ? ['RETURNED_LATE' => 'Returned Late', 'SLDDP' => 'SLDDP'] : []),
+        ...($isSpmuHead ? ['ACCOUNTABILITY_REVIEW' => 'Accountability Review'] : []),
+        'COMPLETED' => 'Completed',
+        'CANCELLED' => 'Cancelled',
+        'REJECTED' => 'Rejected',
     ];
     $requestFilterStatuses = $requestRecordsForFilters->map($requestRecordStatus)
         ->concat(collect($supportedStatusLabels)->map(fn ($label, $key) => ['key' => $key, 'label' => $label]))

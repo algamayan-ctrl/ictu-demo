@@ -503,9 +503,6 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
         Route::post('/spmu/laundry/{laundryJob}/confirm-not-returned', [LaundryController::class, 'confirmNotReturned'])
             ->name('laundry.spmu.confirm-not-returned');
 
-        /* SPMU Head/Admin: accept a signed Laundry Received date that awaits authorization. */
-        Route::post('/spmu/laundry/{laundryJob}/accept-receipt-date', [LaundryController::class, 'acceptReceiptDate'])
-            ->name('laundry.spmu.accept-receipt-date');
     });
 
 
@@ -643,16 +640,6 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
             [PolicyController::class, 'destroyDateException']
         )->name('policies.date-exceptions.destroy');
 
-        /* Laundry Area receiving days (linen only). SPMU Head/Admin; enforced in the controller. */
-        Route::post(
-            '/administration/policies/laundry-receiving-days',
-            [PolicyController::class, 'storeLaundryReceivingDay']
-        )->name('policies.laundry-receiving-days.store');
-
-        Route::post(
-            '/administration/policies/laundry-receiving-days/{day}/revoke',
-            [PolicyController::class, 'revokeLaundryReceivingDay']
-        )->name('policies.laundry-receiving-days.revoke');
     });
 
 

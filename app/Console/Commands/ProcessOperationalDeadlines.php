@@ -210,21 +210,22 @@ class ProcessOperationalDeadlines extends Command
 
             if ($onlyLinenOutstanding) {
                 $laundryJob = $custody->laundryJob;
-                $receiptPendingAuthorization = (bool) $laundryJob?->receiptDatePendingAuthorization();
-                $physicalLaundryReceipt = $laundryJob?->hasUsableReceiptDate()
-                    ? $laundryJob->worker_received_at->copy()->startOfDay()
-                    : null;
+                $physicalLaundryReceipt = $laundryJob?->worker_received_at?->copy()->startOfDay();
                 $noReturnEvidence = $laundryJob?->worker_received_at === null;
                 $confirmedNotReturned = $noReturnEvidence && $laundryJob?->unreturned_confirmed_at !== null;
 
                 if (! $confirmedNotReturned
-                    && ($receiptPendingAuthorization || ! $physicalLaundryReceipt || ! $physicalLaundryReceipt->gt($dueDate))) {
+                    && (! $physicalLaundryReceipt || ! $physicalLaundryReceipt->gt($dueDate))) {
                     /*
                      * Identify never-evidenced linen exactly once. The existence
                      * check makes repeated scheduler runs harmless.
                      */
                     if ($noReturnEvidence
-                        && $operationalCalendar->countLinenReceivingDays($dueDate, $today) > 0
+                        && $operationalCalendar->countOpenTransactionDays(
+                            OperationalCalendarService::RETURN,
+                            $dueDate,
+                            $today
+                        ) > 0
                         && ! NotificationEvent::query()
                             ->where('event_code', 'LINEN_RETURN_PROVISIONALLY_OVERDUE')
                             ->where('source_type', $custody->getMorphClass())
@@ -302,9 +303,9 @@ class ProcessOperationalDeadlines extends Command
             }
 
             /*
-             * Equipment: SPMU open return days through today. Linen: SPMU open
-             * return days and authorized Laundry receiving days, through the
-             * signed Laundry Received date once one is usable.
+             * Chargeable late days always follow SPMU open return days. For
+             * linen, the signed Laundry Received date limits the calculation
+             * to the actual physical return date.
              */
             $daysLate = $lateReturns->chargeableLateDays($custody, $today);
             $case = OverdueCase::query()->firstOrNew([

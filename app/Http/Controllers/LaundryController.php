@@ -247,17 +247,6 @@ class LaundryController extends Controller
             ]);
 
             /*
-             * The date is stored exactly as signed. It is then checked against
-             * the receiving calendars: a date that is neither an SPMU open
-             * return day nor an authorized Laundry receiving day stays on file
-             * as Pending Date Authorization and cannot finalize anything yet.
-             */
-            if ($attestsPhysicalReceipt) {
-                app(LateReturnService::class)->classifyReceiptDate($job, $request->user());
-                $job->refresh();
-            }
-
-            /*
              * If the scheduler temporarily marked the custody overdue only
              * because the linen form had not reached SPMU yet, clear that
              * automatic late state when the signed form proves that Laundry
@@ -266,7 +255,6 @@ class LaundryController extends Controller
              */
             if ($attestsPhysicalReceipt
                 && $physicalReceivedAt
-                && ! $job->receiptDatePendingAuthorization()
                 && $job->custody->due_at
                 && ! $physicalReceivedAt->startOfDay()->gt($job->custody->due_at->copy()->startOfDay())) {
                 $hasOtherBorrowerOutstanding = $job->custody->lines->contains(
@@ -334,7 +322,6 @@ class LaundryController extends Controller
                     'laundry_received_wet_signature_confirmed' => $attestsPhysicalReceipt,
                     'physical_laundry_received_on' => $physicalReceivedAt?->toDateString(),
                     'previous_laundry_received_on' => $previousReceivedOn,
-                    'receipt_date_status' => $job->receipt_date_status,
                     'physical_condition_source' => 'LAUNDRY_PERSONNEL',
                     'system_verified_by_user_id' => $request->user()->id,
                 ]
@@ -349,50 +336,12 @@ class LaundryController extends Controller
             );
         }, 3);
 
-        if ($laundryJob->fresh()->receiptDatePendingAuthorization()) {
-            return redirect()
-                ->to(route('custody.return.show', $laundryJob->custody_transaction_id).'#return-primary')
-                ->with('status', 'Signed Laundry Form saved. '.self::PENDING_DATE_MESSAGE);
-        }
-
         return redirect()
             ->to(route('custody.return.show', $laundryJob->custody_transaction_id).'#return-primary')
             ->with(
                 'status',
                 'Completed Laundry Form received and recorded. Encode the linen quantities and any reported issue. If no issue was reported, record the full received quantity as Fine / Good.'
             );
-    }
-
-    public const PENDING_DATE_MESSAGE = 'Pending Date Authorization: the signed Laundry Received date is neither an SPMU open return day nor an authorized Laundry receiving day. The signed form and the date are kept exactly as recorded. The linen return cannot be finalized until the SPMU Head/Admin authorizes that date for Laundry receiving or accepts the signed date.';
-
-    /**
-     * SPMU Head/Admin: accept the signed Laundry Received date as the actual
-     * return date without authorizing that day. Verifies the receipt only:
-     * the day counts as a late day for this custody alone, stays unauthorized
-     * for every other transaction, and no penalty is approved here.
-     */
-    public function acceptReceiptDate(
-        Request $request,
-        LaundryJob $laundryJob,
-        LateReturnService $lateReturns
-    ): RedirectResponse {
-        abort_unless(
-            $request->user()->access_classification === AccessClassification::SpmuHead,
-            403,
-            'Only the SPMU Head may accept a Laundry Received date awaiting authorization.'
-        );
-
-        $data = $request->validate([
-            'review_note' => ['required', 'string', 'min:5', 'max:500'],
-        ]);
-
-        DB::transaction(function () use ($laundryJob, $request, $data, $lateReturns): void {
-            $job = LaundryJob::query()->lockForUpdate()->findOrFail($laundryJob->id);
-            $lateReturns->acceptReceiptDate($job, $request->user(), $data['review_note']);
-        });
-
-        return redirect()->to(route('policies.index', ['section' => 'special-dates']).'#laundry-receiving-days')
-            ->with('status', 'Signed Laundry Received date accepted. It counts as a late day for this transaction only; the day remains unauthorized for all other transactions. The Action Officer may now encode the return.');
     }
 
     /**

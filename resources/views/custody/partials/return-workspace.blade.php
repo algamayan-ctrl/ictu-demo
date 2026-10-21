@@ -70,7 +70,6 @@
     $linenReturnState = $showLaundryDocument
         ? app(App\Services\LateReturnService::class)->linenReturnState($custody)
         : null;
-    $laundryDatePending = (bool) $laundryJob?->receiptDatePendingAuthorization();
     $linenProvisionallyOverdue = $linenReturnState === App\Services\LateReturnService::LINEN_PROVISIONALLY_OVERDUE;
     $onlyLinenOutstanding = $eligibleReturnLines->isNotEmpty()
         && $eligibleReturnLines->every(
@@ -220,51 +219,18 @@
                                         @if($laundryJob->worker_received_at)
                                             <small data-laundry-received-date>
                                                 Laundry Received (signed form): <strong>{{ $laundryJob->worker_received_at->format('d M Y, l') }}</strong>
-                                                @if($laundryJob->receiptDateStatusLabel()) &middot; {{ $laundryJob->receiptDateStatusLabel() }} @endif
                                             </small>
                                         @endif
                                     </div>
                                 </div>
 
                                 <div class="return-document-actions">
-                                    @if($laundryDatePending)
-                                        <span class="status-badge status-warning">Pending Date Authorization</span>
-                                    @endif
                                     <a class="button secondary small ui-pressable return-navigation-action" href="{{ route('files.preview', $laundryJob->latestEvidence->file) }}">
                                         <span>Preview</span>
                                     </a>
                                 </div>
                             </div>
 
-                            @if($laundryDatePending)
-                                <div class="notice warning" role="status" data-laundry-date-pending>
-                                    <x-icon name="calendar" size="22" />
-                                    <div>
-                                        <strong>Pending Date Authorization</strong>
-                                        <p>{{ $laundryJob->worker_received_at->format('F j, Y (l)') }} is neither an SPMU open return day nor an authorized Laundry receiving day. The signed form and this date are kept exactly as recorded. This linen return cannot be encoded until the SPMU Head/Admin authorizes that date for Laundry receiving or accepts the signed date (Configuration &rarr; Special Dates).</p>
-                                        @if($canVerifyLinen && $laundryJob->status === 'FOR_LAUNDRY')
-                                            <details class="return-laundry-disclosure">
-                                                <summary>The date was typed incorrectly? Record the form again</summary>
-                                                <form method="post" action="{{ route('laundry.spmu.upload-form', $laundryJob) }}" enctype="multipart/form-data" class="return-laundry-form-upload">
-                                                    @csrf
-                                                    <label>
-                                                        Accomplished Laundry Form
-                                                        <input type="file" name="evidence" required accept="application/pdf,image/png,image/jpeg,image/webp">
-                                                        <small>The earlier upload and the earlier date stay on record.</small>
-                                                    </label>
-                                                    <label>
-                                                        Laundry Received Date
-                                                        <input type="date" name="laundry_received_on" required autocomplete="off"
-                                                            @if($custody->released_at) min="{{ $custody->released_at->toDateString() }}" @endif>
-                                                        <small>Enter the actual RECEIVED BY date on the signed form. The physical receipt date, not the SPMU recording date, determines return timing.</small>
-                                                    </label>
-                                                    <button class="button secondary small ui-pressable" type="submit">Record Laundry Form</button>
-                                                </form>
-                                            </details>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endif
                         @elseif($laundryJob)
                             <details
                                 class="return-laundry-disclosure return-document-disclosure"

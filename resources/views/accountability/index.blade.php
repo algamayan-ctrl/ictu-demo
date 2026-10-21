@@ -1654,12 +1654,10 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                         @if($lateLaundryReceivedOn)
                                             <p class="meta" data-late-return-laundry-evidence>
                                                 Signed Laundry Form: received {{ $lateLaundryReceivedOn->format('d M Y, l') }}
-                                                @if($lateLaundryJob->receiptDateStatusLabel()) &middot; {{ $lateLaundryJob->receiptDateStatusLabel() }} @endif
-                                                @if(app(App\Services\OperationalCalendarService::class)->isAuthorizedLaundryReceivingDate($lateLaundryReceivedOn)) &middot; authorized Laundry receiving day @endif
                                                 @if($lateLaundryJob->latestEvidence?->file)
                                                     &middot; <a href="{{ route('files.preview', $lateLaundryJob->latestEvidence->file) }}">Preview</a>
                                                 @endif
-                                                <br>Linen late days count SPMU open return days and authorized Laundry receiving days after the Expected Return date, through the signed date. Approving this fee is a separate decision from authorizing a receiving day.
+                                                <br>Linen late days count SPMU open return days after the Expected Return date, through the signed date.
                                             </p>
                                         @endif
                                     @elseif($hasBilling && $overdueBilling)

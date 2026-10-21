@@ -10,7 +10,6 @@ use App\Models\BorrowingRequest;
 use App\Models\CustodyTransaction;
 use App\Models\Incident;
 use App\Models\InventoryItem;
-use App\Models\LaundryJob;
 use App\Models\OverdueCase;
 use App\Support\OrganizationalStructure;
 use App\Support\PeriodComparison;
@@ -20,7 +19,6 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * Analytics for the SPMU Head.
@@ -920,10 +918,9 @@ class AnalyticsService
  * Linen that Laundry Personnel verifiably received on or before the
  * due date is not overdue while it only awaits return encoding. It
  * is still "out" for stock purposes, so only this measure excludes
- * it. A signed date awaiting authorization does not qualify.
+ * it.
  */
- ->when($this->linenReceiptStatusAvailable(), function (Builder $query): void {
- $query->whereNot(function (Builder $received): void {
+ ->whereNot(function (Builder $received): void {
  $received
  ->whereDoesntHave('lines', function ($lines): void {
  $lines->whereColumn('returned_quantity', '<', 'actual_released_quantity')
@@ -933,22 +930,9 @@ class AnalyticsService
  })
  ->whereHas('laundryJob', function ($job): void {
  $job->whereNotNull('worker_received_at')
- ->where(function ($status): void {
- $status->whereNull('receipt_date_status')
- ->orWhere('receipt_date_status', '!=', LaundryJob::RECEIPT_DATE_PENDING);
- })
  ->whereRaw('date(worker_received_at) <= date(custody_transactions.due_at)');
  });
  });
- });
- }
-
- private ?bool $linenReceiptStatusColumn = null;
-
- /** The receipt-date check is an additive column; before its migration nothing is excluded. */
- private function linenReceiptStatusAvailable(): bool
- {
- return $this->linenReceiptStatusColumn ??= Schema::hasColumn('laundry_jobs', 'receipt_date_status');
  }
 
  /* ------------------------------------------------------------------ */
@@ -2997,10 +2981,9 @@ class AnalyticsService
  }
 
  /*
- * Same counter as penalties and the scheduler: equipment against SPMU
- * open return days; linen against SPMU open return days and authorized
- * Laundry receiving days, stopping at a usable signed Laundry Received
- * date even while return encoding is still pending.
+ * Same counter as penalties and the scheduler: SPMU open return days,
+ * stopping at the actual signed Laundry Received date for linen even while
+ * return encoding is still pending.
  */
  return app(LateReturnService::class)->chargeableLateDays($custody, now()->startOfDay());
  }

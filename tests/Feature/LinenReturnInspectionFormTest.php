@@ -21,11 +21,15 @@ use App\Models\Sanction;
 use App\Models\StoredFile;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Services\LateReturnService;
+use App\Services\OperationalCalendarService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 /**
@@ -143,6 +147,56 @@ class LinenReturnInspectionFormTest extends TestCase
                 ->where('custody_transaction_id', $custody->id)
                 ->count()
         );
+    }
+
+    public function test_signed_laundry_received_date_is_usable_without_spmu_date_authorization(): void
+    {
+        ['custody' => $custody, 'lines' => $lines, 'job' => $job] = $this->outstandingCustody(linen: true);
+
+        $dueDate = now()->subDays(3)->startOfDay();
+        $receivedDate = now()->subDay()->startOfDay();
+        $custody->update([
+            'released_at' => $dueDate->copy()->subDay()->setTime(10, 0),
+            'due_at' => $dueDate->copy()->endOfDay(),
+        ]);
+
+        $this->uploadAccomplishedForm($job, $receivedDate->toDateString())
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            $receivedDate->toDateString(),
+            $job->fresh()->worker_received_at?->toDateString()
+        );
+
+        $this->recordReturn($custody, [
+            $lines['linen']->id => ['FINE' => 3],
+        ])->assertSessionHasNoErrors();
+
+        $expectedLateDays = app(OperationalCalendarService::class)->countOpenTransactionDays(
+            OperationalCalendarService::RETURN,
+            $dueDate,
+            $receivedDate
+        );
+
+        $this->assertSame(
+            $expectedLateDays,
+            app(LateReturnService::class)->chargeableLateDays($custody->fresh())
+        );
+    }
+
+    public function test_laundry_receiving_authority_configuration_and_records_are_removed(): void
+    {
+        $this->assertFalse(Route::has('policies.laundry-receiving-days.store'));
+        $this->assertFalse(Route::has('policies.laundry-receiving-days.revoke'));
+        $this->assertFalse(Route::has('laundry.spmu.accept-receipt-date'));
+        $this->assertFalse(Schema::hasTable('laundry_receiving_days'));
+
+        $this->withSession(['active_workspace' => 'SPMU', 'last_user_activity_at' => now()->timestamp])
+            ->actingAs($this->classificationUser(AccessClassification::SpmuHead))
+            ->get(route('policies.index', ['section' => 'special-dates']))
+            ->assertOk()
+            ->assertDontSee('Laundry Area Receiving Days')
+            ->assertDontSee('Authorize Laundry Receiving');
     }
 
     public function test_linen_adverse_finding_opens_a_case_without_any_sanction(): void
@@ -687,9 +741,7 @@ class LinenReturnInspectionFormTest extends TestCase
 
         // The expected return was 15 days ago, but the Laundry Worker actually
         // received the linen only 5 days ago - a Friday, an SPMU open return day.
-        // (A signed date on a closed, unauthorized day is held as Pending Date
-        // Authorization instead of being finalized; that path is covered by
-        // LinenLaundryReceivingTest.) The Action Officer is encoding the
+        // The Action Officer is encoding the
         // accomplished form today. Lateness uses only dates when Return processing
         // was operational; closed weekend days do not increase the fee. The exact
         // RECEIVED BY date remains authoritative and is never replaced by upload time.

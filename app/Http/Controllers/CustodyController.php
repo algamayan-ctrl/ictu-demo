@@ -786,34 +786,6 @@ class CustodyController extends Controller
                 )->id;
             }
         }
-        /*
-         * Fallback Laundry Received date entry. When the signed date is not
-         * an authorized receiving day, keep it exactly as entered (outside
-         * the return transaction, which is refused) and stop here: the return
-         * waits for the SPMU Head/Admin, the date is not lost.
-         */
-        if (filled($data['laundry_received_date'] ?? null)) {
-            $custody->loadMissing('laundryJob');
-            $signedDate = \Carbon\Carbon::parse($data['laundry_received_date'])->startOfDay();
-
-            if ($custody->laundryJob
-                && $custody->laundryJob->worker_received_at === null
-                && ! app(OperationalCalendarService::class)->isLinenReceivingDate($signedDate)) {
-                abort_unless(
-                    $request->user()->access_classification === AccessClassification::SpmuOfficer
-                        && $custody->borrower_user_id !== $request->user()->id,
-                    403
-                );
-
-                app(\App\Services\LateReturnService::class)
-                    ->recordLaundryReceipt($custody, $signedDate, $request->user());
-
-                return back()->withErrors([
-                    'laundry_form' => \App\Http\Controllers\LaundryController::PENDING_DATE_MESSAGE,
-                ]);
-            }
-        }
-
         $service->receiveReturn(
             $custody,
             $request->user(),

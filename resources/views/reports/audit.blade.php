@@ -30,6 +30,119 @@
     $categoryOptions = $categoryOptions ?? [];
     $isOperationalAudit = ($auditMode ?? 'technical') === 'operational';
 
+    // Labels here describe the work a user performed, rather than exposing
+    // the implementation-oriented audit action code.
+    $operationalRecordLabels = [
+        'ApprovalStep' => 'Borrowing Request',
+        'RequestVersion' => 'Borrowing Request',
+        'LaundryJob' => 'Laundry Return',
+        'ReturnTransaction' => 'Return Inspection',
+        'BorrowerViolation' => 'Borrowing Violation',
+        'OverdueCase' => 'Late Return Case',
+        'BorrowerRegistration' => 'Borrower Registration',
+        'UserSignature' => 'User Signature',
+    ];
+
+    $operationalActionLabels = [
+        'request_draft_created' => 'Borrowing Request Draft Created',
+        'request_draft_updated' => 'Borrowing Request Draft Updated',
+        'request_submitted' => 'Borrowing Request Submitted',
+        'request_supporting_document_uploaded' => 'Supporting Document Uploaded',
+        'request_supporting_document_replaced' => 'Supporting Document Replaced',
+        'request_supporting_document_superseded' => 'Supporting Document Superseded',
+        'spmu_action_officer_verification' => 'Borrowing Request Verification Recorded',
+        'spmu_reservation_conflict' => 'Item Reservation Conflict Detected',
+        'request_ready_for_pickup_scheduling' => 'Pickup Schedule Generated',
+        'pickup_schedule_review_required' => 'Pickup Schedule Requires Review',
+        'pickup_schedule_automatically_activated' => 'Pickup Scheduled Automatically',
+        'pickup_schedule_confirmed' => 'Pickup Schedule Confirmed',
+        'pickup_rescheduled' => 'Pickup Rescheduled',
+        'pickup_schedule_calendar_adjusted' => 'Pickup Schedule Adjusted for Calendar',
+        'pickup_held_for_preparation_issue' => 'Pickup Held for Preparation Issue',
+        'pickup_window_expired' => 'Pickup Window Expired',
+        'preparation_issue_reported' => 'Preparation Issue Reported',
+        'preparation_issue_resolved' => 'Preparation Issue Resolved',
+        'preparation_issue_closed_unfulfilled' => 'Preparation Issue Closed Without Release',
+        'release_prepared' => 'Items Prepared for Release',
+        'items_released' => 'Items Released to Borrower',
+        'issuance_auto_locked' => 'Issuance Automatically Locked',
+        'custody_marked_overdue' => 'Borrowing Marked Overdue',
+        'custody_return_date_synchronized' => 'Return Date Updated',
+        'return_inspected' => 'Return Inspection Recorded',
+        'early_return_requested' => 'Early Return Requested',
+        'laundry_return_recorded_from_form' => 'Laundry Return Recorded',
+        'laundry_signed_form_archived' => 'Signed Laundry Form Archived',
+        'laundry_received_date_attested' => 'Laundry Receipt Date Recorded',
+        'linen_confirmed_not_returned' => 'Linen Confirmed Not Returned',
+        'linen_return_provisionally_overdue' => 'Linen Return Marked Overdue',
+        'laundry_legacy_availability_reconciled' => 'Legacy Laundry Availability Reconciled',
+        'gate_pass_accomplished_verified' => 'Accomplished Gate Pass Verified',
+        'late_return_detected' => 'Late Return Recorded',
+        'late_return_notice_issued' => 'Late Return Notice Issued',
+        'late_return_fee_billed' => 'Late Return Charge Recorded',
+        'late_return_resolved_without_charge' => 'Late Return Resolved Without Charge',
+        'late_return_not_applicable' => 'Late Return Marked Not Applicable',
+        'accountability_billing_statement_issued' => 'Accountability Billing Statement Issued',
+        'cashier_payment_confirmed' => 'Cashier Payment Confirmed',
+        'cashier_payment_verified' => 'Cashier Payment Verified',
+        'payment_receipt_rejected' => 'Payment Receipt Rejected',
+        'billing_statement_waived' => 'Billing Statement Waived',
+        'property_accountability_case_resolved' => 'Accountability Case Resolved',
+        'property_accountability_head_decision_recorded' => 'Head Accountability Decision Recorded',
+        'property_accountability_compliance_verified' => 'Accountability Compliance Verified',
+        'property_accountability_compliance_not_accepted' => 'Accountability Compliance Not Accepted',
+        'property_accountability_rslddp_received' => 'RSLDDP Received',
+        'property_accountability_official_disposition_recorded' => 'Official Accountability Disposition Recorded',
+        'property_accountability_official_billing_recorded' => 'Official Accountability Billing Recorded',
+        'property_accountability_official_billing_corrected' => 'Official Accountability Billing Corrected',
+        'borrowing_violation_detected' => 'Borrowing Violation Detected',
+        'borrowing_violation_auto_confirmed' => 'Borrowing Violation Confirmed',
+        'borrowing_violation_dismissed' => 'Borrowing Violation Dismissed',
+        'sanction_confirmed' => 'Borrowing Sanction Confirmed',
+        'inventory_item_created' => 'Inventory Item Added',
+        'inventory_item_updated' => 'Inventory Item Updated',
+        'inventory_item_deleted' => 'Inventory Item Removed',
+        'inventory_adjustment_recorded' => 'Inventory Adjustment Recorded',
+        'academic_period_configured' => 'Academic Period Configured',
+        'academic_period_activated' => 'Academic Period Activated',
+        'academic_period_updated' => 'Academic Period Updated',
+        'sanction_rule_configured' => 'Sanction Rule Configured',
+        'sanction_offense_application_updated' => 'Sanction Offense Application Updated',
+        'operational_weekly_schedule_updated' => 'Operating Schedule Updated',
+        'operational_date_exception_saved' => 'Operating Date Exception Saved',
+        'operational_date_exception_removed' => 'Operating Date Exception Removed',
+        'borrower_registration_created' => 'Borrower Registration Created',
+        'borrower_registration_submitted' => 'Borrower Registration Submitted',
+        'borrower_registration_approved' => 'Borrower Registration Approved',
+        'borrower_registration_rejected' => 'Borrower Registration Rejected',
+        'temporary_delegation_created' => 'Temporary Delegation Created',
+        'temporary_delegation_revoked' => 'Temporary Delegation Revoked',
+        'user_account_created' => 'User Account Created',
+        'user_account_updated' => 'User Account Updated',
+        'user_pending_registration_deleted' => 'Pending Registration Removed',
+        'user_email_verified' => 'User Email Verified',
+        'user_email_verification_sent' => 'Email Verification Sent',
+        'user_email_reverification_sent' => 'Email Reverification Sent',
+        'profile_signature_registered' => 'Profile Signature Registered',
+        'profile_signature_replaced' => 'Profile Signature Replaced',
+        'system_setting_changed' => 'System Setting Updated',
+    ];
+
+    $humanizeAuditAction = function (string $actionCode): string {
+        $label = (string) \Illuminate\Support\Str::of(strtolower($actionCode))
+            ->replace(['_', '.'], ' ')
+            ->title()
+            ->replace([
+                'Spmu', 'Sao', 'Ictu', 'Rslddp', 'Slddp', 'E Signature',
+            ], [
+                'SPMU', 'SAO', 'ICTU', 'RSLDDP', 'SLDDP', 'Electronic Signature',
+            ]);
+
+        return (string) \Illuminate\Support\Str::of($label)
+            ->replace('Property Accountability', 'Accountability')
+            ->replace('Spmu Request', 'Borrowing Request');
+    };
+
     $preferredAuditLabels = [
         'employee_no' => 'Employee No.',
         'full_name' => 'Full Name',
@@ -68,6 +181,15 @@
         'actual_quantity' => 'Actual Quantity',
         'condition' => 'Condition',
         'remarks' => 'Remarks',
+        'decision' => 'Decision',
+        'reservation_created' => 'Items Reserved',
+        'request_no' => 'Request No.',
+        'request_version_no' => 'Request Version',
+        'action' => 'Action',
+        'signer_name' => 'Signed By',
+        'signer_role' => 'Signer Role',
+        'purpose_code' => 'Signature Purpose',
+        'signed_at' => 'Signed At',
     ];
 
     $technicalSegments = [
@@ -112,7 +234,10 @@
             }
 
             if (preg_match('/^[A-Z0-9_]+$/', $trimmed) && ! str_contains($trimmed, '@')) {
-                return (string) \Illuminate\Support\Str::of(strtolower($trimmed))->replace('_', ' ')->title();
+                return (string) \Illuminate\Support\Str::of(strtolower($trimmed))
+                    ->replace('_', ' ')
+                    ->title()
+                    ->replace(['Spmu', 'Sao', 'Ictu'], ['SPMU', 'SAO', 'ICTU']);
             }
 
             if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed)) {
@@ -239,6 +364,25 @@
             ->replace('_', ' ')
             ->headline();
     };
+
+    // Internal identifiers and integrity values remain part of the evidence,
+    // but are secondary to the operational changes a Head needs to read.
+    $isTechnicalOperationalAuditField = function (string $path, string $before, string $after): bool {
+        $normalizedPath = strtolower($path);
+
+        if (
+            $normalizedPath === 'id'
+            || str_ends_with($normalizedPath, '_id')
+            || str_contains($normalizedPath, 'sha')
+            || str_contains($normalizedPath, 'hash')
+            || in_array($normalizedPath, ['document_type', 'record_type', 'correlation_id'], true)
+        ) {
+            return true;
+        }
+
+        return collect([$before, $after])
+            ->contains(fn (string $value): bool => str_starts_with($value, 'App\\'));
+    };
 @endphp
 
 <section class="page-heading ictu-audit-page-heading{{ $isOperationalAudit ? ' spmu-operational-audit-heading' : '' }}" aria-labelledby="ictu-audit-page-title">
@@ -353,9 +497,20 @@
         </header>
 
         @if($filters['record_type'] !== null)
+            @php
+                $historyRecordBase = class_basename($filters['record_type']);
+                $historyRecordTypeKey = collect(array_keys($recordNames))
+                    ->first(fn (string $recordType): bool => class_basename($recordType) === $historyRecordBase);
+                $historyRecordName = $historyRecordTypeKey !== null
+                    ? ($recordNames[$historyRecordTypeKey][$filters['record_id']] ?? null)
+                    : null;
+                $historyRecordLabel = $operationalRecordLabels[$historyRecordBase]
+                    ?? trim(preg_replace('/(?<!^)[A-Z]/', ' $0', $historyRecordBase));
+                $hasNamedOperationalHistory = $isOperationalAudit && filled($historyRecordName);
+            @endphp
             <div class="ictu-audit-empty-state" role="status" style="margin: 12px 16px 0;">
-                Full history of
-                <strong>{{ trim(preg_replace('/(?<!^)[A-Z]/', ' $0', $filters['record_type'])) }} #{{ $filters['record_id'] }}</strong>,
+                {{ $hasNamedOperationalHistory ? 'Full history for' : 'Full history of' }}
+                <strong>{{ $hasNamedOperationalHistory ? $historyRecordLabel.' · '.$historyRecordName : trim(preg_replace('/(?<!^)[A-Z]/', ' $0', $filters['record_type'])).' #'.$filters['record_id'] }}</strong>,
                 oldest first, so repeated changes can be followed in order.
                 <a href="{{ route('reports.audit', ['per_page' => $filters['per_page']]) }}">Back to all events</a>
             </div>
@@ -374,7 +529,7 @@
                     <tr>
                         <th scope="col">Activity</th>
                         <th scope="col">Type</th>
-                        <th scope="col">Actor / Record</th>
+                        <th scope="col">Actor / Transaction</th>
                         <th scope="col">Time</th>
                         <th scope="col" class="ictu-audit-action-heading">Action</th>
                     </tr>
@@ -383,21 +538,8 @@
                     @forelse($events as $event)
                         @php
                             $actionCode = strtolower((string) $event->action_code);
-                            $actionLabel = match ($actionCode) {
-                                'user.updated', 'user_account_updated' => 'User Account Updated',
-                                'user.created', 'user_account_created' => 'User Account Created',
-                                'user_email_verified' => 'User Email Verified',
-                                'user_email_verification_sent' => 'User Email Verification Sent',
-                                'user_email_verification_resent' => 'User Email Verification Resent',
-                                'system_setting.updated' => 'System Setting Updated',
-                                'user.activated' => 'Account Activated',
-                                'user.deactivated' => 'Account Deactivated',
-                                'borrower_restriction.created' => 'Borrowing Restriction Opened',
-                                'borrower_restriction.lifted' => 'Borrowing Restriction Lifted',
-                                default => (string) \Illuminate\Support\Str::of($actionCode)
-                                    ->replace(['.', '_'], ' ')
-                                    ->title(),
-                            };
+                            $baseActionLabel = $operationalActionLabels[$actionCode]
+                                ?? $humanizeAuditAction($actionCode);
 
                             // Name and role as stored with the event; older events fall back to the current profile name.
                             $actorName = filled($event->actor_name)
@@ -407,7 +549,10 @@
 
                             $recordTypeKey = (string) $event->record_type;
                             $recordBase = class_basename($recordTypeKey);
-                            $recordLabel = trim(preg_replace('/(?<!^)[A-Z]/', ' $0', $recordBase) ?: 'Record');
+                            $defaultRecordLabel = trim(preg_replace('/(?<!^)[A-Z]/', ' $0', $recordBase) ?: 'Record');
+                            $recordLabel = $isOperationalAudit
+                                ? ($operationalRecordLabels[$recordBase] ?? $defaultRecordLabel)
+                                : $defaultRecordLabel;
 
                             $liveRecordName = $recordNames[$recordTypeKey][$event->record_id] ?? null;
                             $snapshotRecordName = null;
@@ -425,6 +570,23 @@
                             }
                             $recordDisplayName = $liveRecordName ?? $snapshotRecordName;
 
+                            $requestNo = null;
+                            foreach ([$event->after_json, $event->before_json] as $requestSource) {
+                                $candidate = is_array($requestSource) ? ($requestSource['request_no'] ?? null) : null;
+                                if (is_scalar($candidate) && trim((string) $candidate) !== '') {
+                                    $requestNo = trim((string) $candidate);
+                                    break;
+                                }
+                            }
+                            if ($requestNo === null && in_array($recordBase, ['ApprovalStep', 'BorrowingRequest'], true) && filled($recordDisplayName)) {
+                                $requestNo = (string) $recordDisplayName;
+                            }
+
+                            $isApprovalStepRecord = $recordBase === 'ApprovalStep';
+                            if ($isOperationalAudit && $isApprovalStepRecord && filled($requestNo)) {
+                                $recordDisplayName = $requestNo;
+                            }
+
                             $isDeletionEvent = str_contains($actionCode, 'delet')
                                 || (is_array($event->after_json) && ($event->after_json['deleted'] ?? false) === true);
                             // The record type is one whose rows are looked up, and this row is gone.
@@ -436,28 +598,41 @@
                             $recordName = trim(
                                 $recordLabel
                                 .(filled($recordDisplayName) ? ' · '.$recordDisplayName : '')
-                                .($event->record_id !== null ? ' #'.$event->record_id : '')
+                                .(! $isOperationalAudit && $event->record_id !== null ? ' #'.$event->record_id : '')
                             );
                             $canViewRecordHistory = $event->record_id !== null
                                 && preg_match('/^[A-Za-z][A-Za-z0-9_]{0,79}$/', $recordBase) === 1;
                             $category = (string) ($event->audit_category ?? 'OTHER');
                             $categoryLabel = $categoryOptions[$category] ?? 'Other';
+                            $decision = strtoupper((string) (is_array($event->after_json) ? ($event->after_json['decision'] ?? '') : ''));
+                            $requestReference = filled($requestNo) ? ' for '.$requestNo : '';
+                            $actionLabel = match ($actionCode) {
+                                'e_signature_applied' => 'Electronic Signature Applied',
+                                'spmu_request_decision' => match ($decision) {
+                                    'APPROVED' => 'Borrowing Request Approved',
+                                    'REJECTED' => 'Borrowing Request Rejected',
+                                    'RETURNED_FOR_REVISION' => 'Borrowing Request Returned for Revision',
+                                    default => 'SPMU Request Decision',
+                                },
+                                default => $baseActionLabel,
+                            };
                             $activitySubtitle = filled($event->reason)
                                 ? $event->reason
                                 : match ($actionCode) {
-                                    'user.updated', 'user_account_updated' => 'Institutional account details updated.',
-                                    'user.created', 'user_account_created' => 'New institutional account registered.',
-                                    'user.activated' => 'Account status set to Active.',
-                                    'user.deactivated' => 'Account status set to Inactive.',
-                                    'system_setting.updated' => 'System setting updated.',
-                                    'user_email_verified' => 'Institutional email address verified.',
-                                    'user_email_verification_sent' => 'Verification message sent.',
-                                    'user_email_verification_resent' => 'Verification message sent again.',
-                                    'user_email_verification_delivery_failed' => 'Verification email delivery failed.',
-                                    'issuance_auto_locked' => 'Issuance was automatically locked.',
-                                    'request_supporting_document_uploaded' => 'Supporting document uploaded.',
-                                    'request_supporting_document_replaced' => 'Supporting document replaced with a new version.',
-                                    default => 'Audit event recorded.',
+                                    'e_signature_applied' => 'Electronic signature applied'.$requestReference.'.',
+                                    'spmu_request_decision' => match ($decision) {
+                                        'APPROVED' => 'Approval completed'.$requestReference.'. Items were reserved for release.',
+                                        'REJECTED' => 'Request rejected'.$requestReference.'.',
+                                        'RETURNED_FOR_REVISION' => 'Request returned for revision'.$requestReference.'.',
+                                        default => 'SPMU decision recorded'.$requestReference.'.',
+                                    },
+                                    'pickup_schedule_automatically_activated' => 'A valid pickup window was automatically assigned from the operational calendar.',
+                                    'pickup_schedule_calendar_adjusted' => 'The pickup schedule was adjusted to the next valid operational window.',
+                                    'items_released' => 'Items were physically released to the borrower.',
+                                    'return_inspected' => 'Returned quantities and conditions were recorded.',
+                                    'laundry_return_recorded_from_form' => 'The accomplished Laundry Form was used to record the linen return.',
+                                    'late_return_detected' => 'The system identified a late return for review.',
+                                    default => $baseActionLabel.(filled($recordDisplayName) ? ' for '.$recordDisplayName.'.' : ' recorded.'),
                                 };
                             $icon = match (true) {
                                 str_contains($actionCode, 'delet') => 'trash',
@@ -525,7 +700,7 @@
                                     $beforeSnapshot = is_array($event->before_json) ? $flattenAuditSnapshot($event->before_json) : [];
                                     $afterSnapshot = is_array($event->after_json) ? $flattenAuditSnapshot($event->after_json) : [];
                                     $changeRows = collect(array_values(array_unique(array_merge(array_keys($beforeSnapshot), array_keys($afterSnapshot)))))
-                                        ->map(function (string $path) use ($beforeSnapshot, $afterSnapshot, $auditFieldLabel, $isDeletionEvent) {
+                                        ->map(function (string $path) use ($beforeSnapshot, $afterSnapshot, $auditFieldLabel, $isDeletionEvent, $isOperationalAudit, $isTechnicalOperationalAuditField) {
                                             // A deletion's snapshot is the record's last state; the marker flag itself is not a field.
                                             if ($isDeletionEvent && $path === 'deleted') {
                                                 return null;
@@ -542,10 +717,18 @@
                                                 'label' => $auditFieldLabel($path),
                                                 'before' => $beforeValue,
                                                 'after' => $afterValue,
+                                                'technical' => $isOperationalAudit
+                                                    && $isTechnicalOperationalAuditField($path, $beforeValue, $afterValue),
                                             ];
                                         })
                                         ->filter()
                                         ->sortBy('label', SORT_NATURAL | SORT_FLAG_CASE)
+                                        ->values();
+                                    $operationalChangeRows = $changeRows
+                                        ->reject(fn (array $change): bool => $change['technical'])
+                                        ->values();
+                                    $technicalChangeRows = $changeRows
+                                        ->filter(fn (array $change): bool => $change['technical'])
                                         ->values();
                                     $detailReason = filled($event->reason)
                                         ? trim((string) $event->reason)
@@ -556,7 +739,7 @@
                                         <div><dt>Activity</dt><dd>{{ $actionLabel }}</dd></div>
                                         <div><dt>Actor</dt><dd>{{ $actorName }}@if($actorRoleAtTime) <small>({{ $actorRoleAtTime }} at the time)</small>@endif</dd></div>
                                         <div>
-                                            <dt>Record</dt>
+                                            <dt>Related Transaction</dt>
                                             <dd>
                                                 {{ $recordName }}
                                                 @if($recordIsDeleted)
@@ -565,12 +748,14 @@
                                                 @if($canViewRecordHistory && ! ($filters['record_type'] === $recordBase && $filters['record_id'] === (int) $event->record_id))
                                                     <br>
                                                     <a href="{{ route('reports.audit', ['record_type' => $recordBase, 'record_id' => $event->record_id, 'per_page' => $filters['per_page']]) }}"
-                                                       data-audit-record-history>View Full History</a>
+                                                       data-audit-record-history>{{ $isOperationalAudit && $isApprovalStepRecord ? 'View approval history' : 'View full history' }}</a>
                                                 @endif
                                             </dd>
                                         </div>
                                         <div><dt>Date &amp; Time</dt><dd>{{ $event->occurred_at->format('F j, Y • g:i:s A') }}</dd></div>
-                                        <div><dt>Origin</dt><dd>{{ filled($event->origin_ip) ? $event->origin_ip : 'System / application' }}</dd></div>
+                                        @if(! $isOperationalAudit)
+                                            <div><dt>Origin</dt><dd>{{ filled($event->origin_ip) ? $event->origin_ip : 'System / application' }}</dd></div>
+                                        @endif
                                         <div><dt>Category</dt><dd>{{ $categoryLabel }}</dd></div>
                                     </dl>
                                     @if(filled($detailReason))
@@ -588,14 +773,14 @@
                                         </section>
                                     @endif
 
-                                    <section class="ictu-audit-info-section" aria-label="Audit event changes">
-                                        <h2 class="ictu-audit-section-title">{{ $isDeletionEvent ? 'Preserved snapshot of the deleted record' : 'Changes' }}</h2>
+                                    <section class="ictu-audit-info-section" aria-label="Audit event changes" data-audit-operational-changes>
+                                        <h2 class="ictu-audit-section-title">{{ $isDeletionEvent ? 'Preserved snapshot of the deleted record' : ($isOperationalAudit ? 'Operational Changes' : 'Changes') }}</h2>
                                         @if($isDeletionEvent)
                                             <div class="ictu-audit-empty-state" style="margin-bottom: 10px;">
                                                 This record was permanently deleted. The values below are the snapshot kept at the moment of deletion; the record itself cannot be restored from this page.
                                             </div>
                                         @endif
-                                        @if($changeRows->isNotEmpty())
+                                        @if($operationalChangeRows->isNotEmpty())
                                             <div class="ictu-audit-change-table-wrap">
                                                 <table class="ictu-audit-change-table">
                                                     <colgroup>
@@ -611,7 +796,7 @@
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        @foreach($changeRows as $change)
+                                                        @foreach($operationalChangeRows as $change)
                                                             <tr>
                                                                 <td><strong>{{ $change['label'] }}</strong></td>
                                                                 <td>{{ $change['before'] }}</td>
@@ -627,6 +812,46 @@
                                             </div>
                                         @endif
                                     </section>
+
+                                    @if($isOperationalAudit && ($technicalChangeRows->isNotEmpty() || filled($event->origin_ip) || filled($event->correlation_id)))
+                                        <section class="ictu-audit-info-section" aria-label="Technical verification details">
+                                            <details class="ictu-audit-technical-details" data-audit-technical-verification>
+                                                <summary>Technical verification details</summary>
+                                                <p>Internal identifiers and integrity data are retained for audit verification.</p>
+                                                <dl class="ictu-audit-technical-grid">
+                                                    <div><dt>Audit Event ID</dt><dd>{{ $event->id }}</dd></div>
+                                                    <div><dt>Source</dt><dd>{{ filled($event->origin_ip) ? $event->origin_ip : 'System / application' }}</dd></div>
+                                                    <div><dt>Record Type</dt><dd>{{ $event->record_type }}</dd></div>
+                                                    <div><dt>Record ID</dt><dd>{{ $event->record_id ?? 'Not set' }}</dd></div>
+                                                    @if(filled($event->correlation_id))
+                                                        <div><dt>Correlation ID</dt><dd>{{ $event->correlation_id }}</dd></div>
+                                                    @endif
+                                                </dl>
+                                                @if($technicalChangeRows->isNotEmpty())
+                                                    <div class="ictu-audit-change-table-wrap">
+                                                        <table class="ictu-audit-change-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th scope="col">Technical Field</th>
+                                                                    <th scope="col">Previous Value</th>
+                                                                    <th scope="col">New Value</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach($technicalChangeRows as $change)
+                                                                    <tr>
+                                                                        <td><strong>{{ $change['label'] }}</strong></td>
+                                                                        <td>{{ $change['before'] }}</td>
+                                                                        <td>{{ $change['after'] }}</td>
+                                                                    </tr>
+                                                                @endforeach
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                @endif
+                                            </details>
+                                        </section>
+                                    @endif
 
                                     @php
                                         $recovery = $event->getAttributes()['recovery'] ?? null;

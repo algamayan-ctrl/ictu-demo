@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\AccessClassification;
 use App\Enums\RequestStatus;
+use App\Models\ApprovalStep;
 use App\Models\AuditEvent;
 use App\Models\BorrowingRequest;
 use App\Models\GeneratedDocument;
@@ -124,7 +125,7 @@ class AuditTrailInvestigationTest extends TestCase
         $response = $this->as($this->head->fresh())
             ->get(route('reports.audit', ['record_type' => 'InventoryItem', 'record_id' => $item->id]))
             ->assertOk()
-            ->assertSee('Full history of')
+            ->assertSee('Full history for')
             ->assertSee('Investigation Chair Green')
             ->assertSee('SPMU Head Demo')
             ->assertSee('at the time');
@@ -135,6 +136,95 @@ class AuditTrailInvestigationTest extends TestCase
             ['INVENTORY_ITEM_CREATED', 'INVENTORY_ITEM_UPDATED', 'INVENTORY_ITEM_UPDATED'],
             $history->getCollection()->pluck('action_code')->all()
         );
+    }
+
+    public function test_operational_approval_audit_prioritizes_the_request_and_separates_technical_evidence(): void
+    {
+        $request = $this->saveDraftWithLetter('audit-approval-context.pdf');
+        $version = $request->currentVersion;
+        $step = ApprovalStep::query()->create([
+            'request_version_id' => $version->id,
+            'stage_code' => 'SPMU',
+            'sequence_no' => 1,
+        ]);
+
+        AuditEvent::query()->create([
+            'actor_user_id' => $this->head->id,
+            'actor_name' => $this->head->full_name,
+            'actor_role' => AccessClassification::SpmuHead->value,
+            'action_code' => 'SPMU_REQUEST_DECISION',
+            'record_type' => ApprovalStep::class,
+            'record_id' => $step->id,
+            'occurred_at' => now(),
+            'origin_ip' => '198.51.100.14',
+            'correlation_id' => (string) Str::uuid(),
+            'after_json' => [
+                'decision' => 'APPROVED',
+                'reservation_created' => true,
+                'request_id' => $request->id,
+                'request_version_id' => $version->id,
+                'signer_user_id' => $this->head->id,
+                'signature_snapshot_id' => 75,
+                'signed_at' => now()->toIso8601String(),
+            ],
+        ]);
+
+        $this->as($this->head)
+            ->get(route('reports.audit'))
+            ->assertOk()
+            ->assertSee('Borrowing Request Approved')
+            ->assertSee('Approval completed for '.$request->request_no.'. Items were reserved for release.')
+            ->assertSee('Borrowing Request · '.$request->request_no)
+            ->assertSee('Operational Changes')
+            ->assertSee('Technical verification details')
+            ->assertSee('data-audit-operational-changes', false)
+            ->assertSee('data-audit-technical-verification', false)
+            ->assertDontSee('Spmu Request Decision')
+            ->assertDontSee('Approval Step #')
+            ->assertDontSee('Audit event recorded.');
+
+        $this->as($this->head)
+            ->get(route('reports.audit', ['record_type' => 'ApprovalStep', 'record_id' => $step->id]))
+            ->assertOk()
+            ->assertSee('Full history for')
+            ->assertSee('Borrowing Request · '.$request->request_no)
+            ->assertDontSee('Full history of Approval Step #');
+    }
+
+    public function test_operational_audit_uses_clear_labels_across_its_main_workflows(): void
+    {
+        $request = $this->saveDraftWithLetter('audit-workflow-labels.pdf');
+        $events = [
+            'ITEMS_RELEASED',
+            'LAUNDRY_RETURN_RECORDED_FROM_FORM',
+            'PROPERTY_ACCOUNTABILITY_COMPLIANCE_VERIFIED',
+            'INVENTORY_ADJUSTMENT_RECORDED',
+            'OPERATIONAL_DATE_EXCEPTION_SAVED',
+        ];
+
+        foreach ($events as $actionCode) {
+            AuditEvent::query()->create([
+                'actor_user_id' => $this->head->id,
+                'actor_name' => $this->head->full_name,
+                'actor_role' => AccessClassification::SpmuHead->value,
+                'action_code' => $actionCode,
+                'record_type' => $request::class,
+                'record_id' => $request->id,
+                'occurred_at' => now(),
+                'correlation_id' => (string) Str::uuid(),
+                'after_json' => ['request_no' => $request->request_no],
+            ]);
+        }
+
+        $this->as($this->head)
+            ->get(route('reports.audit', ['per_page' => 14]))
+            ->assertOk()
+            ->assertSee('Items Released to Borrower')
+            ->assertSee('Laundry Return Recorded')
+            ->assertSee('Accountability Compliance Verified')
+            ->assertSee('Inventory Adjustment Recorded')
+            ->assertSee('Operating Date Exception Saved')
+            ->assertDontSee('Audit event recorded.');
     }
 
     public function test_an_inventory_change_without_a_reason_is_rejected_and_leaves_no_audit_event(): void

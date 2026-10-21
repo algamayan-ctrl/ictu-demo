@@ -6,19 +6,25 @@ use App\Enums\AccessClassification;
 use App\Enums\UserRole;
 use App\Models\AuditEvent;
 use App\Models\AcademicPeriod;
+use App\Models\ApprovalStep;
 use App\Models\BillingStatement;
+use App\Models\BorrowerRegistration;
 use App\Models\BorrowerViolation;
 use App\Models\BorrowingRequest;
 use App\Models\CustodyTransaction;
 use App\Models\Incident;
 use App\Models\InventoryItem;
+use App\Models\LaundryJob;
 use App\Models\NotificationDelivery;
 use App\Models\NotificationEvent;
 use App\Models\OverdueCase;
+use App\Models\RequestVersion;
+use App\Models\ReturnTransaction;
 use App\Models\Penalty;
 use App\Models\Sanction;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Models\UserSignature;
 use App\Reports\ReportCatalogue;
 use App\Reports\ReportExportOptions;
 use App\Reports\ReportFilters;
@@ -1112,6 +1118,87 @@ class ReportController extends Controller
     private function auditRecordNames(\Illuminate\Support\Collection $events): array
     {
         $names = [];
+
+        /*
+         * Some audit rows are intentionally attached to a workflow step or
+         * supporting record. Resolve their parent transaction for the
+         * operational display, while retaining the exact original row ID in
+         * the technical verification details.
+         */
+        $contextualRecordNames = [
+            ApprovalStep::class => fn ($ids) => ApprovalStep::query()
+                ->with('version.request')
+                ->whereIn('id', $ids)
+                ->get()
+                ->mapWithKeys(fn (ApprovalStep $step): array => [$step->id => (string) ($step->version?->request?->request_no ?? '')]),
+            RequestVersion::class => fn ($ids) => RequestVersion::query()
+                ->with('request')
+                ->whereIn('id', $ids)
+                ->get()
+                ->mapWithKeys(fn (RequestVersion $version): array => [$version->id => (string) ($version->request?->request_no ?? '')]),
+            LaundryJob::class => fn ($ids) => LaundryJob::query()
+                ->with('custody')
+                ->whereIn('id', $ids)
+                ->get()
+                ->mapWithKeys(fn (LaundryJob $job): array => [$job->id => (string) ($job->custody?->custody_no ?? '')]),
+            ReturnTransaction::class => fn ($ids) => ReturnTransaction::query()
+                ->whereIn('id', $ids)
+                ->pluck('return_no', 'id'),
+            BorrowerViolation::class => fn ($ids) => BorrowerViolation::query()
+                ->with('custody')
+                ->whereIn('id', $ids)
+                ->get()
+                ->mapWithKeys(fn (BorrowerViolation $violation): array => [$violation->id => (string) ($violation->custody?->custody_no ?? '')]),
+            OverdueCase::class => fn ($ids) => OverdueCase::query()
+                ->with('custody')
+                ->whereIn('id', $ids)
+                ->get()
+                ->mapWithKeys(fn (OverdueCase $case): array => [$case->id => (string) ($case->custody?->custody_no ?? '')]),
+            BorrowerRegistration::class => fn ($ids) => BorrowerRegistration::query()
+                ->with('user')
+                ->whereIn('id', $ids)
+                ->get()
+                ->mapWithKeys(fn (BorrowerRegistration $registration): array => [$registration->id => (string) ($registration->user?->full_name ?? '')]),
+        ];
+
+        foreach ($contextualRecordNames as $recordType => $resolveNames) {
+            $ids = $events
+                ->where('record_type', $recordType)
+                ->pluck('record_id')
+                ->filter()
+                ->unique()
+                ->values();
+
+            if ($ids->isNotEmpty()) {
+                $names[$recordType] = $resolveNames($ids)
+                    ->filter()
+                    ->map(fn ($name): string => (string) $name)
+                    ->all();
+            }
+        }
+
+        $signatureIds = $events
+            ->where('record_type', UserSignature::class)
+            ->pluck('record_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($signatureIds->isNotEmpty()) {
+            $signatures = UserSignature::query()
+                ->whereIn('id', $signatureIds)
+                ->get(['id', 'user_id']);
+            $usersById = User::query()
+                ->whereIn('id', $signatures->pluck('user_id')->filter()->unique())
+                ->pluck('full_name', 'id');
+
+            $names[UserSignature::class] = $signatures
+                ->mapWithKeys(fn (UserSignature $signature): array => [
+                    $signature->id => (string) ($usersById[$signature->user_id] ?? ''),
+                ])
+                ->filter()
+                ->all();
+        }
 
         foreach (self::AUDIT_RECORD_NAME_COLUMNS as $recordType => $column) {
             $ids = $events

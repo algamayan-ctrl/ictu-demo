@@ -461,8 +461,8 @@
 .accountability-history-embedded table { margin: 0; }
 .resolved-history-card .accountability-case-facts { margin-top: 12px; }
 
-/* Compact facts inside expanded history rows. This partial is also used in
-   the per-borrower staff workspace, where oversight-styles is not loaded. */
+{{-- /* Compact facts inside expanded history rows. This partial is also used in
+   the per-borrower staff workspace, where oversight-styles is not loaded. */ --}}
 .resolved-history-facts {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -482,7 +482,7 @@
     background: var(--surface-subtle);
 }
 
-/* Always-visible compact summary; everything else lives behind "View Details". */
+{{-- /* Always-visible compact summary; everything else lives behind "View Details". */ --}}
 .resolved-history-summary {
     display: flex;
     flex-wrap: wrap;
@@ -527,7 +527,7 @@
 .resolved-history-payment > div { display: grid; gap: 1px; }
 .resolved-history-payment dt { color: var(--text-muted); font-size: 11px; }
 
-/* Receipt numbers can be long, so they wrap instead of widening the page. */
+{{-- /* Receipt numbers can be long, so they wrap instead of widening the page. */ --}}
 .resolved-history-payment dd {
     margin: 0;
     color: var(--heading);

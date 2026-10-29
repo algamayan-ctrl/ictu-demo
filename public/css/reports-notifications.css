@@ -273,7 +273,7 @@
 }
 .notification-delivery-detail-response { align-items: start; }
 
-/* Failure reason: short summary first, full sanitized transport text on demand. */
+
 .notification-delivery-failure { display: grid; gap: 2px; }
 .notification-delivery-failure-title { font-size: 10.75px; font-weight: 750; }
 .notification-delivery-failure-explanation { display: block; }
@@ -365,7 +365,7 @@
     .notification-delivery-bulk-bar label { white-space: normal; }
 }
 
-/* SPMU-COMPACT-DELIVERY-REPORTS START */
+
 @media screen {
   .notification-delivery-heading { margin-bottom: 14px !important; }
   .notification-delivery-heading h1 { font-size: 21px !important; }
@@ -376,4 +376,3 @@
   .notification-delivery-table th { font-size: 10.5px !important; padding-top: 9px !important; padding-bottom: 9px !important; }
   .notification-delivery-table td { font-size: 12px !important; padding-top: 7px !important; padding-bottom: 7px !important; }
 }
-/* SPMU-COMPACT-DELIVERY-REPORTS END */

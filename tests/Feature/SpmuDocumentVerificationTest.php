@@ -125,15 +125,15 @@ class SpmuDocumentVerificationTest extends TestCase
                 'Verify request and documents'
             )
             ->assertSeeText(
-                'E-sign & Mark VERIFIED'
+                'Verify Request'
             );
 
         /*
          * Verifying a request (sequence-1) is a baseline Action Officer
          * duty and needs no delegation; only the final Head-level decision
          * (sequence-2: Approve/Reject) is gated behind an active formal
-         * delegation. The "E-sign & Mark VERIFIED" assertion above already
-         * proves the verify button's trigger is "VERIFIED", not "APPROVED".
+         * delegation. The "Verify Request" assertion above confirms that
+         * the Action Officer receives the verification action.
          *
          * The Reject button (data-decision-trigger="REJECTED") only renders
          * when $canDecide is true. spmu-review-styles.blade.php also

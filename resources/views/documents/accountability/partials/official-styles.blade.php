@@ -196,7 +196,7 @@
         text-align: right;
     }
 
-    /* Formal text block: intentionally plain, not a colored app/system callout. */
+    {{-- /* Formal text block: intentionally plain, not a colored app/system callout. */ --}}
     .notice-box {
         margin-top: 8px;
         padding: 7px 9px;

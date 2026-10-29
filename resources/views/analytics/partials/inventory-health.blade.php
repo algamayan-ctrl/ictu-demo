@@ -485,11 +485,11 @@
 {{-- INVENTORY HEALTH EQUAL CARD HEIGHTS START --}}
 
 <style>
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Inventory Health paired card heights
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 
 .analytics-inventory-equal-row {
     align-items: stretch !important;
@@ -502,19 +502,19 @@
 }
 
 
-/*
+{{-- /*
  * Keep empty / short content visually balanced when its paired card
  * contains more information.
- */
+ */ --}}
 .analytics-inventory-equal-card
 .analytics-inventory-equal-body {
     flex: 1 1 auto !important;
 }
 
 
-/*
+{{-- /*
  * On stacked layouts, allow every card to return to natural height.
- */
+ */ --}}
 @media (max-width: 900px) {
     .analytics-inventory-equal-row
     > .analytics-inventory-equal-card {
@@ -699,11 +699,11 @@
                 );
 
 
-            /*
-             * CSS Grid/Flex normally stretches these already.
-             * min-height is only the fallback to guarantee identical
-             * bottom edges when an older card style overrides stretch.
-             */
+
+
+
+
+
             firstCard.style.setProperty(
                 'min-height',
                 `${target}px`,

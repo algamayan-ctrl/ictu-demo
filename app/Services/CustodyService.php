@@ -161,7 +161,9 @@ class CustodyService
 
                 if (! $allocation || $allocation->status !== 'ACTIVE') {
                     throw ValidationException::withMessages([
-                        'custody' => 'The approved inventory reservation is incomplete. Re-run SPMU verification before preparing release.',
+                        'custody' => $actor->access_classification === AccessClassification::SpmuOfficer
+                            ? 'The approved inventory allocation is incomplete. Re-run SPMU verification before preparing release.'
+                            : 'The approved inventory reservation is incomplete. Re-run SPMU verification before preparing release.',
                     ]);
                 }
 
@@ -654,14 +656,16 @@ class CustodyService
      * The approved request and its reserved quantity remain active. When the
      * borrower still needs the items, the Action Officer reschedules the same
      * custody transaction to the next valid SPMU Pickup / Release operating
-     * window before the Expected Return Date. The reschedule action itself is
+     * window on or before Date Needed. The reschedule action itself is
      * the AO confirmation of the new window and the borrower is notified.
      */
     public function rescheduleMissedPickup(
         CustodyTransaction $custody,
         User $spmu,
         bool $borrowerNeedConfirmed = false,
-        ?string $borrowerConfirmationNote = null
+        ?string $borrowerConfirmationNote = null,
+        bool $pickupConfirmed = false,
+        bool $borrowerPresent = false
     ): void {
         abort_unless(
             $spmu->access_classification === AccessClassification::SpmuOfficer
@@ -673,7 +677,7 @@ class CustodyService
 
         $borrowerConfirmationNote = trim((string) $borrowerConfirmationNote);
 
-        DB::transaction(function () use ($custody, $spmu, $borrowerNeedConfirmed, $borrowerConfirmationNote): void {
+        DB::transaction(function () use ($custody, $spmu, $borrowerNeedConfirmed, $borrowerConfirmationNote, $pickupConfirmed, $borrowerPresent): void {
             $locked = CustodyTransaction::query()
                 ->with(['borrower', 'request.currentVersion', 'lines.requestItem'])
                 ->lockForUpdate()
@@ -697,25 +701,27 @@ class CustodyService
             }
 
             /*
-             * A missed pickup is "Pickup Missed - For SPMU Review": SPMU
-             * decides directly whether to continue the release, without
-             * waiting for the borrower.
-             *
-             * A delayed approval is different: the borrower was never given
-             * a pickup schedule, so SPMU must first confirm the equipment is
-             * still needed. The system has no borrower-side confirmation, so
-             * what is recorded is the Action Officer's own attestation -
-             * never an implied borrower consent.
+             * Both missed pickups and delayed approval use the same current
+             * dialog: the officer attests that the borrower is present.
+             * Older schedule confirmations and contact attestations retain their
+             * separate audit meaning. None is borrower-side electronic consent
+             * or confirmation of physical release.
              */
             $delayedApprovalReview = $this->pickupScheduleReviewPending($locked);
 
-            if ($delayedApprovalReview && ! $borrowerNeedConfirmed) {
+            if ($borrowerPresent && ! $pickupConfirmed) {
                 throw ValidationException::withMessages([
-                    'borrower_need_confirmed' => 'Confirm that you contacted the borrower and that the equipment is still needed before continuing this release.',
+                    'confirm_pickup' => 'Confirm that the borrower is present and will proceed with pickup.',
                 ]);
             }
 
-            if ($delayedApprovalReview && $borrowerConfirmationNote === '') {
+            if ($delayedApprovalReview && ! $borrowerNeedConfirmed && ! $pickupConfirmed) {
+                throw ValidationException::withMessages([
+                    'borrower_need_confirmed' => 'Confirm the pickup schedule before continuing.',
+                ]);
+            }
+
+            if ($delayedApprovalReview && ! $pickupConfirmed && $borrowerConfirmationNote === '') {
                 throw ValidationException::withMessages([
                     'borrower_confirmation_note' => 'Record how and when the borrower confirmed (for example: phone call at 2:15 PM).',
                 ]);
@@ -759,7 +765,7 @@ class CustodyService
              */
             if ($nextStart->startOfDay()->gt($neededFromDay)) {
                 throw ValidationException::withMessages([
-                    'pickup' => 'No valid pickup window remains on or before the approved Items Needed From date. Continue Release is no longer available; cancel the unreleased request or revise the approved borrowing dates as appropriate.',
+                    'pickup' => 'No pickup time is available on or before Date Needed. Cancel the unreleased borrowing or submit revised dates for approval.',
                 ]);
             }
 
@@ -793,7 +799,19 @@ class CustodyService
                     'source' => $delayedApprovalReview
                         ? 'DELAYED_APPROVAL_SCHEDULE_REVIEW'
                         : 'MISSED_PICKUP_NEXT_VALID_OPERATIONAL_WINDOW',
-                ] + ($delayedApprovalReview ? [
+                ] + ($pickupConfirmed && ($delayedApprovalReview || $borrowerPresent) ? [
+                    'pickup_confirmed_by_spmu' => true,
+                    'confirmation_source' => $borrowerPresent
+                        ? 'SPMU_OFFICER_IN_PERSON_PICKUP'
+                        : 'SPMU_OFFICER_PICKUP_CONFIRMATION',
+                    'borrower_need_attested_by_spmu' => false,
+                    'borrower_confirmation_recorded_in_system' => false,
+                ] + ($borrowerPresent ? [
+                    'borrower_presence_attested_by_spmu' => true,
+                    'attested_by_user_id' => $spmu->id,
+                    'attested_at' => $now->toIso8601String(),
+                    'attestation_statement' => 'The borrower is present and will proceed with pickup.',
+                ] : []) : ($delayedApprovalReview ? [
                     // An Action Officer attestation, not a borrower e-confirmation:
                     // who attested, when, to what statement, and how they say the
                     // borrower confirmed.
@@ -805,7 +823,7 @@ class CustodyService
                     'borrower_confirmation_note' => mb_substr($borrowerConfirmationNote, 0, 200),
                     'confirmation_source' => 'SPMU_OFFICER_ATTESTATION',
                     'borrower_confirmation_recorded_in_system' => false,
-                ] : [])
+                ] : []))
             );
 
             if ($locked->borrower) {
@@ -815,14 +833,17 @@ class CustodyService
                     ? 'the generated Borrower Slip and Gate Pass'
                     : 'the generated Borrower Slip';
 
-                $this->notifications->send(
-                    'PICKUP_SCHEDULED',
-                    collect([$locked->borrower]),
-                    $delayedApprovalReview
-                        ? "Pickup and issuance for {$locked->custody_no} is now scheduled for {$nextStart->format('F j, Y g:i A')} until {$nextEnd->format('g:i A')}. An SPMU officer recorded that you were contacted and confirmed you still need the items. Proceed to SPMU within this window and bring {$requiredDocuments}. If that record is not correct, or you no longer need the items, contact SPMU before the pickup time."
-                        : "Pickup and issuance for {$locked->custody_no} has been rescheduled to {$nextStart->format('F j, Y g:i A')} until {$nextEnd->format('g:i A')}. This uses your same approved request; you do not need to submit a new borrowing request. Proceed to SPMU within the new window and bring {$requiredDocuments}.",
-                    $locked
-                );
+                if ($pickupConfirmed && $borrowerPresent) {
+                    $pickupMessage = "SPMU recorded your arrival for pickup of {$locked->custody_no}. Release processing will continue after item preparation and document checks.";
+                } elseif ($delayedApprovalReview && $pickupConfirmed) {
+                    $pickupMessage = "Pickup and issuance for {$locked->custody_no} is scheduled for {$nextStart->format('F j, Y g:i A')} until {$nextEnd->format('g:i A')}. An SPMU officer confirmed this pickup schedule. Proceed to SPMU within this window and bring {$requiredDocuments}.";
+                } elseif ($delayedApprovalReview) {
+                    $pickupMessage = "Pickup and issuance for {$locked->custody_no} is now scheduled for {$nextStart->format('F j, Y g:i A')} until {$nextEnd->format('g:i A')}. An SPMU officer recorded that you were contacted and confirmed you still need the items. Proceed to SPMU within this window and bring {$requiredDocuments}. If that record is not correct, or you no longer need the items, contact SPMU before the pickup time.";
+                } else {
+                    $pickupMessage = "Pickup and issuance for {$locked->custody_no} has been rescheduled to {$nextStart->format('F j, Y g:i A')} until {$nextEnd->format('g:i A')}. This uses your same approved request; you do not need to submit a new borrowing request. Proceed to SPMU within the new window and bring {$requiredDocuments}.";
+                }
+
+                $this->notifications->send('PICKUP_SCHEDULED', collect([$locked->borrower]), $pickupMessage, $locked);
             }
         }, 3);
     }
@@ -833,7 +854,7 @@ class CustodyService
      * suggested pickup date ("Schedule Review Required").
      *
      * No pickup schedule exists in this state, so it is not a missed pickup.
-     * It ends once SPMU sets a schedule through Continue Release.
+     * It ends once SPMU sets a schedule through Confirm Pickup.
      */
     public function pickupScheduleReviewPending(CustodyTransaction $custody): bool
     {

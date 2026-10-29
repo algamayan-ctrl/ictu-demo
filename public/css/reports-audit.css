@@ -1,4 +1,4 @@
-/* Audit Trail matches the ICTU User Accounts layout without changing other modules. */
+
 .ictu-audit-shell { --sidebar-width: 290px; --topbar-height: 92px; }
 html:not([data-theme="dark"]) .ictu-audit-shell .app-stage { background: #f5faff; }
 html:not([data-theme="dark"]) .ictu-audit-shell .app-sidebar { background: #eaf6ff !important; }
@@ -158,7 +158,7 @@ html[data-theme="dark"] .ictu-audit-type-badge { background: var(--surface-muted
     .ictu-audit-area * { transition: none !important; scroll-behavior: auto !important; }
 }
 
-/* Match the standard Dashboard application shell scale. */
+
 .ictu-audit-shell {
     --sidebar-width: 232px;
     --topbar-height: 64px;
@@ -255,8 +255,8 @@ html[data-theme="dark"] .ictu-audit-type-badge { background: var(--surface-muted
     }
 }
 
-/* UNIVERSAL AUDIT FILTER LAYOUT
-   Shared by ICTU Technical Audit Trail and SPMU Operational Audit Trail. */
+
+
 .ictu-audit-filter-grid {
     grid-template-columns:
         minmax(280px, 2fr)
@@ -292,8 +292,8 @@ html[data-theme="dark"] .ictu-audit-type-badge { background: var(--surface-muted
     }
 }
 
-/* UNIVERSAL AUDIT DETAIL COMPACTNESS
-   Shared by ICTU Technical Audit Trail and SPMU Operational Audit Trail. */
+
+
 
 .ictu-audit-expanded-row td {
     padding: 9px 12px !important;
@@ -334,7 +334,7 @@ html[data-theme="dark"] .ictu-audit-type-badge { background: var(--surface-muted
     padding: 10px 12px !important;
 }
 
-/* AUDIT TYPE BADGE SINGLE LINE */
+
 .ictu-audit-type-badge {
     display: inline-flex !important;
     align-items: center !important;
@@ -354,39 +354,39 @@ html[data-theme="dark"] .ictu-audit-type-badge { background: var(--surface-muted
     text-align: center !important;
 }
 
-/* UNIVERSAL AUDIT TABLE COLUMN BALANCE
-   Shared by Technical and Operational Audit Trail. */
+
+
 
 .ictu-audit-table {
     width: 100% !important;
     table-layout: fixed !important;
 }
 
-/* Activity */
+
 .ictu-audit-table thead th:nth-child(1),
 .ictu-audit-data-row > td:nth-child(1) {
     width: 31% !important;
 }
 
-/* Type */
+
 .ictu-audit-table thead th:nth-child(2),
 .ictu-audit-data-row > td:nth-child(2) {
     width: 20% !important;
 }
 
-/* Actor / Record */
+
 .ictu-audit-table thead th:nth-child(3),
 .ictu-audit-data-row > td:nth-child(3) {
     width: 24% !important;
 }
 
-/* Time */
+
 .ictu-audit-table thead th:nth-child(4),
 .ictu-audit-data-row > td:nth-child(4) {
     width: 12% !important;
 }
 
-/* Action */
+
 .ictu-audit-table thead th:nth-child(5),
 .ictu-audit-data-row > td:nth-child(5) {
     width: 13% !important;
@@ -406,10 +406,10 @@ html[data-theme="dark"] .ictu-audit-type-badge { background: var(--surface-muted
     max-width: 100% !important;
 }
 
-/*
- * Keep category pills compact without allowing long technical
- * categories to overlap the Actor / Record column.
- */
+
+
+
+
 .ictu-audit-type-badge {
     display: inline-flex !important;
     align-items: center !important;
@@ -429,12 +429,12 @@ html[data-theme="dark"] .ictu-audit-type-badge { background: var(--surface-muted
     line-height: 1.1 !important;
 }
 
-/* Keep Actor / Record comfortably separated from Type. */
+
 .ictu-audit-data-row > td:nth-child(3) {
     padding-left: 16px !important;
 }
 
-/* Shared compact row alignment. */
+
 .ictu-audit-time {
     display: grid !important;
     gap: 2px !important;
@@ -446,10 +446,10 @@ html[data-theme="dark"] .ictu-audit-type-badge { background: var(--surface-muted
     }
 }
 
-/* UNIVERSAL AUDIT TABLE COLUMN BALANCE END */
 
-/* SPMU-COMPACT-AUDIT START */
-/* Operational Audit only; keep Technical Audit, global shell and menus unchanged. */
+
+
+
 @media screen {
   .ictu-audit-shell .spmu-operational-audit-heading { margin-bottom: 14px !important; }
   .ictu-audit-shell .spmu-operational-audit-heading h1 { font-size: 21px !important; line-height: 1.22 !important; }
@@ -475,5 +475,3 @@ html[data-theme="dark"] .ictu-audit-type-badge { background: var(--surface-muted
   .spmu-operational-audit-area .ictu-audit-view-button { min-height: 32px !important; font-size: 11.5px !important; }
   .spmu-operational-audit-area .ictu-audit-expanded-row td { height: auto !important; }
 }
-/* SPMU-COMPACT-AUDIT END */
-

@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     const dialog = document.getElementById('user-deactivation-confirmation');
     let pendingDeactivation = null;
-    // Confirm before the shared submit handler locks a state-changing form.
+
     document.querySelectorAll('[data-ictu-deactivate-form] button:not(:disabled)').forEach(button => {
         button.addEventListener('click', event => {
             event.preventDefault();

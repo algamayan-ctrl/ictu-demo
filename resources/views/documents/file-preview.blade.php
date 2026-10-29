@@ -39,7 +39,7 @@
     />
 </section>
 <style>
-/* SPMU-COMPACT-FILE-PREVIEW START */
+{{-- /* SPMU-COMPACT-FILE-PREVIEW START */ --}}
 @media screen {
   .spmu-file-preview-heading { margin-bottom: 10px !important; }
   .spmu-file-preview-heading h1 { font-size: 21px !important; }
@@ -47,6 +47,6 @@
   .spmu-file-preview-area .callout { margin-bottom: 12px !important; padding: 12px 14px !important; }
   .spmu-file-preview-area .scanned-document-card { padding: 0 !important; }
 }
-/* SPMU-COMPACT-FILE-PREVIEW END */
+{{-- /* SPMU-COMPACT-FILE-PREVIEW END */ --}}
 </style>
 @endsection

@@ -507,12 +507,12 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    /*
-     * Search, date, channel, status, event, page size and paging are applied
-     * by the server across every retained delivery record. Changing a filter
-     * reloads the list from its first page; Previous/Next submit the same
-     * form with a page number, so filters are kept while paging.
-     */
+
+
+
+
+
+
     const form = document.getElementById('delivery-filter-form');
     const search = document.getElementById('delivery-search');
     const rows = Array.from(document.querySelectorAll('[data-delivery-row]'));
@@ -532,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         submitFilters();
     });
-    // Fired when the field is cleared with its built-in clear button.
+
     search?.addEventListener('search', submitFilters);
     search?.addEventListener('change', submitFilters);
     window.addEventListener('pageshow', () => { submitted = false; });

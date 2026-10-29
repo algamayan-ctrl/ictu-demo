@@ -170,11 +170,11 @@
 .analytics-records-table tbody tr:hover { background: var(--surface-subtle); }
 .analytics-records-table tbody tr[hidden] { display: none; }
 
-/*
+{{-- /*
 | Universal Analytics Records table language.
 | Columns stay context-specific, while every drilldown keeps the same
 | typography, row rhythm, hover treatment and status-pill behavior.
-*/
+*/ --}}
 .analytics-records-table td:first-child {
  font-weight: 750;
 }
@@ -356,7 +356,7 @@
  .analytics-records-actions .button { flex: 1; justify-content: center; }
 }
 
-/* RETURN PERFORMANCE TREND RECORDS UI */
+{{-- /* RETURN PERFORMANCE TREND RECORDS UI */ --}}
 .analytics-records-page.is-return-trend {
  gap: 14px;
 }
@@ -443,14 +443,14 @@
 }
 
 
-/* RETURN TREND CLEANUP */
+{{-- /* RETURN TREND CLEANUP */ --}}
 .analytics-records-page.is-return-trend .analytics-records-note,
 .analytics-records-page.is-return-trend .analytics-records-footer {
  display: none !important;
 }
 
 
-/* UNIVERSAL ANALYTICS DISTRIBUTION */
+{{-- /* UNIVERSAL ANALYTICS DISTRIBUTION */ --}}
 
 .analytics-records-distribution {
  display: grid;
@@ -970,9 +970,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <style>
-/* ==========================================================
+{{-- /* ==========================================================
    UNIVERSAL ANALYTICS DETAIL
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-universal-insight {
     display: grid;
@@ -1038,9 +1038,9 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    EQUIPMENT COVERAGE
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-equipment-capacity {
     display: grid;
@@ -1167,9 +1167,9 @@ html[data-theme="dark"]
         );
 
 
-    /*
-     * Universal supporting-section names.
-     */
+
+
+
     const supportingNames = {
 
         'equipment demand & availability':
@@ -1214,9 +1214,9 @@ html[data-theme="dark"]
         );
 
 
-    /* ======================================================
-       1. SUMMARY HEADING
-       ====================================================== */
+
+
+
 
     if (detail.summaryTitle) {
 
@@ -1249,9 +1249,9 @@ html[data-theme="dark"]
     }
 
 
-    /* ======================================================
-       2. SUPPORTING HEADING
-       ====================================================== */
+
+
+
 
     Array.from(
         document.querySelectorAll(
@@ -1306,9 +1306,9 @@ html[data-theme="dark"]
     });
 
 
-    /* ======================================================
-       3. SCHEDULED PERIOD CHIP
-       ====================================================== */
+
+
+
 
     if (detail.displayPeriod) {
 
@@ -1349,9 +1349,9 @@ html[data-theme="dark"]
     }
 
 
-    /* ======================================================
-       4. HIDE EXACT GENERIC FILLER ONLY
-       ====================================================== */
+
+
+
 
     const fillerTexts = [
         'this analytics result is summarized above and has no additional transaction-level records for the selected scope.',
@@ -1383,9 +1383,9 @@ html[data-theme="dark"]
     });
 
 
-    /* ======================================================
-       5. EQUIPMENT TABLE DECORATION
-       ====================================================== */
+
+
+
 
     let supportingCard = null;
 
@@ -1574,9 +1574,9 @@ html[data-theme="dark"]
     }
 
 
-    /* ======================================================
-       6. UNIVERSAL STATUS INSIGHT
-       ====================================================== */
+
+
+
 
     const insight =
         detail.statusInsight;
@@ -2063,9 +2063,9 @@ html[data-theme="dark"]
 
 
 <style>
-/* ==========================================================
+{{-- /* ==========================================================
    UNIVERSAL ANALYTICS TIME-SERIES CARD
-   ========================================================== */
+   ========================================================== */ --}}
 
 .universal-time-series-card {
     overflow: hidden;
@@ -2123,9 +2123,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    CHART
-   ========================================================== */
+   ========================================================== */ --}}
 
 .universal-time-series-content {
     padding:
@@ -2280,19 +2280,19 @@ html[data-theme="dark"]
 }
 
 
-/*
+{{-- /*
  * Non-zero values are positioned by JS
  * directly above their rendered column.
- */
+ */ --}}
 .universal-time-series-item:not(.is-zero)
 .universal-time-series-value {
     top: 0;
 }
 
 
-/*
+{{-- /*
  * Zero belongs at the baseline.
- */
+ */ --}}
 .universal-time-series-item.is-zero
 .universal-time-series-value {
     top: auto;
@@ -2361,9 +2361,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    PEAK BADGE
-   ========================================================== */
+   ========================================================== */ --}}
 
 .universal-time-series-peak {
     position: absolute;
@@ -2410,9 +2410,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    X AXIS
-   ========================================================== */
+   ========================================================== */ --}}
 
 .universal-time-series-labels {
     display: flex;
@@ -2471,9 +2471,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    INSIGHT
-   ========================================================== */
+   ========================================================== */ --}}
 
 .universal-time-series-insight {
     display: grid;
@@ -2565,9 +2565,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    RESPONSIVE
-   ========================================================== */
+   ========================================================== */ --}}
 
 @media (max-width: 680px) {
 
@@ -2621,9 +2621,9 @@ html[data-theme="dark"]
             .toLowerCase();
 
 
-    /* ======================================================
-       1. SCHEDULED / REPORTING PERIOD CHIP
-       ====================================================== */
+
+
+
 
     if (
         configuration.displayPeriod
@@ -2670,9 +2670,9 @@ html[data-theme="dark"]
     }
 
 
-    /* ======================================================
-       2. PRIMARY RESULT CHIP
-       ====================================================== */
+
+
+
 
     if (
         configuration.headerChip
@@ -2731,9 +2731,9 @@ html[data-theme="dark"]
     }
 
 
-    /* ======================================================
-       3. REMOVE DUPLICATE CONTEXT FROM SUMMARY
-       ====================================================== */
+
+
+
 
     if (
         configuration.context
@@ -2765,10 +2765,10 @@ html[data-theme="dark"]
             });
 
 
-        /*
-         * Keep the first occurrence below the page title.
-         * Hide repeated copies inside Metric Summary.
-         */
+
+
+
+
         matches
             .slice(1)
             .forEach((element) => {
@@ -2779,9 +2779,9 @@ html[data-theme="dark"]
     }
 
 
-    /* ======================================================
-       4. MOVE UNIVERSAL VISUALIZATION AFTER METRIC SUMMARY
-       ====================================================== */
+
+
+
 
     const chart =
         document.getElementById(
@@ -2833,10 +2833,10 @@ html[data-theme="dark"]
                     metricLabel.parentElement;
 
 
-                /*
-                 * Walk upward until we reach the full-width
-                 * summary container rather than only its label.
-                 */
+
+
+
+
                 while (
                     summaryCard
                     &&
@@ -2877,9 +2877,9 @@ html[data-theme="dark"]
     }
 
 
-    /* ======================================================
-       5. POSITION VALUES ABOVE ACTUAL COLUMNS
-       ====================================================== */
+
+
+
 
     const positionValues = () => {
 
@@ -3021,10 +3021,10 @@ html[data-theme="dark"]
 
     const removeGenericAnalyticsFooter = () => {
 
-        /*
-         * Only suppress the generic fallback when this Analytics
-         * result already has meaningful supporting content.
-         */
+
+
+
+
         const hasSupportingContent =
             document.querySelector(
                 '#universal-time-series-detail:not([hidden]), ' +
@@ -3041,10 +3041,10 @@ html[data-theme="dark"]
         }
 
 
-        /*
-         * Search every visible text node rather than relying on
-         * a specific p/div/span structure.
-         */
+
+
+
+
         const walker =
             document.createTreeWalker(
                 document.body,
@@ -3076,9 +3076,9 @@ html[data-theme="dark"]
             }
 
 
-            /*
-             * Prefer known semantic/card containers first.
-             */
+
+
+
             const semanticCard =
                 element.closest(
                     'section, article, ' +
@@ -3104,10 +3104,10 @@ html[data-theme="dark"]
             }
 
 
-            /*
-             * Otherwise walk upward and identify the standalone
-             * white card by its visible border/background/width.
-             */
+
+
+
+
             let candidate =
                 element;
 
@@ -3176,10 +3176,10 @@ html[data-theme="dark"]
             }
 
 
-            /*
-             * Last safe fallback:
-             * remove only the text container.
-             */
+
+
+
+
             element.remove();
 
             return true;
@@ -3231,9 +3231,9 @@ html[data-theme="dark"]
     }
 
 
-    /*
-     * Covers content inserted after the initial render.
-     */
+
+
+
     const observer =
         new MutationObserver(() => {
 
@@ -3557,9 +3557,9 @@ html[data-theme="dark"]
 
 
 <style>
-/* ==========================================================
+{{-- /* ==========================================================
    UNIVERSAL SIGNAL DETAIL V3
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-signal-v3 {
     display: grid;
@@ -3570,9 +3570,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    CHIPS
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-signal-v3-chips {
     display: flex;
@@ -3616,9 +3616,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    CARD
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-signal-v3-card {
     overflow: hidden;
@@ -3686,9 +3686,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    SUMMARY
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-signal-v3-summary {
     display: grid;
@@ -3749,9 +3749,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    SIGNAL LIST
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-signal-v3-list {
     display: grid;
@@ -3787,9 +3787,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    ICON
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-signal-v3-icon {
     display: grid;
@@ -3831,9 +3831,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    COPY
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-signal-v3-copy {
     min-width: 0;
@@ -3868,9 +3868,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    VALUE
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-signal-v3-value {
     display: inline-flex;
@@ -3909,9 +3909,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    MOBILE
-   ========================================================== */
+   ========================================================== */ --}}
 
 @media (max-width: 760px) {
 
@@ -3982,11 +3982,11 @@ html[data-theme="dark"]
     }
 
 
-    /*
-     * ======================================================
-     * FIND DETAIL TITLE
-     * ======================================================
-     */
+
+
+
+
+
 
     const detailTitle =
         normalize(
@@ -4010,9 +4010,9 @@ html[data-theme="dark"]
         );
 
 
-    /*
-     * Find the main content container based on the heading.
-     */
+
+
+
     let main =
         heading
             ? heading.closest(
@@ -4026,13 +4026,13 @@ html[data-theme="dark"]
     }
 
 
-    /*
-     * ======================================================
-     * REMOVE OLD GENERIC DATE / VALUE CHIPS
-     * ======================================================
-     *
-     * V3 renders its own chips, so old ones should not remain.
-     */
+
+
+
+
+
+
+
 
     const datePattern =
         /\d{2}\s+[A-Za-z]{3}\s+\d{4}\s*[–—-]\s*\d{2}\s+[A-Za-z]{3}\s+\d{4}/;
@@ -4103,11 +4103,11 @@ html[data-theme="dark"]
     });
 
 
-    /*
-     * ======================================================
-     * REMOVE DUPLICATE GENERIC SUMMARY
-     * ======================================================
-     */
+
+
+
+
+
 
     Array.from(
         main.querySelectorAll(
@@ -4141,10 +4141,10 @@ html[data-theme="dark"]
             );
 
 
-        /*
-         * Require at least one known stat label so we do not
-         * accidentally delete the page wrapper.
-         */
+
+
+
+
         const hasKnownSignal =
             text.includes(
                 'capacity coverage'
@@ -4169,9 +4169,9 @@ html[data-theme="dark"]
             hasKnownSignal
         ) {
 
-            /*
-             * Delete the smallest card-like container.
-             */
+
+
+
             const card =
                 element.closest(
                     'section, article, .card'
@@ -4192,11 +4192,11 @@ html[data-theme="dark"]
     });
 
 
-    /*
-     * ======================================================
-     * REMOVE GENERIC TRANSACTION FALLBACK
-     * ======================================================
-     */
+
+
+
+
+
 
     const fallbackText =
         'this analytics result is summarized above and has no additional transaction-level records for the selected scope.';
@@ -4251,18 +4251,18 @@ html[data-theme="dark"]
     });
 
 
-    /*
-     * ======================================================
-     * PLACE UNIVERSAL UI DIRECTLY AFTER PAGE HEADER
-     * ======================================================
-     */
+
+
+
+
+
 
     if (heading) {
 
-        /*
-         * Walk upward until we get the page header block,
-         * but stop before entering the full page container.
-         */
+
+
+
+
         let headerBlock =
             heading.parentElement;
 
@@ -4327,13 +4327,13 @@ html[data-theme="dark"]
 {{-- UNIVERSAL SIGNAL SPACING POLISH V4 START --}}
 
 <style>
-/* ==========================================================
+{{-- /* ==========================================================
    UNIVERSAL SIGNAL-LIST SPACING POLISH
    Applies to all Analytics signal-list detail pages.
-   ========================================================== */
+   ========================================================== */ --}}
 
 
-/* Whole detail stack */
+{{-- /* Whole detail stack */ --}}
 .analytics-signal-v3 {
     gap: 14px !important;
 
@@ -4341,9 +4341,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    CHIPS
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-signal-v3-chips {
     gap: 7px !important;
@@ -4366,9 +4366,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    CARD HEADERS
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-signal-v3-head {
     padding:
@@ -4389,9 +4389,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    SUMMARY
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-signal-v3-stat {
     padding:
@@ -4414,9 +4414,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    SIGNAL ROWS
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-signal-v3-row {
     min-height: 68px !important;
@@ -4429,14 +4429,14 @@ html[data-theme="dark"]
 }
 
 
-/* Slightly smaller icon box so the row feels tighter */
+{{-- /* Slightly smaller icon box so the row feels tighter */ --}}
 .analytics-signal-v3-icon {
     width: 30px !important;
     height: 30px !important;
 }
 
 
-/* Keep titles readable */
+{{-- /* Keep titles readable */ --}}
 .analytics-signal-v3-copy strong {
     font-size: 11.5px !important;
 
@@ -4453,7 +4453,7 @@ html[data-theme="dark"]
 }
 
 
-/* Value chip */
+{{-- /* Value chip */ --}}
 .analytics-signal-v3-value {
     min-height: 26px !important;
 
@@ -4465,9 +4465,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    MOBILE
-   ========================================================== */
+   ========================================================== */ --}}
 
 @media (max-width: 760px) {
 
@@ -4519,11 +4519,11 @@ html[data-theme="dark"]
         'this analytics result is summarized above and has no additional transaction-level records for the selected scope.';
 
 
-    /*
-     * Remove the generic transaction-level footer because
-     * signal-list pages already contain their complete
-     * supporting interpretation.
-     */
+
+
+
+
+
     const removeFallback = () => {
 
         const walker =
@@ -4558,9 +4558,9 @@ html[data-theme="dark"]
             }
 
 
-            /*
-             * Find the smallest wide card surrounding the text.
-             */
+
+
+
             let candidate =
                 leaf;
 
@@ -4666,11 +4666,11 @@ html[data-theme="dark"]
 {{-- UNIVERSAL ANALYTICS RECORDS HEADER START --}}
 
 <style>
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Universal Analytics Records detail header
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 
 .analytics-records-universal-subtitle {
     margin: 5px 0 0 !important;
@@ -4684,35 +4684,35 @@ html[data-theme="dark"]
 }
 
 
-/*
+{{-- /*
  * Signal-list details must use the same title → subtitle → chips
  * rhythm as the other Analytics Records detail pages.
- */
+ */ --}}
 #analytics-signal-v3 {
     margin-top: 18px !important;
 }
 
 
-/*
+{{-- /*
  * Do not add another artificial margin around the chips.
- */
+ */ --}}
 #analytics-signal-v3 .analytics-signal-v3-chips {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
 }
 
 
-/*
+{{-- /*
  * Chips → first detail card.
- */
+ */ --}}
 #analytics-signal-v3 {
     gap: 14px !important;
 }
 
 
-/*
+{{-- /*
  * Keep Planning Notes cards unchanged.
- */
+ */ --}}
 #analytics-signal-v3 .analytics-signal-v3-card {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
@@ -4745,9 +4745,9 @@ html[data-theme="dark"]
         }
 
 
-        /*
-         * Find the visible Analytics Records page title.
-         */
+
+
+
         const heading =
             Array.from(
                 document.querySelectorAll(
@@ -4787,12 +4787,12 @@ html[data-theme="dark"]
         }
 
 
-        /*
-         * Universal subtitle.
-         *
-         * If the existing page already rendered the exact context,
-         * reuse it instead of creating a duplicate.
-         */
+
+
+
+
+
+
         let subtitle = null;
 
 
@@ -4834,10 +4834,10 @@ html[data-theme="dark"]
         }
 
 
-        /*
-         * Signal-list pages previously received special positioning.
-         * Keep their chips directly after the standard header rhythm.
-         */
+
+
+
+
         const signalRoot =
             document.getElementById(
                 'analytics-signal-v3'
@@ -4917,7 +4917,7 @@ html[data-theme="dark"]
 {{-- ANALYTICS SIGNAL HEADER SPACING FINAL START --}}
 
 <style>
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Signal-list header spacing
 |--------------------------------------------------------------------------
@@ -4925,31 +4925,31 @@ html[data-theme="dark"]
 | The normal Analytics Records header already provides spacing below the
 | subtitle. Signal-list pages must not add another 18px on top of that.
 |
-*/
+*/ --}}
 
 #analytics-signal-v3 {
     margin-top: 0 !important;
 }
 
 
-/* Keep title and subtitle compact like the other Analytics detail pages. */
+{{-- /* Keep title and subtitle compact like the other Analytics detail pages. */ --}}
 .analytics-records-universal-subtitle {
     margin-top: 4px !important;
     margin-bottom: 0 !important;
 }
 
 
-/* Chips themselves should not introduce extra outer spacing. */
+{{-- /* Chips themselves should not introduce extra outer spacing. */ --}}
 #analytics-signal-v3 .analytics-signal-v3-chips {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
 }
 
 
-/*
+{{-- /*
  * Maintain the standard detail rhythm below the chips:
  * chips → summary → signals.
- */
+ */ --}}
 #analytics-signal-v3 {
     gap: 14px !important;
 }
@@ -4974,11 +4974,11 @@ html[data-theme="dark"]
     }
 
 
-    /*
-     * Previous universal-header JS may have applied margin-top
-     * directly as an inline !important declaration.
-     * Override it after that script finishes.
-     */
+
+
+
+
+
     const normalizeSpacing = () => {
 
         root.style.setProperty(

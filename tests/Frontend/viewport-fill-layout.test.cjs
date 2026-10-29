@@ -51,11 +51,13 @@ test('Gate Pass records: the empty panel grows, populated toolbar/table does not
     assert.match(gatePassStyles, /\.gate-pass-browser > \.gate-pass-empty-card \{ flex: 1 1 auto; \}/);
 });
 
-test('Laundry Operations: active empty state stays compact so completed records remain visible below', () => {
+test('Laundry Operations: only the selected empty result grows and populated results keep their natural height', () => {
     assert.match(laundryStyles, /\.laundry-operations \{[\s\S]*?display:\s*flex;[\s\S]*?flex-direction:\s*column;[\s\S]*?flex:\s*1 1 auto;/);
     assert.doesNotMatch(laundryStyles, /\.laundry-operations > \.laundry-empty-card \{ flex: 1 1 auto; \}/);
-    assert.match(laundryStyles, /\.laundry-inline-empty \{[^}]*min-height:\s*104px;/);
-    assert.match(laundryStyles, /\.laundry-completed-block \{[^}]*margin-top:\s*18px;/);
+    assert.match(laundryStyles, /\.laundry-operations \.laundry-cases-card\.is-empty \{[^}]*flex:\s*1 1 auto;/);
+    assert.match(laundryStyles, /\.laundry-operations \.laundry-cases-card:not\(\.is-empty\) \{ flex: 0 0 auto; \}/);
+    assert.match(laundryStyles, /\.laundry-inline-empty \{[^}]*min-height:\s*300px;/);
+    assert.match(laundryStyles, /\.laundry-completed-block \{[^}]*margin:\s*0;/);
 });
 
 test('Release & Return Oversight: the empty panel grows, populated toolbar/list does not', () => {

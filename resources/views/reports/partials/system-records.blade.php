@@ -148,11 +148,11 @@
 @once
 <script>
 (() => {
-    /*
-     * Table navigation (search, sort, page size, pages) reloads from the
-     * server. Mark the records card busy meanwhile so the operator can see
-     * the request is in progress.
-     */
+
+
+
+
+
     const markBusy = (element) => {
         const card = element.closest('[data-report-records]');
         if (!card) return;

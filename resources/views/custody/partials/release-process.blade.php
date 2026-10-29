@@ -49,23 +49,18 @@
 
 <section class="content-grid two release-overview-grid">
     <article class="card release-context-card">
-        <div class="release-card-title"><x-icon name="calendar" size="21" /><h2>Borrowing &amp; Release Details</h2></div>
+        <div class="release-card-title"><x-icon name="calendar" size="21" /><h2>Borrowing Details</h2></div>
         <div class="release-details-columns">
             <div class="release-detail-group">
-                <h3>Borrowing</h3>
                 <dl class="detail-list release-context-list">
-                    <dt>Purpose / Event</dt><dd>{{ $version?->purpose_event ?: '—' }}</dd>
-                    <dt>Items Needed From</dt><dd>{{ $scheduleDate?->format('d F Y') ?: 'Not available' }}</dd>
-                    <dt>Expected Return</dt><dd>{{ $returnDate?->format('d F Y') ?: 'Not available' }}</dd>
-                    <dt>Borrower</dt><dd>{{ $custody->borrower?->full_name ?: '—' }}</dd>
+                    <dt>Purpose</dt><dd>{{ $version?->purpose_event ?: '—' }}</dd>
+                    <dt>Date Needed</dt><dd>{{ $scheduleDate?->format('d M Y') ?: 'Not available' }}</dd>
                 </dl>
             </div>
             <div class="release-detail-group">
-                <h3>Requirements</h3>
                 <dl class="detail-list release-context-list">
-                    <dt>Use Location</dt><dd>{{ $hasOffCampusItem ? 'Off-campus item included' : 'On-campus only' }}</dd>
-                    <dt>Gate Pass</dt><dd>{{ $hasOffCampusItem ? 'Required before off-campus exit' : 'Not required' }}</dd>
-                    <dt>Laundry Form</dt><dd>{{ $hasLaundryItem ? 'Required for applicable linen' : 'Not required' }}</dd>
+                    <dt>Return Date</dt><dd>{{ $returnDate?->format('d M Y') ?: 'Not available' }}</dd>
+                    <dt>Use Location</dt><dd>{{ $hasOffCampusItem ? 'Off-campus' : 'On-campus' }}</dd>
                 </dl>
             </div>
         </div>
@@ -75,10 +70,10 @@
         <div class="release-card-title"><x-icon name="requests" size="21" /><h2>Release Documents</h2></div>
         @include('custody.partials.release-documents')
         @if($hasOffCampusItem)
-            <p class="release-step-note">Gate Pass: validate the presented copy before off-campus exit.</p>
+            <p class="release-step-note">Check the signed Gate Pass before release.</p>
         @endif
         @if($hasLaundryItem)
-            <p class="release-step-note">Laundry Form: <strong>ISSUED BY</strong> must be completed before Physical Release.</p>
+            <p class="release-step-note">Complete <strong>ISSUED BY</strong> on the Laundry Form.</p>
         @endif
     </article>
 </section>
@@ -87,12 +82,9 @@
     {{-- pickup-schedule-form.blade.php already carries id="pickup-schedule" internally. --}}
     <section class="content-area">
         <article class="card release-schedule-exception-card" role="alert">
-            <div class="release-card-title"><x-icon name="warning" size="21" /><h2>Pickup Schedule Needs Attention</h2></div>
+            <div class="release-card-title"><x-icon name="warning" size="21" /><h2>{{ $pickupHeldForPreparationIssue ? 'Item Review' : ($pickupMissed ? 'Pickup Missed' : (($pickupScheduleReviewPending ?? false) ? 'Pickup Confirmation' : 'Pickup Schedule')) }}</h2></div>
             @if($pickupHeldForPreparationIssue)
-                <div class="callout warning">
-                    <strong>Release is on hold because of an SPMU-side inventory discrepancy.</strong>
-                    <span>The approved pickup schedule will not be changed automatically. Head/Admin must resolve the reported discrepancy, or close the unreleased approved request as Unable to Fulfill.</span>
-                </div>
+                <p class="release-step-note">Release is on hold while the SPMU Head reviews the reported item issue.</p>
             @else
                 @include('custody.partials.pickup-schedule-form')
             @endif
@@ -153,24 +145,30 @@
 
 <section class="content-area">
     <article class="card release-physical-card">
-        <div class="release-card-title"><x-icon name="custody" size="21" /><h2 id="physical-release-title">Physical Release</h2></div>
+        <div class="release-card-title"><x-icon name="custody" size="21" /><h2 id="physical-release-title">Release Confirmation</h2></div>
         @if($preparationComplete && $hasPickupSchedule)
             @if($pickupWindowUpcoming)
                 <div class="callout info release-window-notice" id="physical-release-availability">
-                    <strong>Physical release is not available yet.</strong>
+                    <strong>Pickup has not started.</strong>
                     <p>Available from <strong>{{ optional($pickupWindowStartsAt)->format('d F Y, g:i A') }}</strong> to <strong>{{ optional($pickupWindowEndsAt)->format('d F Y, g:i A') }}</strong>.</p>
                 </div>
             @elseif($pickupWindowPassed)
                 <div class="callout warning release-window-notice" id="physical-release-availability">
-                    <strong>Do not record a late physical release.</strong>
-                    <p>The claim window ended on <strong>{{ optional($pickupWindowEndsAt)->format('d F Y, g:i A') }}</strong>. Set a new pickup schedule before handing over the items.</p>
+                    <strong>Pickup schedule has ended.</strong>
+                    <p>The pickup schedule ended on <strong>{{ optional($pickupWindowEndsAt)->format('d F Y, g:i A') }}</strong>. Confirm a new pickup schedule before releasing the items.</p>
                 </div>
             @endif
         @elseif($hasOpenPreparationIssue)
-            <p class="release-step-note" id="physical-release-availability">Physical Release is unavailable while the reported inventory discrepancy is under review. After review, the Action Officer must check the affected item again.</p>
+            <p class="release-step-note" id="physical-release-availability">Complete the item review before release.</p>
         @elseif($pickupMissed)
-            <p class="release-step-note" id="physical-release-availability">Waiting for a new pickup schedule before physical release.</p>
+            <p class="release-step-note" id="physical-release-availability">Review the pickup schedule before proceeding.</p>
+        @elseif(!$preparationComplete)
+            <p class="release-step-note" id="physical-release-availability">Confirm that the items are ready before proceeding.</p>
+        @else
+            <p class="release-step-note" id="physical-release-availability">Confirm the pickup schedule before release.</p>
         @endif
-        @include('custody.partials.physical-release-form')
+        <div class="release-confirmation-fields">
+            @include('custody.partials.physical-release-form')
+        </div>
     </article>
 </section>

@@ -1,23 +1,23 @@
 <style>
-/* UNIVERSAL PASSWORD RECOVERY UI START */
+{{-- /* UNIVERSAL PASSWORD RECOVERY UI START */ --}}
 
-/*
+{{-- /*
  * Forgot Password and Reset Password belong to the same public
  * authentication experience as the normal Sign in page.
  *
  * Hide the generic guest header and global notice because recovery
  * feedback is rendered inside the card itself.
- */
+ */ --}}
 body:has(.auth-recovery-page) .site-header,
 body:has(.auth-recovery-page) .app-main > .notice,
 body:has(.auth-recovery-page) > footer {
     display: none !important;
 }
 
-/*
+{{-- /*
  * Remove normal application-page spacing so the recovery card occupies
  * the same position as the login card.
- */
+ */ --}}
 body:has(.auth-recovery-page) .app-main {
     width: 100% !important;
     max-width: none !important;
@@ -25,10 +25,10 @@ body:has(.auth-recovery-page) .app-main {
     padding: 0 !important;
 }
 
-/*
+{{-- /*
  * Same placement as the existing login card:
  * top-left with a small page margin rather than centered.
- */
+ */ --}}
 .auth-recovery-page {
     width: 100%;
     min-height: 100vh;
@@ -307,5 +307,5 @@ body:has(.auth-recovery-page) .app-main {
     }
 }
 
-/* UNIVERSAL PASSWORD RECOVERY UI END */
+{{-- /* UNIVERSAL PASSWORD RECOVERY UI END */ --}}
 </style>

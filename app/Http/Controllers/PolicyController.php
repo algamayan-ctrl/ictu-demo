@@ -859,7 +859,7 @@ class PolicyController extends Controller
                     $officerMessage = ($result['mode'] ?? null) === 'RESCHEDULED' && $newStart && $newEnd
                         ? 'Operational Calendar adjustment moved pickup for '.$synced->custody_no
                             .' to '.$newStart->format('F j, Y g:i A').'–'.$newEnd->format('g:i A')
-                            .'. Keep the same approved request/reservation and prepare for the new window. Do not treat this as a borrower missed pickup.'
+                            .'. Keep the same approved request and allocation, and prepare for the new window. Do not treat this as a borrower missed pickup.'
                         : 'Operational Calendar adjustment removed the invalid pickup window for '.$synced->custody_no
                             .'. No valid replacement window remains before the approved return date. Review the borrowing dates/calendar and coordinate the next administrative action. Do not treat this as a borrower missed pickup.';
 

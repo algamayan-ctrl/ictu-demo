@@ -935,12 +935,12 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    /*
-     * Search, date, category, actor, page size and paging are applied by the
-     * server across every retained audit event. Changing a filter reloads the
-     * list from its first page; the Previous/Next buttons submit the same
-     * form with a page number, so filters are kept while paging.
-     */
+
+
+
+
+
+
     const form = document.getElementById('audit-filter-form');
     const search = document.getElementById('audit-search');
     const items = Array.from(document.querySelectorAll('[data-audit-row]'));
@@ -960,7 +960,7 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         submitFilters();
     });
-    // Fired when the field is cleared with its built-in clear button.
+
     search?.addEventListener('search', submitFilters);
     search?.addEventListener('change', submitFilters);
     window.addEventListener('pageshow', () => { submitted = false; });
@@ -988,11 +988,11 @@ document.addEventListener('click', (event) => {
     const selectedToggle = event.target.closest('[data-audit-details-toggle]');
     if (!selectedToggle) return;
 
-    /*
-     * Let the Audit Trail's existing disclosure handler update the
-     * selected record first. Then synchronize all button labels and
-     * close any previously opened detail row.
-     */
+
+
+
+
+
     window.requestAnimationFrame(() => {
         const toggles = Array.from(
             document.querySelectorAll('[data-audit-details-toggle]')

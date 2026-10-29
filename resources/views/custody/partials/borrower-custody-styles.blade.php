@@ -1,5 +1,5 @@
 <style>
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Borrower - My Borrowing detail
 |--------------------------------------------------------------------------
@@ -11,9 +11,9 @@
 | Sections: 1. Stack  2. Status  3. Summary  4. Items  5. Processing
 |           6. Early return  7. Responsive
 |
-*/
+*/ --}}
 
-/* 0. Back link ------------------------------------------------------------ */
+{{-- /* 0. Back link ------------------------------------------------------------ */ --}}
 
 .borrower-custody-back {
     display: inline-flex;
@@ -31,7 +31,7 @@
 
 .borrower-custody-back .ui-icon { transform: rotate(180deg); }
 
-/* 1. Stack ---------------------------------------------------------------- */
+{{-- /* 1. Stack ---------------------------------------------------------------- */ --}}
 
 .borrower-custody-stack {
     display: grid;
@@ -73,12 +73,12 @@
     white-space: nowrap;
 }
 
-/* 2. Status --------------------------------------------------------------- */
+{{-- /* 2. Status --------------------------------------------------------------- */ --}}
 
-/*
+{{-- /*
  * A single accented line carries the state. No callout box: the state is
  * already the loudest thing on the page and does not need a second frame.
- */
+ */ --}}
 .borrower-custody-status {
     display: flex;
     align-items: center;
@@ -170,7 +170,7 @@
 
 .borrower-custody-status .button { flex: 0 0 auto; }
 
-/* 3. Summary -------------------------------------------------------------- */
+{{-- /* 3. Summary -------------------------------------------------------------- */ --}}
 
 .borrower-summary-grid {
     display: grid;
@@ -184,8 +184,8 @@
     border-bottom: 1px solid var(--border);
 }
 
-/* Three evenly sized facts per row on desktop. The grid draws internal
-   separators without relying on a specific number of available facts. */
+{{-- /* Three evenly sized facts per row on desktop. The grid draws internal
+   separators without relying on a specific number of available facts. */ --}}
 .borrower-summary-grid { gap: 1px; background: var(--border); }
 .borrower-summary-fact { border: 0; background: var(--surface-elevated); }
 .borrower-summary-fact:nth-child(3n + 1):last-child { grid-column: span 3; }
@@ -219,13 +219,13 @@
     line-height: 1.35;
 }
 
-/* 4. Items ---------------------------------------------------------------- */
+{{-- /* 4. Items ---------------------------------------------------------------- */ --}}
 
-/*
+{{-- /*
  * The table is as long as the borrowing is. No fixed height and no inner
  * scrollbar: a borrower checking quantities should not have to scroll a
  * box inside a page.
- */
+ */ --}}
 .borrower-items-table th,
 .borrower-items-table td { padding: 10px 20px; }
 
@@ -252,7 +252,7 @@
     font-size: 11px;
 }
 
-/* Quantities read as a column of figures. */
+{{-- /* Quantities read as a column of figures. */ --}}
 .borrower-items-table th:not(:first-child),
 .borrower-items-table td:not(:first-child) {
     width: 14%;
@@ -269,7 +269,7 @@
 
 .borrower-items-table td.is-muted { color: var(--text-muted); }
 
-/* 5. Processing ----------------------------------------------------------- */
+{{-- /* 5. Processing ----------------------------------------------------------- */ --}}
 
 .borrower-processing-row {
     display: grid;
@@ -299,12 +299,12 @@
     line-height: 1.45;
 }
 
-/* 6. Early return --------------------------------------------------------- */
+{{-- /* 6. Early return --------------------------------------------------------- */ --}}
 
-/*
+{{-- /*
  * Optional coordination, so it stays folded away until asked for. <details>
  * carries the keyboard behaviour and expanded state natively.
- */
+ */ --}}
 .borrower-early-return { padding: 0; }
 
 .borrower-early-return-summary {
@@ -447,7 +447,7 @@
     gap: 12px;
 }
 
-/* Active coordination notice */
+{{-- /* Active coordination notice */ --}}
 .borrower-early-return-notice {
     display: flex;
     align-items: center;
@@ -475,7 +475,7 @@
     line-height: 1.45;
 }
 
-/* 7. Responsive ----------------------------------------------------------- */
+{{-- /* 7. Responsive ----------------------------------------------------------- */ --}}
 
 @media (max-width: 1050px) {
     .borrower-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -517,9 +517,9 @@
     .borrower-items-table td { padding: 10px 14px; }
 }
 
-/* ==========================================================
+{{-- /* ==========================================================
    BORROWER TRANSACTION TIMELINE STYLE START
-   ========================================================== */
+   ========================================================== */ --}}
 
 .borrower-activity-list {
     display: grid;
@@ -589,11 +589,11 @@
     }
 }
 
-/* ==========================================================
+{{-- /* ==========================================================
    BORROWER TRANSACTION TIMELINE STYLE END
-   ========================================================== */
+   ========================================================== */ --}}
 
-/* BORROWER TIMELINE DISCLOSURE STYLE START */
+{{-- /* BORROWER TIMELINE DISCLOSURE STYLE START */ --}}
 
 .borrower-activity-disclosure {
     overflow: hidden;
@@ -677,11 +677,11 @@
     }
 }
 
-/* BORROWER TIMELINE DISCLOSURE STYLE END */
+{{-- /* BORROWER TIMELINE DISCLOSURE STYLE END */ --}}
 
-/* ==========================================================
+{{-- /* ==========================================================
    BORROWER TRANSACTION DOCUMENT HEADER START
-   ========================================================== */
+   ========================================================== */ --}}
 
 .borrower-document-card .card-header {
     display: flex;
@@ -719,7 +719,7 @@
     }
 }
 
-/* ==========================================================
+{{-- /* ==========================================================
    BORROWER TRANSACTION DOCUMENT HEADER END
-   ========================================================== */
+   ========================================================== */ --}}
 </style>

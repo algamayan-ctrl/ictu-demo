@@ -5,18 +5,18 @@
 .spmu-inventory-card label { min-width: 0; margin: 0; display: grid; gap: 8px; color: var(--text-secondary); font-size: 12px; font-weight: 700; }
 .spmu-inventory-card input, .spmu-inventory-card select { width: 100%; min-height: 44px; border-radius: 9px; font-size: 12px; }
 
-/* Availability window */
+{{-- /* Availability window */ --}}
 
-/* Search and category */
+{{-- /* Search and category */ --}}
 .spmu-inventory-filters { display: grid; grid-template-columns: minmax(0, 1.8fr) repeat(3, minmax(155px, 1fr)); align-items: end; gap: 14px 18px; margin-bottom: 16px; }
 .spmu-inventory-filters .search-input-shell input { padding-left: 36px; }
 
-/* Result summary above the table */
+{{-- /* Result summary above the table */ --}}
 .spmu-inventory-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 18px; margin-bottom: 12px; padding: 0 2px; color: var(--text-secondary); font-size: 12px; }
 .spmu-inventory-page-size { display: inline-flex; align-items: center; }
 .spmu-inventory-page-size select { min-height: 40px; width: auto; min-width: 168px; padding: 8px 36px 8px 13px; border: 1px solid var(--border); border-radius: 9px; background-color: var(--surface-elevated); color: var(--heading); font-size: 12px; font-weight: 650; }
 
-/* Table */
+{{-- /* Table */ --}}
 .spmu-inventory-table-wrap { border: 1px solid var(--border); border-radius: 12px; background: var(--surface-elevated); }
 .spmu-inventory-table-scroll { width: 100%; min-width: 0; overflow-x: auto; }
 .spmu-inventory .spmu-inventory-table { width: 100%; min-width: 1140px; margin: 0; border-collapse: collapse; }
@@ -68,7 +68,7 @@
 }
 .spmu-inventory-static-empty { padding: 34px 16px !important; color: var(--text-muted); text-align: center; }
 
-/* Footer / pagination */
+{{-- /* Footer / pagination */ --}}
 .spmu-inventory-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 18px; padding: 15px 18px; border-top: 1px solid var(--border); }
 .spmu-inventory-footer > p { margin: 0; color: var(--text-secondary); font-size: 12px; }
 .spmu-inventory-pagination-group { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px 14px; margin-left: auto; }
@@ -81,7 +81,7 @@
 .spmu-inventory-page-previous { transform: rotate(180deg); }
 .spmu-inventory-page-ellipsis { padding: 0 3px; color: var(--text-muted); font-size: 11px; }
 
-/* No results */
+{{-- /* No results */ --}}
 .spmu-inventory-no-results { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 40px 20px; color: var(--text-muted); text-align: center; }
 .spmu-inventory-no-results strong { color: var(--heading); font-size: 14px; }
 .spmu-inventory-no-results p { margin: 0; font-size: 12px; }
@@ -100,7 +100,7 @@ html[data-theme="dark"] .spmu-inventory-page.is-active { color: var(--navy-950);
     .spmu-inventory-pagination-group { align-items: stretch; justify-content: flex-start; margin-left: 0; }
     .spmu-inventory-pagination { margin-left: 0; }
 }
-/* Delete icon and confirmation */
+{{-- /* Delete icon and confirmation */ --}}
 .spmu-inventory.is-inventory-head .spmu-inventory-actions .spmu-inventory-delete-action { color: #c63535; cursor: pointer; font: inherit; }
 .spmu-inventory.is-inventory-head .spmu-inventory-actions .spmu-inventory-delete-action:hover,
 .spmu-inventory.is-inventory-head .spmu-inventory-actions .spmu-inventory-delete-action:focus-visible { background: rgba(198, 53, 53, .10); color: #af2929; }
@@ -120,9 +120,9 @@ html[data-theme="dark"] .spmu-inventory-page.is-active { color: var(--navy-950);
 .spmu-inventory-delete-confirm { border: 1px solid #bc2e2e !important; color: white !important; background: #c63535 !important; cursor: pointer; }
 .spmu-inventory-delete-confirm:hover { background: #aa2525 !important; }
 
-/* SPMU ACTION ICON FIX */
+{{-- /* SPMU ACTION ICON FIX */ --}}
 
-/* View, Edit, Delete - icon only, no box */
+{{-- /* View, Edit, Delete - icon only, no box */ --}}
 .spmu-inventory.is-inventory-head
 .spmu-inventory-actions
 .spmu-inventory-icon-action,
@@ -150,7 +150,7 @@ html[data-theme="dark"] .spmu-inventory-page.is-active { color: var(--navy-950);
     appearance: none;
 }
 
-/* Delete stays red */
+{{-- /* Delete stays red */ --}}
 .spmu-inventory.is-inventory-head
 .spmu-inventory-actions
 .spmu-inventory-delete-action,
@@ -160,7 +160,7 @@ html[data-theme="dark"] .spmu-inventory-page.is-active { color: var(--navy-950);
     color: #c63535 !important;
 }
 
-/* SVG icons always remain visible */
+{{-- /* SVG icons always remain visible */ --}}
 .spmu-inventory.is-inventory-head
 .spmu-inventory-actions
 .spmu-inventory-icon-action .ui-icon {
@@ -174,7 +174,7 @@ html[data-theme="dark"] .spmu-inventory-page.is-active { color: var(--navy-950);
     color: inherit !important;
 }
 
-/* Subtle hover feedback, no outline */
+{{-- /* Subtle hover feedback, no outline */ --}}
 .spmu-inventory.is-inventory-head
 .spmu-inventory-actions
 .spmu-inventory-icon-action:is(:hover,:focus-visible) .ui-icon {
@@ -183,7 +183,7 @@ html[data-theme="dark"] .spmu-inventory-page.is-active { color: var(--navy-950);
     opacity: 1 !important;
 }
 
-/* Prevent decorative outlines */
+{{-- /* Prevent decorative outlines */ --}}
 .spmu-inventory.is-inventory-head
 .spmu-inventory-actions
 .spmu-inventory-icon-action::before,
@@ -193,7 +193,7 @@ html[data-theme="dark"] .spmu-inventory-page.is-active { color: var(--navy-950);
     content: none !important;
     display: none !important;
 }
-/* SPMU COMPACT DELETE MODAL V1 */
+{{-- /* SPMU COMPACT DELETE MODAL V1 */ --}}
 
 .spmu-inventory-delete-dialog {
     box-sizing: border-box;

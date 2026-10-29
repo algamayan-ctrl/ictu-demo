@@ -38,7 +38,7 @@
 @endphp
 
 <style>
-/* SPMU_RETURN_BAR_V5 */
+{{-- /* SPMU_RETURN_BAR_V5 */ --}}
 
 .spmu-return-v5 {
  width: 100%;

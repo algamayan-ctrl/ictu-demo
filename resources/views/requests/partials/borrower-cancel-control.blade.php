@@ -1,5 +1,6 @@
 @php
     $cancelTriggerClass = $cancelTriggerClass ?? 'button secondary ui-pressable borrower-cancel-trigger is-danger';
+    $cancelConfirmClass = $cancelConfirmClass ?? 'button danger ui-pressable';
     $cancelTriggerLabel = $cancelTriggerLabel ?? 'Cancel Request';
     $cancelConfirmLabel = $cancelConfirmLabel ?? 'Cancel Request';
     $cancelDialogTitle = $cancelDialogTitle ?? 'Cancel this borrowing request?';
@@ -57,7 +58,7 @@
 
             <div class="spmu-confirm-dialog__actions">
                 <button class="button secondary ui-pressable" type="button" data-request-cancel-back>Keep Request</button>
-                <button class="button danger ui-pressable" type="button" data-request-cancel-confirm>{{ $cancelConfirmLabel }}</button>
+                <button class="{{ $cancelConfirmClass }}" type="button" data-request-cancel-confirm>{{ $cancelConfirmLabel }}</button>
             </div>
         </div>
     </dialog>
@@ -317,11 +318,11 @@ dialog[data-request-cancel-dialog] .spmu-confirm-dialog__actions .button {
 
                 hiddenReason.value = cleanReason;
                 confirm.disabled = true;
-                // A request that never navigates away (e.g. a dropped
-                // connection) would otherwise leave this button disabled
-                // forever; re-enable it automatically so the user can retry.
-                // This never fires on a normal submission because the page
-                // has already navigated away by then.
+
+
+
+
+
                 window.setTimeout(() => { confirm.disabled = false; }, 20000);
                 form.submit();
             };

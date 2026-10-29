@@ -622,7 +622,7 @@
 }
 
 
-/* KPI GRID */
+{{-- /* KPI GRID */ --}}
 
 .analytics-page
 .analytics-operational-grid {
@@ -723,7 +723,7 @@
 }
 
 
-/* INFORMATION NOTE */
+{{-- /* INFORMATION NOTE */ --}}
 
 .analytics-page
 .analytics-operational-footnote {
@@ -766,7 +766,7 @@
 }
 
 
-/* RESPONSIVE */
+{{-- /* RESPONSIVE */ --}}
 
 @media (max-width: 920px) {
 
@@ -930,10 +930,10 @@
 {{-- OPERATIONAL PERFORMANCE PARENT CARD V2 START --}}
 
 <style>
-/* ==========================================================
+{{-- /* ==========================================================
    OPERATIONAL PERFORMANCE
    MATCH ANALYTICS SUMMARY PARENT CARD
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-page
 .analytics-operational-performance {
@@ -961,9 +961,9 @@
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    HEADER
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-page
 .analytics-operational-head {
@@ -1035,9 +1035,9 @@
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    INNER KPI AREA
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-page
 .analytics-operational-grid {
@@ -1053,10 +1053,10 @@
 }
 
 
-/*
+{{-- /*
  * Inner metric cards remain cards, just like the four
  * Analytics Summary workspace cards.
- */
+ */ --}}
 .analytics-page
 .analytics-operational-card {
     min-height: 108px;
@@ -1090,9 +1090,9 @@
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    KPI TYPOGRAPHY
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-page
 .analytics-operational-label {
@@ -1120,9 +1120,9 @@
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    FOOTNOTE INSIDE THE SAME PARENT CARD
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-page
 .analytics-operational-footnote {
@@ -1157,9 +1157,9 @@
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    DARK MODE
-   ========================================================== */
+   ========================================================== */ --}}
 
 html[data-theme="dark"]
 .analytics-page
@@ -1190,9 +1190,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    RESPONSIVE
-   ========================================================== */
+   ========================================================== */ --}}
 
 @media (max-width: 920px) {
 
@@ -1243,9 +1243,9 @@ html[data-theme="dark"]
 {{-- OPERATIONAL PERFORMANCE POLISH V3 START --}}
 
 <style>
-/* ==========================================================
+{{-- /* ==========================================================
    OPERATIONAL PERFORMANCE - FINAL COMPACT POLISH
-   ========================================================== */
+   ========================================================== */ --}}
 
 .analytics-page
 .analytics-operational-grid {
@@ -1258,9 +1258,9 @@ html[data-theme="dark"]
 }
 
 
-/*
+{{-- /*
  * Slightly shorter KPI cards to match Analytics Summary.
- */
+ */ --}}
 .analytics-page
 .analytics-operational-card {
     min-height: 94px;
@@ -1275,9 +1275,9 @@ html[data-theme="dark"]
 }
 
 
-/*
+{{-- /*
  * Compact icon block.
- */
+ */ --}}
 .analytics-page
 .analytics-operational-icon {
     width: 30px;
@@ -1295,9 +1295,9 @@ html[data-theme="dark"]
 }
 
 
-/*
+{{-- /*
  * KPI title stays on one line when possible.
- */
+ */ --}}
 .analytics-page
 .analytics-operational-label {
     font-size: 8.5px;
@@ -1312,9 +1312,9 @@ html[data-theme="dark"]
 }
 
 
-/*
+{{-- /*
  * Slightly tighter metric value.
- */
+ */ --}}
 .analytics-page
 .analytics-operational-value {
     margin-top: 5px;
@@ -1325,9 +1325,9 @@ html[data-theme="dark"]
 }
 
 
-/*
+{{-- /*
  * Keep helper text readable but compact.
- */
+ */ --}}
 .analytics-page
 .analytics-operational-note {
     margin-top: 6px;
@@ -1338,9 +1338,9 @@ html[data-theme="dark"]
 }
 
 
-/*
+{{-- /*
  * Compact footer note.
- */
+ */ --}}
 .analytics-page
 .analytics-operational-footnote {
     margin:
@@ -1358,9 +1358,9 @@ html[data-theme="dark"]
 }
 
 
-/*
+{{-- /*
  * Slightly tighter header.
- */
+ */ --}}
 .analytics-page
 .analytics-operational-head {
     padding:
@@ -1381,9 +1381,9 @@ html[data-theme="dark"]
 }
 
 
-/* ==========================================================
+{{-- /* ==========================================================
    RESPONSIVE
-   ========================================================== */
+   ========================================================== */ --}}
 
 @media (max-width: 920px) {
 
@@ -1409,7 +1409,7 @@ html[data-theme="dark"]
 .analytics-page .spmu-smart-toggle svg {display:block;width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 .analytics-page .spmu-smart-accordion[data-smart-open="false"] > :not(header) {display:none!important;}
 .analytics-page .spmu-smart-accordion[data-smart-open="false"] {padding-bottom:0!important;min-height:0!important;}
-/* Preserve visual identity; tighten the most space-consuming overview-only rows. */
+{{-- /* Preserve visual identity; tighten the most space-consuming overview-only rows. */ --}}
 .analytics-page .overview-leader-grid {gap:10px;padding:11px;}
 .analytics-page .overview-leader-card {gap:6px;padding:12px;}
 .analytics-page .overview-leader-value {padding-top:3px;}
@@ -1469,14 +1469,14 @@ html[data-theme="dark"]
 </script>
 {{-- SPMU OVERVIEW PLAIN CHEVRON COMPACT V5 --}}
 <style>
-/* Presentation-only: keep original Analytics visuals, links, and accordion JS. */
+{{-- /* Presentation-only: keep original Analytics visuals, links, and accordion JS. */ --}}
 .analytics-page .spmu-smart-accordion > header {
     min-height: 0 !important;
     padding: 9px 14px !important;
     gap: 8px !important;
 }
 .analytics-page .spmu-smart-accordion > header p { margin-top: 1px !important; }
-/* Chevron-only. The full header remains interactive; no separate button card. */
+{{-- /* Chevron-only. The full header remains interactive; no separate button card. */ --}}
 .analytics-page .spmu-smart-toggle,
 .analytics-page .spmu-smart-toggle:hover,
 .analytics-page .spmu-smart-accordion > header:hover .spmu-smart-toggle {
@@ -1515,7 +1515,7 @@ html[data-theme="dark"]
     outline-offset: 2px !important;
     border-radius: 4px !important;
 }
-/* Reduce gaps without affecting other Analytics tabs. */
+{{-- /* Reduce gaps without affecting other Analytics tabs. */ --}}
 .analytics-page .spmu-smart-accordion[data-smart-open="false"] { min-height: 0 !important; }
 .analytics-page .overview-leader-grid { gap: 9px !important; padding: 10px !important; }
 .analytics-page .overview-leader-card { padding: 11px !important; gap: 5px !important; }
@@ -1525,33 +1525,33 @@ html[data-theme="dark"]
 }
 </style>
 <style>
-/* SPMU ANALYTICS OVERVIEW EQUAL SPACING */
+{{-- /* SPMU ANALYTICS OVERVIEW EQUAL SPACING */ --}}
 
-/* Consistent vertical spacing for Overview only */
+{{-- /* Consistent vertical spacing for Overview only */ --}}
 .analytics-page:has(.spmu-smart-accordion) {
     row-gap: 14px !important;
 }
 
-/* Remove extra margin causing uneven spacing */
+{{-- /* Remove extra margin causing uneven spacing */ --}}
 .analytics-page:has(.spmu-smart-accordion)
 .analytics-operational-performance {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
 }
 
-/* Keep accordion headers compact */
+{{-- /* Keep accordion headers compact */ --}}
 .analytics-page .spmu-smart-accordion > header {
     min-height: 0 !important;
     padding: 10px 14px !important;
 }
 
-/* Keep collapsed sections at natural height */
+{{-- /* Keep collapsed sections at natural height */ --}}
 .analytics-page
 .spmu-smart-accordion[data-smart-open="false"] {
     min-height: 0 !important;
 }
 
-/* Preserve equal spacing on smaller screens */
+{{-- /* Preserve equal spacing on smaller screens */ --}}
 @media (max-width: 768px) {
     .analytics-page:has(.spmu-smart-accordion) {
         row-gap: 12px !important;

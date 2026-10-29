@@ -22,11 +22,11 @@
 --}}
 
 <style>
-/*
+{{-- /*
 | The surface. Deliberately quiet: a chart tooltip is read at a glance and
 | next to the mark it describes, so it borrows the card's own vocabulary
 | rather than introducing a second one.
-*/
+*/ --}}
 .analytics-tip {
  position: fixed;
  z-index: 900;
@@ -58,7 +58,7 @@
 
 .analytics-tip-rows { display: grid; gap: 2px; margin: 4px 0 0; padding: 0; list-style: none; }
 
-/* A label/value pair keeps its value hard right so figures line up. */
+{{-- /* A label/value pair keeps its value hard right so figures line up. */ --}}
 .analytics-tip-rows li {
  display: flex;
  align-items: baseline;
@@ -79,18 +79,18 @@
 
 .analytics-tip-rows li.is-plain > span:last-child { font-weight: 650; white-space: normal; }
 
-/* A mark that is currently describing itself, by hover, focus or tap. */
+{{-- /* A mark that is currently describing itself, by hover, focus or tap. */ --}}
 [data-chart-tip].is-tip-active { filter: brightness(1.06) saturate(1.05); }
 [data-chart-tip]:focus-visible { outline: 2px solid var(--interactive); outline-offset: 2px; }
 
-/*
+{{-- /*
 | A stacked-bar segment is only a few pixels tall, so its hit area is widened
 | with a transparent pseudo-element rather than by drawing the bar thicker -
 | the reading stays honest while the target does not.
 |
 | Every other mark carries its tooltip on the whole row or marker it belongs
 | to, which is already large enough to hit.
-*/
+*/ --}}
 .analytics-dist-seg[data-chart-tip] { position: relative; cursor: default; }
 
 .analytics-dist-seg[data-chart-tip]::after {
@@ -114,9 +114,9 @@
 
  let tip = null;
  let anchor = null;
- /* A tooltip opened by tap or keyboard stays until it is dismissed. */
+
  let pinned = false;
- /* click carries no pointerType, so the last pointer down is remembered. */
+
  let lastPointer = 'mouse';
 
  const build = () => {
@@ -131,7 +131,7 @@
  return tip;
  };
 
- /* Rows are whatever the mark declared; this never derives a figure. */
+
  const rowsOf = (el) => {
  const raw = el.getAttribute('data-tip-rows');
  if (!raw) return [];
@@ -185,10 +185,10 @@
  node.appendChild(list);
  };
 
- /*
- * Above the mark and centred on it, unless that would leave the viewport.
- * Measured after render, because the height decides whether it fits above.
- */
+
+
+
+
  const place = () => {
  if (!tip || !anchor || !anchor.isConnected) return;
 
@@ -228,12 +228,12 @@
  el.classList.add('is-tip-active');
 
  tip.hidden = false;
- /* Positioned only once it has a size to position. */
+
  place();
  tip.classList.add('is-open');
  };
 
- /* ---------------------------------------------------------------- mouse */
+
 
  document.addEventListener('pointerdown', (event) => {
  lastPointer = event.pointerType || 'mouse';
@@ -259,14 +259,14 @@
  hide();
  });
 
- /* ----------------------------------------------------------- touch, tap */
 
- /*
- * Capture, so a tap on a mark never reaches the whole-card drill-down
- * listener bound further out. A mark that is itself a link keeps its
- * destination: the first tap reveals the figure, a second follows it,
- * which is the only way both can exist on a device without hover.
- */
+
+
+
+
+
+
+
  document.addEventListener('click', (event) => {
  const el = event.target.closest(MARK);
 
@@ -282,7 +282,7 @@
  event.stopPropagation();
 
  if (link && (wasPinnedHere || !touched)) {
- /* Let the anchor do its job. */
+
  return;
  }
 
@@ -297,7 +297,7 @@
  }, true);
 
 
- /* ------------------------------------------------------------- keyboard */
+
 
  document.addEventListener('focusin', (event) => {
  const el = event.target.closest(MARK);
@@ -315,7 +315,7 @@
  if (event.key === 'Escape' && anchor) hide();
  });
 
- /* --------------------------------------------------------- keep in view */
+
 
  window.addEventListener('scroll', () => {
  if (!anchor) return;

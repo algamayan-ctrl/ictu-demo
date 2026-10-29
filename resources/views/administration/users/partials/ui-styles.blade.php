@@ -1,5 +1,5 @@
 <style>
-/* ICTU User Administration: scoped styling shared by the directory and form. */
+{{-- /* ICTU User Administration: scoped styling shared by the directory and form. */ --}}
 .app-main.ictu-admin-main {
     width: 100%;
     max-width: none;
@@ -24,7 +24,7 @@
     outline-offset: 2px;
 }
 
-/* Directory filters: exactly four desktop grid tracks. */
+{{-- /* Directory filters: exactly four desktop grid tracks. */ --}}
 .ictu-users-filter-card, .ictu-users-list-card {
     min-width: 0;
     margin: 0;
@@ -89,7 +89,7 @@
 }
 .ictu-users-reset:hover { color: var(--interactive); border-color: var(--interactive); }
 
-/* Table toolbar, native table, and pagination. */
+{{-- /* Table toolbar, native table, and pagination. */ --}}
 .ictu-users-list-toolbar {
     display: flex;
     align-items: center;
@@ -252,7 +252,7 @@
 .ictu-users-empty-directory td, .ictu-users-no-results { padding: 26px !important; text-align: center; color: var(--text-muted); font-size: 13px; }
 .ictu-users-no-results[hidden] { display: none !important; }
 
-/* Edit / create form: wide stacked cards, uniform tracks and input heights. */
+{{-- /* Edit / create form: wide stacked cards, uniform tracks and input heights. */ --}}
 .ictu-form-page-heading { margin: 0 0 24px; }
 .ictu-form-page-heading p:not(.eyebrow) { max-width: 1020px; font-size: 13.5px; line-height: 1.55; }
 .ictu-user-form { display: grid; width: 100%; min-width: 0; gap: 20px; }
@@ -386,8 +386,8 @@
 .ictu-form-actions .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: auto; min-height: 46px; min-width: 134px; padding: 10px 19px; margin: 0; border-radius: 9px; font-size: 13.5px; font-weight: 700; text-decoration: none; }
 
 
-/* FINAL ICTU directory / form — reference-matched, slim, page-scoped.
-   Does not change the global design of Borrower / SPMU screens. */
+{{-- /* FINAL ICTU directory / form — reference-matched, slim, page-scoped.
+   Does not change the global design of Borrower / SPMU screens. */ --}}
 .ictu-shell {
     --sidebar-width: 270px;
     --topbar-height: 89px;
@@ -417,7 +417,7 @@
 .ictu-shell .notification-control .ui-icon { width: 21px; height: 21px; }
 .app-main.ictu-admin-main { width: 100%; max-width: none; min-width: 0; margin: 0; padding: 15px 18px 38px; }
 
-/* Original Institutional user accounts heading: do not move button to global topbar. */
+{{-- /* Original Institutional user accounts heading: do not move button to global topbar. */ --}}
 .ictu-users-heading {
     display: grid; grid-template-columns: minmax(0,1fr) auto; grid-auto-flow: row dense;
     align-items: center; column-gap: 16px; row-gap: 0; width: 100%; margin: 0 0 12px;
@@ -495,7 +495,7 @@
 .ictu-user-icon-button:disabled { opacity: .32 !important; cursor: not-allowed !important; }
 .ictu-users-table tbody tr[hidden] { display: none !important; }
 
-/* Create / Manage User: full-width cards, thin and equal-sized controls. */
+{{-- /* Create / Manage User: full-width cards, thin and equal-sized controls. */ --}}
 .ictu-form-page-heading { width: 100%; margin: 0 0 16px; }
 .ictu-form-page-heading h1 { font-size: clamp(21px,1.8vw,25px); }
 .ictu-form-page-heading p:not(.eyebrow) { max-width: none; font-size: 12.5px; }
@@ -585,7 +585,7 @@ html[data-theme="dark"] .ictu-users-filter-field :is(input,select), html[data-th
 }
 
 
-/* Latest Manage User layout: paired additional Division / Unit controls; action alignment. */
+{{-- /* Latest Manage User layout: paired additional Division / Unit controls; action alignment. */ --}}
 .ictu-additional-selection-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .ictu-additional-picker-actions { display:flex; justify-content:flex-end; margin-top:12px; }
 .ictu-additional-picker-actions .ictu-add-unit-button { width:auto; min-width:122px; padding-inline:15px; }
@@ -608,10 +608,10 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
 }
 @media (max-width:440px) { .ictu-form-action-right { flex-wrap:wrap; } }
 
-/* ICTU Manage User dropdown hotfix (2026-09-29).
+{{-- /* ICTU Manage User dropdown hotfix (2026-09-29).
    The global input:disabled/select:disabled background shorthand resets
    background-repeat to its initial value (repeat). Reinstate the one-chevron
-   decoration at the higher specificity of the form's select selector. */
+   decoration at the higher specificity of the form's select selector. */ --}}
 .ictu-user-form .ictu-field select,
 .ictu-user-form .ictu-field select:disabled {
     background-repeat: no-repeat !important;
@@ -623,13 +623,13 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
     background-image: var(--select-chevron);
 }
 
-/* Opaque sticky header prevents form labels from ghosting through on scroll. */
+{{-- /* Opaque sticky header prevents form labels from ghosting through on scroll. */ --}}
 .ictu-shell .app-topbar {
     background-color: var(--surface-elevated) !important;
 }
 
 
-/* Compact institutional-account directory and expanded filter set. */
+{{-- /* Compact institutional-account directory and expanded filter set. */ --}}
 .ictu-users-filter-grid {
     grid-template-columns: minmax(260px, 2fr) repeat(3, minmax(145px, 1fr)) minmax(145px, 1fr) minmax(150px, 1fr) auto;
     gap: 10px;
@@ -690,7 +690,7 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
     .ictu-users-filter-actions .ictu-users-reset { width: 100%; }
 }
 
-/* 2026-09-30: Keep ICTU User Administration chrome the same size as Dashboard. */
+{{-- /* 2026-09-30: Keep ICTU User Administration chrome the same size as Dashboard. */ --}}
 .ictu-shell {
     --sidebar-width: 232px;
     --topbar-height: 64px;
@@ -756,7 +756,7 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
     height: 18px;
 }
 
-/* Compact primary filters + popover-only secondary filters. */
+{{-- /* Compact primary filters + popover-only secondary filters. */ --}}
 .ictu-users-filter-grid {
     position: relative;
     grid-template-columns: minmax(300px, 2.2fr) repeat(3, minmax(145px, 1fr)) auto;
@@ -842,7 +842,7 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
 }
 
 
-/* Preserve Edit User primary-action hover behavior. */
+{{-- /* Preserve Edit User primary-action hover behavior. */ --}}
 .ictu-form-actions .button.primary:hover,
 .ictu-form-actions .button.primary:focus-visible {
     color: #fff;
@@ -852,7 +852,7 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
 }
 
 
-/* Edit institutional account: compact borderless password reveal control. */
+{{-- /* Edit institutional account: compact borderless password reveal control. */ --}}
 .ictu-password-input-wrap {
     position: relative;
     display: block;

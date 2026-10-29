@@ -33,40 +33,8 @@
 @endphp
 
 <div id="pickup-schedule" class="release-schedule-details">
-    @if(!$pickupWasScheduled)
-        <div class="release-schedule-detail-row">
-            <span class="release-schedule-detail-label">Schedule status</span>
-            <span class="release-schedule-detail-value">
-                @if($delayedApprovalReview)
-                    Schedule Review Required
-                @else
-                    {{ $custody->scheduled_release_at && $custody->pickup_expires_at
-                        ? 'Waiting for automatic schedule activation'
-                        : 'SPMU follow-up required' }}
-                @endif
-            </span>
-        </div>
-    @elseif(!$pickupMissed)
-        <div class="release-schedule-detail-row">
-            <span class="release-schedule-detail-label">Borrower notification</span>
-            <span class="release-schedule-detail-value">
-                @if($pickupScheduleNotification)
-                    {{ $scheduleNotificationFailed ? 'Needs attention' : 'Sent' }}
-                @else
-                    Pending
-                @endif
-            </span>
-        </div>
-
-        @if($pickupScheduleNotification && $scheduleNotificationFailed)
-            <p class="release-schedule-detail-help">
-                At least one notification channel failed. Check Notification History before physical release.
-            </p>
-        @elseif(!$pickupScheduleNotification)
-            <p class="release-schedule-detail-help">
-                The pickup schedule is active, but no pickup notification record is available yet.
-            </p>
-        @endif
+    @if($pickupWasScheduled && !$pickupMissed && $scheduleNotificationFailed)
+        <p class="release-schedule-detail-help">Borrower notification failed. Check notification history.</p>
     @endif
 </div>
 
@@ -75,35 +43,14 @@
         $missedNotificationFailed = $missedDeliveryRows->contains(
             fn ($delivery) => strtoupper((string) $delivery->delivery_status) === 'FAILED'
         );
-        $missedNotificationSent = $missedDeliveryRows->contains(
-            fn ($delivery) => strtoupper((string) $delivery->delivery_status) === 'SENT'
-        );
     @endphp
 
-    <div class="release-schedule-exception release-pickup-exception-actions">
+    <div class="release-schedule-exception release-pickup-exception-actions release-compact-pickup">
         <div>
-            <strong>Pickup Missed &mdash; For SPMU Review</strong>
-
-            <p>The scheduled pickup was not completed. Decide whether to continue this approved release or cancel the borrowing.</p>
-
-            @if($pickupRescheduleRequested)
-                <p class="meta">The borrower previously asked about this missed pickup.</p>
-            @endif
-
-            @if($missedNotificationFailed)
-                <p class="meta">Borrower notification needs attention.</p>
-            @elseif($missedNotificationSent)
-                <p class="meta">Borrower notified.</p>
-            @endif
-
             @if($pickupRescheduleAvailable)
-                <div class="release-form-actions">
-                    <form method="post" action="{{ route('custody.reschedule-pickup', $custody) }}">
-                        @csrf
-                        <button class="button primary ui-pressable release-primary" type="submit">
-                            Continue Release
-                        </button>
-                    </form>
+                <p>Confirm pickup when the borrower arrives.</p>
+                <div class="release-form-actions release-schedule-review-actions">
+                    @include('custody.partials.pickup-confirmation')
 
                     @if($canCancelBorrowing)
                         @include('requests.partials.borrower-cancel-control', [
@@ -111,28 +58,33 @@
                             'cancelTriggerClass' => 'button release-outline ui-pressable',
                             'cancelTriggerLabel' => 'Cancel Borrowing',
                             'cancelDialogTitle' => 'Cancel this borrowing?',
-                            'cancelDialogCopy' => 'SAO confirmation will cancel this missed pickup. The unreleased reservation will return to Available inventory and pending pickup documents will be invalidated. Provide the reason to notify the borrower.',
+                            'cancelDialogCopy' => 'This borrowing will be cancelled and the borrower will be notified.',
                             'cancelConfirmLabel' => 'Confirm Cancellation',
+                            'cancelConfirmClass' => 'button primary ui-pressable',
                             'cancelReasonPlaceholder' => 'Briefly explain why this borrowing is being cancelled...',
                         ])
                     @endif
                 </div>
             @else
-                <p class="meta">No valid pickup window remains on or before the Items Needed From date. This approved release can no longer be continued.</p>
+                <p>The pickup period has ended. @if($canCancelBorrowing)Cancel this borrowing.@else Refer this borrowing to the SPMU Head.@endif</p>
 
                 @if($canCancelBorrowing)
-                    <div class="release-form-actions">
+                    <div class="release-form-actions release-schedule-review-actions">
                         @include('requests.partials.borrower-cancel-control', [
                             'borrowingRequest' => $custody->request,
                             'cancelTriggerClass' => 'button primary ui-pressable release-primary',
                             'cancelTriggerLabel' => 'Cancel Borrowing',
                             'cancelDialogTitle' => 'Cancel this borrowing?',
-                            'cancelDialogCopy' => 'SAO confirmation will cancel this missed pickup. The unreleased reservation will return to Available inventory and pending pickup documents will be invalidated. Provide the reason to notify the borrower.',
+                            'cancelDialogCopy' => 'This borrowing will be cancelled and the borrower will be notified.',
                             'cancelConfirmLabel' => 'Confirm Cancellation',
+                            'cancelConfirmClass' => 'button primary ui-pressable',
                             'cancelReasonPlaceholder' => 'Briefly explain why this borrowing is being cancelled...',
                         ])
                     </div>
                 @endif
+            @endif
+            @if($missedNotificationFailed)
+                <p class="release-pickup-notice">Borrower notification failed. Check notification history.</p>
             @endif
         </div>
     </div>
@@ -149,62 +101,16 @@
             : null;
     @endphp
 
-    {{-- Scoped to this state; the shared release styles are left untouched. --}}
-    <style>
-        .release-schedule-review-form { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; margin: 0; }
-        .release-schedule-attestation { display: flex; align-items: flex-start; gap: 8px; margin: 0; max-width: 360px; color: var(--text-secondary); font-size: 12px; font-weight: 600; line-height: 1.45; }
-        .release-schedule-attestation input { flex: 0 0 auto; width: 16px; height: 16px; margin: 1px 0 0; }
-        .release-schedule-attestation-note { display: grid; gap: 4px; margin: 0; flex: 1 1 220px; max-width: 320px; color: var(--text-secondary); font-size: 11.5px; font-weight: 600; }
-        .release-schedule-attestation-note input { width: 100%; min-height: 34px; }
-    </style>
-
-    <div class="release-schedule-exception release-pickup-exception-actions">
+    <div class="release-schedule-exception release-pickup-exception-actions release-delayed-review release-compact-pickup">
         <div>
-            <strong>Schedule Review Required</strong>
-
-            @if(($scheduleReviewDetails['reason'] ?? 'DELAYED_APPROVAL') === 'APPROVED_DURING_SUGGESTED_PICKUP_WINDOW')
-                <p>The request was approved on its suggested pickup date, so no pickup schedule was confirmed automatically. Confirm with the borrower when they can collect the equipment before proceeding.</p>
-            @else
-                <p>The original pickup schedule passed before the request was approved. Confirm whether the borrower still needs the equipment before proceeding.</p>
-            @endif
-
-            <p class="meta">
-                @if($originalSuggestedPickup)Suggested pickup: {{ $originalSuggestedPickup }}. @endif
-                @if($approvedAt)Approved: {{ $approvedAt }}. @endif
-                @if($itemsNeededFrom)Items Needed From: {{ $itemsNeededFrom }}. @endif
-                This is not a missed pickup.
-            </p>
-
             @error('borrower_need_confirmed')
                 <p class="field-error" role="alert">{{ $message }}</p>
             @enderror
-            @error('borrower_confirmation_note')
-                <p class="field-error" role="alert">{{ $message }}</p>
-            @enderror
-
             @if($pickupRescheduleAvailable)
-                <p class="meta">
-                    Next available pickup window under the Operational Calendar:
-                    {{ $nextPickupRescheduleAt->format('F j, Y g:i A') }}@if($nextPickupEnd) to {{ $nextPickupEnd->format('g:i A') }}@endif.
-                    Verify allocation and preparation before continuing; the items are not released by this step.
-                </p>
+                <p>Confirm pickup when the borrower arrives.</p>
 
-                <div class="release-form-actions">
-                    <form method="post" action="{{ route('custody.reschedule-pickup', $custody) }}" class="release-schedule-review-form">
-                        @csrf
-                        <label class="release-schedule-attestation">
-                            <input type="checkbox" name="borrower_need_confirmed" value="1" required>
-                            <span>I contacted the borrower and they confirmed they still need the equipment.</span>
-                        </label>
-                        <label class="release-schedule-attestation-note">
-                            <span>How and when the borrower confirmed</span>
-                            <input type="text" name="borrower_confirmation_note" maxlength="200" required
-                                value="{{ old('borrower_confirmation_note') }}" placeholder="e.g. Phone call, 2:15 PM">
-                        </label>
-                        <button class="button primary ui-pressable release-primary" type="submit">
-                            Continue Release
-                        </button>
-                    </form>
+                <div class="release-form-actions release-schedule-review-actions">
+                    @include('custody.partials.pickup-confirmation')
 
                     @if($canCancelBorrowing)
                         @include('requests.partials.borrower-cancel-control', [
@@ -212,48 +118,51 @@
                             'cancelTriggerClass' => 'button release-outline ui-pressable',
                             'cancelTriggerLabel' => 'Cancel Borrowing',
                             'cancelDialogTitle' => 'Cancel this borrowing?',
-                            'cancelDialogCopy' => 'This borrowing will be cancelled. The reserved items will return to Available inventory and any pending pickup documents will be invalidated.',
+                            'cancelDialogCopy' => 'This borrowing will be cancelled and the borrower will be notified.',
+                            'cancelConfirmClass' => 'button primary ui-pressable',
                             'cancelReasonPlaceholder' => 'Briefly explain why this borrowing is being cancelled...',
                         ])
                     @endif
                 </div>
             @else
-                <p class="meta">No valid pickup window remains on or before the Items Needed From date. This approved release cannot be continued. It must be cancelled; the borrower may then file a new request with new dates.@unless($canCancelBorrowing) Refer this to the SPMU Head/Admin, who can cancel the borrowing.@endunless</p>
+                <p>No pickup time is available. @if($canCancelBorrowing)Cancel this borrowing.@else Refer this borrowing to the SPMU Head.@endif</p>
 
                 @if($canCancelBorrowing)
-                    <div class="release-form-actions">
+                    <div class="release-form-actions release-schedule-review-actions">
                         @include('requests.partials.borrower-cancel-control', [
                             'borrowingRequest' => $custody->request,
                             'cancelTriggerClass' => 'button primary ui-pressable release-primary',
                             'cancelTriggerLabel' => 'Cancel Borrowing',
                             'cancelDialogTitle' => 'Cancel this borrowing?',
-                            'cancelDialogCopy' => 'This borrowing will be cancelled. The reserved items will return to Available inventory and any pending pickup documents will be invalidated.',
+                            'cancelDialogCopy' => 'This borrowing will be cancelled and the borrower will be notified.',
+                            'cancelConfirmClass' => 'button primary ui-pressable',
                             'cancelReasonPlaceholder' => 'Briefly explain why this borrowing is being cancelled...',
                         ])
                     </div>
                 @endif
             @endif
+            <details class="release-schedule-history">
+                <summary>Schedule details</summary>
+                @if($pickupRescheduleAvailable)<p class="meta">Pickup: {{ $nextPickupRescheduleAt->format('F j, Y g:i A') }}@if($nextPickupEnd) to {{ $nextPickupEnd->format('g:i A') }}@endif.</p>@endif
+                <p class="meta">@if($originalSuggestedPickup)Suggested pickup: {{ $originalSuggestedPickup }}. @endif @if($approvedAt)Approved: {{ $approvedAt }}. @endif @if($itemsNeededFrom)Date needed: {{ $itemsNeededFrom }}.@endif</p>
+            </details>
         </div>
     </div>
 @elseif($scheduleException)
     <div class="release-schedule-exception release-pickup-exception-actions">
-        <strong>Pickup schedule needs SPMU follow-up</strong>
-        <p>
-            The system could not keep a usable pickup window from the SPMU Operational Calendar. This is an SPMU schedule exception, not a borrower missed pickup.
-        </p>
+        <p>Review the pickup schedule before proceeding.</p>
         @if($pickupRescheduleAvailable)
             <form method="post" action="{{ route('custody.reschedule-pickup', $custody) }}">
                 @csrf
                 <div class="release-form-actions">
                     <button class="button primary ui-pressable release-primary" type="submit">
-                        Set Next Valid Pickup Schedule
+                        Set Pickup Schedule
                     </button>
                 </div>
             </form>
         @else
             <div class="release-schedule-exception-note">
-                <strong>No valid pickup window remains inside the approved period.</strong>
-                <p>A new pickup cannot be scheduled on or after the Items Needed From date. Cancel the unreleased request or revise the borrowing dates for approval.</p>
+                <p>No pickup time is available. Review this borrowing for cancellation.</p>
             </div>
         @endif
     </div>

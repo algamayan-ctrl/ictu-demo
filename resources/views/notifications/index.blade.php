@@ -36,6 +36,13 @@
                 'EARLY_RETURN_REQUESTED' => 'Early Return Request',
             ][$eventCode] ?? str($eventCode)->replace('_',' ')->lower()->title();
             $message = $notification->event->payload_snapshot_json['message'] ?? $notification->provider_response ?? 'An update was recorded.';
+            if (auth()->user()?->access_classification?->value === 'SPMU_OFFICER' && $eventCode === 'PICKUP_SCHEDULED') {
+                $message = str_replace(
+                    'Keep the same approved request/reservation and prepare for the new window.',
+                    'Keep the same approved request and allocation, and prepare for the new window.',
+                    $message
+                );
+            }
             $target = $targets[$notification->id] ?? null;
         @endphp
         <article class="notification-item {{ $notification->read_at ? '' : 'unread' }} {{ $target ? 'is-linked' : '' }}">
@@ -62,9 +69,9 @@
 @endsection
 
 <style>
-/* NOTIFICATION READ WHITE ONLY START */
+{{-- /* NOTIFICATION READ WHITE ONLY START */ --}}
 
-/*
+{{-- /*
  * Keep the existing notification design completely unchanged.
  *
  * Only an already-read notification becomes white.
@@ -73,7 +80,7 @@
  * Direct-child selectors identify one notification row only.
  * This prevents the parent list/card from inheriting the unread
  * blue state from another notification.
- */
+ */ --}}
 :where(article, section, li, div)
 :has(> .notification-date)
 :has(> .notification-copy)
@@ -82,10 +89,10 @@
 }
 
 
-/*
+{{-- /*
  * The date and message sections must remain transparent so the
  * row appears as one continuous white notification.
- */
+ */ --}}
 :where(article, section, li, div)
 :has(> .notification-date)
 :has(> .notification-copy)
@@ -101,10 +108,10 @@
 }
 
 
-/*
+{{-- /*
  * Dark appearance uses the normal application surface rather
  * than forcing a bright white notification.
- */
+ */ --}}
 html[data-theme="dark"]
 :where(article, section, li, div)
 :has(> .notification-date)
@@ -113,21 +120,21 @@ html[data-theme="dark"]
     background: var(--surface-elevated) !important;
 }
 
-/* NOTIFICATION READ WHITE ONLY END */
+{{-- /* NOTIFICATION READ WHITE ONLY END */ --}}
 </style>
 
 <script>
-/* NOTIFICATION BACK REFRESH START */
 
-/*
- * When a notification is opened, Laravel records read_at before
- * forwarding the user to the related record.
- *
- * Browsers may restore the Notifications page from the back/forward
- * cache when the user presses Back. That restored page still contains
- * the old unread DOM, so refresh only in that situation to render the
- * latest read_at state from the server.
- */
+
+
+
+
+
+
+
+
+
+
 window.addEventListener('pageshow', (event) => {
     if (!event.persisted) {
         return;
@@ -136,5 +143,5 @@ window.addEventListener('pageshow', (event) => {
     window.location.reload();
 });
 
-/* NOTIFICATION BACK REFRESH END */
+
 </script>

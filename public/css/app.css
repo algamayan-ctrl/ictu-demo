@@ -112,8 +112,8 @@ html[data-theme="dark"] {
     --bs-link-hover-color: var(--interactive-hover);
 }
 
-/* The dark shell sits below the page, not above it: near-black chrome, and
-   section eyebrows carry the accent instead of muted grey. */
+
+
 html[data-theme="dark"] .site-header,
 html[data-theme="dark"] body > footer { background: #070518; }
 html[data-theme="dark"] .eyebrow { color: var(--interactive); }
@@ -166,7 +166,7 @@ button { color: inherit; }
     transition-duration: var(--motion-fast);
 }
 
-/* Application shell */
+
 .app-shell {
     display: grid;
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
@@ -213,19 +213,19 @@ button { color: inherit; }
     margin: 0 auto;
     padding: 26px var(--content-gutter) 46px;
     scroll-margin-top: calc(var(--topbar-height) + 12px);
-    /* Short pages (an empty queue/table with just a heading) fill the
-       remaining viewport below the topbar instead of floating at the top
-       with unused page beneath them. Pages with enough real content simply
-       exceed this floor and the page scrolls normally - nothing here caps
-       height or hides overflow. */
+
+
+
+
+
     display: flex;
     flex-direction: column;
     min-height: calc(100vh - var(--topbar-height));
 }
 .app-main:focus { outline: none; }
 .app-main > .page-heading { flex: 0 0 auto; }
-/* The page's main content region is the one thing that should absorb any
-   leftover vertical space; the heading above it never grows. */
+
+
 .app-main > .content-area {
     flex: 1 1 auto;
     min-height: 0;
@@ -413,7 +413,7 @@ button { color: inherit; }
 .account-menu-actions button:hover, .account-menu-actions button:focus-visible { color: var(--heading); background: var(--surface-hover); border-color: var(--border); }
 .account-menu-actions .account-menu-logout:hover, .account-menu-actions .account-menu-logout:focus-visible { color: var(--danger); background: var(--danger-bg); border-color: var(--danger-border); }
 
-/* Page hierarchy and content */
+
 .page-heading {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -423,38 +423,38 @@ button { color: inherit; }
     margin: 0 0 20px;
 }
 
-/*
- | HEADING TITLE ROW - one rule, every page, every role.
- |
- | A heading action belongs on the TITLE's row: not the eyebrow above it, not
- | the description below it. Rather than offset the action, the copy wrapper
- | stops generating a box, so the eyebrow, title and description become rows
- | of the heading grid itself - the semantic title row the markup never had,
- | without editing 23 templates.
- |
- | The eyebrow takes a full-width row of its own, so the title always starts
- | the row after it. The action fixes only its COLUMN, and `dense` packs it
- | into the first free cell of column 2 - which is the title's row. A heading
- | with no eyebrow still pairs correctly, because there the title owns row 1.
- |
- | Column 1 is minmax(0, 1fr), which is what keeps long titles from
- | overflowing now that the copy wrapper no longer carries min-width: 0.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .page-heading > div:first-child { display: contents; }
 .page-heading > div:first-child > * { grid-column: 1; }
 .page-heading > div:first-child > .eyebrow,
 .page-heading > div:first-child > .release-eyebrow { grid-column: 1 / -1; }
 .page-heading > :not(div:first-child) { grid-column: 2; align-self: center; }
 
-/* Request operational heading: no eyebrow, its own title row and a boxed
-   "next action" panel, plus flex-specific wrap rules of its own. It keeps
-   the original flex heading rather than being forced into the grid. */
+
+
+
 .request-operational-heading { display: flex; align-items: flex-start; justify-content: space-between; }
 .request-operational-heading > div:first-child { display: block; min-width: 0; }
 .request-operational-heading > :not(div:first-child) { align-self: auto; }
 .page-heading h1 { margin: 1px 0 3px; color: var(--heading); font-size: clamp(21px, 1.65vw, 25px); font-weight: 750; letter-spacing: -.022em; line-height: 1.18; }
 .page-heading p:not(.eyebrow) { max-width: 760px; margin: 0; color: var(--text-muted); font-size: 12.5px; line-height: 1.4; }
-/* Compact identity line under a record title: "Borrower: X   Submitted: Y". */
+
 .request-heading-meta { display: flex; flex-wrap: wrap; gap: 3px 20px; margin-top: 6px !important; font-size: 12.5px; }
 .request-heading-meta strong { color: var(--text-secondary); font-weight: 700; }
 .eyebrow { margin: 0 0 4px; color: var(--text-muted); font-size: 9.5px; font-weight: 800; letter-spacing: .085em; text-transform: uppercase; }
@@ -475,7 +475,7 @@ small, .muted { color: var(--text-muted); }
 .card-grid, .approval-grid, .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); align-items: stretch; gap: 16px; }
 :is(.content-grid, .card-grid, .approval-grid, .settings-grid) > .card { height: 100%; }
 
-/* Cards and dashboard */
+
 .card, .table-wrap, .calendar-card, .auth-card {
     background: var(--surface-elevated);
     border: 1px solid var(--border);
@@ -554,12 +554,12 @@ small, .muted { color: var(--text-muted); }
 .report-table-card { overflow: hidden; }
 .report-table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
 .report-table { width: 100%; min-width: 980px; border-collapse: separate; border-spacing: 0; }
-/* Sticky theads stick to just below the sticky topbar (not to the viewport
-   top), so a page header never renders partially underneath the topbar
-   once the user has scrolled the table into its sticky state.
-   border-collapse must stay 'separate' (not 'collapse') on any table with a
-   sticky thead: browsers render a stray gap/seam at the top of a collapsed
-   table once one of its cells becomes position:sticky. */
+
+
+
+
+
+
 .report-table thead th { position: sticky; top: var(--topbar-height); z-index: 1; background: var(--surface-elevated); color: var(--heading); border-bottom: 1px solid var(--border); padding: 10px 12px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; text-align: left; }
 .report-table tbody td { padding: 9px 12px; border-top: 1px solid var(--border); color: var(--text); vertical-align: top; }
 .report-table td.numeric, .report-table th.numeric { text-align: right; font-variant-numeric: tabular-nums; }
@@ -705,7 +705,7 @@ small, .muted { color: var(--text-muted); }
 .deadline-event-status { display: grid; justify-items: start; gap: 7px; }
 .deadline-event-status > span:last-child { display: inline-flex; align-items: center; gap: 3px; color: var(--interactive); font-size: 10px; font-weight: 800; }
 
-/* Buttons and status */
+
 .actions, .inline-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .button, button:not(.icon-button):not(.sidebar-backdrop):not(.link-button):not(.account-menu-toggle):not(.account-menu-logout):not(.calendar-event):not(.calendar-more):not(.calendar-view-control):not(.calendar-summary-filter):not(.calendar-summary-clear):not(.accountability-filter-card):not(.calendar-drawer-backdrop):not(.special-dates-sort):not(.prepared-quantity-step) {
     display: inline-flex;
@@ -773,7 +773,7 @@ small, .muted { color: var(--text-muted); }
 .status-neutral, .status-closed { color: var(--neutral); background: var(--neutral-bg); border-color: var(--neutral-border); }
 .record-id { color: var(--interactive); font-size: 11px; font-weight: 800; letter-spacing: .04em; }
 
-/* Alerts and empty states */
+
 .notice, .callout {
     display: flex;
     align-items: flex-start;
@@ -843,9 +843,9 @@ small, .muted { color: var(--text-muted); }
 .card > .empty-state { min-height: 120px; display: grid; place-items: center; }
 td.empty-state { height: 110px; }
 
-/* Universal empty-state panel: one small neutral pattern reused across
-   Borrower/AO/Head/ICTU list and dashboard sections instead of each page
-   hand-rolling its own blank-panel/sentence. */
+
+
+
 .empty-state-panel {
     display: grid;
     justify-items: center;
@@ -869,9 +869,9 @@ td.empty-state { height: 110px; }
 .empty-state-panel-cta { margin-top: 4px; color: var(--interactive); font-weight: 700; font-size: .84rem; text-decoration: none; }
 .empty-state-panel-cta:hover { text-decoration: underline; }
 
-/* Universal compact filter-context banner: replaces the oversized colored
-   "Showing X (N) from your dashboard" alert on every filtered drilldown
-   destination (Custody, Users, Delegations, Delivery Records, Accountability). */
+
+
+
 .filter-context-banner {
     display: flex;
     flex-wrap: wrap;
@@ -890,7 +890,7 @@ td.empty-state { height: 110px; }
 .filter-context-clear { font-weight: 700; white-space: nowrap; color: var(--interactive); text-decoration: none; }
 .filter-context-clear:hover { text-decoration: underline; }
 
-/* Tables */
+
 .table-wrap { width: 100%; overflow-x: auto; }
 .table-wrap table { width: 100%; min-width: 680px; margin: 0; border-collapse: collapse; }
 .table-wrap th {
@@ -912,8 +912,8 @@ td.empty-state { height: 110px; }
 .table-wrap td small { margin-top: 2px; font-size: 11px; }
 .table-action { display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 6px 10px; border: 1px solid var(--interactive); border-radius: 8px; background: transparent; color: var(--interactive); font-size: 11px; font-weight: 750; white-space: nowrap; cursor: pointer; }
 
-/* Universal inline disclosure contract. Keep every View Details / Case Details
-   trigger visually identical even inside tables or page-local workspaces. */
+
+
 .disclosure-trigger {
     display: inline-flex;
     align-items: center;
@@ -951,10 +951,10 @@ details[open] > .disclosure-trigger .disclosure-trigger__chevron {
 .admin-kpi-card { min-height: 132px; }
 .admin-kpi-card .dashboard-view-all { margin-top: auto; }
 .admin-table-wrap { border-radius: var(--radius); }
-/* border-collapse must stay 'separate' (not the inherited 'collapse' from
-   .table-wrap table) on any table with a sticky thead: browsers render a
-   stray gap/seam at the top of a collapsed table once one of its cells
-   becomes position:sticky. */
+
+
+
+
 .table-wrap .admin-user-table { border-collapse: separate; border-spacing: 0; }
 .admin-user-table thead th { position: sticky; top: var(--topbar-height); z-index: 1; }
 .admin-user-table td.actions-cell { width: 130px; }
@@ -990,8 +990,8 @@ details[open] > .disclosure-trigger .disclosure-trigger__chevron {
 .checkbox-field { padding: 6px 2px; }
 .checkbox-field label.checkbox { display: flex; align-items: center; gap: 10px; min-height: 42px; }
 
-/* Universal record browser -------------------------------------------------
-   Shared control pattern for borrower, Action Officer, and Admin list pages. */
+
+
 .universal-record-toolbar {
     display: grid;
     grid-template-columns: minmax(280px, 1fr) minmax(180px, 230px) minmax(150px, 190px);
@@ -1024,7 +1024,7 @@ details[open] > .disclosure-trigger .disclosure-trigger__chevron {
     .universal-record-toolbar { grid-template-columns: 1fr; }
 }
 
-/* Forms */
+
 .form-card, .form-grid { display: grid; gap: 15px; }
 .form-card { max-width: 900px; }
 .form-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -1073,7 +1073,7 @@ input:hover, select:hover, textarea:hover { border-color: var(--border-strong); 
 input:focus, select:focus, textarea:focus { outline: 0; border-color: var(--interactive); box-shadow: var(--focus-ring); }
 input:disabled, select:disabled, textarea:disabled { color: var(--text-soft); background: var(--surface-muted); cursor: not-allowed; }
 
-/* Dropdown chevron: one consistent, vertically centred indicator for every select. */
+
 select {
     --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230b203b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     appearance: none;
@@ -1089,11 +1089,11 @@ select::-ms-expand { display: none; }
 html[data-theme="dark"] select {
     --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b9c6d4' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
-/* The disabled `background` shorthand above resets repeat/position/size; restore them so one chevron shows, not a tiled row. */
+
 select:disabled { background-image: var(--select-chevron); background-repeat: no-repeat; background-position: right 13px center; background-size: 16px 16px; opacity: .75; }
 select[multiple], select[size]:not([size="1"]) { padding-right: 11px; background-image: none; }
 
-/* The decision that advances an accountability case reads as the primary one. */
+
 .button.accountability-primary-action {
     min-height: 44px;
     padding: 12px 22px;
@@ -1111,7 +1111,7 @@ select[multiple], select[size]:not([size="1"]) { padding-right: 11px; background
 .check-grid label, .role-list label { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 10px; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 7px; }
 .danger-zone { padding: 13px; background: var(--danger-bg); border: 1px solid var(--danger-border); border-radius: 8px; }
 
-/* Supporting modules */
+
 .detail-list { display: grid; grid-template-columns: minmax(120px, .35fr) minmax(0, 1fr); margin: 0; }
 .detail-list dt, .detail-list dd { margin: 0; padding: 8px 0; border-bottom: 1px solid var(--row-border); }
 .detail-list dt { padding-right: 12px; color: var(--text-muted); font-size: 11px; font-weight: 700; }
@@ -1135,8 +1135,8 @@ select[multiple], select[size]:not([size="1"]) { padding-right: 11px; background
 nav[role="navigation"] { margin-top: 16px; }
 nav[role="navigation"] svg { width: 18px; height: 18px; }
 
-/* Shared pagination: the default list-page control for any paginator that
-   has no bespoke pagination view of its own (resources/views/partials/pagination.blade.php). */
+
+
 .app-pagination { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
 .app-pagination-link {
     display: inline-flex;
@@ -1159,7 +1159,7 @@ a.app-pagination-link:hover { color: var(--heading); border-color: var(--border-
 .app-pagination-link[aria-disabled="true"] { color: var(--text-soft); background: var(--surface-subtle); cursor: not-allowed; }
 .app-pagination-ellipsis { padding: 0 2px; color: var(--text-muted); }
 
-/* Borrower portal */
+
 .full-span { grid-column: 1 / -1; }
 .is-hidden { display: none !important; }
 .text-warning { color: var(--warning) !important; }
@@ -1214,7 +1214,7 @@ a.app-pagination-link:hover { color: var(--heading); border-color: var(--border-
 .availability-window span { color: var(--text-muted); font-size: 11px; }
 .availability-number { color: var(--interactive); font-size: 22px; line-height: 1; }
 
-/* Borrowing calendar */
+
 .calendar-month-summary {
     display: flex;
     flex-wrap: wrap;
@@ -1700,7 +1700,7 @@ body.calendar-drawer-open { overflow: hidden; }
 .payment-upload { margin-top: 15px; padding: 14px; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 8px; }
 .payment-history { margin-top: 12px; }
 
-/* SPMU operational views */
+
 .visually-hidden {
     position: absolute !important;
     width: 1px !important;
@@ -1821,9 +1821,9 @@ body.calendar-drawer-open { overflow: hidden; }
 .notification-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .notification-heading h2 { margin: 0; font-size: 14px; }
 
-/* A notification row opens the record it refers to. The link is stretched
-   over the whole item so the "Mark as read" control inside it stays
-   separately clickable instead of being nested in an anchor. */
+
+
+
 .notification-list .notification-item.is-linked { position: relative; }
 .notification-open { position: absolute; inset: 0; z-index: 1; border-radius: 6px; }
 .notification-open:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
@@ -1832,7 +1832,7 @@ body.calendar-drawer-open { overflow: hidden; }
 .notification-list .notification-item.is-linked.unread:hover { background: var(--blue-50); border-left-color: var(--interactive); }
 .notification-item > form { position: relative; z-index: 2; }
 
-/* Public and authentication */
+
 .site-header, body > footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px var(--content-gutter); color: #dce8f5; background: var(--navy-950); }
 .site-header {
     gap: 24px;
@@ -3059,10 +3059,10 @@ body > main + footer {
     body { background: #fff; }
     .card, .table-wrap { box-shadow: none; break-inside: avoid; }
 }
-/* =========================================================
-   LOGIN PAGE â€” LOCAL OVERRIDES ONLY
-   Does NOT modify public header/footer/global layout.
-   ========================================================= */
+
+
+
+
 
 .login-page {
     position: relative;
@@ -3094,7 +3094,7 @@ body > main + footer {
 }
 
 
-/* CARD */
+
 
 .login-page .login-card {
     position: relative;
@@ -3114,7 +3114,7 @@ body > main + footer {
 }
 
 
-/* SHIELD */
+
 
 .login-page .login-emblem {
     display: grid;
@@ -3137,7 +3137,7 @@ body > main + footer {
 }
 
 
-/* HEADING */
+
 
 .login-page .login-heading {
     margin-bottom: 20px;
@@ -3169,7 +3169,7 @@ body > main + footer {
 }
 
 
-/* FORM */
+
 
 .login-page .login-form {
     display: flex;
@@ -3210,7 +3210,7 @@ body > main + footer {
 }
 
 
-/* INPUT WRAPPER */
+
 
 .login-page .login-input-wrap {
     display: flex;
@@ -3238,8 +3238,8 @@ body > main + footer {
 }
 
 
-/* IMPORTANT:
-   Removes global input styling inside login field */
+
+
 
 .login-page .login-input-wrap input[type="email"],
 .login-page .login-input-wrap input[type="password"],
@@ -3278,7 +3278,7 @@ body > main + footer {
 }
 
 
-/* ICON */
+
 
 .login-page .login-input-icon {
     display: grid;
@@ -3294,7 +3294,7 @@ body > main + footer {
 }
 
 
-/* PASSWORD EYE */
+
 
 .login-page .login-password-toggle {
     display: grid;
@@ -3328,7 +3328,7 @@ body > main + footer {
 }
 
 
-/* REMEMBER */
+
 
 .login-page .login-remember {
     display: inline-flex;
@@ -3356,7 +3356,7 @@ body > main + footer {
 }
 
 
-/* SIGN IN */
+
 
 .login-page .login-submit {
     position: relative;
@@ -3414,9 +3414,9 @@ body > main + footer {
 }
 
 
-/* GOOGLE SIGN-IN
-   Secondary to the blue primary button: surface background, thin border, and
-   the same width and radius as the login controls. */
+
+
+
 
 .login-page .login-alt-divider {
     display: flex;
@@ -3511,7 +3511,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
 }
 
 
-/* HELP */
+
 
 .login-page .login-help {
     margin-top: 0;
@@ -3552,7 +3552,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
 }
 
 
-/* VALIDATION */
+
 
 .login-page .login-error {
     color: #b83240;
@@ -3561,7 +3561,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
 }
 
 
-/* SHORT LAPTOP */
+
 
 @media (max-height: 760px) and (min-width: 601px) {
 
@@ -3602,7 +3602,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
 }
 
 
-/* MOBILE */
+
 
 @media (max-width: 600px) {
 
@@ -3628,7 +3628,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
 }
 
 
-/* REDUCED MOTION */
+
 
 @media (prefers-reduced-motion: reduce) {
 
@@ -3642,25 +3642,25 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     }
 
 }
-/* =========================================================
-   LOGIN FINAL FIX
-   Keep public header/footer and landing page untouched.
-   ========================================================= */
 
-/* Keep login compact so footer stays reachable */
+
+
+
+
+
 .login-page {
     min-height: auto !important;
     padding: 14px 16px 18px !important;
 }
 
-/* Card */
+
 .login-page .login-card {
     width: min(410px, calc(100vw - 32px)) !important;
     padding: 20px 28px 22px !important;
     border-radius: 18px !important;
 }
 
-/* Shield */
+
 .login-page .login-emblem {
     width: 58px !important;
     height: 58px !important;
@@ -3672,7 +3672,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     height: 30px !important;
 }
 
-/* Heading */
+
 .login-page .login-heading {
     margin-bottom: 16px !important;
 }
@@ -3686,12 +3686,12 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     font-size: 13px !important;
 }
 
-/* Form spacing */
+
 .login-page .login-form {
     gap: 12px !important;
 }
 
-/* Inputs: wrapper owns the appearance */
+
 .login-page .login-input-wrap {
     min-height: 46px !important;
     padding: 0 12px !important;
@@ -3702,7 +3702,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     background: #ffffff !important;
 }
 
-/* Remove all global/native input background */
+
 .login-page .login-input-wrap input[type="email"],
 .login-page .login-input-wrap input[type="password"],
 .login-page .login-input-wrap input[type="text"] {
@@ -3728,7 +3728,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     font-size: 14px !important;
 }
 
-/* Browser autofill */
+
 .login-page .login-input-wrap input:-webkit-autofill,
 .login-page .login-input-wrap input:-webkit-autofill:hover,
 .login-page .login-input-wrap input:-webkit-autofill:focus {
@@ -3737,13 +3737,13 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     box-shadow: 0 0 0 1000px #ffffff inset !important;
 }
 
-/* Focus */
+
 .login-page .login-input-wrap:focus-within {
     border-color: #2874ef !important;
     box-shadow: 0 0 0 3px rgba(40, 116, 239, 0.12) !important;
 }
 
-/* Icons */
+
 .login-page .login-input-icon {
     display: grid !important;
     place-items: center !important;
@@ -3755,7 +3755,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     height: 18px !important;
 }
 
-/* Eye toggle */
+
 .login-page button.login-password-toggle {
     display: grid !important;
     place-items: center !important;
@@ -3781,7 +3781,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     height: 19px !important;
 }
 
-/* Remember checkbox */
+
 .login-page .login-remember {
     gap: 8px !important;
     font-size: 13px !important;
@@ -3794,7 +3794,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     accent-color: #2874ef;
 }
 
-/* Restore BLUE Sign in button */
+
 .login-page button.login-submit {
     position: relative !important;
 
@@ -3846,7 +3846,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     font-size: 19px !important;
 }
 
-/* Need help */
+
 .login-page .login-help-divider {
     margin-bottom: 8px !important;
 }
@@ -3856,7 +3856,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     font-size: 12px !important;
 }
 
-/* Mobile */
+
 @media (max-width: 600px) {
     .login-page {
         padding: 12px !important;
@@ -3868,7 +3868,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     }
 }
 
-/* Request progress tracker -------------------------------------------------- */
+
 .request-tracker-card {
     margin-top: 18px;
 }
@@ -4139,7 +4139,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
 }
 
 
-/* Final role-focused dashboards ------------------------------------------- */
+
 .dashboard-stat-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -4222,7 +4222,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     .dashboard-panel-equal { min-height: auto; }
 }
 
-/* Laundry operations four-step tracker ------------------------------------ */
+
 .laundry-progress-card { margin-top: 0; }
 .laundry-progress-rail {
     display: grid;
@@ -4271,7 +4271,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
 }
 
 
-/* Full-quantity return accounting */
+
 .return-accounting-list {
     display: grid;
     gap: 1rem;
@@ -4355,9 +4355,9 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     }
 }
 
-/* BORROWER CALENDAR STATUS CARDS V2 */
 
-/* Remove the large wrapper rectangle */
+
+
 .calendar-month-summary[data-calendar-status-filters] {
     display: flex;
     flex-wrap: wrap;
@@ -4369,7 +4369,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     box-shadow: none !important;
 }
 
-/* Shared card design */
+
 [data-calendar-status-filters] .calendar-summary-filter {
     min-width: 118px;
     min-height: 56px;
@@ -4398,7 +4398,7 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     color: #fff !important;
 }
 
-/* Solid status colors */
+
 [data-calendar-status-filters] .calendar-summary-active {
     background: #15803d !important;
 }
@@ -4415,14 +4415,14 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     background: #64748b !important;
 }
 
-/* Selected status — no shadow */
+
 [data-calendar-status-filters] .calendar-summary-filter.is-selected {
     outline: 2px solid #16365f !important;
     outline-offset: 2px;
     box-shadow: none !important;
 }
 
-/* All remains secondary */
+
 [data-calendar-status-filters] .calendar-summary-clear {
     min-width: 52px;
     min-height: 56px;
@@ -4448,5 +4448,3 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
         min-width: 105px;
     }
 }
-
-/* END BORROWER CALENDAR STATUS CARDS V2 */

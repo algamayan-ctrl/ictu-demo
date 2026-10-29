@@ -144,7 +144,7 @@
                 row.hidden = true;
             });
 
-            // Row numbers follow the visible page, not the underlying order.
+
             matches.slice(firstIndex, lastIndex).forEach((row, index) => {
                 row.hidden = false;
 
@@ -191,8 +191,8 @@
             render();
         });
 
-        // The page-size control appears above and below the table; keep both
-        // in step so either one drives the same pagination state.
+
+
         pageSizes.forEach((control) => {
             control.addEventListener('change', () => {
                 pageSizes.forEach((other) => {

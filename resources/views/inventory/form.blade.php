@@ -290,7 +290,7 @@
                 const reasonInput = form.querySelector('[name="deletion_reason"]');
                 const submitButton = form.querySelector('[data-inventory-delete-submit]');
 
-                // Frontend convenience only; the server validates the same rules.
+
                 const sync = () => {
                     submitButton.disabled = nameInput.value.trim() !== nameInput.dataset.expectedName
                         || reasonInput.value.trim() === '';
@@ -305,7 +305,7 @@
                     nameInput.focus();
                 });
 
-                // Cancel only closes the dialog; nothing is submitted.
+
                 form.querySelector('[data-inventory-delete-cancel]').addEventListener('click', () => {
                     dialog.close();
                     form.reset();

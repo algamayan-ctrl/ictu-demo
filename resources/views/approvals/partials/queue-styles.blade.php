@@ -4,21 +4,21 @@
     width: 100%;
     min-width: 0;
     font-size: 13px;
-    /* This is .app-main's only child on this page, so it - not a nested
+    {{-- /* This is .app-main's only child on this page, so it - not a nested
        .content-area - is what needs to fill the remaining viewport height
-       when the queue is empty. */
+       when the queue is empty. */ --}}
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
 }
 .approval-queue [hidden] { display: none !important; }
-/* Only the true "queue is empty" panel grows to fill the leftover space;
+{{-- /* Only the true "queue is empty" panel grows to fill the leftover space;
    the search/sort filters and a populated queue card keep their natural
-   height so real content is never stretched or repositioned. */
+   height so real content is never stretched or repositioned. */ --}}
 .approval-queue > .approval-queue-empty { flex: 1 1 auto; }
 
-/* Heading */
+{{-- /* Heading */ --}}
 .approval-queue .approval-queue-heading { column-gap: 20px; margin-bottom: 14px; }
 .approval-queue-heading .eyebrow { margin-bottom: 10px; }
 .approval-queue .approval-queue-heading h1 { margin: 0 0 9px; }
@@ -26,7 +26,7 @@
 .approval-queue .button.approval-queue-records { flex-shrink: 0; white-space: nowrap; }
 .approval-queue-heading > .approval-queue-records { justify-self: end; }
 
-/* Search, status, and sort */
+{{-- /* Search, status, and sort */ --}}
 .approval-queue-filters { display: grid; grid-template-columns: minmax(0, 2.6fr) minmax(170px, 1fr); align-items: end; gap: 14px 18px; margin-bottom: 16px; padding: 17px 18px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); }
 
 .approval-queue-filters.is-verification {
@@ -41,7 +41,7 @@
 .approval-queue-filters input, .approval-queue-filters select { width: 100%; min-height: 40px; border-radius: 7px; font-size: 12px; }
 .approval-queue-filters .search-input-shell input { padding-left: 36px; }
 
-/* Pending approvals table */
+{{-- /* Pending approvals table */ --}}
 .approval-queue-card { padding: 0; overflow: hidden; }
 .approval-queue-card-heading { margin: 0; padding: 15px 18px; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
 .approval-queue-table-wrap { width: 100%; min-width: 0; overflow-x: auto; }
@@ -63,7 +63,7 @@
 .approval-queue-submitted time { white-space: nowrap; }
 .approval-queue .button.approval-queue-review { white-space: nowrap; }
 
-/* Footer / pagination */
+{{-- /* Footer / pagination */ --}}
 .approval-queue-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 18px; padding: 16px 18px; border-top: 1px solid var(--border); }
 .approval-queue-footer > p { margin: 0; color: var(--text-secondary); font-size: 12px; }
 .approval-queue-pagination { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; margin-left: auto; }
@@ -74,7 +74,7 @@
 .approval-queue-page-previous { transform: rotate(180deg); }
 .approval-queue-page-ellipsis { padding: 0 3px; color: var(--text-muted); font-size: 11px; }
 
-/* Empty states */
+{{-- /* Empty states */ --}}
 .approval-queue-empty { display: flex; min-height: 320px; align-items: center; justify-content: center; padding: 44px 22px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); text-align: center; }
 .approval-queue-empty-content { display: flex; flex-direction: column; align-items: center; max-width: 440px; }
 .approval-queue-empty-icon { display: grid; place-items: center; width: 92px; height: 92px; margin-bottom: 26px; border-radius: 50%; background: var(--info-bg); color: var(--approval-blue); }

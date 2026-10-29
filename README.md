@@ -9,8 +9,8 @@ The application has one requester portal and three active staff classifications:
 | Access | Purpose |
 |---|---|
 | Borrower | Creates borrowing requests and tracks personal requests/custody. Only Borrower accounts may borrow. |
-| SPMU Admin / Head | Final borrowing decision authority, oversight, reports, and authorized controls after Action Officer verification. |
-| SPMU Action Officer | Request/document verification, pickup scheduling, exact-quantity preparation, physical release/return, laundry operations, evidence and operational processing. May make the final SPMU decision only under a valid formal delegation. |
+| SPMU Admin / Head | Final borrowing decision authority for on-campus submissions and Action Officer-verified off-campus requests, oversight, reports, and authorized controls. |
+| SPMU Action Officer | Off-campus request/document verification, pickup scheduling, exact-quantity preparation, physical release/return, laundry operations, evidence and operational processing. May make the final SPMU decision only under a valid formal delegation. |
 | SPMU Admin / Head (administration) | Also administers user accounts and classifications, operational configuration and the operational audit trail. ICTU is no longer an application role; as Technical System Custodian it maintains hosting, Cloudflare, deployment, the database, backups and source code. See "Technical turnover and responsibilities" in [docs/DEPLOYMENT-ICTU.md](docs/DEPLOYMENT-ICTU.md). |
 
 **GSU and VPAF are not application roles, portals, approval queues, or system approvers.** When required by the institutional Borrowing Request Letter, they are **physical signatories only**. The borrower prints the letter, obtains the required handwritten/wet signatures, scans the accomplished document, and uploads it to SPMU for verification.
@@ -21,8 +21,8 @@ The application has one requester portal and three active staff classifications:
 2. The system generates a printable Draft Borrowing Request Letter.
 3. Borrower prints the letter and obtains required handwritten/wet signatures, including the required GSU/VPAF institutional signatories on the physical letter.
 4. Borrower scans and uploads the fully signed Borrowing Request Letter. A Permission to Conduct document is also required when the request represents a student activity/organization.
-5. The SPMU Action Officer verifies the submitted request and documents or returns an incomplete request for correction. `VERIFIED` is not approval and creates no reservation.
-6. A verified request is routed to the SPMU Head, who may approve, reject, or return it under the existing decision/delegation rules.
+5. On-campus submissions go directly to the SPMU Head. Off-campus submissions first go to the SPMU Action Officer, who verifies the request and documents or returns an incomplete request for correction. `VERIFIED` is not approval and creates no reservation.
+6. The SPMU Head reviews on-campus submissions directly and off-campus requests after Action Officer verification. The Head may approve, reject, or return the request under the existing decision/delegation rules.
 7. Head approval performs the final availability check, reserves the exact approved quantity, and automatically generates the Borrower Slip and applicable Gate Pass. No operational document is generated before approval.
 8. The borrower views/downloads the generated documents and brings them to SPMU on the scheduled pickup date.
 9. The Action Officer validates the approved/generated documents, prepares the exact approved quantity, records physical handover, and moves custody to Released / On Custody.

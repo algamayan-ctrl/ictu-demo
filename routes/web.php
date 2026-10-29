@@ -217,6 +217,10 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
         Route::get('/inventory/{inventory}', [InventoryController::class, 'show'])
             ->whereNumber('inventory')
             ->name('inventory.show');
+
+        Route::get('/inventory/{inventory}/stock-card/print', [InventoryController::class, 'printStockCard'])
+            ->whereNumber('inventory')
+            ->name('inventory.stock-card.print');
     });
 
 
@@ -375,6 +379,12 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
 
     Route::get('/documents/{document}/preview', [DocumentController::class, 'preview'])
         ->name('documents.preview');
+
+    Route::get('/documents/{document}/original', [DocumentController::class, 'originalPreview'])
+        ->name('documents.original');
+
+    Route::get('/documents/{document}/record', [DocumentController::class, 'record'])
+        ->name('documents.record');
 
 
     /*

@@ -44,8 +44,8 @@
                 const leftArchived = ['completed', 'cancelled'].includes(left.dataset.custodyGroup);
                 const rightArchived = ['completed', 'cancelled'].includes(right.dataset.custodyGroup);
 
-                // Keep completed/cancelled records after active operational work
-                // unless the user explicitly filters to one of those archive statuses.
+
+
                 if (! ['completed', 'cancelled'].includes(activeStatus) && leftArchived !== rightArchived) {
                     return leftArchived ? 1 : -1;
                 }
@@ -225,8 +225,8 @@
 
                 const searchMatches = !query || recordSearch.includes(query);
 
-                // The neutral Date From/To filter matches any operational date
-                // on the record: schedule, pickup, issue, return, or close.
+
+
                 const dateMatches =
                     invalidDateRange
                     || (!fromDate && !toDate)
@@ -264,7 +264,7 @@
 
             renderPagination(totalPages);
 
-            /* The section header reports the current filtered result count. */
+
             if (summary) {
                 summary.textContent = matched.length === 1
                     ? '1 record'

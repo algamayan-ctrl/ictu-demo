@@ -1,20 +1,20 @@
 <style>
-/* Create Request — guided validation states and spacing cleanup */
+{{-- /* Create Request — guided validation states and spacing cleanup */ --}}
 #request-form .create-request-ui {
     gap: 22px;
 }
 
-/* Do not visually overlap the Select Items card and its action bar. */
+{{-- /* Do not visually overlap the Select Items card and its action bar. */ --}}
 #request-form .create-request-ui .request-picker-actions {
     margin-top: 0 !important;
 }
 
-/* Give contextual messages breathing room without making the form feel bulky. */
+{{-- /* Give contextual messages breathing room without making the form feel bulky. */ --}}
 #request-form .create-request-ui .picker-warning {
     margin-top: 16px;
 }
 
-/* Disabled actions must look disabled, not like active primary actions. */
+{{-- /* Disabled actions must look disabled, not like active primary actions. */ --}}
 #request-form .create-request-ui .button:disabled,
 #request-form .create-request-ui .button[disabled] {
     opacity: 1;
@@ -31,7 +31,7 @@
     opacity: .65;
 }
 
-/* Step 3 reads as three clear sections rather than one crowded block. */
+{{-- /* Step 3 reads as three clear sections rather than one crowded block. */ --}}
 #request-form .create-request-ui .request-card.review-card,
 #request-form .create-request-ui .request-card.documents-card,
 #request-form .create-request-ui .request-card.confirmation-card {

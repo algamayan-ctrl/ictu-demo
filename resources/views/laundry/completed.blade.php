@@ -31,11 +31,11 @@
                 </span>
             </label>
             <label>
-                <span>Outcome</span>
+                <span>Return Result</span>
                 <select data-completed-outcome>
-                    <option value="">All outcomes</option>
-                    <option value="available">Available</option>
-                    <option value="accountability">Accountability required</option>
+                    <option value="">All results</option>
+                    <option value="available">Available for Borrowing</option>
+                    <option value="accountability">With Return Findings</option>
                 </select>
             </label>
             <label>
@@ -46,7 +46,7 @@
                 </select>
             </label>
             @if($jobs->hasPages())
-                <p class="completed-laundry-filter-scope">Search, outcome, and sort apply to the cases on this page.</p>
+                <p class="completed-laundry-filter-scope">Filters apply to the cases on this page.</p>
             @endif
         </section>
 
@@ -58,7 +58,7 @@
 
             <div class="completed-laundry-table-wrap">
                 <table class="completed-laundry-table">
-                    <thead><tr><th scope="col">Case ID</th><th scope="col">Borrower</th><th scope="col">Items</th><th scope="col">Completed Date</th><th scope="col">Outcome</th><th scope="col">Actions</th></tr></thead>
+                    <thead><tr><th scope="col">Case ID</th><th scope="col">Borrower</th><th scope="col">Items</th><th scope="col">Completed Date</th><th scope="col">Return Result</th><th scope="col">Actions</th></tr></thead>
                     <tbody>
                         @foreach($jobs as $job)
                             @include('laundry.partials.completed-case-row')
@@ -68,7 +68,7 @@
                 <div class="completed-laundry-no-results" data-completed-empty @if($jobs->count()) hidden @endif>
                     <x-icon name="search" size="26" />
                     <strong>No completed cases match your filters.</strong>
-                    <p>Try another search or outcome.</p>
+                    <p>Try another search or result.</p>
                     <button class="button secondary small ui-pressable" type="button" data-completed-reset>Clear filters</button>
                 </div>
             </div>

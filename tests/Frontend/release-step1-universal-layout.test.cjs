@@ -14,8 +14,10 @@ const tests = [
     assert(!pickup.includes('<strong>Pickup &amp; Issuance Schedule</strong>'));
     assert(!pickup.includes('<strong>System Pickup &amp; Issuance Schedule</strong>'));
   }],
-  ['borrower notification uses a neutral detail row instead of a colored success panel', () => {
-    assert(pickup.includes('release-schedule-detail-label">Borrower notification'));
+  ['notification failures remain visible without routine success text', () => {
+    assert(pickup.includes('Borrower notification failed. Check notification history.'));
+    assert(pickup.includes('$scheduleNotificationFailed'));
+    assert(!pickup.includes('Borrower notified.'));
     assert(!pickup.includes('notice success compact'));
     assert(!pickup.includes('✓ Borrower notified'));
   }],

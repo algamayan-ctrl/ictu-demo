@@ -101,7 +101,7 @@
         }
 
         if (in_array((string) $custody->status, ['RETURN_PROCESSING', 'PARTIALLY_RETURNED', 'EARLY_RETURN'], true)) {
-            return ['key' => 'RETURN_INSPECTION', 'label' => 'Return Inspection'];
+            return ['key' => 'RETURN_INSPECTION', 'label' => 'Return Processing'];
         }
 
         return ['key' => 'ON_CUSTODY', 'label' => 'On Custody'];
@@ -113,17 +113,15 @@
      * Officer can always filter by a valid physical-return stage.
      */
     $releaseFilterStatuses = collect([
-        ['key' => 'PICKUP_SCHEDULING', 'label' => 'For Pickup Scheduling'],
-        ['key' => 'ITEM_PREPARATION', 'label' => 'For Item Preparation'],
+        ['key' => 'FOR_PREPARATION', 'label' => 'For Preparation'],
         ['key' => 'PICKUP_SCHEDULED', 'label' => 'Pickup Scheduled'],
         ['key' => 'READY_FOR_RELEASE', 'label' => 'Ready for Release'],
-        ['key' => 'PREPARING_RELEASE', 'label' => 'Preparing for Release'],
         ['key' => 'PICKUP_EXPIRED', 'label' => 'Pickup Missed'],
     ]);
 
     $returnFilterStatuses = collect([
         ['key' => 'ON_CUSTODY', 'label' => 'On Custody'],
-        ['key' => 'RETURN_INSPECTION', 'label' => 'Return Inspection'],
+        ['key' => 'RETURN_INSPECTION', 'label' => 'Return Processing'],
         ['key' => 'OVERDUE', 'label' => 'Overdue'],
     ]);
 
@@ -294,6 +292,8 @@
     </div>
 
     @include('custody.partials.borrowings-interactions')
+@elseif($mode === 'release' && auth()->user()?->access_classification?->value === 'SPMU_OFFICER')
+    @include('custody.partials.sao-release-list')
 @else
     <section class="content-area operational-content-area">
         @if(in_array($mode, ['release','return'], true))
@@ -344,6 +344,9 @@
                         && ! $custody->pickup_expired_at;
 
                     $workflowStatus = $custody->workflowStatus();
+                    if ($mode === 'release') {
+                        $workflowStatus = \App\Support\ActionOfficerStatusPresentation::releaseStatus($workflowStatus);
+                    }
                     $physicalReturnStatus = $mode === 'return'
                         ? $returnOperationalStatusForCustody($custody)
                         : null;
@@ -448,10 +451,10 @@
     .operational-browser-toolbar label{display:grid;gap:6px;font-size:12px;font-weight:800;color:var(--text-muted)}
     .operational-browser-toolbar input,.operational-browser-toolbar select{min-height:42px;width:100%}
     .operational-record-action{align-content:center}
-    /* Release/Return is a page-level operational workspace. When it has no
+    {{-- /* Release/Return is a page-level operational workspace. When it has no
        transactions, let the result panel fill the remaining screen just like
        the other queue/list pages. The message itself stays constrained so the
-       text never stretches awkwardly across the wide card. */
+       text never stretches awkwardly across the wide card. */ --}}
     .operational-content-area{display:flex;flex-direction:column;width:100%;min-width:0}
     .operational-content-area > .operational-record-list{flex:1 1 auto;display:flex;flex-direction:column;width:100%;min-width:0;min-height:0}
     .operational-record-list > .operational-empty-card{flex:1 1 auto;width:100%}

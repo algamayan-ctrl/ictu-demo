@@ -50,7 +50,7 @@
     .spmu-advisory__link { align-self:center; flex:0 0 auto; font-size:11px; font-weight:700; color:var(--info, #1976d2); text-decoration:none; white-space:nowrap; }
     .spmu-advisory__link:hover,.spmu-advisory__link:focus-visible { text-decoration:underline; }
     .dashboard-page-shell > .spmu-advisory { margin-bottom: 12px; }
-    /* Staff dashboards use the same status but a less prominent footprint. */
+    {{-- /* Staff dashboards use the same status but a less prominent footprint. */ --}}
     .spmu-advisory--compact { padding:8px 12px; gap:8px; }
     .spmu-advisory--compact .spmu-advisory__icon { height:27px; flex-basis:27px; }
     .spmu-advisory--compact .spmu-advisory__main { margin-top:2px; font-size:11px; }
@@ -134,7 +134,7 @@
                 change(card, '[data-advisory-upcoming]', data.upcoming, 'Upcoming: ');
             });
         } catch (_) {
-            // Keep the last server-rendered advisory if connectivity is lost.
+
         } finally {
             busy = false;
         }

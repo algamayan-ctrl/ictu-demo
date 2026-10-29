@@ -108,8 +108,8 @@ class ApprovalController extends Controller
         return redirect()->route('verifications.index')->with(
             'status',
             $data['decision'] === 'VERIFIED'
-                ? 'Request marked VERIFIED and routed to the SPMU Head for a separate final decision. Verification did not approve or reserve inventory.'
-                : 'Incomplete request returned to the borrower for correction. No inventory reservation was created.'
+                ? 'Request marked VERIFIED and routed to the SPMU Head for a separate final decision. Verification did not approve or allocate inventory.'
+                : 'Incomplete request returned to the borrower for correction. No inventory allocation was created.'
         );
     }
 
@@ -187,7 +187,9 @@ class ApprovalController extends Controller
         $savedDecision = $borrowingRequest->fresh()->status === RequestStatus::ReturnedForRevision
             ? 'RETURNED_FOR_REVISION' : $data['decision'];
         $message = match ($savedDecision) {
-            'APPROVED' => 'Verified request E-signed and approved by the authorized SPMU Head signatory. The approved quantity is reserved, the Borrower Slip and applicable Gate Pass were generated, and the Action Officer may proceed with pickup preparation.',
+            'APPROVED' => $isDelegatedOfficer
+                ? 'Verified request E-signed and approved by the authorized signatory. The approved quantity is allocated, the Borrower Slip and applicable Gate Pass were generated, and the Action Officer may proceed with pickup preparation.'
+                : 'Verified request E-signed and approved by the authorized SPMU Head signatory. The approved quantity is reserved, the Borrower Slip and applicable Gate Pass were generated, and the Action Officer may proceed with pickup preparation.',
             'RETURNED_FOR_REVISION' => 'Request returned for revision. No inventory allocation was created.',
             default => 'Request rejected. No inventory allocation was created.',
         };

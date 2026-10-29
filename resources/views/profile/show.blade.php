@@ -21,9 +21,9 @@
         color: var(--text-muted);
     }
 
-    /* Two balanced rows. Each pair shares the same width and row height.
+    {{-- /* Two balanced rows. Each pair shares the same width and row height.
        The taller card determines the row height, so additional content on
-       either side never breaks alignment. */
+       either side never breaks alignment. */ --}}
     .account-settings-primary-grid,
     .account-settings-secondary-grid {
         display: grid;
@@ -104,8 +104,8 @@
         overflow-wrap: anywhere;
     }
 
-    /* The identity card is intentionally flatter than form controls so the
-       official data reads as one structured record instead of six nested cards. */
+    {{-- /* The identity card is intentionally flatter than form controls so the
+       official data reads as one structured record instead of six nested cards. */ --}}
     .account-settings-identity .account-settings-readonly {
         min-height: 0;
         padding: 11px 4px 12px;

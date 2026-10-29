@@ -11,7 +11,7 @@ const gatePass = read('resources/views/gate-passes/show.blade.php');
 const interactions = read('resources/views/components/workflow-tracker-interactions.blade.php');
 
 test('completed-stage tooltips use the canonical, concise wording', () => {
-    assert.match(tracker, /'Borrowing request created\.'/);
+    assert.doesNotMatch(tracker, /'Request Prepared'|'Borrowing request created\.'/);
     assert.match(tracker, /'Borrowing request submitted to SPMU\.'/);
     assert.match(tracker, /'Request verified by the SPMU Action Officer\.'/);
     assert.match(tracker, /'Requested items released to the borrower\.'/);
@@ -60,7 +60,7 @@ test('the Gate Pass page tracker reuses the shared tooltip structure instead of 
 
 test('shared request tracker hides inline timestamps but keeps tooltip metadata and dynamic step widths', () => {
     assert.match(tracker, /style="--request-tracker-step-count: \{\{ count\(\$steps\) \}\}"/);
-    assert.match(interactions, /grid-template-columns: repeat\(var\(--request-tracker-step-count, 8\), minmax\(0, 1fr\)\) !important/);
+    assert.match(interactions, /grid-template-columns: repeat\(var\(--request-tracker-step-count, 7\), minmax\(0, 1fr\)\) !important/);
     assert.match(interactions, /\.request-tracker__copy time,[\s\S]*\.request-tracker__pending-label \{[\s\S]*display: none !important/);
     for (const hook of ['data-workflow-meta', 'data-workflow-description', 'aria-label']) {
         assert.ok(tracker.includes(hook), `Tooltip/accessibility metadata must remain: ${hook}`);

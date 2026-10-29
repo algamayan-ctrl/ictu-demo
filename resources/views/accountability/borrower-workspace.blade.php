@@ -4,9 +4,9 @@
 @include('accountability.partials.obligations-styles')
 
 <style>
-    /* Borrower accountability uses the same compact scale as the rest of the
+    {{-- /* Borrower accountability uses the same compact scale as the rest of the
        SPMU workspace. Case cards stay readable, but status/action copy never
-       becomes a second oversized dashboard. */
+       becomes a second oversized dashboard. */ --}}
     .borrower-accountability-workspace .page-heading { margin-bottom: 14px; }
     .borrower-accountability-workspace .page-heading h1 {
         font-size: clamp(24px, 1.9vw, 29px);
@@ -28,9 +28,9 @@
     }
     .accountability-back-link:hover { text-decoration: underline; }
 
-    /* Exact case opened from a staff queue is a single-record workspace, not
+    {{-- /* Exact case opened from a staff queue is a single-record workspace, not
        another borrower overview. Keep borrower identity + the actual record,
-       while removing dashboard chrome and nested card framing. */
+       while removing dashboard chrome and nested card framing. */ --}}
     .borrower-accountability-workspace.is-focused-case-view .page-heading { margin-bottom: 16px; }
     .borrower-accountability-workspace.is-focused-case-view .accountability-custody-group__header {
         margin: 0 0 8px;
@@ -174,8 +174,8 @@
         box-shadow: inset 0 2px 0 var(--interactive);
     }
 
-    /* KPI drill-down: keep the title and return action in one compact row,
-       aligned with the case card that follows. No new card styling. */
+    {{-- /* KPI drill-down: keep the title and return action in one compact row,
+       aligned with the case card that follows. No new card styling. */ --}}
     .borrower-accountability-workspace .accountability-scoped-heading {
         display: flex;
         align-items: center;
@@ -197,9 +197,9 @@
         flex-shrink: 0;
     }
 
-    /* Documents are grouped by their accountability matter so staff can scan
+    {{-- /* Documents are grouped by their accountability matter so staff can scan
        the case first, then its RSLDDP/Billing/Notice records. This intentionally
-       reuses the same restrained card/border language as Active Cases. */
+       reuses the same restrained card/border language as Active Cases. */ --}}
     .accountability-document-panel { padding: 0; overflow: hidden; }
     .accountability-document-groups { display: grid; gap: 12px; }
     .accountability-document-group { padding: 0; overflow: hidden; }
@@ -341,8 +341,8 @@
         background: var(--surface-elevated);
         box-shadow: 0 6px 16px rgba(15, 23, 42, .04);
     }
-    /* Operational case surfaces stay neutral. Tone remains only on icons,
-       badges, and the slim role/action accent. */
+    {{-- /* Operational case surfaces stay neutral. Tone remains only on icons,
+       badges, and the slim role/action accent. */ --}}
     .accountability-custody-case::before,
     .accountability-custody-case::after {
         content: none;
@@ -491,17 +491,17 @@
         background: color-mix(in srgb, var(--interactive) 8%, transparent);
         border-radius: 7px;
     }
-    /* Standalone billing/restriction matters are already self-contained case
+    {{-- /* Standalone billing/restriction matters are already self-contained case
        cards. Avoid wrapping them in a second card/header, and keep the
-       disclosure trigger anchored in the same right-hand grid cell when open. */
+       disclosure trigger anchored in the same right-hand grid cell when open. */ --}}
     .accountability-standalone-groups { margin-top: 0; gap: 10px; }
     .accountability-standalone-case { border: 1px solid var(--border); }
     .accountability-standalone-toggle { justify-self: end; min-width: 118px; }
 
-    /* ALWAYS VISIBLE STANDALONE DETAILS START
+    {{-- /* ALWAYS VISIBLE STANDALONE DETAILS START
        Simple standalone accountability records are operational summaries.
        Their essential details remain visible without an extra disclosure click.
-       Complex case documents/evidence keep their existing disclosure behavior. */
+       Complex case documents/evidence keep their existing disclosure behavior. */ --}}
     .borrower-accountability-workspace .accountability-standalone-toggle {
         display: none !important;
     }
@@ -509,7 +509,7 @@
     .borrower-accountability-workspace .accountability-standalone-detail-body {
         display: grid !important;
     }
-    /* ALWAYS VISIBLE STANDALONE DETAILS END */
+    {{-- /* ALWAYS VISIBLE STANDALONE DETAILS END */ --}}
     .accountability-standalone-detail-body {
         display: grid;
         gap: 8px;
@@ -709,7 +709,7 @@
         font-size: 10.5px;
     }
     .accountability-action-panel__body textarea { min-height: 88px; resize: vertical; }
-    /* Focused Late Return billing form: compact, legible and consistent with staff forms. */
+    {{-- /* Focused Late Return billing form: compact, legible and consistent with staff forms. */ --}}
     .accountability-action-panel__body .accountability-late-billing-form { gap: 12px; }
     .accountability-action-panel__body .accountability-late-billing-form .accountability-dialog-note {
         font-weight: 400;
@@ -859,12 +859,12 @@
         .accountability-action-panel__body .form-grid.two { grid-template-columns: 1fr; }
     }
 
-    /* ACCOUNTABILITY WHITE ACTION HOVER CONSISTENCY */
-    /*
+    {{-- /* ACCOUNTABILITY WHITE ACTION HOVER CONSISTENCY */ --}}
+    {{-- /*
      * Keep every button's normal/default appearance unchanged.
      * Only give action buttons inside the focused action forms the same
      * blue interaction feedback already used by other Accountability controls.
-     */
+     */ --}}
     .borrower-accountability-workspace .accountability-dialog-actions
     :is(a.button, button.button):not(:disabled):is(:hover, :focus-visible) {
         color: #fff !important;
@@ -874,12 +874,12 @@
         transform: translateY(-1px);
     }
 
-/* BORROWER ACCOUNTABILITY SECONDARY HOVER CONSISTENCY */
-/*
+{{-- /* BORROWER ACCOUNTABILITY SECONDARY HOVER CONSISTENCY */ --}}
+{{-- /*
  * Keep secondary controls white in their normal state.
  * Give enabled secondary actions consistent blue hover/focus feedback
  * throughout the Borrower Accountability workspace.
- */
+ */ --}}
 .borrower-accountability-workspace
 .button.secondary:not(:disabled):not([aria-disabled="true"]):not(.is-active):hover,
 .borrower-accountability-workspace
@@ -891,13 +891,13 @@
     transform: translateY(-1px);
 }
 
-    /* ACTIVE CASE CARD SPACING TUNE START */
+    {{-- /* ACTIVE CASE CARD SPACING TUNE START */ --}}
 
-    /*
+    {{-- /*
      * Active Cases monitoring view:
      * keep related cards visually separated and use a compact,
      * consistent internal rhythm without changing focused action forms.
-     */
+     */ --}}
 
     .borrower-accountability-workspace:not(.is-focused-case-view)
     .accountability-custody-groups {
@@ -938,10 +938,10 @@
         padding: 8px 10px;
     }
 
-    /*
+    {{-- /*
      * Custody/property cards and standalone restriction/billing cards are
      * rendered in separate groups. Add the missing vertical separation.
-     */
+     */ --}}
     .borrower-accountability-workspace:not(.is-focused-case-view)
     .accountability-custody-groups ~ .accountability-standalone-groups {
         margin-top: 12px;
@@ -952,7 +952,7 @@
         gap: 12px;
     }
 
-    /* ACTIVE CASE CARD SPACING TUNE END */
+    {{-- /* ACTIVE CASE CARD SPACING TUNE END */ --}}
 </style>
 
 @php

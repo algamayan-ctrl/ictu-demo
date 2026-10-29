@@ -160,7 +160,7 @@
         .sidebar-nav .nav-icon-calendar { color: #2f80ed; }
         .sidebar-nav .nav-icon-accountability { color: #d97706; }
 
-        /* Additional sidebar module icon colors */
+        {{-- /* Additional sidebar module icon colors */ --}}
         .sidebar-nav .nav-icon-users { color: #7A5AF8; }
         .sidebar-nav .nav-icon-settings { color: #0F9488; }
         .sidebar-nav .nav-icon-analytics { color: #7A5AF8; }
@@ -200,7 +200,7 @@
             color: #6c7f96;
         }
 
-        /* DARK MODE: sidebar follows the selected appearance */
+        {{-- /* DARK MODE: sidebar follows the selected appearance */ --}}
         html[data-theme="dark"] .app-sidebar {
             background: #070518 !important;
             border-right-color: rgba(255, 255, 255, .06) !important;
@@ -290,8 +290,8 @@
             }
         }
 
-        /* SIDEBAR HIDDEN SCROLLBAR
-           Keep scrolling functional without showing a slider. */
+        {{-- /* SIDEBAR HIDDEN SCROLLBAR
+           Keep scrolling functional without showing a slider. */ --}}
         .app-sidebar,
         .sidebar-nav {
             scrollbar-width: none !important;
@@ -434,8 +434,8 @@
                 }
             }
 
-        /* SIDEBAR HIDDEN SCROLLBAR
-           Keep scrolling functional without showing a slider. */
+        {{-- /* SIDEBAR HIDDEN SCROLLBAR
+           Keep scrolling functional without showing a slider. */ --}}
         .app-sidebar,
         .sidebar-nav {
             scrollbar-width: none !important;
@@ -457,8 +457,8 @@
     @endif
     {{-- ICTU COMPACT WORKSPACE START --}}
     <style id="ictu-compact-workspace">
-        /* One visual rhythm for the ICTU workspace. Page structures stay intact;
-           only shell sizing, spacing, and dense data presentation are normalized. */
+        {{-- /* One visual rhythm for the ICTU workspace. Page structures stay intact;
+           only shell sizing, spacing, and dense data presentation are normalized. */ --}}
         .ictu-workspace-shell {
             --sidebar-width: 232px;
             --topbar-height: 60px;
@@ -566,7 +566,7 @@
         }
         .ictu-workspace-shell .content-area { margin-top: 12px !important; }
 
-        /* User Accounts: preserve layout, tighten controls and rows. */
+        {{-- /* User Accounts: preserve layout, tighten controls and rows. */ --}}
         .ictu-workspace-shell .ictu-users-heading { margin-bottom: 10px !important; }
         .ictu-workspace-shell .ictu-users-heading .ictu-register-button {
             height: 36px !important;
@@ -616,7 +616,7 @@
         .ictu-workspace-shell .ictu-user-unit-cell span,
         .ictu-workspace-shell .ictu-user-access-cell span { font-size: 10.75px !important; }
 
-        /* Audit Trail: same hierarchy with Gmail-like compact rows. */
+        {{-- /* Audit Trail: same hierarchy with Gmail-like compact rows. */ --}}
         .ictu-workspace-shell .ictu-audit-area { gap: 10px !important; }
         .ictu-workspace-shell .ictu-audit-filter-grid {
             gap: 10px !important;
@@ -659,7 +659,7 @@
         .ictu-workspace-shell .ictu-audit-expanded-row td { padding: 9px 12px !important; }
         .ictu-workspace-shell .ictu-audit-details-panel { padding: 10px 12px !important; }
 
-        /* System Configuration: preserve cards, reduce empty space. */
+        {{-- /* System Configuration: preserve cards, reduce empty space. */ --}}
         .ictu-workspace-shell .ictu-system-config-area { gap: 10px !important; }
         .ictu-workspace-shell .ictu-config-section-heading h2 { margin-bottom: 2px !important; }
         .ictu-workspace-shell .ictu-config-section-heading p { font-size: 12px !important; }
@@ -674,7 +674,7 @@
         }
         .ictu-workspace-shell .ictu-readonly-value { padding: 9px 10px !important; }
 
-        /* Delivery Records: shared density with Audit Trail. */
+        {{-- /* Delivery Records: shared density with Audit Trail. */ --}}
         .ictu-workspace-shell .notification-delivery-area { gap: 10px !important; }
         .ictu-workspace-shell .notification-delivery-toolbar {
             gap: 10px !important;
@@ -707,7 +707,7 @@
         }
         .ictu-workspace-shell .notification-delivery-details-panel { padding: 9px 10px 10px !important; }
 
-        /* Dashboard structure remains unchanged; only the outer rhythm is tighter. */
+        {{-- /* Dashboard structure remains unchanged; only the outer rhythm is tighter. */ --}}
         .ictu-workspace-shell .dashboard-heading { margin-bottom: 12px !important; }
         .ictu-workspace-shell .dashboard-stat-grid { margin-bottom: 12px !important; }
         .ictu-workspace-shell .dashboard-recent-row,
@@ -878,7 +878,7 @@
             }
         }
 
-        /* Keep the sidebar brand visible while the sidebar menu scrolls. */
+        {{-- /* Keep the sidebar brand visible while the sidebar menu scrolls. */ --}}
         .sidebar-brand-row {
             position: sticky !important;
             top: 0 !important;
@@ -893,7 +893,7 @@
                 display: none !important;
             }
         }
-        /* SIDEBAR SECTION NAVIGATION START */
+        {{-- /* SIDEBAR SECTION NAVIGATION START */ --}}
         .sidebar-subnav {
             display: grid;
             gap: 2px;
@@ -960,7 +960,7 @@
             }
         }
 
-        /* SIDEBAR SECTION ACCORDION START */
+        {{-- /* SIDEBAR SECTION ACCORDION START */ --}}
 
         .sidebar-subnav[hidden] {
             display: none !important;
@@ -996,19 +996,19 @@
             }
         }
 
-        /* SIDEBAR SECTION ACCORDION END */
-        /* SIDEBAR SECTION NAVIGATION END */
+        {{-- /* SIDEBAR SECTION ACCORDION END */ --}}
+        {{-- /* SIDEBAR SECTION NAVIGATION END */ --}}
     </style>
     {{-- UNIVERSAL COLLAPSIBLE SIDEBAR END --}}
 
 
-<!-- GLOBAL APP NOTICE ALIGNMENT START -->
+{{-- <!-- GLOBAL APP NOTICE ALIGNMENT START --> --}}
 <style>
-/*
+{{-- /*
  * SPMU universal flash / validation notice alignment.
  * Keep the notice on the normal page grid while centering
  * its icon against the complete text block.
- */
+ */ --}}
 
 .app-main > .notice {
     box-sizing: border-box !important;
@@ -1021,18 +1021,18 @@
     display: grid !important;
     grid-template-columns: 20px minmax(0, 1fr) !important;
 
-    /*
+    {{-- /*
      * Important:
      * Center the icon against the complete message,
      * including wrapped validation text.
-     */
+     */ --}}
     align-items: center !important;
     column-gap: 12px !important;
 
     line-height: 1.45 !important;
 }
 
-/* Notice icon */
+{{-- /* Notice icon */ --}}
 .app-main > .notice > svg,
 .app-main > .notice > .ui-icon,
 .app-main > .notice > [class*="icon"] {
@@ -1049,7 +1049,7 @@
     align-self: center !important;
 }
 
-/* Main text column */
+{{-- /* Main text column */ --}}
 .app-main > .notice > div {
     min-width: 0 !important;
     margin: 0 !important;
@@ -1058,7 +1058,7 @@
     align-self: center !important;
 }
 
-/* Error heading */
+{{-- /* Error heading */ --}}
 .app-main > .notice strong {
     display: block !important;
 
@@ -1068,13 +1068,13 @@
     line-height: 1.35 !important;
 }
 
-/* Validation list */
+{{-- /* Validation list */ --}}
 .app-main > .notice ul {
     margin: 6px 0 0 18px !important;
     padding: 0 !important;
 }
 
-/* Individual validation message */
+{{-- /* Individual validation message */ --}}
 .app-main > .notice li {
     margin: 0 !important;
     padding: 0 0 0 1px !important;
@@ -1084,25 +1084,25 @@
     overflow-wrap: anywhere !important;
 }
 
-/*
+{{-- /*
  * Single success/status messages should also sit vertically
  * centered with their status icon.
- */
+ */ --}}
 .app-main > .notice.success > div {
     display: flex !important;
     align-items: center !important;
     min-height: 20px !important;
 }
 
-/*
+{{-- /*
  * Error messages with a heading + list stay compact while
  * preserving a clear visual hierarchy.
- */
+ */ --}}
 .app-main > .notice.error > div {
     display: block !important;
 }
 
-/* Narrow screen */
+{{-- /* Narrow screen */ --}}
 @media (max-width: 700px) {
     .app-main > .notice {
         grid-template-columns: 18px minmax(0, 1fr) !important;
@@ -1122,11 +1122,11 @@
     }
 }
 </style>
-<!-- GLOBAL APP NOTICE ALIGNMENT END -->
-<!-- SPMU COMPACT CONSISTENCY V2 START -->
+{{-- <!-- GLOBAL APP NOTICE ALIGNMENT END --> --}}
+{{-- <!-- SPMU COMPACT CONSISTENCY V2 START --> --}}
 <style id="spmu-compact-consistency-v2">
 @media screen and (min-width: 1050px) {
-    /* Sidebar: 42px links, consistent icons, existing active/hover colors. */
+    {{-- /* Sidebar: 42px links, consistent icons, existing active/hover colors. */ --}}
     .app-shell:not(.ictu-workspace-shell) .sidebar-nav { gap: 4px !important; }
     .app-shell:not(.ictu-workspace-shell) .sidebar-nav > a {
         min-height: 42px !important;
@@ -1165,7 +1165,7 @@
         display: none !important;
     }
 
-    /* Shared page hierarchy; leaves the top bar, table data and functionality intact. */
+    {{-- /* Shared page hierarchy; leaves the top bar, table data and functionality intact. */ --}}
     .app-shell .app-main { padding-top: 18px !important; padding-bottom: 28px !important; min-width: 0; }
     .app-shell .app-main > .page-heading { margin-bottom: 14px !important; }
     .app-shell .app-main > .page-heading h1 { font-size: 20px !important; line-height: 1.22 !important; }
@@ -1176,7 +1176,7 @@
     .app-shell .app-main .content-area > .card { padding: 15px !important; }
     .app-shell .app-main .card-header { gap: 10px; margin-bottom: 10px; }
 
-    /* Borrower, Action Officer and Head dashboards only. */
+    {{-- /* Borrower, Action Officer and Head dashboards only. */ --}}
     .app-shell .app-main .dashboard-page-shell .dashboard-heading { margin-bottom: 12px !important; }
     .app-shell .app-main .dashboard-page-shell .dashboard-heading h1 { font-size: 20px !important; }
     .app-shell .app-main .dashboard-page-shell .dashboard-heading p:not(.eyebrow) { font-size: 12px !important; }
@@ -1187,7 +1187,7 @@
         padding-top: 9px !important; padding-bottom: 9px !important;
     }
 
-    /* Ordinary screen tables (not PDF/print previews): same comfortable density. */
+    {{-- /* Ordinary screen tables (not PDF/print previews): same comfortable density. */ --}}
     .app-shell .app-main .content-area > .table-wrap > table thead th {
         padding-top: 9px !important; padding-bottom: 9px !important; font-size: 11px !important;
     }
@@ -1196,7 +1196,7 @@
         font-size: 12.5px !important; line-height: 1.35 !important;
     }
 
-    /* Request Records and Release & Return filters, without touching date validation. */
+    {{-- /* Request Records and Release & Return filters, without touching date validation. */ --}}
     .app-shell .app-main .record-browser-toolbar,
     .app-shell .app-main .operational-browser-toolbar {
         padding: 12px !important; gap: 10px !important; margin-bottom: 12px !important;
@@ -1214,7 +1214,7 @@
         padding-top: 9px !important; padding-bottom: 9px !important; font-size: 12px !important;
     }
 
-    /* Operational Audit screen only: text/readability with shorter rows. */
+    {{-- /* Operational Audit screen only: text/readability with shorter rows. */ --}}
     .app-shell.ictu-audit-shell .app-main .spmu-operational-audit-area { gap: 10px !important; }
     .app-shell.ictu-audit-shell .app-main .spmu-operational-audit-area .ictu-audit-filter-grid {
         padding: 12px !important; gap: 10px !important;
@@ -1239,7 +1239,7 @@
         min-height: 32px !important; font-size: 11px !important;
     }
 
-    /* Operational Configuration: don't stretch two small groups to viewport height. */
+    {{-- /* Operational Configuration: don't stretch two small groups to viewport height. */ --}}
     .app-shell .app-main > .operational-config-hub {
         flex: 0 0 auto !important; margin-top: 12px !important;
     }
@@ -1249,14 +1249,14 @@
         min-height: 72px !important; padding: 13px 16px !important; gap: 12px !important;
     }
 
-    /* Calendar: compact controls, never compress the actual event grid. */
+    {{-- /* Calendar: compact controls, never compress the actual event grid. */ --}}
     .app-shell .app-main .borrowing-calendar .calendar-toolbar { gap: 10px !important; }
     .app-shell .app-main .borrowing-calendar .calendar-month-title { font-size: 15px !important; }
 }
 </style>
-<!-- SPMU COMPACT CONSISTENCY V2 END -->
+{{-- <!-- SPMU COMPACT CONSISTENCY V2 END --> --}}
 <style>
-/* SIDEBAR ACTION BADGES START - soft, compact, readable counters */
+{{-- /* SIDEBAR ACTION BADGES START - soft, compact, readable counters */ --}}
 .sidebar-nav > a { position: relative; }
 .sidebar-nav > a .sidebar-action-count {
     margin-left: auto;
@@ -1280,13 +1280,13 @@
     text-shadow: none;
 }
 .sidebar-nav > a .sidebar-action-count[hidden] { display: none !important; }
-/* Keep tones in the data, but use one subtle visual style across the sidebar. */
+{{-- /* Keep tones in the data, but use one subtle visual style across the sidebar. */ --}}
 .sidebar-nav > a .sidebar-action-count.is-urgent,
 .sidebar-nav > a .sidebar-action-count.is-soon {
     background: #e4f2ff;
     color: #175380;
 }
-/* The light pill remains legible on the selected blue menu and on hover. */
+{{-- /* The light pill remains legible on the selected blue menu and on hover. */ --}}
 .sidebar-nav > a.active .sidebar-action-count,
 .sidebar-nav > a[aria-current="page"] .sidebar-action-count,
 .sidebar-nav > a:hover .sidebar-action-count {
@@ -1294,7 +1294,7 @@
     color: #175380;
     box-shadow: none;
 }
-/* Section toggles share one right-hand chevron column; a visible count sits just before it. */
+{{-- /* Section toggles share one right-hand chevron column; a visible count sits just before it. */ --}}
 .sidebar-nav > a[data-sidebar-section-toggle] .sidebar-action-count {
     margin-left: auto;
 }
@@ -1326,7 +1326,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         z-index: 1;
     }
 }
-/* SIDEBAR ACTION BADGES END */
+{{-- /* SIDEBAR ACTION BADGES END */ --}}
 </style>
 </head>
 <body>
@@ -1364,16 +1364,16 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                 ]
                 : [
                     ['dashboard', 'dashboard', 'Dashboard', 'dashboard'],
-                    ['verifications.index', 'verifications.*', 'For Verification', 'approval'],
                     ['registrations.index', 'registrations.*', 'Borrower Registrations', 'users'],
-                    ['requests.index', 'requests.*', 'Request Records', 'requests'],
+                    ['verifications.index', 'verifications.*', 'For Verification', 'approval'],
                     ['custody.release.index', 'custody.release.*', 'Release', 'upload'],
                     ['custody.return.index', 'custody.return.*', 'Return', 'custody'],
                     ['laundry.index', 'laundry.*', 'Laundry', 'success'],
                     ['gate-passes.index', 'gate-passes.*', 'Gate Pass', 'requests'],
+                    ['accountability.index', 'accountability.*', 'Accountability', 'accountability'],
+                    ['requests.index', 'requests.*', 'Request Records', 'requests'],
                     ['inventory.index', 'inventory.*', 'Inventory', 'inventory'],
                     ['calendar.index', 'calendar.*', 'Operations Calendar', 'calendar'],
-                    ['accountability.index', 'accountability.*', 'Accountability', 'accountability'],
                 ],
             default => [],
         };
@@ -1581,7 +1581,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                     const payload = await response.json();
                     apply(payload.counts, payload.tones);
                 } catch (_) {
-                    // Keep the last server-rendered counts when offline.
+
                 } finally {
                     refreshing = false;
                 }
@@ -1673,7 +1673,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         --detail-meta-size: 12px;
     }
 
-    /* Section/card headings: consistent with the compact Return workspace. */
+    {{-- /* Section/card headings: consistent with the compact Return workspace. */ --}}
     .release-flow-page .release-card-title h2,
     .request-operational-page .request-section-title,
     .request-operational-page .request-section-title h2,
@@ -1686,7 +1686,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         line-height: 1.4;
     }
 
-    /* Detail labels and values use one readable scale; layout remains page-specific. */
+    {{-- /* Detail labels and values use one readable scale; layout remains page-specific. */ --}}
     .release-flow-page .release-context-list dt,
     .request-operational-page .request-information-list dt,
     .borrower-custody-stack .borrower-summary-fact small,
@@ -1705,7 +1705,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         line-height: 1.5;
     }
 
-    /* Supporting copy should never compete visually with the actual transaction values. */
+    {{-- /* Supporting copy should never compete visually with the actual transaction values. */ --}}
     .release-flow-page .release-page-heading > div > p:last-child,
     .request-operational-page .request-operational-identity > p,
     .laundry-detail .laundry-detail-heading p:not(.eyebrow),
@@ -1716,7 +1716,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         line-height: 1.5;
     }
 
-    /* Dashboard figures/statuses stay intentionally distinct; only record text is normalized. */
+    {{-- /* Dashboard figures/statuses stay intentionally distinct; only record text is normalized. */ --}}
     .dashboard-watch-copy strong,
     .dashboard-recent-copy strong,
     .dashboard-primary-queue-row > div strong {
@@ -1778,20 +1778,20 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
             return (form.getAttribute('method') || 'GET').toUpperCase() !== 'GET';
         }
 
-        // A submit request that never navigates away (e.g. a dropped
-        // connection) would otherwise leave the form locked forever. This
-        // safety net re-enables it automatically; it never fires on a normal
-        // submission because the page has already navigated away by then.
+
+
+
+
         const STUCK_SUBMIT_TIMEOUT_MS = 20000;
 
         function lockForm(form) {
             form.dataset.submitLocked = '1';
             form.setAttribute('aria-busy', 'true');
 
-            // The clicked submit button keeps its normal visible label - only
-            // its interactivity is locked - and every other submit control in
-            // the same form is locked with it so a second, conflicting action
-            // cannot be started while the first is still in flight.
+
+
+
+
             form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach((control) => {
                 control.style.pointerEvents = 'none';
                 control.setAttribute('aria-disabled', 'true');
@@ -1869,10 +1869,10 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
 
     {{-- SPMU-ACPMP NUMBER INPUT SAFETY START --}}
     <style>
-        /*
+        {{-- /*
          * Hide native spinner arrows on all numeric fields so a stray click
          * cannot silently bump a manually-typed value.
-         */
+         */ --}}
         input[type="number"]::-webkit-inner-spin-button,
         input[type="number"]::-webkit-outer-spin-button {
             -webkit-appearance: none;
@@ -1887,12 +1887,12 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
     (() => {
         'use strict';
 
-        /*
-         * Prevent mouse-wheel / touchpad scrolling from changing the value of
-         * a focused <input type="number">. Only acts while the field is
-         * focused, so normal page scrolling while the pointer happens to
-         * pass over a number field elsewhere in the app is never affected.
-         */
+
+
+
+
+
+
         document.addEventListener('wheel', (event) => {
             const input = event.target;
             if (
@@ -1904,12 +1904,12 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
             }
         }, { passive: false, capture: true });
 
-        /*
-         * Prevent Arrow Up / Arrow Down from stepping the value of a focused
-         * <input type="number">. Every other key (digits, Backspace, Delete,
-         * Tab, Shift+Tab, arrow-left/right for cursor movement, etc.) is left
-         * untouched, so typing and keyboard navigation keep working normally.
-         */
+
+
+
+
+
+
         document.addEventListener('keydown', (event) => {
             const input = event.target;
             if (
@@ -1928,13 +1928,13 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
 @auth
 
 <style>
-/* SPMU SESSION ENDED MODAL START */
+{{-- /* SPMU SESSION ENDED MODAL START */ --}}
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Compact login-matched session ended UI
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 
 .spmu-session-ended-overlay {
     position: fixed;
@@ -1954,11 +1954,11 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
 }
 
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Compact card
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 .spmu-session-ended-dialog {
     width: min(100%, 380px);
 
@@ -1983,11 +1983,11 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
 }
 
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Lock icon
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 .spmu-session-ended-icon {
     display: grid;
     place-items: center;
@@ -2013,11 +2013,11 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
 }
 
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Heading
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 .spmu-session-ended-dialog h2 {
     margin: 0;
 
@@ -2033,11 +2033,11 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
 }
 
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Supporting text
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 .spmu-session-ended-dialog p {
     margin: 6px auto 0;
 
@@ -2053,11 +2053,11 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
 }
 
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | OK button
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 .spmu-session-ended-dialog .spmu-session-ended-ok.button.primary {
     display: inline-flex !important;
     align-items: center !important;
@@ -2120,22 +2120,22 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
 }
 
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Expired page lock
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 html.spmu-session-ended,
 html.spmu-session-ended body {
     overflow: hidden !important;
 }
 
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Mobile
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 @media (max-width: 520px) {
     .spmu-session-ended-overlay {
         padding: 15px;
@@ -2152,11 +2152,11 @@ html.spmu-session-ended body {
     }
 }
 
-/* SPMU SESSION ENDED MODAL END */
+{{-- /* SPMU SESSION ENDED MODAL END */ --}}
 </style>
 
 <script>
-/* SPMU IDLE SESSION MONITOR START */
+
 (() => {
     const timeoutMinutes = Number(
         @json((int) config('session.idle_timeout', 15))
@@ -2184,23 +2184,23 @@ html.spmu-session-ended body {
     let logoutStarted = false;
     let sessionEndedDialogShown = false;
 
-    /*
-     * Loading an authenticated page counts as initial activity.
-     */
+
+
+
     try {
         localStorage.setItem(
             userKey,
             String(lastActivity)
         );
     } catch (_) {
-        // Local timer remains functional without localStorage.
+
     }
 
 
     const syncStorage = (timestamp) => {
-        /*
-         * Avoid excessive storage writes during continuous mouse movement.
-         */
+
+
+
         if (timestamp - lastStorageWrite < 5000) {
             return;
         }
@@ -2213,16 +2213,16 @@ html.spmu-session-ended body {
                 String(timestamp)
             );
         } catch (_) {
-            // Ignore storage restrictions.
+
         }
     };
 
 
     const heartbeat = async (timestamp) => {
-        /*
-         * Real user activity can refresh the server clock at most once
-         * per minute. Background application polling never calls this.
-         */
+
+
+
+
         if (
             logoutStarted ||
             timestamp - lastHeartbeat < 60000
@@ -2246,10 +2246,10 @@ html.spmu-session-ended body {
                 }
             );
         } catch (_) {
-            /*
-             * Server-side idle enforcement still protects the next request
-             * if the temporary heartbeat request cannot be delivered.
-             */
+
+
+
+
         }
     };
 
@@ -2330,10 +2330,10 @@ html.spmu-session-ended body {
             </section>
         `;
 
-        /*
-         * Clicking the faded area intentionally does nothing.
-         * The user must acknowledge the ended session through OK.
-         */
+
+
+
+
         overlay.addEventListener(
             'click',
             (event) => {
@@ -2353,17 +2353,17 @@ html.spmu-session-ended body {
         okButton?.addEventListener(
             'click',
             () => {
-                /*
-                 * replace() removes the expired authenticated page from
-                 * the browser history before opening Login.
-                 */
+
+
+
+
                 window.location.replace(loginRoute);
             }
         );
 
-        /*
-         * Escape must not dismiss a security/session-expiration dialog.
-         */
+
+
+
         document.addEventListener(
             'keydown',
             (event) => {
@@ -2394,10 +2394,10 @@ html.spmu-session-ended body {
 
         logoutStarted = true;
 
-        /*
-         * Keep the current page on screen, but immediately cover and disable
-         * it. The server logout request is sent without navigating the page.
-         */
+
+
+
+
         showSessionEndedDialog();
 
         const formData = new FormData();
@@ -2412,10 +2412,10 @@ html.spmu-session-ended body {
             'idle'
         );
 
-        /*
-         * fetch() intentionally consumes any Laravel redirect response.
-         * The browser remains on the current page until the user clicks OK.
-         */
+
+
+
+
         void fetch(
             logoutRoute,
             {
@@ -2428,11 +2428,11 @@ html.spmu-session-ended body {
                 },
             }
         ).catch(() => {
-            /*
-             * The modal still remains active if connectivity fails.
-             * The server-side idle middleware will invalidate the expired
-             * session on the next request.
-             */
+
+
+
+
+
         });
     };
 
@@ -2444,10 +2444,10 @@ html.spmu-session-ended body {
 
         const timestamp = Date.now();
 
-        /*
-         * If interaction happens only after the idle limit has already
-         * elapsed, the expired session cannot be revived.
-         */
+
+
+
+
         if (
             timestamp - lastActivity >= timeoutMs
         ) {
@@ -2483,10 +2483,10 @@ html.spmu-session-ended body {
     });
 
 
-    /*
-     * Returning to the application tab is genuine activity, but not if
-     * the idle deadline already passed while the tab was hidden.
-     */
+
+
+
+
     window.addEventListener(
         'focus',
         recordActivity,
@@ -2505,9 +2505,9 @@ html.spmu-session-ended body {
     );
 
 
-    /*
-     * Real activity from another SPMU-ACPMP tab keeps all tabs synchronized.
-     */
+
+
+
     window.addEventListener(
         'storage',
         (event) => {
@@ -2533,10 +2533,10 @@ html.spmu-session-ended body {
     );
 
 
-    /*
-     * Check locally every second so the visual expiration prompt appears
-     * without requiring another HTTP request.
-     */
+
+
+
+
     window.setInterval(
         () => {
             if (logoutStarted) {
@@ -2553,12 +2553,12 @@ html.spmu-session-ended body {
     );
 
 
-    /*
-     * Initialize the server-side user-activity timestamp.
-     */
+
+
+
     void heartbeat(lastActivity);
 })();
-/* SPMU IDLE SESSION MONITOR END */
+
 </script>
 
 @endauth

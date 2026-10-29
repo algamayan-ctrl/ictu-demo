@@ -82,7 +82,7 @@
         color: var(--text, #e2e8f0);
     }
 
-    /* REQUEST TRACKER FINAL RESPONSIVE POLISH */
+    {{-- /* REQUEST TRACKER FINAL RESPONSIVE POLISH */ --}}
 
     .request-tracker__scroll {
         width: 100% !important;
@@ -99,7 +99,7 @@
     .request-tracker__rail {
         width: 100% !important;
         min-width: 0 !important;
-        grid-template-columns: repeat(var(--request-tracker-step-count, 8), minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(var(--request-tracker-step-count, 7), minmax(0, 1fr)) !important;
         column-gap: 8px !important;
     }
 
@@ -138,14 +138,14 @@
         line-height: 1.25;
     }
 
-    /* The full timestamp remains in the hover/focus tooltip and aria-label. */
+    {{-- /* The full timestamp remains in the hover/focus tooltip and aria-label. */ --}}
     .request-tracker__copy time,
     .request-tracker__pending-label {
         display: none !important;
     }
 
-    /* Current, completed, warning and pending milestones use the same visual
-       language everywhere this shared request tracker is rendered. */
+    {{-- /* Current, completed, warning and pending milestones use the same visual
+       language everywhere this shared request tracker is rendered. */ --}}
     .request-tracker__step.is-current .request-tracker__marker {
         color: #ffffff !important;
         border-color: var(--interactive, #0863db) !important;
@@ -153,9 +153,9 @@
         box-shadow: 0 0 0 4px var(--surface-elevated, #fff), 0 0 0 6px color-mix(in srgb, var(--interactive, #0863db) 16%, transparent) !important;
     }
 
-    /*
+    {{-- /*
      * Tablet: wrap into two clean rows instead of horizontal scrolling.
-     */
+     */ --}}
     @media (max-width: 900px) {
         .request-tracker__rail {
             grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
@@ -168,9 +168,9 @@
         }
     }
 
-    /*
+    {{-- /*
      * Mobile: two milestones per row.
-     */
+     */ --}}
     @media (max-width: 620px) {
         .request-tracker__rail {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -183,12 +183,12 @@
         }
     }
 
-    /* FINAL FLAT 2D COMPLETED STATE */
+    {{-- /* FINAL FLAT 2D COMPLETED STATE */ --}}
     :root {
         --tracker-complete-green: #00B300;
     }
 
-    /* Completed markers */
+    {{-- /* Completed markers */ --}}
     .request-tracker__step.is-complete .request-tracker__marker,
     .laundry-progress-step.is-complete .laundry-progress-marker {
         background: #00B300 !important;
@@ -200,7 +200,7 @@
         color: #ffffff !important;
     }
 
-    /* Kill any decorative ring around completed marker */
+    {{-- /* Kill any decorative ring around completed marker */ --}}
     .request-tracker__step.is-complete .request-tracker__marker::before,
     .request-tracker__step.is-complete .request-tracker__marker::after,
     .laundry-progress-step.is-complete .laundry-progress-marker::before,
@@ -212,7 +212,7 @@
         box-shadow: none !important;
     }
 
-    /* Plain white check */
+    {{-- /* Plain white check */ --}}
     .request-tracker__step.is-complete .request-tracker__marker svg {
         color: #ffffff !important;
         stroke: #ffffff !important;
@@ -220,7 +220,7 @@
         filter: none !important;
     }
 
-    /* Completed connector line */
+    {{-- /* Completed connector line */ --}}
     .request-tracker__step.is-complete::before,
     .request-tracker__step.is-complete::after,
     .laundry-progress-step.is-complete::before,

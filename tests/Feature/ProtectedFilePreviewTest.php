@@ -109,6 +109,16 @@ class ProtectedFilePreviewTest extends TestCase
             ->assertViewHas('file', fn (StoredFile $viewFile) => $viewFile->is($file));
 
         $response->assertSee(route('files.show', $file, false), false);
+        $response->assertDontSee('data-document-fullscreen-toggle', false);
+
+        $officer = User::query()
+            ->where('access_classification', AccessClassification::SpmuOfficer->value)
+            ->firstOrFail();
+        $this->actingAs($officer)
+            ->get(route('files.preview', $file))
+            ->assertOk()
+            ->assertSee('data-document-fullscreen-toggle', false)
+            ->assertSeeText('Full Screen');
     }
 
     public function test_spmu_can_preview_current_borrower_uploaded_request_supporting_document(): void

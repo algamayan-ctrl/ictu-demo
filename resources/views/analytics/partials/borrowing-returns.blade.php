@@ -154,7 +154,7 @@
  </section>
 
  <style>
-/* SPMU RETURN OUTCOME DONUT V2 */
+{{-- /* SPMU RETURN OUTCOME DONUT V2 */ --}}
 
 .return-outcome-v2 .analytics-card-body {
  padding: 18px;
@@ -167,7 +167,7 @@
  gap: 20px;
 }
 
-/* DONUT */
+{{-- /* DONUT */ --}}
 .return-outcome-v2-donut {
  position: relative;
  display: grid;
@@ -220,7 +220,7 @@
  line-height: 1.25;
 }
 
-/* OUTCOME ROWS */
+{{-- /* OUTCOME ROWS */ --}}
 .return-outcome-v2-results {
  display: grid;
  gap: 10px;
@@ -304,7 +304,7 @@
  color: #c2410c;
 }
 
-/* INSIGHT */
+{{-- /* INSIGHT */ --}}
 .return-outcome-v2-insight {
  display: flex;
  align-items: center;
@@ -332,7 +332,7 @@
  background: color-mix(in srgb, #07845f 10%, transparent);
 }
 
-/* RESPONSIVE */
+{{-- /* RESPONSIVE */ --}}
 @media (max-width: 760px) {
  .return-outcome-v2-layout {
  grid-template-columns: 1fr;

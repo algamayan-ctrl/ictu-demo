@@ -12,6 +12,7 @@
     |
     */
     $historyEvents = collect();
+    $saoAllocationWording = auth()->user()?->access_classification?->value === 'SPMU_OFFICER';
 
     $addHistoryEvent = function (
         $when,
@@ -39,16 +40,24 @@
         ]);
     };
 
-    // 1) Request preparation / creation.
-    $addHistoryEvent(
-        $borrowingRequest->created_at,
-        'Request',
-        'Request prepared',
-        $borrowingRequest->borrower?->full_name ?: 'Borrower',
-        'Borrowing request record created.',
-        'request-created',
-        10
-    );
+    $requestHasSubmission = $borrowingRequest->currentVersion?->submitted_at !== null
+        || $borrowingRequest->statusHistory->contains(
+            fn ($history) => ($history->to_status instanceof \BackedEnum
+                ? $history->to_status->value
+                : (string) $history->to_status) === 'UNDER_SPMU'
+        );
+
+    if (! $requestHasSubmission) {
+        $addHistoryEvent(
+            $borrowingRequest->created_at,
+            'Request',
+            'Request created',
+            $borrowingRequest->borrower?->full_name ?: 'Borrower',
+            null,
+            'request-created',
+            10
+        );
+    }
 
     // 2) Request status changes, translated into user-facing lifecycle events.
     foreach ($borrowingRequest->statusHistory as $history) {
@@ -59,7 +68,7 @@
         [$eventLabel, $defaultDetails] = match ($rawToStatus) {
             'UNDER_SPMU' => [
                 'Request submitted',
-                'Request submitted to SPMU for the applicable verification/review process.',
+                'Submitted to SPMU for review.',
             ],
             'RETURNED_FOR_REVISION' => [
                 'Returned for revision',
@@ -97,12 +106,22 @@
             default => 25,
         };
 
+        $historyDetails = match (trim((string) ($history->reason ?: $defaultDetails))) {
+            'E-signed borrowing request version and scanned supporting document(s) submitted to the SPMU Action Officer for verification.' =>
+                'Sent to the Action Officer for verification.',
+            'E-signed borrowing request version and scanned supporting document(s) submitted to the SPMU Head for approval.' =>
+                'Sent to the SPMU Head for approval.',
+            'SPMU Head verified and approved the request. The approved quantity is allocated/held for pickup.' =>
+                $saoAllocationWording ? 'The request was approved. Items are allocated for pickup.' : $history->reason,
+            default => $history->reason ?: $defaultDetails,
+        };
+
         $addHistoryEvent(
             $history->changed_at,
             'Request',
             $eventLabel,
             $history->actor?->full_name ?: 'System',
-            $history->reason ?: $defaultDetails,
+            $historyDetails,
             'request-status-'.$history->id,
             $statusSortOrder
         );
@@ -150,6 +169,7 @@
         foreach ($operationalAuditEvents as $auditEvent) {
             $actionCode = strtoupper((string) $auditEvent->action_code);
             $after = is_array($auditEvent->after_json) ? $auditEvent->after_json : [];
+            $saoInPersonPickup = $saoAllocationWording && data_get($after, 'borrower_presence_attested_by_spmu') === true;
             $actor = $auditEvent->actor?->full_name;
             $pickupAt = $formatOperationalDateTime(data_get($after, 'pickup_at'));
             $pickupUntil = $formatOperationalDateTime(data_get($after, 'pickup_expires_at'));
@@ -176,7 +196,9 @@
                     'Pickup',
                     'Pickup missed',
                     'System',
-                    'The confirmed pickup window passed before physical release. The reservation remained active while the borrower could request rescheduling or cancel the unreleased request.',
+                    $saoAllocationWording
+                        ? 'The confirmed pickup window passed before physical release. The allocation remained active while the borrower could request rescheduling or cancel the unreleased request.'
+                        : 'The confirmed pickup window passed before physical release. The reservation remained active while the borrower could request rescheduling or cancel the unreleased request.',
                     54,
                 ],
                 'PICKUP_RESCHEDULE_REQUESTED' => [
@@ -188,9 +210,13 @@
                 ],
                 'PICKUP_RESCHEDULED' => [
                     'Pickup',
-                    'Pickup rescheduled',
+                    $saoInPersonPickup ? 'Borrower pickup confirmed' : 'Pickup rescheduled',
                     'SPMU Action Officer',
-                    'SPMU assigned the next valid pickup/issuance window while retaining the same approved request and reservation.'.$window,
+                    $saoInPersonPickup
+                        ? 'The Action Officer confirmed that the borrower was present and would proceed with pickup.'
+                        : ($saoAllocationWording
+                        ? 'SPMU assigned the next valid pickup/issuance window while retaining the same approved request and allocation.'
+                        : 'SPMU assigned the next valid pickup/issuance window while retaining the same approved request and reservation.').$window,
                     58,
                 ],
                 'PICKUP_HELD_FOR_PREPARATION_ISSUE' => [
@@ -496,12 +522,12 @@
         <span class="request-activity-heading">
             <span class="request-section-title">
                 <x-icon name="clock" size="18" />
-                <span>Transaction history</span>
+                <span>Transaction History</span>
             </span>
 
             <span class="request-activity-latest">
                 @if($latestHistory)
-                    Latest recorded event:
+                    Latest:
                     <strong>{{ $latestHistory['event'] }}</strong>
                     · {{ $latestHistory['when']->format('d M Y, g:i A') }}
                 @else
@@ -511,48 +537,44 @@
         </span>
 
         <span class="request-activity-toggle">
-            <span class="request-history-show">Show history</span>
-            <span class="request-history-hide">Hide history</span>
+            <span class="request-history-show">View History</span>
+            <span class="request-history-hide">Hide History</span>
             <x-icon name="chevron-down" size="17" />
         </span>
     </summary>
-
-    <div class="request-history-intro">
-        Significant recorded events throughout the request and transaction lifecycle.
-    </div>
 
     <div class="table-wrap request-history-table-wrap">
         <table class="request-history-table">
             <colgroup>
                 <col class="request-history-col-when">
-                <col class="request-history-col-stage">
                 <col class="request-history-col-event">
                 <col class="request-history-col-actor">
-                <col class="request-history-col-details">
             </colgroup>
             <thead>
                 <tr>
-                    <th>When</th>
-                    <th>Stage</th>
-                    <th>Event</th>
-                    <th>Actor</th>
-                    <th>Details</th>
+                    <th>Date &amp; Time</th>
+                    <th>Activity</th>
+                    <th>By</th>
                 </tr>
             </thead>
             <tbody>
             @forelse($historyEvents as $history)
                 <tr>
-                    <td data-label="When">{{ $history['when']->format('d M Y, g:i A') }}</td>
-                    <td data-label="Stage">
-                        <span class="request-history-stage">{{ $history['stage'] }}</span>
+                    <td data-label="Date &amp; Time">{{ $history['when']->format('d M Y, g:i A') }}</td>
+                    <td data-label="Activity" class="request-history-event">
+                        {{ $history['event'] }}
+                        @if($history['details'] !== '—')
+                            <details class="request-history-more">
+                                <summary>Details</summary>
+                                <p class="request-history-details">{{ $history['details'] }}</p>
+                            </details>
+                        @endif
                     </td>
-                    <td data-label="Event" class="request-history-event">{{ $history['event'] }}</td>
-                    <td data-label="Actor">{{ $history['actor'] }}</td>
-                    <td data-label="Details" class="request-history-details">{{ $history['details'] }}</td>
+                    <td data-label="By">{{ $history['actor'] }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="request-history-empty">No transaction history has been recorded yet.</td>
+                    <td colspan="3" class="request-history-empty">No transaction history yet.</td>
                 </tr>
             @endforelse
             </tbody>
@@ -562,11 +584,11 @@
 
 @once
 <style>
-    /*
+    {{-- /*
      * <details> supplies native accordion semantics and keyboard handling.
      * The card itself clips accidental visual overflow; the table wrapper owns
      * horizontal scrolling only when the viewport genuinely becomes narrow.
-     */
+     */ --}}
     .request-activity-history {
         padding: 0;
         overflow: hidden;
@@ -634,16 +656,8 @@
     .request-activity-history .request-history-hide,
     .request-activity-history[open] .request-history-show { display: none; }
     .request-activity-history[open] .request-history-hide { display: inline; }
+    .request-activity-history[open] .request-activity-latest { display: none; }
     .request-activity-history[open] .request-activity-toggle .ui-icon { transform: rotate(180deg); }
-
-    .request-history-intro {
-        margin: 0 18px;
-        padding: 12px 0 11px;
-        border-top: 1px solid var(--border);
-        color: var(--text-muted);
-        font-size: 12px;
-        line-height: 1.5;
-    }
 
     .request-activity-history > .request-history-table-wrap {
         box-sizing: border-box;
@@ -658,16 +672,14 @@
 
     .request-history-table {
         width: 100%;
-        min-width: 820px;
+        min-width: 560px;
         table-layout: fixed;
         margin: 0;
     }
 
-    .request-history-col-when { width: 150px; }
-    .request-history-col-stage { width: 105px; }
-    .request-history-col-event { width: 205px; }
-    .request-history-col-actor { width: 165px; }
-    .request-history-col-details { width: auto; }
+    .request-history-col-when { width: 180px; }
+    .request-history-col-event { width: auto; }
+    .request-history-col-actor { width: 200px; }
 
     .request-history-table th,
     .request-history-table td {
@@ -678,22 +690,8 @@
     }
 
     .request-history-table td {
+        padding: 12px 16px;
         line-height: 1.45;
-    }
-
-    .request-history-stage {
-        white-space: nowrap;
-        display: inline-flex;
-        align-items: center;
-        min-height: 24px;
-        padding: 3px 8px;
-        border: 1px solid color-mix(in srgb, var(--interactive) 22%, var(--border));
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--interactive) 7%, var(--surface));
-        color: var(--interactive);
-        font-size: 11px;
-        font-weight: 700;
-        line-height: 1.2;
     }
 
     .request-history-event {
@@ -701,8 +699,13 @@
         font-weight: 700;
     }
 
+    .request-history-more { margin-top: 5px; font-weight: 400; }
+    .request-history-more > summary { width: fit-content; color: var(--interactive); cursor: pointer; font-size: 12px; font-weight: 600; }
     .request-history-details {
+        margin: 7px 0 0;
         color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 400;
     }
 
     .request-history-empty {
@@ -723,7 +726,7 @@
         }
 
         .request-history-table {
-            min-width: 760px;
+            min-width: 560px;
         }
     }
 </style>

@@ -266,7 +266,7 @@
 
 @if($useReleaseProcessLayout)
     @include('custody.partials.release-process-styles')
-    <div class="release-flow-page" data-release-process>
+    <div class="release-flow-page" data-release-process data-allocation-term="{{ auth()->user()?->access_classification?->value === 'SPMU_OFFICER' ? 'allocated' : 'reserved' }}">
     @include('custody.partials.release-heading')
 @elseif(! $useReturnProcessLayout)
 <section class="page-heading">

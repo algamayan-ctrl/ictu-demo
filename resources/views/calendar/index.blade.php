@@ -208,7 +208,7 @@
 </div>
 
 <style>
-/* Calendar controls stay compact: one filter menu, a passive color legend, and a small details preview. */
+{{-- /* Calendar controls stay compact: one filter menu, a passive color legend, and a small details preview. */ --}}
 .calendar-role-description{margin:6px 0 0;max-width:760px;color:var(--text-muted);font-size:13px;line-height:1.55}
 .calendar-toolbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px}
 .calendar-filter-menu{position:relative}
@@ -218,13 +218,13 @@
 .calendar-filter-popover-title{padding:2px 16px 7px;color:var(--text-muted);font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
 .calendar-filter-option,button.calendar-filter-option{display:flex!important;width:100%!important;min-height:0!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;margin:0!important;padding:11px 16px!important;border:0!important;border-radius:0!important;background:transparent!important;color:var(--heading)!important;font:inherit!important;font-size:12.5px!important;font-weight:650!important;text-align:left!important;cursor:pointer;box-shadow:none!important;appearance:none}.calendar-filter-option:hover,.calendar-filter-option:focus-visible,button.calendar-filter-option:hover,button.calendar-filter-option:focus-visible{background:var(--surface-subtle)!important;border:0!important;border-radius:0!important;outline:none!important;box-shadow:none!important}.calendar-filter-option.is-selected,button.calendar-filter-option.is-selected{background:color-mix(in srgb, var(--info-bg) 55%, transparent)!important;color:var(--heading)!important;font-weight:750!important}
 .calendar-filter-dot{display:inline-block;width:8px;height:8px;flex:0 0 8px;border-radius:50%}.calendar-filter-dot.pickup{background:#2f80ed}.calendar-filter-dot.return{background:#d99a16}.calendar-filter-dot.attention{background:#d14343}.calendar-filter-dot.returned{background:#2e9d62}
-/* Keep the Month/List control compact and consistent with the universal dashboard controls. */
+{{-- /* Keep the Month/List control compact and consistent with the universal dashboard controls. */ --}}
 .calendar-view-toggle{display:inline-flex;align-items:center;gap:6px;padding:0;background:transparent;border:0;border-radius:0}
 .calendar-view-control{min-height:34px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-elevated);color:var(--text-muted);box-shadow:none}
 .calendar-view-control:hover,.calendar-view-control:focus-visible{background:var(--surface-subtle);border-color:var(--border-strong);color:var(--heading);outline:none}
 .calendar-view-control.active{background:color-mix(in srgb,var(--info-bg) 55%,var(--surface-elevated));border-color:color-mix(in srgb,var(--interactive) 45%,var(--border));color:var(--interactive);box-shadow:none}
 
-/* Passive color key only: no pills/tabs/cards, just a compact line of labels. */
+{{-- /* Passive color key only: no pills/tabs/cards, just a compact line of labels. */ --}}
 .calendar-color-legend{display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap;padding:4px 2px 8px;color:var(--text-muted);font-size:9.5px;font-weight:650;line-height:1.25}
 .calendar-color-legend span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .calendar-color-legend .calendar-filter-dot{width:7px;height:7px;flex-basis:7px}

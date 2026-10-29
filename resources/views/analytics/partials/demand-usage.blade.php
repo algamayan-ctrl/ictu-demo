@@ -662,8 +662,8 @@
 {{-- Top Released Items is consolidated into Equipment Demand & Actual Usage above. --}}
 
 <style>
-/* Demand analytics layout refinement: preserve the existing visual language,
- but let wide metric cards breathe and wrap instead of being compressed. */
+{{-- /* Demand analytics layout refinement: preserve the existing visual language,
+ but let wide metric cards breathe and wrap instead of being compressed. */ --}}
 .analytics-processing-strip {
  display: grid;
  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));

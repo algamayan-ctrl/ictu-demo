@@ -15,7 +15,7 @@
 (() => {
  const CARD = '[data-card-detail]';
 
- /* Anything that already does something on click owns its own click. */
+
  const INNER = 'a, button, select, input, textarea, label, summary, details, [role="button"], [role="link"], [data-chart-tip]';
 
  const open = (card) => {
@@ -33,21 +33,21 @@
  const card = event.target.closest(CARD);
  if (!card) return;
 
- /* An inner control was the real target. */
+
  if (event.target.closest(INNER)) return;
 
- /* Selecting text inside a card is reading, not navigating. */
+
  const selection = window.getSelection();
  if (selection && selection.type === 'Range' && String(selection).trim() !== '') return;
 
  open(card);
  });
 
- /*
- * Keyboard activation belongs to the header link, which is a real anchor
- * and already handles Enter. This only adds Space for the card itself when
- * a host has given it button semantics.
- */
+
+
+
+
+
  document.addEventListener('keydown', (event) => {
  if (event.key !== ' ' && event.key !== 'Spacebar') return;
 

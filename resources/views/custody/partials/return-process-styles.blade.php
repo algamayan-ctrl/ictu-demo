@@ -1,5 +1,5 @@
 <style>
-/* Only the Action Officer's return workspace uses these presentation rules. */
+{{-- /* Only the Action Officer's return workspace uses these presentation rules. */ --}}
 .return-flow-page { --return-blue: #0863db; font-size: 13px; }
 .return-flow-page [hidden] { display: none !important; }
 .return-flow-page, .return-flow-page #return-primary { scroll-margin-top: 90px; }

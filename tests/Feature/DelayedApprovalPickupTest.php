@@ -27,6 +27,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -136,13 +137,14 @@ class DelayedApprovalPickupTest extends TestCase
 
         // The existing card shows the review state to the Action Officer.
         $this->releasePage($custody)
-            ->assertSee('Pickup Schedule Needs Attention')
-            ->assertSee('Schedule Review Required')
-            ->assertSee('The original pickup schedule passed before the request was approved. Confirm whether the borrower still needs the equipment before proceeding.')
+            ->assertSee('Schedule details')
+            ->assertSee('Pickup Confirmation')
+            ->assertSee('Confirm pickup when the borrower arrives.')
             ->assertSee('Suggested pickup: September 21, 2026.')
             ->assertSee('September 22, 2026 9:00 AM to 11:59 PM')
-            ->assertSee('I contacted the borrower and they confirmed they still need the equipment.')
-            ->assertSee('Continue Release')
+            ->assertDontSee('name="borrower_need_confirmed"', false)
+            ->assertDontSee('Confirmation details')
+            ->assertSee('Confirm Pickup')
             ->assertDontSee('Pickup Missed')
             ->assertDontSee('Set Next Valid Pickup Schedule');
     }
@@ -210,14 +212,16 @@ class DelayedApprovalPickupTest extends TestCase
 
         $this->releasePage($custody)
             ->assertSee('Pickup Missed')
-            ->assertSee('The scheduled pickup was not completed. Decide whether to continue this approved release or cancel the borrowing.')
-            ->assertSee('Continue Release')
+            ->assertSee('Confirm pickup when the borrower arrives.')
+            ->assertSee('Confirm Pickup')
+            ->assertDontSee('Continue Release')
             ->assertDontSee('Schedule Review Required')
             ->assertDontSee('I contacted the borrower');
 
-        // The existing missed-pickup Continue Release needs no attestation.
+        // Older authorized submissions retain their separate schedule-only meaning.
         $this->asOfficer()->post(route('custody.reschedule-pickup', $custody))->assertSessionHasNoErrors();
         $this->assertSame('MISSED_PICKUP_NEXT_VALID_OPERATIONAL_WINDOW', $this->lastAudit($custody, 'PICKUP_RESCHEDULED')->after_json['source']);
+        $this->assertArrayNotHasKey('borrower_presence_attested_by_spmu', $this->lastAudit($custody, 'PICKUP_RESCHEDULED')->after_json);
     }
 
     // ------------------------------------------------------------------
@@ -306,8 +310,8 @@ class DelayedApprovalPickupTest extends TestCase
         $this->assertNull($custody->fresh()->pickup_expired_at);
 
         $this->releasePage($custody)
-            ->assertSee('Schedule Review Required')
-            ->assertSee('No valid pickup window remains on or before the Items Needed From date.')
+            ->assertSee('Pickup Confirmation')
+            ->assertSee('No pickup time is available.')
             ->assertDontSee('Continue Release')
             ->assertDontSee('Pickup Missed');
     }
@@ -401,7 +405,7 @@ class DelayedApprovalPickupTest extends TestCase
         $custody = $this->custody($request);
         $attested = ['borrower_need_confirmed' => '1', 'borrower_confirmation_note' => 'Phone call, 10:25 AM'];
 
-        // Continue Release stays an Action Officer action.
+        // Confirm Pickup stays an Action Officer action.
         $this->withSession(['active_workspace' => 'BORROWER'])->actingAs($this->borrower)
             ->post(route('custody.reschedule-pickup', $custody), $attested)->assertForbidden();
         $this->withSession(['active_workspace' => 'SPMU'])->actingAs($this->head)
@@ -414,7 +418,7 @@ class DelayedApprovalPickupTest extends TestCase
         $this->asOfficer()->post(route('requests.cancel', $request), ['reason' => 'Borrower no longer needs it.', 'return_to' => 'release'])
             ->assertForbidden();
         $this->assertSame(RequestStatus::ApprovedReadyForRelease, $request->fresh()->status);
-        $this->releasePage($custody)->assertSee('Continue Release')->assertDontSee('Cancel Borrowing');
+        $this->releasePage($custody)->assertSee('Confirm Pickup')->assertDontSee('Cancel Borrowing');
 
         // The SPMU Head keeps the existing cancellation authority; stock is restored.
         $this->withSession(['active_workspace' => 'SPMU'])->actingAs($this->head)
@@ -572,18 +576,153 @@ class DelayedApprovalPickupTest extends TestCase
         $this->flushSession();
 
         $this->releasePage($custody)
-            ->assertSee('Schedule Review Required')
-            ->assertSee('This approved release cannot be continued. It must be cancelled; the borrower may then file a new request with new dates.')
-            ->assertSee('Refer this to the SPMU Head/Admin, who can cancel the borrowing.')
+            ->assertSee('Pickup Confirmation')
+            ->assertSee('No pickup time is available.')
+            ->assertSee('Cancel Borrowing')
+            ->assertDontSee('data-pickup-confirmation-open', false)
             ->assertDontSee('Continue Release')
             ->assertDontSee('Pickup Missed');
         $this->assertNull($custody->fresh()->pickup_expired_at);
 
         $this->flushSession();
-        $this->withSession(['active_workspace' => 'SPMU'])->actingAs($this->head)
+        $this->withSession(['active_workspace' => 'SPMU'])->actingAs($this->officer)
             ->post(route('requests.cancel', $stale), ['reason' => 'Items Needed From passed before a pickup could be arranged.'])
             ->assertSessionHasNoErrors();
         $this->assertSame(RequestStatus::Cancelled, $stale->fresh()->status);
+        $this->assertSame('CANCELLED', $custody->fresh()->status);
+        $this->assertNull($custody->fresh()->released_at);
+        $this->assertNull($custody->fresh()->pickup_expired_at);
+        $this->assertDatabaseHas('request_cancellations', ['request_id' => $stale->id, 'reviewed_by_user_id' => $this->officer->id]);
+    }
+
+    public function test_pickup_confirmation_schedules_without_a_contact_note_or_claim_of_borrower_consent(): void
+    {
+        $request = $this->submittedRequest('DA-DIALOG', '2026-09-22');
+        $this->approveAt($request, Carbon::create(2026, 9, 22, 9, 0));
+        $custody = $this->custody($request);
+        $this->travelTo(Carbon::create(2026, 9, 22, 10, 30));
+        $this->asOfficer()->post(route('custody.reschedule-pickup', $custody), ['confirm_pickup' => '0'])
+            ->assertSessionHasErrors('confirm_pickup');
+        $this->assertNull($custody->fresh()->scheduled_release_at);
+        $this->asOfficer()->post(route('custody.reschedule-pickup', $custody), ['confirm_pickup' => '1'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('2026-09-22 10:30', $custody->fresh()->scheduled_release_at->format('Y-m-d H:i'));
+        $this->assertNull($custody->fresh()->released_at);
+        $audit = $this->lastAudit($custody, 'PICKUP_RESCHEDULED')->after_json;
+        $this->assertTrue($audit['pickup_confirmed_by_spmu']);
+        $this->assertFalse($audit['borrower_need_attested_by_spmu']);
+        $this->assertFalse($audit['borrower_confirmation_recorded_in_system']);
+        $this->assertSame($this->officer->id, $audit['confirmed_by_user_id']);
+        $this->assertSame('SPMU_OFFICER_PICKUP_CONFIRMATION', $audit['confirmation_source']);
+        $this->assertArrayNotHasKey('borrower_confirmation_note', $audit);
+        $this->assertArrayNotHasKey('attestation_statement', $audit);
+        $this->assertArrayNotHasKey('borrower_presence_attested_by_spmu', $audit);
+        $message = $this->borrowerMessage('PICKUP_SCHEDULED', $custody);
+        $this->assertStringContainsString('An SPMU officer confirmed this pickup schedule.', $message);
+        $this->assertStringNotContainsString('you were contacted', $message);
+        $this->asOfficer()->post(route('custody.reschedule-pickup', $custody), ['confirm_pickup' => '1'])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', 'This action was already completed. No duplicate transaction was created.');
+        $this->assertSame(1, $this->auditCount($custody, 'PICKUP_RESCHEDULED'));
+    }
+
+    #[DataProvider('pickupConfirmationCases')]
+    public function test_present_borrower_pickup_records_the_officer_attestation_without_releasing_items(bool $missed): void
+    {
+        $request = $this->submittedRequest('DA-ARRIVAL', $missed ? '2026-09-23' : '2026-09-22');
+        $this->approveAt($request, $missed ? Carbon::create(2026, 9, 21, 10, 0) : Carbon::create(2026, 9, 22, 9, 0));
+        $custody = $this->custody($request);
+        if ($missed) {
+            $custody->update(['prepared_at' => now(), 'prepared_by_user_id' => $this->officer->id]);
+        }
+        $preparedAt = $custody->fresh()->prepared_at?->toIso8601String();
+        $this->travelTo($missed ? Carbon::create(2026, 9, 23, 10, 30) : Carbon::create(2026, 9, 22, 10, 30));
+        if ($missed) {
+            $this->assertSame(1, app(CustodyService::class)->expirePickupWindows());
+        }
+        $stockTransactionCount = DB::table('inventory_transactions')->count();
+
+        $page = $this->releasePage($custody)
+            ->assertSee('The borrower is present and will proceed with pickup. Confirm?')
+            ->assertSee('Confirm pickup when the borrower arrives')
+            ->assertDontSee('Continue Release')
+            ->assertDontSee('Confirm the next available pickup schedule?');
+        $this->assertSame(1, substr_count($page->getContent(), 'data-pickup-confirmation-open>'));
+        if ($missed) {
+            $page->assertSee('Pickup Missed')->assertSee('Cancel Borrowing');
+        }
+        $this->asOfficer()->post(route('custody.reschedule-pickup', $custody), ['borrower_present' => '1'])
+            ->assertSessionHasErrors('confirm_pickup');
+        $this->asOfficer()->post(route('custody.reschedule-pickup', $custody), ['borrower_present' => '0', 'confirm_pickup' => '1'])
+            ->assertSessionHasErrors('borrower_present');
+        $this->assertSame(0, $this->auditCount($custody, 'PICKUP_RESCHEDULED'));
+
+        $this->flushSession();
+        $this->asOfficer()->post(route('custody.reschedule-pickup', $custody), ['borrower_present' => '1', 'confirm_pickup' => '1'])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', 'Borrower pickup confirmed. Continue with release processing.');
+        $this->assertSame('PREPARING_RELEASE', $custody->fresh()->status);
+        $this->assertNull($custody->fresh()->released_at);
+        $this->assertSame($preparedAt, $custody->fresh()->prepared_at?->toIso8601String());
+        $this->assertEquals(0, $custody->lines()->sum('actual_released_quantity'));
+        $this->assertSame('ACTIVE', $this->allocation($request)->status);
+        $this->assertSame($stockTransactionCount, DB::table('inventory_transactions')->count());
+
+        $audit = $this->lastAudit($custody, 'PICKUP_RESCHEDULED')->after_json;
+        $this->assertSame($missed ? 'MISSED_PICKUP_NEXT_VALID_OPERATIONAL_WINDOW' : 'DELAYED_APPROVAL_SCHEDULE_REVIEW', $audit['source']);
+        $this->assertSame('SPMU_OFFICER_IN_PERSON_PICKUP', $audit['confirmation_source']);
+        $this->assertTrue($audit['borrower_presence_attested_by_spmu']);
+        $this->assertSame($this->officer->id, $audit['attested_by_user_id']);
+        $this->assertSame(now()->toIso8601String(), $audit['attested_at']);
+        $this->assertSame('The borrower is present and will proceed with pickup.', $audit['attestation_statement']);
+        $this->assertFalse($audit['borrower_confirmation_recorded_in_system']);
+        $this->assertArrayNotHasKey('borrower_confirmation_note', $audit);
+        $message = $this->borrowerMessage('PICKUP_SCHEDULED', $custody);
+        $this->assertStringContainsString('SPMU recorded your arrival for pickup', $message);
+        $this->assertStringNotContainsString('Proceed to SPMU', $message);
+        $this->asOfficer()->get(route('requests.show', $request))
+            ->assertOk()
+            ->assertSee('Borrower pickup confirmed')
+            ->assertSee('The Action Officer confirmed that the borrower was present and would proceed with pickup.');
+    }
+
+    #[DataProvider('pickupConfirmationCases')]
+    public function test_present_borrower_confirmation_cannot_extend_pickup_past_the_date_needed(bool $missed): void
+    {
+        $request = $this->submittedRequest('DA-ARRIVAL-LATE', '2026-09-22');
+        $this->approveAt($request, $missed ? Carbon::create(2026, 9, 21, 10, 0) : Carbon::create(2026, 9, 22, 9, 0));
+        $custody = $this->custody($request);
+        $oldSchedule = $custody->scheduled_release_at?->toIso8601String();
+        $this->travelTo(Carbon::create(2026, 9, 23, 10, 30));
+        if ($missed) {
+            $this->assertSame(1, app(CustodyService::class)->expirePickupWindows());
+        }
+
+        $this->asOfficer()->post(route('custody.reschedule-pickup', $custody), ['borrower_present' => '1', 'confirm_pickup' => '1'])
+            ->assertSessionHasErrors('pickup');
+        $this->assertSame($oldSchedule, $custody->fresh()->scheduled_release_at?->toIso8601String());
+        $this->assertNull($custody->fresh()->released_at);
+        $this->assertSame('ACTIVE', $this->allocation($request)->status);
+        $this->assertSame(0, $this->auditCount($custody, 'PICKUP_RESCHEDULED'));
+    }
+
+    public static function pickupConfirmationCases(): array
+    {
+        return ['delayed approval' => [false], 'missed pickup' => [true]];
+    }
+
+    public function test_sao_cannot_cancel_released_items_even_after_the_date_needed_has_passed(): void
+    {
+        $request = $this->submittedRequest('DA-ISSUED', '2026-09-22');
+        $this->approveAt($request, Carbon::create(2026, 9, 22, 9, 0));
+        $custody = $this->custody($request);
+        $custody->update(['released_at' => now(), 'status' => 'ACTIVE']);
+        $custody->lines()->update(['actual_released_quantity' => 1]);
+        $this->travelTo(Carbon::create(2026, 9, 23, 9, 0));
+        $this->asOfficer()->post(route('requests.cancel', $request), ['reason' => 'Date needed passed.'])
+            ->assertForbidden();
+        $this->assertSame(RequestStatus::ApprovedReadyForRelease, $request->fresh()->status);
+        $this->assertSame('ACTIVE', $custody->fresh()->status);
     }
 
     // ------------------------------------------------------------------

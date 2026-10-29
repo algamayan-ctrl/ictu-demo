@@ -15,11 +15,11 @@
                         $documentDisplayStatus = match (true) {
                             $document->document_type === 'GATE_PASS'
                                 && in_array($custody->gatePass?->status, ['READY_FOR_PRINTING', 'VERIFIED'], true)
-                                    => 'APPROVED GATE PASS — VALIDATE PRESENTED COPY',
+                                    => 'Approved',
                             $document->document_type === 'GATE_PASS'
-                                    => 'INVALID — DO NOT RELEASE',
+                                    => 'Not valid for release',
                             $isReleaseOperationalDocument
-                                    => 'Borrower Copy / Reference',
+                                    => null,
                             default => str($document->status)->replace('_', ' ')->upper(),
                         };
                     @endphp
@@ -28,7 +28,7 @@
                         <div class="release-document-copy">
                             <x-icon name="requests" size="17" />
                             <strong>{{ str($document->document_type)->replace('_', ' ')->title() }}</strong>
-                            <small>{{ $documentDisplayStatus }}</small>
+                            @if($documentDisplayStatus)<small>{{ $documentDisplayStatus }}</small>@endif
                         </div>
                         <a class="button secondary small ui-pressable release-outline" href="{{ route('documents.preview', $document) }}">
                             Preview

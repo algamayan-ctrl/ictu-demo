@@ -56,11 +56,12 @@
         }
 
         let currentPage = 1;
+        const defaultPageSize = Number(browser.dataset.defaultPageSize) || 15;
 
         const perPage = () => {
-            const value = Number(pageSizes[0]?.value || 15);
+            const value = Number(pageSizes[0]?.value || defaultPageSize);
 
-            return Number.isFinite(value) && value > 0 ? value : 15;
+            return Number.isFinite(value) && value > 0 ? value : defaultPageSize;
         };
 
         const matchingRows = () => {
@@ -230,7 +231,7 @@
             render();
         });
 
-        // Keep page-size controls in step when a workspace shows both copies.
+
         pageSizes.forEach((control) => {
             control.addEventListener('change', () => {
                 pageSizes.forEach((other) => {

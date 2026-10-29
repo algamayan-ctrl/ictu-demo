@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => session('active_workspace') === 'BORROWER' ? 'My Requests' : 'Borrowing Requests'])
+@extends('layouts.app', ['title' => session('active_workspace') === 'BORROWER' ? 'My Requests' : 'Request Records'])
 
 @section('content')
 <style>.record-browser-toolbar + .table-wrap tbody td { padding-block: 10px; }</style>
@@ -15,6 +15,10 @@
      * are grouped into the few statuses that are useful in this record list.
      */
     $requestRecordStatus = static function ($request) use ($isBorrower, $isActionOfficer, $isSpmuHead, $returnMetrics): array {
+        if ($isActionOfficer) {
+            return \App\Support\ActionOfficerStatusPresentation::forRequest($request);
+        }
+
         if ($request->custody) {
             $custody = $request->custody;
             $workflow = $custody->workflowStatus();
@@ -189,7 +193,11 @@
         'CANCELLED' => 'Cancelled',
         'REJECTED' => 'Rejected',
     ];
-    $requestFilterStatuses = $requestRecordsForFilters->map($requestRecordStatus)
+    $requestFilterStatuses = $isActionOfficer
+        ? collect(\App\Support\ActionOfficerStatusPresentation::filters())
+            ->map(fn ($label, $key) => ['key' => $key, 'label' => $label])
+            ->values()
+        : $requestRecordsForFilters->map($requestRecordStatus)
         ->concat(collect($supportedStatusLabels)->map(fn ($label, $key) => ['key' => $key, 'label' => $label]))
         ->unique('key')
         ->sortBy(fn (array $status): int => $requestStatusOrder[$status['key']] ?? 999)
@@ -198,13 +206,15 @@
 
 <section class="page-heading">
     <div>
-        <p class="eyebrow">Request tracking</p>
-        <h1>{{ $isBorrower ? 'My Requests' : 'Borrowing request records' }}</h1>
+        @if($isBorrower)
+            <p class="eyebrow">Request tracking</p>
+        @endif
+        <h1>{{ $isBorrower ? 'My Requests' : 'Request Records' }}</h1>
 
         @if($isBorrower)
             <p>Review your borrowing requests, current status, required actions, and release progress.</p>
         @else
-            <p>Review and track borrowing requests across all statuses.</p>
+            <p>View borrowing requests and their transaction history.</p>
         @endif
     </div>
 
@@ -216,7 +226,7 @@
     @endif
 </section>
 
-<section class="content-area">
+<section class="content-area{{ $isActionOfficer ? ' sao-records-workspace' : '' }}">
 @if($activeCustodiesFilter ?? false)
     <x-filter-context-banner label="Active Custodies" :count="$requests->count()" :clear-url="route('requests.index')" />
 @endif
@@ -246,6 +256,9 @@
         <label>Status
             <select data-record-status-filter>
                 <option value="all">All statuses</option>
+                @if($isActionOfficer)
+                    <option value="NEEDS_ATTENTION">Needs Attention</option>
+                @endif
                 @foreach($requestFilterStatuses as $filterStatus)
                     <option value="{{ $filterStatus['key'] }}">{{ $filterStatus['label'] }}</option>
                 @endforeach
@@ -256,14 +269,17 @@
         </label>
     </div>
 
+    @if($isActionOfficer)
+        <div class="card sao-record-results">
+    @endif
     <div class="table-wrap">
         <table>
             <thead>
                 <tr>
                     <th>Request</th>
                     <th>Borrower</th>
-                    <th>Event and period</th>
-                    <th>Items</th>
+                    <th>Purpose and Borrowing Period</th>
+                    <th>Item Types</th>
                     <th>Status</th>
                     <th></th>
                 </tr>
@@ -275,14 +291,21 @@
                     $recordWorkflowStatus = $requestRecordStatus($request);
                     $recordStatus = $recordWorkflowStatus['key'];
                     $recordStatusLabel = $recordWorkflowStatus['label'];
+                    $recordFilterKey = $recordWorkflowStatus['filter'] ?? $recordStatus;
+                    $recordNotes = $recordWorkflowStatus['notes'] ?? [];
+                    $recordNeededFrom = $request->currentVersion?->needed_from;
+                    $recordFromFormat = $recordNeededFrom?->format('H:i:s') === '00:00:00'
+                        ? 'd M Y'
+                        : 'd M Y, g:i A';
                     $recordSearch = strtolower(trim(
                         $request->request_no.' '.
                         ($request->borrower?->full_name ?? '').' '.
                         ($request->currentVersion?->purpose_event ?? '').' '.
-                        $request->currentVersion?->items?->map(fn($ri) => $ri->inventoryItem?->unique_description)->filter()->implode(' ')
+                        $request->currentVersion?->items?->map(fn($ri) => $ri->inventoryItem?->unique_description)->filter()->implode(' ').' '.
+                        $recordStatusLabel.' '.implode(' ', $recordNotes)
                     ));
                 @endphp
-                <tr data-request-record data-search="{{ $recordSearch }}" data-status="{{ $recordStatus }}" data-created="{{ optional($request->created_at)->timestamp ?? 0 }}">
+                <tr data-request-record data-search="{{ $recordSearch }}" data-status="{{ $recordFilterKey }}" data-status-key="{{ $recordStatus }}" data-attention="{{ !empty($recordWorkflowStatus['attention']) ? '1' : '0' }}" data-created="{{ optional($request->created_at)->timestamp ?? 0 }}">
                     <td>
                         <strong>{{ $request->request_no }}</strong>
                         <small>Version {{ $request->current_version_no }}</small>
@@ -294,14 +317,14 @@
                         {{ $request->currentVersion?->purpose_event }}
 
                         <small>
-                            {{ optional($request->currentVersion?->needed_from)->format('d M Y, g:i A') }}
-                            to
+                            {{ $recordNeededFrom?->format($recordFromFormat) }}
+                            &ndash;
                             {{ optional($request->currentVersion?->return_due_at)->format('d M Y') }}
                         </small>
                     </td>
 
                     <td>
-                        {{ $request->currentVersion?->items->count() ?? 0 }} item type(s)
+                        {{ $request->currentVersion?->items->count() ?? 0 }}
                     </td>
 
                     <td>
@@ -309,11 +332,20 @@
                             :status="$recordStatus"
                             :label="$recordStatusLabel"
                         />
+                        @foreach($recordNotes as $recordNote)
+                            <small data-record-status-detail>
+                                @if($recordNote === 'Overdue')
+                                    <x-status-badge status="OVERDUE" :label="$recordNote" />
+                                @else
+                                    {{ $recordNote }}
+                                @endif
+                            </small>
+                        @endforeach
                     </td>
 
                     <td>
                         <a class="table-action" href="{{ route('requests.show', $request) }}">
-                            <span>View Request</span>
+                            <span>View Details</span>
                         </a>
                     </td>
                 </tr>
@@ -328,6 +360,17 @@
         </table>
     </div>
     <div class="empty-state top-gap" data-record-empty hidden><strong>No matching request records.</strong><span>Try another search term or status.</span></div>
+    @if($isActionOfficer)
+        <div class="sao-record-pagination" data-sao-record-pagination hidden>
+            <span class="meta" data-sao-record-range aria-live="polite"></span>
+            <nav aria-label="Request Records pages">
+                <button class="button secondary small link-button" type="button" data-sao-record-previous>Previous</button>
+                <span class="meta" data-sao-record-page></span>
+                <button class="button secondary small link-button" type="button" data-sao-record-next>Next</button>
+            </nav>
+        </div>
+        </div>
+    @endif
 
 @endif
 </section>
@@ -338,17 +381,35 @@
 .record-browser-toolbar label{display:grid;gap:6px;font-size:12px;font-weight:800;color:var(--text-muted)}
 .record-browser-toolbar input,.record-browser-toolbar select{width:100%;min-height:42px}
 @media(max-width:760px){.record-browser-toolbar{grid-template-columns:1fr}}
+.sao-record-pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:16px}
+.sao-record-pagination nav{display:flex;align-items:center;gap:12px}
+.sao-record-pagination[hidden]{display:none}
+.sao-records-workspace{display:flex;flex-direction:column;gap:14px;min-width:0}
+.app-shell .app-main .sao-records-workspace > .record-browser-toolbar{flex:0 0 auto;margin-bottom:0 !important}
+.app-shell .app-main .sao-records-workspace > .sao-record-results{display:flex;flex-direction:column;flex:1 1 auto;min-height:320px;padding:0 !important;overflow:hidden}
+.sao-record-results > .table-wrap{flex:0 0 auto;width:100%;border:0;border-radius:0;box-shadow:none;overflow-x:auto}
+.sao-record-results table th{font-size:11px;padding:10px 14px}
+.sao-record-results table td{font-size:12.5px;padding:10px 14px}
+.sao-record-results .table-wrap tbody tr[data-request-record] > td{border-bottom:1px solid var(--border)}
+.sao-record-results > .sao-record-pagination{flex:0 0 auto;margin-top:auto;padding:14px 16px;border-top:1px solid var(--border)}
+.sao-record-results > [data-record-empty]{flex:1 1 auto;margin:0;padding:24px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center}
+.sao-record-results > [data-record-empty][hidden]{display:none}
+@media(max-width:600px){.sao-record-results > .sao-record-pagination{justify-content:center;padding:12px;gap:8px}.sao-record-pagination nav{gap:8px}}
 </style>
+@if($isActionOfficer)
+    @include('requests.partials.sao-record-pagination')
+@else
 <script>
 (() => {
  const rows=[...document.querySelectorAll('[data-request-record]')];
  const search=document.querySelector('[data-record-search]'); const status=document.querySelector('[data-record-status-filter]'); const sort=document.querySelector('[data-record-sort]'); const empty=document.querySelector('[data-record-empty]');
  if(!rows.length || !search || !status || !sort) return;
  const body=rows[0].parentElement;
- const render=()=>{const q=search.value.trim().toLowerCase(); const st=status.value; const ordered=[...rows].sort((a,b)=>(Number(b.dataset.created)-Number(a.dataset.created))*(sort.value==='newest'?1:-1)); ordered.forEach(r=>body.appendChild(r)); let n=0; rows.forEach(r=>{const show=(!q||r.dataset.search.includes(q))&&(st==='all'||r.dataset.status===st);r.hidden=!show;if(show)n++}); if(empty)empty.hidden=n>0;};
+ const render=()=>{const q=search.value.trim().toLowerCase(); const st=status.value; const ordered=[...rows].sort((a,b)=>(Number(b.dataset.created)-Number(a.dataset.created))*(sort.value==='newest'?1:-1)); ordered.forEach(r=>body.appendChild(r)); let n=0; rows.forEach(r=>{const matchesStatus=st==='all'||(st==='NEEDS_ATTENTION'?r.dataset.attention==='1':r.dataset.status===st);const show=(!q||r.dataset.search.includes(q))&&matchesStatus;r.hidden=!show;if(show)n++}); if(empty)empty.hidden=n>0;};
  [search,status,sort].forEach(el=>el.addEventListener(el===search?'input':'change',render)); render();
 })();
 </script>
+@endif
 @endunless
 
 @if($isBorrower)

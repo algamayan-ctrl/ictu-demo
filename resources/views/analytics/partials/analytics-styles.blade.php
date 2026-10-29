@@ -1,5 +1,5 @@
 <style>
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Analytics
 |--------------------------------------------------------------------------
@@ -11,17 +11,17 @@
 | Sections: 1. Shell 2. Filters 3. Question card 4. Figures
 | 5. Bars 6. Split columns 7. Insights 8. Responsive
 |
-*/
+*/ --}}
 
-/* 1. Shell ---------------------------------------------------------------- */
+{{-- /* 1. Shell ---------------------------------------------------------------- */ --}}
 
 .analytics-page { display: grid; gap: 18px; }
 
-/* Keep Analytics scroll targets below the opaque application header. */
+{{-- /* Keep Analytics scroll targets below the opaque application header. */ --}}
 html:has(.analytics-page) { scroll-padding-top: calc(var(--topbar-height) + 12px); }
 body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
 
-/* 2. Filters -------------------------------------------------------------- */
+{{-- /* 2. Filters -------------------------------------------------------------- */ --}}
 
 .analytics-filters {
  display: grid;
@@ -59,7 +59,7 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
  font-size: 12px;
 }
 
-/* 3. Question card -------------------------------------------------------- */
+{{-- /* 3. Question card -------------------------------------------------------- */ --}}
 
 .analytics-section {
  background: var(--surface-elevated);
@@ -80,10 +80,10 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
 
 .analytics-section-body { padding: 18px 20px; }
 
-/*
+{{-- /*
  * The reading of the section, in one sentence. It sits directly under the
  * figures it explains rather than in a separate commentary block.
- */
+ */ --}}
 .analytics-reading {
  margin: 0;
  padding: 13px 20px;
@@ -103,7 +103,7 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
  line-height: 1.5;
 }
 
-/* With nothing to show, the heading and the reason belong on one line. */
+{{-- /* With nothing to show, the heading and the reason belong on one line. */ --}}
 .analytics-section.is-empty > h2 { border-bottom: 0; }
 
 .analytics-section.is-empty {
@@ -116,7 +116,7 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
 
 .analytics-section.is-empty .analytics-empty { background: transparent; }
 
-/* 4. Figures -------------------------------------------------------------- */
+{{-- /* 4. Figures -------------------------------------------------------------- */ --}}
 
 .analytics-figures {
  display: grid;
@@ -158,17 +158,17 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
  line-height: 1.35;
 }
 
-/* An attention figure is tinted only when it is actually above zero. */
+{{-- /* An attention figure is tinted only when it is actually above zero. */ --}}
 .analytics-figure.is-attention strong { color: var(--danger); }
 
-/*
+{{-- /*
  * Inventory is a summary of another module, so its figures are deliberately
  * quieter than the operational ones at the top of the page.
- */
+ */ --}}
 .analytics-figures.is-secondary .analytics-figure strong { font-size: 22px; }
 .analytics-figures.is-secondary .analytics-figure { padding: 15px 20px; }
 
-/* 5. Bars ----------------------------------------------------------------- */
+{{-- /* 5. Bars ----------------------------------------------------------------- */ --}}
 
 .analytics-bars { display: grid; gap: 13px; }
 
@@ -188,7 +188,7 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
  overflow-wrap: anywhere;
 }
 
-/* The number is always written out, never left to the bar alone. */
+{{-- /* The number is always written out, never left to the bar alone. */ --}}
 .analytics-bar-value {
  flex: 0 0 auto;
  color: var(--text-secondary);
@@ -215,10 +215,10 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
  border-radius: 999px;
 }
 
-/*
+{{-- /*
  * A bar row that drills down. It keeps the same shape as a static row and
  * only gains a hit area, a hover surface, and a focus ring.
- */
+ */ --}}
 .analytics-bar-link {
  display: grid;
  gap: 6px;
@@ -242,7 +242,7 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
  box-shadow: var(--focus-ring);
 }
 
-/* The row the current filters resolve to. */
+{{-- /* The row the current filters resolve to. */ --}}
 .analytics-bar-link.is-selected {
  background: var(--blue-50);
  border-color: var(--info-border);
@@ -258,7 +258,7 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
 .analytics-bar-row.is-administration .analytics-bar-fill { background: #0e7c66; }
 .analytics-bar-row.is-research .analytics-bar-fill { background: #7a4bc4; }
 
-/* 6. Split columns -------------------------------------------------------- */
+{{-- /* 6. Split columns -------------------------------------------------------- */ --}}
 
 .analytics-split {
  display: grid;
@@ -282,7 +282,7 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
  text-transform: uppercase;
 }
 
-/* 7. Insights ------------------------------------------------------------- */
+{{-- /* 7. Insights ------------------------------------------------------------- */ --}}
 
 .analytics-insights {
  display: grid;
@@ -316,7 +316,7 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
  font-variant-numeric: tabular-nums;
 }
 
-/* 8. Responsive ----------------------------------------------------------- */
+{{-- /* 8. Responsive ----------------------------------------------------------- */ --}}
 
 @media (max-width: 1050px) {
  .analytics-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -326,7 +326,7 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
 }
 
 @media (max-width: 760px) {
- /* Too narrow to keep the question and its reason side by side. */
+ {{-- /* Too narrow to keep the question and its reason side by side. */ --}}
  .analytics-section.is-empty { grid-template-columns: 1fr; }
  .analytics-section.is-empty > h2 { padding-bottom: 4px; }
  .analytics-section.is-empty .analytics-empty { padding-top: 0; }
@@ -351,9 +351,9 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
  .analytics-split > section:last-child { border-bottom: 0; }
 }
 
-/* ---------------------------------------------------------------- */
-/* Section navigation */
-/* ---------------------------------------------------------------- */
+{{-- /* ---------------------------------------------------------------- */ --}}
+{{-- /* Section navigation */ --}}
+{{-- /* ---------------------------------------------------------------- */ --}}
 
 .analytics-tabs {
  display: flex;
@@ -385,9 +385,9 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
  box-shadow: inset 0 -2px 0 var(--primary-action);
 }
 
-/* ---------------------------------------------------------------- */
-/* Headline figures */
-/* ---------------------------------------------------------------- */
+{{-- /* ---------------------------------------------------------------- */ --}}
+{{-- /* Headline figures */ --}}
+{{-- /* ---------------------------------------------------------------- */ --}}
 
 .analytics-kpis {
  display: grid;
@@ -422,7 +422,7 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
  line-height: 1.1;
 }
 
-/* A predicted group or unit name, not a count. */
+{{-- /* A predicted group or unit name, not a count. */ --}}
 .analytics-kpi > strong.is-text {
  font-size: 17px;
  line-height: 1.3;
@@ -435,19 +435,19 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
  line-height: 1.5;
 }
 
-/* Attention is carried by the label too, never by colour alone. */
+{{-- /* Attention is carried by the label too, never by colour alone. */ --}}
 .analytics-kpi.is-attention { border-color: var(--danger-border); }
 .analytics-kpi.is-attention > strong { color: var(--danger); }
 
-/* ---------------------------------------------------------------- */
-/* Overview headline figures: colour-coded and clickable */
-/* ---------------------------------------------------------------- */
+{{-- /* ---------------------------------------------------------------- */ --}}
+{{-- /* Overview headline figures: colour-coded and clickable */ --}}
+{{-- /* ---------------------------------------------------------------- */ --}}
 
-/*
+{{-- /*
  * Each Overview figure links to the record page that lists what it counts.
  * The tone is carried by the top border, the icon, and the label; the count
  * itself stays navy so it is the easiest thing on the card to read.
- */
+ */ --}}
 .analytics-kpi-link {
  --kpi-tone: var(--interactive);
  --kpi-tone-bg: var(--blue-50);
@@ -523,7 +523,7 @@ body:has(.analytics-page) .app-topbar { background: var(--surface-elevated); }
  transition: transform var(--motion) ease, color var(--motion) ease;
 }
 
-/* The count stays navy at every tone, including the attention ones. */
+{{-- /* The count stays navy at every tone, including the attention ones. */ --}}
 .analytics-kpi-link > strong { color: var(--heading); }
 
 .analytics-kpi-link:hover,
@@ -577,9 +577,9 @@ html[data-theme="dark"] .analytics-kpi-link.tone-stock {
  .analytics-kpi-link:focus-visible { transform: none; }
 }
 
-/* ---------------------------------------------------------------- */
-/* Status wording */
-/* ---------------------------------------------------------------- */
+{{-- /* ---------------------------------------------------------------- */ --}}
+{{-- /* Status wording */ --}}
+{{-- /* ---------------------------------------------------------------- */ --}}
 
 .analytics-status {
  display: inline-block;
@@ -630,9 +630,9 @@ html[data-theme="dark"] .analytics-kpi-link.tone-stock {
  color: var(--info);
 }
 
-/* ---------------------------------------------------------------- */
-/* Tables and supporting copy */
-/* ---------------------------------------------------------------- */
+{{-- /* ---------------------------------------------------------------- */ --}}
+{{-- /* Tables and supporting copy */ --}}
+{{-- /* ---------------------------------------------------------------- */ --}}
 
 .analytics-table-scroll { overflow-x: auto; }
 
@@ -725,7 +725,7 @@ html[data-theme="dark"] .analytics-kpi-link.tone-stock {
  .analytics-tabs { flex-wrap: nowrap; overflow-x: auto; }
 }
 
-/* RESET FILTERS HIDE FIX */
+{{-- /* RESET FILTERS HIDE FIX */ --}}
 .analytics-page .analytics-reset-filters {
  display: none !important;
 }
@@ -733,15 +733,15 @@ html[data-theme="dark"] .analytics-kpi-link.tone-stock {
 </style>
 
 <style>
-/*
+{{-- /*
 | Analytics restructure additions.
 |
 | Kept to the existing SPMU-ACPMP language: white cards, navy headings, blue
 | accent, thin borders, restrained shadows. Nothing here introduces a new
 | colour system - semantic tones reuse the application tokens.
-*/
+*/ --}}
 
-/* The limitation notice above the tabs. */
+{{-- /* The limitation notice above the tabs. */ --}}
 .analytics-notice {
  display: flex;
  align-items: flex-start;
@@ -757,7 +757,7 @@ html[data-theme="dark"] .analytics-kpi-link.tone-stock {
 }
 .analytics-notice .ui-icon { flex: 0 0 auto; margin-top: 1px; }
 
-/* Short provenance line under a KPI figure. */
+{{-- /* Short provenance line under a KPI figure. */ --}}
 .analytics-kpi-basis {
  display: block;
  margin-top: 6px;
@@ -768,7 +768,7 @@ html[data-theme="dark"] .analytics-kpi-link.tone-stock {
  line-height: 1.4;
 }
 
-/* Vertical trend chart. */
+{{-- /* Vertical trend chart. */ --}}
 .analytics-trend {
  display: flex;
  align-items: flex-end;
@@ -782,7 +782,7 @@ html[data-theme="dark"] .analytics-kpi-link.tone-stock {
 .analytics-trend-count { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); color: var(--heading); font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; }
 .analytics-trend-label { color: var(--text-muted); font-size: 10.5px; text-align: center; line-height: 1.3; }
 
-/* Compact figure grid used by the health and returns tabs. */
+{{-- /* Compact figure grid used by the health and returns tabs. */ --}}
 .analytics-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 12px; margin-bottom: 14px; }
 .analytics-stat {
  display: grid;
@@ -801,7 +801,7 @@ a.analytics-stat:hover { border-color: var(--interactive); background: var(--sur
 a.analytics-stat:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
 .analytics-stat.is-static { background: var(--surface-elevated); }
 
-/* Tables inside analytics sections. */
+{{-- /* Tables inside analytics sections. */ --}}
 .analytics-table-scroll { width: 100%; overflow-x: auto; }
 .analytics-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .analytics-table th {
@@ -821,7 +821,7 @@ a.analytics-stat:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
 .analytics-table a { color: var(--interactive); text-decoration: none; }
 .analytics-table a:hover { text-decoration: underline; }
 
-/* Status tag - readable as words first, tone second. */
+{{-- /* Status tag - readable as words first, tone second. */ --}}
 .analytics-tag {
  display: inline-flex;
  align-items: center;
@@ -839,7 +839,7 @@ a.analytics-stat:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
 .analytics-tag.is-attention { color: var(--warning); background: var(--warning-bg); border-color: var(--warning-border); }
 .analytics-tag.is-critical { color: var(--danger); background: var(--danger-bg); border-color: var(--danger-border); }
 
-/* "How this was calculated". */
+{{-- /* "How this was calculated". */ --}}
 .analytics-explain { margin: 14px 0 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-subtle); }
 .analytics-explain > summary { padding: 10px 13px; cursor: pointer; color: var(--text-secondary); font-size: 12px; font-weight: 700; }
 .analytics-explain > div { display: grid; gap: 7px; padding: 0 13px 13px; }
@@ -849,7 +849,7 @@ a.analytics-stat:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
 .analytics-metric-note-spaced { margin-top: 18px; }
 .analytics-bar-name small { display: block; margin-top: 2px; color: var(--text-muted); font-size: 10.5px; font-weight: 400; }
 
-/* Tabs stay usable on a narrow screen. */
+{{-- /* Tabs stay usable on a narrow screen. */ --}}
 .analytics-tabs { overflow-x: auto; scrollbar-width: thin; }
 .analytics-tab { white-space: nowrap; }
 
@@ -863,14 +863,14 @@ a.analytics-stat:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
 </style>
 
 <style>
-/*
+{{-- /*
 | Analytics detail panel.
 |
 | A detail is part of Analytics, not a jump to another module, so it opens
 | over the section that produced the figure and closes back onto it. White
 | surface, compact heading, one ranking or table, and the single handoff to
 | Reports at the foot. It is deliberately not another dashboard.
-*/
+*/ --}}
 .analytics-detail-overlay {
  position: fixed;
  inset: 0;
@@ -932,7 +932,7 @@ a.analytics-stat:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
 
 .analytics-detail-subhead { margin: 4px 0 0; color: var(--text-secondary); font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
 
-/* Period-over-period block inside a detail: compact, and no new visual vocabulary. */
+{{-- /* Period-over-period block inside a detail: compact, and no new visual vocabulary. */ --}}
 .analytics-compare { display: grid; gap: 9px; margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--border); }
 .analytics-compare .analytics-detail-subhead { margin: 0; }
 .analytics-compare-window { margin: -5px 0 0; color: var(--text-muted); font-size: 11.5px; }
@@ -955,12 +955,12 @@ a.analytics-stat:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
 }
 .analytics-detail-foot .button { gap: 7px; }
 
-/* Section-level handoff, used where a group of figures shares one source. */
+{{-- /* Section-level handoff, used where a group of figures shares one source. */ --}}
 .analytics-section-action { margin: 12px 0 0; }
 .analytics-section-action a { display: inline-flex; align-items: center; gap: 5px; color: var(--interactive); font-size: 12px; font-weight: 700; text-decoration: none; }
 .analytics-section-action a:hover { text-decoration: underline; }
 
-/* Trend bars became links, so they need their own affordance. */
+{{-- /* Trend bars became links, so they need their own affordance. */ --}}
 a.analytics-trend-col { text-decoration: none; border-radius: 6px; transition: background-color var(--motion) ease; }
 a.analytics-trend-col:hover { background: var(--surface-hover); }
 a.analytics-trend-col:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
@@ -980,46 +980,46 @@ a.analytics-trend-col:hover .analytics-trend-bar { background: var(--interactive
 </style>
 
 <style>
-/*
+{{-- /*
 | Browser QA fixes.
 |
 | Each rule below answers something measured in the rendered page rather than
 | guessed at from the markup.
-*/
+*/ --}}
 
-/*
+{{-- /*
 | F3 - a period with one bucket stretched its column to the full row width,
 | leaving a single bar adrift in 1099px of empty space. Columns now take their
 | natural width and the row starts at the left.
-*/
+*/ --}}
 .analytics-trend { justify-content: flex-start; }
 .analytics-trend-col { flex: 0 1 96px; max-width: 96px; }
 
-/*
+{{-- /*
 | F5 - the detail footer sat directly under the content, leaving a tall blank
 | area beneath it in a full-height panel. The body now takes the slack so the
 | action stays at the foot of the surface.
-*/
+*/ --}}
 .analytics-detail-body { flex: 1 1 auto; min-height: 0; }
 
-/*
+{{-- /*
 | F6 set this drawer to 820px. That was too wide: at 1440 it covered 57% of the
 | viewport and read as a full-page modal rather than a quick inspection. The
 | width now lives in one place, at the foot of this file.
-*/
+*/ --}}
 
 
 
 </style>
 
 <style>
-/*
+{{-- /*
 | Tab QA fixes.
 |
 | Measured in the rendered page, not inferred from the markup.
-*/
+*/ --}}
 
-/*
+{{-- /*
 | T1 - every ranking bar was invisible.
 |
 | Measured: .analytics-bar-fill computed to 0x0 with display:inline on all five
@@ -1027,19 +1027,19 @@ a.analytics-trend-col:hover .analytics-trend-bar { background: var(--interactive
 | the same fate only because it is a grid item of .analytics-bar-row and is
 | blockified; the fill sits one level deeper, inside the track, where nothing
 | blockifies it. Making it a block is the whole fix.
-*/
+*/ --}}
 .analytics-bar-fill { display: block; min-width: 2px; }
 
-/*
+{{-- /*
 | T2 - a bar carrying a real value should never render as a bare track. A
 | hairline keeps a very small share visible against the rounded track.
-*/
+*/ --}}
 .analytics-bar-track { position: relative; }
 
-/*
+{{-- /*
 | T3 - Predictive mixes available and withheld projections in one view,
 | because each is guarded on its own history. The note says so, quietly.
-*/
+*/ --}}
 .analytics-guard-note {
  margin: -4px 0 14px;
  padding: 10px 14px;
@@ -1051,7 +1051,7 @@ a.analytics-trend-col:hover .analytics-trend-bar { background: var(--interactive
  line-height: 1.55;
 }
 
-/*
+{{-- /*
 | T4 - every block in the detail drawer rendered far taller than its text.
 |
 | Measured on Equipment Detail: body 733px holding roughly 430px of content,
@@ -1060,18 +1060,18 @@ a.analytics-trend-col:hover .analytics-trend-bar { background: var(--interactive
 | the panel also handed the grid surplus height, which its default
 | align-content:normal then shared out among the auto rows. Packing the rows to
 | the start keeps the pinned footer without inflating what sits above it.
-*/
+*/ --}}
 .analytics-detail-body { align-content: start; }
 
-/* ======================================================================== */
-/* Overview - executive dashboard */
-/* */
-/* Presentation only. Nothing here reads or changes a figure; the colour */
-/* lives on the KPI row and the icon marks, and every reading surface below */
-/* it stays a plain white card so the hierarchy is unambiguous. */
-/* ======================================================================== */
+{{-- /* ======================================================================== */ --}}
+{{-- /* Overview - executive dashboard */ --}}
+{{-- /* */ --}}
+{{-- /* Presentation only. Nothing here reads or changes a figure; the colour */ --}}
+{{-- /* lives on the KPI row and the icon marks, and every reading surface below */ --}}
+{{-- /* it stays a plain white card so the hierarchy is unambiguous. */ --}}
+{{-- /* ======================================================================== */ --}}
 
-/* Shell ------------------------------------------------------------------ */
+{{-- /* Shell ------------------------------------------------------------------ */ --}}
 
 .analytics-page { display: grid; gap: 13px; }
 
@@ -1080,7 +1080,7 @@ a.analytics-trend-col:hover .analytics-trend-bar { background: var(--interactive
 .analytics-heading p:not(.eyebrow) { font-size: 12.5px; line-height: 1.45; }
 .analytics-heading .eyebrow { margin-bottom: 2px; }
 
-/* Tabs ------------------------------------------------------------------- */
+{{-- /* Tabs ------------------------------------------------------------------- */ --}}
 
 .analytics-page .analytics-tabs {
  display: flex;
@@ -1113,13 +1113,13 @@ html[data-theme="dark"] .analytics-page .analytics-tab.is-active {
  box-shadow: 0 3px 10px rgba(0, 0, 0, .45);
 }
 
-/* Filters ---------------------------------------------------------------- */
-/*
+{{-- /* Filters ---------------------------------------------------------------- */ --}}
+{{-- /*
 | Four cards rather than one form panel: period, division, unit, borrower.
 | No icons - a small uppercase name over the selected value, nothing beside
 | it. The controls, their names, their options and their submit behaviour are
 | untouched; only the frame around them changed.
-*/
+*/ --}}
 .analytics-page .analytics-filters {
  padding: 0;
  background: transparent;
@@ -1144,7 +1144,7 @@ html[data-theme="dark"] .analytics-page .analytics-tab.is-active {
  position: relative;
 }
 
-/* Name above value, nothing beside it - the row carries no icon column. */
+{{-- /* Name above value, nothing beside it - the row carries no icon column. */ --}}
 .analytics-filter-label {
  display: block;
  min-width: 0;
@@ -1197,7 +1197,7 @@ html[data-theme="dark"] .analytics-page .analytics-tab.is-active {
  text-decoration: underline;
 }
 
-/* KPI row ---------------------------------------------------------------- */
+{{-- /* KPI row ---------------------------------------------------------------- */ --}}
 
 .analytics-kpis {
  display: grid;
@@ -1230,7 +1230,7 @@ html[data-theme="dark"] .analytics-page .analytics-tab.is-active {
  transition: box-shadow var(--motion) ease, transform var(--motion) ease;
 }
 
-/* A soft highlight so a flat fill does not read as a solid colour block. */
+{{-- /* A soft highlight so a flat fill does not read as a solid colour block. */ --}}
 .analytics-kpi-card::after {
  content: '';
  position: absolute;
@@ -1325,13 +1325,13 @@ html[data-theme="dark"] .analytics-page .analytics-tab.is-active {
 .analytics-kpi-card.tone-overdue { --kpi-from: #c2410c; --kpi-to: #f59e0b; --kpi-glow: rgba(194, 65, 12, .28); }
 .analytics-kpi-card.tone-stock { --kpi-from: #6d28d9; --kpi-to: #8b5cf6; --kpi-glow: rgba(109, 40, 217, .3); }
 
-/* Deeper on dark so the fills sit in the page rather than glaring off it. */
+{{-- /* Deeper on dark so the fills sit in the page rather than glaring off it. */ --}}
 html[data-theme="dark"] .analytics-kpi-card.tone-requests { --kpi-from: #1d4ed8; --kpi-to: #0ea5e9; --kpi-glow: rgba(0, 0, 0, .45); }
 html[data-theme="dark"] .analytics-kpi-card.tone-custody { --kpi-from: #115e59; --kpi-to: #059669; --kpi-glow: rgba(0, 0, 0, .45); }
 html[data-theme="dark"] .analytics-kpi-card.tone-overdue { --kpi-from: #9a3412; --kpi-to: #d97706; --kpi-glow: rgba(0, 0, 0, .45); }
 html[data-theme="dark"] .analytics-kpi-card.tone-stock { --kpi-from: #5b21b6; --kpi-to: #7c3aed; --kpi-glow: rgba(0, 0, 0, .45); }
 
-/* Reading cards ---------------------------------------------------------- */
+{{-- /* Reading cards ---------------------------------------------------------- */ --}}
 
 .analytics-overview-main {
  display: grid;
@@ -1347,7 +1347,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-stock { --kpi-from: #5b21b6; --
  gap: 13px;
 }
 
-/* Previous-period comparison -------------------------------------------- */
+{{-- /* Previous-period comparison -------------------------------------------- */ --}}
 .analytics-period-comparison { overflow: hidden; }
 
 .analytics-comparison-grid {
@@ -1412,7 +1412,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-stock { --kpi-from: #5b21b6; --
  white-space: nowrap;
 }
 
-/* Directional, not a good/bad grade: both directions keep the same accent. */
+{{-- /* Directional, not a good/bad grade: both directions keep the same accent. */ --}}
 .analytics-comparison-delta.is-up,
 .analytics-comparison-delta.is-down {
  color: var(--interactive);
@@ -1491,11 +1491,11 @@ html[data-theme="dark"] .analytics-kpi-card.tone-stock { --kpi-from: #5b21b6; --
 .analytics-card-body.is-plot { display: flex; padding: 10px 12px 4px; }
 .analytics-card-body > :last-child { margin-bottom: 0; }
 
-/*
+{{-- /*
  * A short explanatory message stays compact unless it replaces a chart,
  * distribution, ranking, or other visual body. Visual cards opt in below so
  * their empty state keeps the same reading space as the visualization.
- */
+ */ --}}
 .analytics-page .analytics-card:has(> .analytics-card-body > .analytics-blank:only-child):not(:has(> .analytics-card-body > .analytics-blank.is-visualization-empty:only-child)) {
  align-self: start !important;
  height: auto !important;
@@ -1503,11 +1503,11 @@ html[data-theme="dark"] .analytics-kpi-card.tone-stock { --kpi-from: #5b21b6; --
 }
 .analytics-card-body:has(> .analytics-blank:only-child):not(:has(> .analytics-blank.is-visualization-empty:only-child)) { flex: 0 0 auto; }
 
-/*
+{{-- /*
  * The size is set by the card's existing grid role rather than a single fixed
  * height. That keeps charts and their paired list/distribution cards aligned
  * while remaining compact on narrow screens.
- */
+ */ --}}
 .analytics-card-body:has(> .analytics-blank.is-visualization-empty:only-child) {
  --analytics-empty-visualization-min-height: clamp(8.5rem, 14vw, 10rem);
  display: flex;
@@ -1535,7 +1535,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-stock { --kpi-from: #5b21b6; --
  line-height: 1.4;
 }
 
-/* A single-line reading, tinted so it separates from the plot above it. */
+{{-- /* A single-line reading, tinted so it separates from the plot above it. */ --}}
 .analytics-insight-strip {
  display: flex;
  align-items: flex-start;
@@ -1552,7 +1552,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-stock { --kpi-from: #5b21b6; --
 
 .analytics-insight-strip .ui-icon { flex-shrink: 0; margin-top: 1px; color: var(--interactive); }
 
-/* Compact empty state: never a tall grey slab. */
+{{-- /* Compact empty state: never a tall grey slab. */ --}}
 .analytics-blank {
  display: flex;
  height: auto;
@@ -1580,12 +1580,12 @@ html[data-theme="dark"] .analytics-kpi-card.tone-stock { --kpi-from: #5b21b6; --
  border-radius: 50%;
 }
 
-/* Trend line ------------------------------------------------------------- */
-/*
+{{-- /* Trend line ------------------------------------------------------------- */ --}}
+{{-- /*
 | Overview's time series. The SVG carries only the area and the stroke; the
 | markers are positioned elements so they stay circular while the path is
 | stretched to the box, and so each one can be a real link with a tooltip.
-*/
+*/ --}}
 .analytics-line { display: flex; width: 100%; min-width: 0; flex-direction: column; gap: 7px; }
 
 .analytics-line-plot { position: relative; height: 150px; min-width: 0; }
@@ -1636,7 +1636,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-stock { --kpi-from: #5b21b6; --
 .analytics-line-marker:hover .analytics-line-dot,
 .analytics-line-marker:focus-visible .analytics-line-dot { transform: scale(1.35); background: #2563eb; }
 
-/* The value rides above its point, so the plot needs no y-axis. */
+{{-- /* The value rides above its point, so the plot needs no y-axis. */ --}}
 .analytics-line-tip {
  position: absolute;
  bottom: 100%;
@@ -1675,12 +1675,12 @@ html[data-theme="dark"] .analytics-line-stroke { stroke: #60a5fa; }
 html[data-theme="dark"] .analytics-line-dot { border-color: #60a5fa; }
 html[data-theme="dark"] .analytics-line-marker:hover .analytics-line-dot { background: #60a5fa; }
 
-/*
+{{-- /*
 | A single bucket has no trend to plot. Rather than one bar adrift in a
 | full-height chart, the period is stated as a figure: the count, a short bar
 | for weight, and the bucket label. Same data, same drill-down target, a third
 | of the height.
-*/
+*/ --}}
 .analytics-trend-single { display: grid; place-items: center; padding: 16px 15px; }
 
 .analytics-trend-single-figure {
@@ -1728,7 +1728,7 @@ html[data-theme="dark"] .analytics-line-marker:hover .analytics-line-dot { backg
 
 .analytics-trend-single-label { color: var(--text-muted); font-size: 11px; text-align: center; }
 
-/* Priority insights ------------------------------------------------------ */
+{{-- /* Priority insights ------------------------------------------------------ */ --}}
 
 .analytics-priority { display: flex; height: 100%; flex-direction: column; justify-content: flex-start; margin: 0; padding: 0; list-style: none; }
 
@@ -1802,7 +1802,7 @@ html[data-theme="dark"] .analytics-line-marker:hover .analytics-line-dot { backg
 
 html[data-theme="dark"] .analytics-priority-row.tone-rank { --priority-tone: #f0c25c; --priority-tone-bg: #2e2411; }
 
-/* Ranked lists ----------------------------------------------------------- */
+{{-- /* Ranked lists ----------------------------------------------------------- */ --}}
 
 .analytics-rank { display: grid; align-content: start; gap: 2px; margin: 0; padding: 0; list-style: none; }
 
@@ -1877,18 +1877,18 @@ html[data-theme="dark"] .analytics-priority-row.tone-rank { --priority-tone: #f0
 
 .analytics-rank-value small { display: block; color: var(--text-muted); font-size: 9.5px; font-weight: 500; }
 
-/*
+{{-- /*
 | Ranked list with no bar.
 |
 | Used when a comparison cannot be drawn honestly - every shown item tied on
 | request count, or there is only one item. The track is absent rather than
 | full width, so the row keeps the same three columns and simply sits closer
 | together without it.
-*/
+*/ --}}
 .analytics-rank-flat .analytics-rank-row { padding-top: 8px; padding-bottom: 8px; }
 .analytics-rank-flat .analytics-rank-main { gap: 0; }
 
-/*
+{{-- /*
 | Most Requested, ranked mode: the name sits beside its bar instead of above
 | it, so the bars line up as one column and can be read against each other -
 | which is the only reason to draw them at all. The split is proportional
@@ -1896,7 +1896,7 @@ html[data-theme="dark"] .analytics-priority-row.tone-rank { --priority-tone: #f0
 | pair on desktop and goes full width below 900px.
 |
 | Scoped to this list: the other ranked lists on the tab keep the stacked form.
-*/
+*/ --}}
 .analytics-rank-split .analytics-rank-main {
  grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
  align-items: center;
@@ -1906,7 +1906,7 @@ html[data-theme="dark"] .analytics-priority-row.tone-rank { --priority-tone: #f0
 .analytics-rank-split .analytics-rank-row { padding-top: 9px; padding-bottom: 9px; }
 .analytics-rank-split .analytics-rank-track { height: 16px; }
 
-/* Too narrow to carry a name and a bar side by side: stack them again. */
+{{-- /* Too narrow to carry a name and a bar side by side: stack them again. */ --}}
 @media (max-width: 560px) {
  .analytics-rank-split .analytics-rank-main {
  grid-template-columns: minmax(0, 1fr);
@@ -1917,11 +1917,11 @@ html[data-theme="dark"] .analytics-priority-row.tone-rank { --priority-tone: #f0
  .analytics-rank-split .analytics-rank-track { height: 10px; }
 }
 
-/* Period snapshot -------------------------------------------------------- */
-/*
+{{-- /* Period snapshot -------------------------------------------------------- */ --}}
+{{-- /*
 | A status strip, not a table: no header row, no cell borders, only a hairline
 | between segments.
-*/
+*/ --}}
 .analytics-snapshot { flex-direction: row; align-items: stretch; flex-wrap: wrap; }
 
 .analytics-snapshot-head {
@@ -1993,7 +1993,7 @@ html[data-theme="dark"] .analytics-priority-row.tone-rank { --priority-tone: #f0
 .analytics-snapshot-tile.tone-warn { --snap-tone: var(--warning); --snap-tone-bg: var(--warning-bg); }
 .analytics-snapshot-tile.tone-risk { --snap-tone: var(--danger); --snap-tone-bg: var(--danger-bg); }
 
-/* Responsive ------------------------------------------------------------- */
+{{-- /* Responsive ------------------------------------------------------------- */ --}}
 
 @media (max-width: 1180px) {
  .analytics-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2001,11 +2001,11 @@ html[data-theme="dark"] .analytics-priority-row.tone-rank { --priority-tone: #f0
  .analytics-page .analytics-tabs { overflow-x: auto; }
 }
 
-/*
+{{-- /*
 | Keep the original Overview desktop composition:
 | Borrowing Demand Trend on the left and Priority Insights on the right.
 | Stack only on narrower screens where two cards would actually be cramped.
-*/
+*/ --}}
 @media (max-width: 900px) {
  .analytics-overview-main { grid-template-columns: minmax(0, 1fr); }
 }
@@ -2019,12 +2019,12 @@ html[data-theme="dark"] .analytics-priority-row.tone-rank { --priority-tone: #f0
  .analytics-snapshot-tile:nth-child(4) { border-left: 0; }
 }
 
-/*
+{{-- /*
 | Reporting Period, Division, Office / Unit and Borrower are one cascade and
 | stay in a single row of four equal-width cards on desktop. Tablet drops to
 | two columns (two rows of two) and small mobile stacks them one per row -
 | never a lone control stranded on its own line.
-*/
+*/ --}}
 @media (min-width: 821px) {
  .analytics-page .analytics-filters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
@@ -2054,17 +2054,17 @@ html[data-theme="dark"] .analytics-priority-row.tone-rank { --priority-tone: #f0
  .analytics-kpi-card:focus-visible { transform: none; }
 }
 
-/* ========================================================================
+{{-- /* ========================================================================
  Demand & Utilization.
 
  The tab reuses Overview's card, KPI and ranking components; only what is
  specific to this tab is defined here - two extra KPI tones, the division
  donut, the quiet-items list and the peak plot.
- ======================================================================== */
+ ======================================================================== */ --}}
 
-/* KPI tones -------------------------------------------------------------- */
-/* Expressed demand sits beside filed demand, so it takes the adjacent indigo
- rather than a second blue that would read as the same measure. */
+{{-- /* KPI tones -------------------------------------------------------------- */ --}}
+{{-- /* Expressed demand sits beside filed demand, so it takes the adjacent indigo
+ rather than a second blue that would read as the same measure. */ --}}
 .analytics-kpi-card.tone-quantity { --kpi-from: #6d28d9; --kpi-to: #8b5cf6; --kpi-glow: rgba(109, 40, 217, .3); }
 .analytics-kpi-card.tone-released { --kpi-from: #0f766e; --kpi-to: #10b981; --kpi-glow: rgba(15, 118, 110, .28); }
 .analytics-kpi-card.tone-units { --kpi-from: #b45309; --kpi-to: #f59e0b; --kpi-glow: rgba(180, 83, 9, .28); }
@@ -2073,12 +2073,12 @@ html[data-theme="dark"] .analytics-kpi-card.tone-quantity { --kpi-from: #5b21b6;
 html[data-theme="dark"] .analytics-kpi-card.tone-released { --kpi-from: #115e59; --kpi-to: #059669; --kpi-glow: rgba(0, 0, 0, .45); }
 html[data-theme="dark"] .analytics-kpi-card.tone-units { --kpi-from: #92400e; --kpi-to: #d97706; --kpi-glow: rgba(0, 0, 0, .45); }
 
-/* A card with nothing to open should not lift or shift under the pointer. */
+{{-- /* A card with nothing to open should not lift or shift under the pointer. */ --}}
 .analytics-kpi-card.is-static { cursor: default; }
 .analytics-kpi-card.is-static:hover { transform: none; box-shadow: 0 1px 2px var(--kpi-glow); }
 
-/* Row grids -------------------------------------------------------------- */
-/* Same proportions Overview uses: a plot needs width, a legend does not. */
+{{-- /* Row grids -------------------------------------------------------------- */ --}}
+{{-- /* Same proportions Overview uses: a plot needs width, a legend does not. */ --}}
 .analytics-demand-main {
  display: grid;
  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
@@ -2095,7 +2095,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-units { --kpi-from: #92400e; --
  margin-bottom: 13px;
 }
 
-/* Division donut --------------------------------------------------------- */
+{{-- /* Division donut --------------------------------------------------------- */ --}}
 .analytics-donut-body {
  display: grid;
  grid-template-columns: 152px minmax(0, 1fr);
@@ -2114,7 +2114,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-units { --kpi-from: #92400e; --
 .analytics-donut svg {
  width: 100%;
  height: 100%;
- /* Slices are laid out from 12 o'clock, which is where a reader starts. */
+ {{-- /* Slices are laid out from 12 o'clock, which is where a reader starts. */ --}}
  transform: rotate(-90deg);
 }
 
@@ -2125,7 +2125,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-units { --kpi-from: #92400e; --
 
 .analytics-donut-rail { stroke: var(--surface-subtle); }
 
-/* One key per division, matching the bar colours used on the other tabs. */
+{{-- /* One key per division, matching the bar colours used on the other tabs. */ --}}
 .analytics-donut-arc.is-academic { stroke: #1769e0; }
 .analytics-donut-arc.is-administration { stroke: #0e7c66; }
 .analytics-donut-arc.is-research { stroke: #7a4bc4; }
@@ -2196,13 +2196,13 @@ html[data-theme="dark"] .analytics-kpi-card.tone-units { --kpi-from: #92400e; --
 
 .analytics-donut-figure small { color: var(--text-muted); font-weight: 700; }
 
-/* Ranking additions ------------------------------------------------------ */
-/*
+{{-- /* Ranking additions ------------------------------------------------------ */ --}}
+{{-- /*
  | Division affiliation is metadata on the unit, not a heading above it.
  |
  | Scoped under the name because .analytics-rank-name small already blocks its
  | children full width, which stretched the pill across the whole row.
- */
+ */ --}}
 .analytics-rank-name small.analytics-rank-tag {
  display: inline-block;
  width: max-content;
@@ -2221,11 +2221,11 @@ html[data-theme="dark"] .analytics-kpi-card.tone-units { --kpi-from: #92400e; --
 .analytics-rank-name small.analytics-rank-tag.is-administration { color: #0e7c66; background: rgba(14, 124, 102, .1); }
 .analytics-rank-name small.analytics-rank-tag.is-research { color: #7a4bc4; background: rgba(122, 75, 196, .1); }
 
-/* Actual release is a different measure from expressed demand, and reads in
- the same green the Released Quantity card uses. */
+{{-- /* Actual release is a different measure from expressed demand, and reads in
+ the same green the Released Quantity card uses. */ --}}
 .analytics-rank-fill.is-released { background: #0e7c66; }
 
-/* Quiet items ------------------------------------------------------------ */
+{{-- /* Quiet items ------------------------------------------------------------ */ --}}
 .analytics-quiet { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; }
 
 .analytics-quiet a {
@@ -2258,7 +2258,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-units { --kpi-from: #92400e; --
  white-space: nowrap;
 }
 
-/* Peak plot -------------------------------------------------------------- */
+{{-- /* Peak plot -------------------------------------------------------------- */ --}}
 .analytics-peak { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
 
 .analytics-peak li {
@@ -2302,10 +2302,10 @@ html[data-theme="dark"] .analytics-kpi-card.tone-units { --kpi-from: #92400e; --
  text-transform: uppercase;
 }
 
-/* The insufficient-data panel carries a lead line, so it aligns to the top. */
+{{-- /* The insufficient-data panel carries a lead line, so it aligns to the top. */ --}}
 .analytics-blank strong { display: block; margin-bottom: 2px; color: var(--heading); }
 
-/* Responsive ------------------------------------------------------------- */
+{{-- /* Responsive ------------------------------------------------------------- */ --}}
 @media (max-width: 1180px) {
  .analytics-demand-main { grid-template-columns: minmax(0, 1fr); }
 }
@@ -2316,12 +2316,12 @@ html[data-theme="dark"] .analytics-kpi-card.tone-units { --kpi-from: #92400e; --
 }
 
 @media (max-width: 560px) {
- /* The legend reads better under the ring than squeezed beside it. */
+ {{-- /* The legend reads better under the ring than squeezed beside it. */ --}}
  .analytics-donut-body { grid-template-columns: minmax(0, 1fr); justify-items: center; }
  .analytics-donut-legend { width: 100%; }
 }
 
-/* ========================================================================
+{{-- /* ========================================================================
  Inventory Health.
 
  Reuses the card, KPI and ranking components the other Analytics tabs use;
@@ -2333,16 +2333,16 @@ html[data-theme="dark"] .analytics-kpi-card.tone-units { --kpi-from: #92400e; --
  custody, amber is laundry, red is held by an incident. The availability
  bars, the composition bar and the state tiles all obey it, so a segment
  means the same thing wherever it appears.
- ======================================================================== */
+ ======================================================================== */ --}}
 
-/* KPI tones -------------------------------------------------------------- */
+{{-- /* KPI tones -------------------------------------------------------------- */ --}}
 .analytics-kpi-card.tone-available { --kpi-from: #047857; --kpi-to: #10b981; --kpi-glow: rgba(4, 120, 87, .28); }
 .analytics-kpi-card.tone-attention { --kpi-from: #b91c1c; --kpi-to: #f97316; --kpi-glow: rgba(185, 28, 28, .28); }
 
 html[data-theme="dark"] .analytics-kpi-card.tone-available { --kpi-from: #065f46; --kpi-to: #059669; --kpi-glow: rgba(0, 0, 0, .45); }
 html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b; --kpi-to: #ea580c; --kpi-glow: rgba(0, 0, 0, .45); }
 
-/* Row grids -------------------------------------------------------------- */
+{{-- /* Row grids -------------------------------------------------------------- */ --}}
 .analytics-inventory-main {
  display: grid;
  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
@@ -2359,14 +2359,14 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
  margin-bottom: 13px;
 }
 
-/* Shared state colours --------------------------------------------------- */
+{{-- /* Shared state colours --------------------------------------------------- */ --}}
 .analytics-dist-seg.is-available, .analytics-dist-key.is-available { background: #0e7c66; }
 .analytics-dist-seg.is-reserved, .analytics-dist-key.is-reserved { background: #6557d9; }
 .analytics-dist-seg.is-custody, .analytics-dist-key.is-custody { background: #1769e0; }
 .analytics-dist-seg.is-laundry, .analytics-dist-key.is-laundry { background: #d08a16; }
 .analytics-dist-seg.is-incident, .analytics-dist-key.is-incident { background: #c4493d; }
 
-/* Per-item availability -------------------------------------------------- */
+{{-- /* Per-item availability -------------------------------------------------- */ --}}
 .analytics-avail { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
 
 .analytics-avail a {
@@ -2381,7 +2381,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
 .analytics-avail a:hover { background: var(--surface-hover); }
 .analytics-avail a:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
-/* Long equipment names wrap rather than truncate: the name is the row's key. */
+{{-- /* Long equipment names wrap rather than truncate: the name is the row's key. */ --}}
 .analytics-avail-name {
  min-width: 0;
  color: var(--text-primary);
@@ -2391,7 +2391,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
  overflow-wrap: anywhere;
 }
 
-/* Bar and its readings share one line; the bar takes what the numbers leave. */
+{{-- /* Bar and its readings share one line; the bar takes what the numbers leave. */ --}}
 .analytics-avail-meter {
  display: grid;
  grid-template-columns: minmax(0, 1fr) auto;
@@ -2426,11 +2426,11 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
 
 .analytics-avail-tag.is-low { color: #b3261e; background: rgba(196, 73, 61, .14); }
 
-/*
+{{-- /*
 | One reading per bar: the fill is the usable share, the rail behind it is the
 | remainder. The remainder stays neutral on purpose - a second saturated colour
 | there reads as a competing measure rather than as what is simply not usable.
-*/
+*/ --}}
 .analytics-avail-bar {
  display: block;
  height: 8px;
@@ -2446,10 +2446,10 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
  background: #0e7c66;
 }
 
-/* At or below the service's threshold, and that includes nothing available. */
+{{-- /* At or below the service's threshold, and that includes nothing available. */ --}}
 .analytics-avail-fill.is-low { background: #c4493d; }
 
-/* Composition ------------------------------------------------------------ */
+{{-- /* Composition ------------------------------------------------------------ */ --}}
 .analytics-dist-total {
  display: flex;
  align-items: baseline;
@@ -2494,13 +2494,13 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
 
 .analytics-dist-figure small { color: var(--text-muted); font-weight: 700; }
 
-/* Late return patterns --------------------------------------------------- */
+{{-- /* Late return patterns --------------------------------------------------- */ --}}
 
-/*
+{{-- /*
 | Two panels of rate bars. A bar is the segment's own late-return rate on a
 | 0-100 track - never normalised against the largest row - and its counts sit
 | beneath it so a 100% from one return reads as exactly that.
-*/
+*/ --}}
 .analytics-laterate-body {
  display: grid;
  grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2564,13 +2564,13 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
  .analytics-laterate-body { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* Overdue aging ---------------------------------------------------------- */
+{{-- /* Overdue aging ---------------------------------------------------------- */ --}}
 
-/*
+{{-- /*
 | Three horizontal bands, counts first. Width is geometry against the largest
 | band; the share beside the count is the band's part of the current backlog.
 | One colour for all bands: age is stated by the label, not graded by hue.
-*/
+*/ --}}
 .analytics-aging-bands { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
 
 .analytics-aging-bands li > a {
@@ -2613,19 +2613,19 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
 
 .analytics-aging-value small { color: var(--text-muted); font-weight: 700; }
 
-/* A band with nothing in it stays in the list, quietly, so the set reads complete. */
+{{-- /* A band with nothing in it stays in the list, quietly, so the set reads complete. */ --}}
 .analytics-aging-bands li.is-none .analytics-aging-label,
 .analytics-aging-bands li.is-none .analytics-aging-value { color: var(--text-muted); font-weight: 600; }
 
 .analytics-aging-note { margin: 10px 0 0; color: var(--text-muted); font-size: 11.5px; line-height: 1.5; }
 
-/* Request outcomes ------------------------------------------------------- */
+{{-- /* Request outcomes ------------------------------------------------------- */ --}}
 
-/*
+{{-- /*
 | One 100% bar and a complete legend. Colour tells the groups apart; it does
 | not grade them - each segment carries its label for assistive technology,
 | the legend names every group, and the tooltip states count and share.
-*/
+*/ --}}
 .analytics-outcomes-body {
  display: grid;
  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
@@ -2673,7 +2673,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
 .analytics-outcome-legend li > a:focus-visible { background: var(--surface-subtle); }
 .analytics-outcome-legend li > a:focus-visible { outline: 2px solid var(--interactive); outline-offset: 1px; }
 
-/* A group with nothing in it is listed for completeness, quietly. */
+{{-- /* A group with nothing in it is listed for completeness, quietly. */ --}}
 .analytics-outcome-legend li.is-none > div { color: var(--text-muted); }
 .analytics-outcome-legend li.is-none .analytics-outcome-key { opacity: .35; }
 .analytics-outcome-legend li.is-none .analytics-outcome-name,
@@ -2703,7 +2703,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
  .analytics-outcomes-body { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* What the bar deliberately leaves out, and why. */
+{{-- /* What the bar deliberately leaves out, and why. */ --}}
 .analytics-dist-aside {
  display: grid;
  gap: 7px;
@@ -2716,7 +2716,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
 .analytics-dist-aside dt { color: var(--text-muted); font-size: 9.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
 .analytics-dist-aside dd { margin: 0; color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
 
-/* Low availability watchlist --------------------------------------------- */
+{{-- /* Low availability watchlist --------------------------------------------- */ --}}
 .analytics-count-pill {
  flex: 0 0 auto;
  min-width: 22px;
@@ -2759,7 +2759,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
 
 .analytics-watch-figure strong { color: #c4493d; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
-/* Secondary state tiles -------------------------------------------------- */
+{{-- /* Secondary state tiles -------------------------------------------------- */ --}}
 .analytics-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
 
 .analytics-tile {
@@ -2786,7 +2786,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
 .analytics-tile-value { color: var(--heading); font-size: 20px; font-weight: 800; line-height: 1.1; }
 .analytics-tile-note { color: var(--text-muted); font-size: 10px; line-height: 1.4; }
 
-/* A tile only takes a tone once it actually holds something. */
+{{-- /* A tile only takes a tone once it actually holds something. */ --}}
 .analytics-tile.is-flagged.is-laundry { border-color: rgba(208, 138, 22, .35); background: rgba(208, 138, 22, .08); }
 .analytics-tile.is-flagged.is-laundry .analytics-tile-icon { color: #b3461c; }
 .analytics-tile.is-flagged.is-maintenance,
@@ -2794,7 +2794,7 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
 .analytics-tile.is-flagged.is-maintenance .analytics-tile-icon,
 .analytics-tile.is-flagged.is-incident .analytics-tile-icon { color: #c4493d; }
 
-/* Coverage rows ---------------------------------------------------------- */
+{{-- /* Coverage rows ---------------------------------------------------------- */ --}}
 .analytics-coverage { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; }
 
 .analytics-coverage a {
@@ -2825,11 +2825,11 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
 .analytics-coverage-figure strong { color: var(--heading); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .analytics-coverage-figure strong small { color: var(--text-muted); font-size: 10px; font-weight: 700; }
 
-/* A cleared watchlist is good news, and reads as such. */
+{{-- /* A cleared watchlist is good news, and reads as such. */ --}}
 .analytics-blank.is-positive { border-color: rgba(14, 124, 102, .3); background: rgba(14, 124, 102, .06); }
 .analytics-blank.is-positive .analytics-blank-mark { color: #0e7c66; }
 
-/* Responsive ------------------------------------------------------------- */
+{{-- /* Responsive ------------------------------------------------------------- */ --}}
 @media (max-width: 1180px) {
  .analytics-inventory-main { grid-template-columns: minmax(0, 1fr); }
 }
@@ -2840,28 +2840,28 @@ html[data-theme="dark"] .analytics-kpi-card.tone-attention { --kpi-from: #991b1b
 
 @media (max-width: 560px) {
  .analytics-tiles { grid-template-columns: minmax(0, 1fr); }
- /* Readings above the bar, each on its own row, nothing squeezed. */
+ {{-- /* Readings above the bar, each on its own row, nothing squeezed. */ --}}
  .analytics-avail-meter { grid-template-columns: minmax(0, 1fr); gap: 6px; }
  .analytics-avail-meter .analytics-avail-figure { order: -1; }
  .analytics-avail-figure { flex-wrap: wrap; white-space: normal; }
 }
 
-/* ======================================================================== */
-/* Borrowing & Return Performance */
-/* */
-/* Reuses the Analytics card, KPI and ranking system already established in */
-/* the other tabs; only the pieces this tab introduces are defined here. */
-/* ======================================================================== */
+{{-- /* ======================================================================== */ --}}
+{{-- /* Borrowing & Return Performance */ --}}
+{{-- /* */ --}}
+{{-- /* Reuses the Analytics card, KPI and ranking system already established in */ --}}
+{{-- /* the other tabs; only the pieces this tab introduces are defined here. */ --}}
+{{-- /* ======================================================================== */ --}}
 
-/* Completed-on-time gets the one gradient the other tabs did not need. */
+{{-- /* Completed-on-time gets the one gradient the other tabs did not need. */ --}}
 .analytics-kpi-card.tone-ontime { --kpi-from: #047857; --kpi-to: #34d399; --kpi-glow: rgba(4, 120, 87, .28); }
 html[data-theme="dark"] .analytics-kpi-card.tone-ontime { --kpi-from: #065f46; --kpi-to: #10b981; --kpi-glow: rgba(0, 0, 0, .45); }
 
-/* A card with no detail behind it must not offer hover or a chevron. */
+{{-- /* A card with no detail behind it must not offer hover or a chevron. */ --}}
 .analytics-kpi-card.is-static { cursor: default; }
 .analytics-kpi-card.is-static:hover { transform: none; box-shadow: 0 4px 14px var(--kpi-glow); }
 
-/* Two-series line ------------------------------------------------------- */
+{{-- /* Two-series line ------------------------------------------------------- */ --}}
 
 .analytics-line--dual { gap: 5px; }
 
@@ -2903,10 +2903,10 @@ html[data-theme="dark"] .analytics-line-marker.is-late .analytics-line-dot { bor
 .analytics-return-split .is-ontime { color: var(--success); }
 .analytics-return-split .is-late { color: var(--warning); }
 
-/* Return outcome donut --------------------------------------------------- */
+{{-- /* Return outcome donut --------------------------------------------------- */ --}}
 
-/* Return Outcome uses its own scoped layout so the generic division-donut
- legend grid cannot compress its label/count/rate columns. */
+{{-- /* Return Outcome uses its own scoped layout so the generic division-donut
+ legend grid cannot compress its label/count/rate columns. */ --}}
 .analytics-return-outcome .analytics-donut-body {
  display: grid;
  grid-template-columns: 128px minmax(160px, 1fr);
@@ -2999,7 +2999,7 @@ html[data-theme="dark"] .analytics-donut-arc.is-late { stroke: #f59e0b; }
 html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.is-ontime { color: #34d399; }
 html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.is-late { color: #f59e0b; }
 
-/* Lifecycle strip -------------------------------------------------------- */
+{{-- /* Lifecycle strip -------------------------------------------------------- */ --}}
 
 .analytics-lifecycle-strip {
  display: flex;
@@ -3035,7 +3035,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 
 .analytics-lifecycle-link { display: grid; place-items: center; flex: 0 0 auto; color: var(--text-soft); }
 
-/* Overdue follow-up list ------------------------------------------------- */
+{{-- /* Overdue follow-up list ------------------------------------------------- */ --}}
 
 .analytics-followup { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
 
@@ -3062,7 +3062,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 .analytics-followup-due span { color: var(--text-muted); font-size: 10.5px; }
 .analytics-followup-due strong { color: var(--danger); font-size: 12px; font-weight: 750; white-space: nowrap; }
 
-/* Condition bars reuse the ranking rows, minus the link affordance. */
+{{-- /* Condition bars reuse the ranking rows, minus the link affordance. */ --}}
 .analytics-rank-row.is-static { cursor: default; }
 .analytics-rank-row.is-static:hover { background: transparent; }
 .analytics-rank-fill.is-good { background: linear-gradient(90deg, #047857 0%, #34d399 100%); }
@@ -3070,7 +3070,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 
 .analytics-blank-mark.is-good { color: var(--success); background: var(--success-bg); border-color: var(--success-border); }
 
-/* Mini stat tiles -------------------------------------------------------- */
+{{-- /* Mini stat tiles -------------------------------------------------------- */ --}}
 
 .analytics-ministats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 
@@ -3088,17 +3088,17 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 .analytics-ministat span { color: var(--text-muted); font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; overflow-wrap: anywhere; }
 .analytics-ministat strong { color: var(--heading); font-size: 19px; font-weight: 780; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
-/* "Not measurable" is a statement, not a number, so it is not styled as one. */
+{{-- /* "Not measurable" is a statement, not a number, so it is not styled as one. */ --}}
 .analytics-ministat.is-unmeasured strong { color: var(--text-muted); font-size: 12.5px; font-weight: 650; }
 
-/* Period-over-period line ------------------------------------------------ */
+{{-- /* Period-over-period line ------------------------------------------------ */ --}}
 
-/*
+{{-- /*
 | Deliberately quiet and deliberately neutral. It sits under the figure it
 | qualifies, never competes with it, and takes no colour from its direction:
 | whether a movement is good depends on the metric, and the sentence already
 | says which way it went.
-*/
+*/ --}}
 .analytics-delta {
  display: block;
  min-width: 0;
@@ -3110,13 +3110,13 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
  overflow-wrap: anywhere;
 }
 
-/* On a KPI card the line takes the card's own muted meta slot, wrapping rather than truncating. */
+{{-- /* On a KPI card the line takes the card's own muted meta slot, wrapping rather than truncating. */ --}}
 .analytics-kpi-card .analytics-delta { font-size: 10.5px; white-space: normal; }
 
-/* Under a mini stat, the line is the tile's third row. */
+{{-- /* Under a mini stat, the line is the tile's third row. */ --}}
 .analytics-ministat .analytics-delta { margin-top: 1px; font-size: 10px; }
 
-/* Issue breakdown -------------------------------------------------------- */
+{{-- /* Issue breakdown -------------------------------------------------------- */ --}}
 
 .analytics-issues { display: grid; align-content: start; gap: 0; margin: 0; padding: 0; list-style: none; }
 
@@ -3140,7 +3140,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 .analytics-issues-label small { color: var(--text-muted); font-size: 10.5px; }
 .analytics-issues li strong { flex-shrink: 0; color: var(--issue-tone); font-size: 17px; font-weight: 780; font-variant-numeric: tabular-nums; }
 
-/* Responsive ------------------------------------------------------------- */
+{{-- /* Responsive ------------------------------------------------------------- */ --}}
 
 @media (max-width: 1180px) {
  .analytics-lifecycle-strip { flex-wrap: wrap; }
@@ -3161,7 +3161,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
  }
 }
 
-/* ========================================================================
+{{-- /* ========================================================================
  Forecast & Planning.
 
  Reuses the card, KPI, ranking and peak components the other Analytics tabs
@@ -3172,9 +3172,9 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
  One rule runs through it: a solid blue mark is something that happened, a
  dashed violet mark is something projected. A reader should never have to
  check a label to tell which is which.
- ======================================================================== */
+ ======================================================================== */ --}}
 
-/* Row grids -------------------------------------------------------------- */
+{{-- /* Row grids -------------------------------------------------------------- */ --}}
 .analytics-forecast-main {
  display: grid;
  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
@@ -3193,10 +3193,10 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 
 .analytics-forecast-equipment { margin-bottom: 13px; }
 
-/* A KPI whose value is a state rather than a count. */
+{{-- /* A KPI whose value is a state rather than a count. */ --}}
 .analytics-kpi-card-value.is-text { font-size: 19px; line-height: 1.2; }
 
-/* Outlook plot ----------------------------------------------------------- */
+{{-- /* Outlook plot ----------------------------------------------------------- */ --}}
 .analytics-outlook-legend {
  display: flex;
  flex-wrap: wrap;
@@ -3230,7 +3230,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
  overflow: visible;
 }
 
-/* The path is stretched to the box, so the stroke keeps a true width. */
+{{-- /* The path is stretched to the box, so the stroke keeps a true width. */ --}}
 .analytics-outlook-solid { fill: none; stroke: #2563eb; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .analytics-outlook-dashed { fill: none; stroke: #7a4bc4; stroke-width: 2; stroke-dasharray: 4 4; stroke-linecap: round; }
 
@@ -3251,7 +3251,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
  background: #2563eb;
 }
 
-/* A projected point is hollow, so it never reads as a recorded one. */
+{{-- /* A projected point is hollow, so it never reads as a recorded one. */ --}}
 .analytics-outlook-marker.is-forecast .analytics-outlook-dot {
  border-color: #7a4bc4;
  background: var(--surface);
@@ -3309,7 +3309,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 .analytics-outlook-note.is-scheduled { border-color: rgba(14, 124, 102, .3); background: rgba(14, 124, 102, .06); }
 .analytics-outlook-note.is-scheduled .ui-icon { color: #0e7c66; }
 
-/* Readiness checklist ---------------------------------------------------- */
+{{-- /* Readiness checklist ---------------------------------------------------- */ --}}
 .analytics-check { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
 
 .analytics-check li {
@@ -3351,7 +3351,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 .analytics-check-state span { color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
 .analytics-check-state.is-ready { border-color: rgba(14, 124, 102, .32); background: rgba(14, 124, 102, .07); }
 
-/* Equipment coverage comparison ------------------------------------------ */
+{{-- /* Equipment coverage comparison ------------------------------------------ */ --}}
 .analytics-coverbars {
  display: grid;
  grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3416,7 +3416,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
  text-align: right;
 }
 
-/* Planning notes --------------------------------------------------------- */
+{{-- /* Planning notes --------------------------------------------------------- */ --}}
 .analytics-notes { display: grid; margin: 0; padding: 0; list-style: none; }
 
 .analytics-notes li {
@@ -3447,7 +3447,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 .analytics-notes li.tone-steady .analytics-notes-icon { color: #0e7c66; background: rgba(14, 124, 102, .1); }
 .analytics-notes li.tone-info .analytics-notes-icon { color: #1769e0; background: rgba(23, 105, 224, .1); }
 
-/* Methodology strip ------------------------------------------------------ */
+{{-- /* Methodology strip ------------------------------------------------------ */ --}}
 .analytics-method { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
 
 .analytics-method > div {
@@ -3465,7 +3465,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 .analytics-method-summary { margin: 0 0 8px; color: var(--text-secondary); font-size: 11px; line-height: 1.55; }
 .analytics-method-list { display: grid; gap: 5px; margin: 0; padding-left: 17px; color: var(--text-secondary); font-size: 11px; line-height: 1.55; }
 
-/* Collapsible detail ----------------------------------------------------- */
+{{-- /* Collapsible detail ----------------------------------------------------- */ --}}
 .analytics-fold { border-top: 1px solid var(--border); }
 
 .analytics-fold > summary {
@@ -3512,7 +3512,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 .analytics-mini-table tr:last-child td { border-bottom: 0; }
 .analytics-mini-table .numeric { text-align: right; font-variant-numeric: tabular-nums; }
 
-/* Responsive ------------------------------------------------------------- */
+{{-- /* Responsive ------------------------------------------------------------- */ --}}
 @media (max-width: 1180px) {
  .analytics-forecast-main { grid-template-columns: minmax(0, 1fr); }
 }
@@ -3531,7 +3531,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
  .analytics-fold > summary::after { transition: none; }
 }
 
-/* ========================================================================
+{{-- /* ========================================================================
  Analytics detail drawer.
 
  The single source of truth for how the drawer is sized and spaced. It is a
@@ -3539,21 +3539,21 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
  third of a desktop screen and leaves the Analytics page readable behind it.
 
  Earlier rules above set 660px, then 820px. Both are superseded here.
- ======================================================================== */
+ ======================================================================== */ --}}
 
-/*
+{{-- /*
 | Width.
 |
 | 40vw is the intent, 520px the cap: past about 1300px a wider drawer only adds
 | line length, it does not add information. The tablet and phone steps widen it
 | because there the page behind has nothing left to show anyway.
-*/
+*/ --}}
 .analytics-detail {
  width: min(520px, 40vw);
  max-width: 560px;
 }
 
-/* Tablet: the page behind is already narrow, so the drawer may take more. */
+{{-- /* Tablet: the page behind is already narrow, so the drawer may take more. */ --}}
 @media (max-width: 1180px) {
  .analytics-detail { width: 60vw; max-width: none; }
 }
@@ -3562,35 +3562,35 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
  .analytics-detail { width: 72vw; max-width: none; }
 }
 
-/* Phone: full width is the only sensible reading width. */
+{{-- /* Phone: full width is the only sensible reading width. */ --}}
 @media (max-width: 720px) {
  .analytics-detail { width: 100%; max-width: none; border-left: 0; }
 }
 
-/*
+{{-- /*
 | Backdrop.
 |
 | Dimmed enough to push the page back, light enough to keep the chart the
 | reader just clicked visible behind the drawer. Context is the whole point of
 | a drawer over a full page.
-*/
+*/ --}}
 .analytics-detail-scrim { background: rgba(7, 27, 53, .28); }
 
-/* Header ----------------------------------------------------------------- */
+{{-- /* Header ----------------------------------------------------------------- */ --}}
 .analytics-detail-head { padding: 14px 16px 12px; gap: 12px; }
 .analytics-detail-context { font-size: 9.5px; letter-spacing: .06em; }
 .analytics-detail-head h2 { margin: 3px 0 0; font-size: 15.5px; }
 .analytics-detail-scope { margin: 3px 0 0; font-size: 11px; }
 
-/* Small enough to sit in a compact header, still a comfortable target. */
+{{-- /* Small enough to sit in a compact header, still a comfortable target. */ --}}
 .analytics-detail-close { width: 32px; height: 32px; flex: 0 0 32px; }
 .analytics-detail-close:hover { color: var(--interactive); background: var(--surface-hover); border-color: var(--border); }
 .analytics-detail-close:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
 
-/* Body ------------------------------------------------------------------- */
+{{-- /* Body ------------------------------------------------------------------- */ --}}
 .analytics-detail-body { gap: 12px; padding: 14px 16px; }
 
-/* The headline count had a whole band of the drawer to itself. */
+{{-- /* The headline count had a whole band of the drawer to itself. */ --}}
 .analytics-detail-figure { gap: 8px; }
 .analytics-detail-figure strong { font-size: 25px; }
 .analytics-detail-figure span { font-size: 12px; }
@@ -3598,7 +3598,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 .analytics-detail-note { padding: 9px 11px; font-size: 11.5px; line-height: 1.55; }
 .analytics-detail-subhead { margin: 2px 0 0; font-size: 10px; }
 
-/* Stat tiles: two to a row at this width, and no taller than they need. */
+{{-- /* Stat tiles: two to a row at this width, and no taller than they need. */ --}}
 .analytics-detail-body .analytics-stat-grid {
  grid-template-columns: repeat(2, minmax(0, 1fr));
  gap: 9px;
@@ -3609,7 +3609,7 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 .analytics-detail-body .analytics-stat > strong { font-size: 18px; }
 .analytics-detail-body .analytics-stat > strong.is-text { font-size: 12.5px; line-height: 1.35; }
 
-/* Breakdown bars: closer together, and thinner, at drawer width. */
+{{-- /* Breakdown bars: closer together, and thinner, at drawer width. */ --}}
 .analytics-detail-body .analytics-bars { gap: 9px; }
 .analytics-detail-body .analytics-bar-row { gap: 4px; }
 .analytics-detail-body .analytics-bar-head { gap: 10px; }
@@ -3617,15 +3617,15 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
 .analytics-detail-body .analytics-bar-value { font-size: 11px; }
 .analytics-detail-body .analytics-bar-track { height: 7px; }
 
-/* A table in a drawer is a preview; Reports below is the full list. */
+{{-- /* A table in a drawer is a preview; Reports below is the full list. */ --}}
 .analytics-detail-body .analytics-table th,
 .analytics-detail-body .analytics-table td { padding: 6px 9px; font-size: 11px; }
 
 .analytics-detail-body .analytics-explain summary { font-size: 11.5px; }
 .analytics-detail-body .analytics-explain p { font-size: 11px; line-height: 1.55; }
 
-/* Footer ----------------------------------------------------------------- */
-/* Stays on the surface rather than scrolling away with the content. */
+{{-- /* Footer ----------------------------------------------------------------- */ --}}
+{{-- /* Stays on the surface rather than scrolling away with the content. */ --}}
 .analytics-detail-foot { padding: 11px 16px; }
 .analytics-detail-foot .button { min-height: 34px; padding: 0 13px; font-size: 11.5px; }
 
@@ -3634,27 +3634,27 @@ html[data-theme="dark"] .analytics-return-outcome .analytics-donut-legend > div.
  .analytics-detail-body .analytics-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/*
+{{-- /*
 | The page behind must not scroll while the drawer is open, or a flick of the
 | wheel moves the wrong surface. The class is set by the drawer's own script,
 | which also compensates for the scrollbar it removes.
-*/
+*/ --}}
 body.analytics-detail-open { overflow: hidden; }
 
-/* ========================================================================
+{{-- /* ========================================================================
  Borrowing Demand Trend.
 
  Every rule is behind .analytics-line--trend or .analytics-trend-single, so
  the dual-line returns chart, which shares the base .analytics-line classes,
  is left exactly as it is.
- ======================================================================== */
+ ======================================================================== */ --}}
 
 .analytics-line--trend { gap: 0; }
 
-/* Taller than the base plot: the line needs room to read as a shape. */
+{{-- /* Taller than the base plot: the line needs room to read as a shape. */ --}}
 .analytics-line--trend .analytics-line-plot { height: 168px; }
 
-/* The CSS grid overlay is replaced by real lines drawn in the SVG. */
+{{-- /* The CSS grid overlay is replaced by real lines drawn in the SVG. */ --}}
 .analytics-line--trend .analytics-line-grid { display: none; }
 
 .analytics-line--trend .analytics-line-rule {
@@ -3662,20 +3662,20 @@ body.analytics-detail-open { overflow: hidden; }
  stroke-width: 1;
 }
 
-/* The axis the area sits on is stated a little more firmly than the rest. */
+{{-- /* The axis the area sits on is stated a little more firmly than the rest. */ --}}
 .analytics-line--trend .analytics-line-rule.is-base { stroke: var(--border); }
 
 .analytics-line--trend .analytics-line-stroke { stroke-width: 2; }
 
-/*
+{{-- /*
 | Axis labels are positioned at their own point rather than shared out evenly,
 | because the series is inset and even columns would not line up with it. The
 | padding gives the first and last labels somewhere to overhang into.
-*/
+*/ --}}
 .analytics-line--trend .analytics-line-axis {
  position: relative;
  display: block;
- /* Room for two lines, so a long period name wraps instead of being cut. */
+ {{-- /* Room for two lines, so a long period name wraps instead of being cut. */ --}}
  height: 34px;
  padding: 7px 0 0;
  border-top: 0;
@@ -3684,13 +3684,13 @@ body.analytics-detail-open { overflow: hidden; }
 .analytics-line--trend .analytics-line-axis span {
  position: absolute;
  top: 7px;
- /*
+ {{-- /*
  | Sized from the text, not from the gap left of the container edge. An
  | absolutely positioned box takes its shrink-to-fit width from `left` to
  | that edge, so the last label was squeezed into the final few percent and
  | wrapped while the first stayed on one line. max-content measures the
  | label itself, and the transform below is what brings it back inside.
- */
+ */ --}}
  width: max-content;
  max-width: 96px;
  transform: translateX(-50%);
@@ -3698,7 +3698,7 @@ body.analytics-detail-open { overflow: hidden; }
  font-size: 9.5px;
  line-height: 1.25;
  text-align: center;
- /* Wrap rather than ellipsise, but never past two lines. */
+ {{-- /* Wrap rather than ellipsise, but never past two lines. */ --}}
  white-space: normal;
  overflow-wrap: break-word;
  display: -webkit-box;
@@ -3707,13 +3707,13 @@ body.analytics-detail-open { overflow: hidden; }
  overflow: hidden;
 }
 
-/*
+{{-- /*
 | The end labels anchor inward instead of being centred on their point. A
 | centred last label put half its width past the final x, which is at 95% of
 | the plot, so the text ran outside the card. Anchoring the first to its left
 | edge and the last to its right keeps both inside the inset the series
 | already uses, and the middle labels stay centred over their own points.
-*/
+*/ --}}
 .analytics-line--trend .analytics-line-axis span:first-child {
  transform: translateX(0);
  text-align: left;
@@ -3724,7 +3724,7 @@ body.analytics-detail-open { overflow: hidden; }
  text-align: right;
 }
 
-/* The value rides above its point, clear of the marker. */
+{{-- /* The value rides above its point, clear of the marker. */ --}}
 .analytics-line--trend .analytics-line-tip { bottom: calc(100% - 3px); font-size: 10px; }
 
 @media (max-width: 720px) {
@@ -3732,15 +3732,15 @@ body.analytics-detail-open { overflow: hidden; }
  .analytics-line--trend .analytics-line-axis span { max-width: 74px; font-size: 9px; }
 }
 
-/* ---------------------------------------------------------------------- */
-/* One bucket */
-/* ---------------------------------------------------------------------- */
-/*
+{{-- /* ---------------------------------------------------------------------- */ --}}
+{{-- /* One bucket */ --}}
+{{-- /* ---------------------------------------------------------------------- */ --}}
+{{-- /*
 | A single period was centred in the full height of the card, which read as a
 | small number stranded in an empty panel. It now fills the width as a stated
 | reading: the figure, the period it belongs to, and a bar that shows it is
 | the whole of what was measured.
-*/
+*/ --}}
 .analytics-trend-single { display: block; place-items: initial; padding: 14px 15px; }
 
 .analytics-trend-single-figure {
@@ -3778,7 +3778,7 @@ body.analytics-detail-open { overflow: hidden; }
  font-variant-numeric: tabular-nums;
 }
 
-/* Full width, because one bucket is 100% of the period being read. */
+{{-- /* Full width, because one bucket is 100% of the period being read. */ --}}
 .analytics-trend-single-bar {
  display: block;
  width: 100%;
@@ -3802,13 +3802,13 @@ body.analytics-detail-open { overflow: hidden; }
  text-align: left;
 }
 
-/* ======================================================================== */
-/* Clickable cards */
-/* */
-/* One affordance for every drill-down surface in Analytics. The card is not */
-/* an anchor - several contain their own links - so the hit area comes from */
-/* script while a real link in the header carries focus and keyboard access. */
-/* ======================================================================== */
+{{-- /* ======================================================================== */ --}}
+{{-- /* Clickable cards */ --}}
+{{-- /* */ --}}
+{{-- /* One affordance for every drill-down surface in Analytics. The card is not */ --}}
+{{-- /* an anchor - several contain their own links - so the hit area comes from */ --}}
+{{-- /* script while a real link in the header carries focus and keyboard access. */ --}}
+{{-- /* ======================================================================== */ --}}
 
 .analytics-card[data-card-detail] {
  cursor: pointer;
@@ -3821,13 +3821,13 @@ body.analytics-detail-open { overflow: hidden; }
  transform: translateY(-1px);
 }
 
-/* The header link takes focus, so the whole card shows the ring. */
+{{-- /* The header link takes focus, so the whole card shows the ring. */ --}}
 .analytics-card[data-card-detail]:focus-within {
  border-color: var(--interactive);
  box-shadow: var(--focus-ring);
 }
 
-/* The chevron is affordance only; the whole surface activates. */
+{{-- /* The chevron is affordance only; the whole surface activates. */ --}}
 .analytics-card-open {
  display: grid;
  place-items: center;
@@ -3849,7 +3849,7 @@ body.analytics-detail-open { overflow: hidden; }
 
 .analytics-card-open:focus-visible { outline: none; color: var(--interactive); background: var(--blue-50); }
 
-/* A card action sits before the chevron and keeps its own hit area. */
+{{-- /* A card action sits before the chevron and keeps its own hit area. */ --}}
 .analytics-card-head .analytics-card-action { margin-left: auto; }
 .analytics-card-head .analytics-card-action + .analytics-card-open { margin-left: 4px; }
 
@@ -3860,14 +3860,14 @@ body.analytics-detail-open { overflow: hidden; }
  .analytics-card[data-card-detail]:hover .analytics-card-open { transform: none; }
 }
 
-/* ======================================================================== */
-/* Overview - borrowing activity as bars */
-/* */
-/* Overview only. Demand & Utilization keeps the line plot, so none of these */
-/* rules reach it. Each bucket is one flex column carrying its own value, */
-/* bar and label, which is what keeps a long period name inside the card: */
-/* the label can never be wider than the column it sits in. */
-/* ======================================================================== */
+{{-- /* ======================================================================== */ --}}
+{{-- /* Overview - borrowing activity as bars */ --}}
+{{-- /* */ --}}
+{{-- /* Overview only. Demand & Utilization keeps the line plot, so none of these */ --}}
+{{-- /* rules reach it. Each bucket is one flex column carrying its own value, */ --}}
+{{-- /* bar and label, which is what keeps a long period name inside the card: */ --}}
+{{-- /* the label can never be wider than the column it sits in. */ --}}
+{{-- /* ======================================================================== */ --}}
 
 .analytics-bars-chart { display: flex; width: 100%; min-width: 0; flex-direction: column; }
 
@@ -3881,7 +3881,7 @@ body.analytics-detail-open { overflow: hidden; }
  padding: 4px 2px 0;
 }
 
-/* Four hairlines and a baseline, behind the bars. */
+{{-- /* Four hairlines and a baseline, behind the bars. */ --}}
 .analytics-bars-grid {
  position: absolute;
  inset: 22px 0 34px 0;
@@ -3897,8 +3897,8 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 .analytics-bars-col {
- /* Positioned so the columns paint above the absolutely placed gridlines,
- which otherwise struck through every bar. */
+ {{-- /* Positioned so the columns paint above the absolutely placed gridlines,
+ which otherwise struck through every bar. */ --}}
  position: relative;
  display: flex;
  min-width: 0;
@@ -3916,10 +3916,10 @@ body.analytics-detail-open { overflow: hidden; }
 .analytics-bars-col:hover { background: var(--surface-hover); }
 .analytics-bars-col:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
-/*
+{{-- /*
 | A definite height on purpose: each bar is sized as a percentage of it, and a
 | percentage height against an auto-height parent collapses the bar entirely.
-*/
+*/ --}}
 .analytics-bars-track {
  display: flex;
  width: 100%;
@@ -3950,7 +3950,7 @@ body.analytics-detail-open { overflow: hidden; }
 
 .analytics-bars-col:hover .analytics-bars-bar { filter: brightness(1.08); }
 
-/* A recorded zero reads as a stub on the axis, not as a missing column. */
+{{-- /* A recorded zero reads as a stub on the axis, not as a missing column. */ --}}
 .analytics-bars-bar.is-zero { background: var(--border-strong); }
 
 .analytics-bars-label {
@@ -3969,7 +3969,7 @@ body.analytics-detail-open { overflow: hidden; }
  -webkit-box-orient: vertical;
 }
 
-/* One bucket should read as a single column, not as a block filling the card. */
+{{-- /* One bucket should read as a single column, not as a block filling the card. */ --}}
 .analytics-bars-chart[data-points="1"] .analytics-bars-col { flex: 0 0 auto; width: 132px; max-width: 132px; }
 .analytics-bars-chart[data-points="1"] .analytics-bars-bar { max-width: 64px; }
 
@@ -3989,13 +3989,13 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* ================================================================
+{{-- /* ================================================================
  ANALYTICS UNIVERSAL VISUAL SYSTEM V2
  Calm institutional surfaces, semantic accents, and chart-specific
  visual language. Data and calculation rules remain unchanged.
- ================================================================ */
+ ================================================================ */ --}}
 
-/* Filters use the same compact visual language as the Admin workspace. */
+{{-- /* Filters use the same compact visual language as the Admin workspace. */ --}}
 .analytics-page .analytics-filters {
  gap: 12px !important;
 }
@@ -4010,7 +4010,7 @@ body.analytics-detail-open { overflow: hidden; }
  border-radius: 9px !important;
 }
 
-/* KPI cards: neutral surfaces with semantic accents, not rainbow blocks. */
+{{-- /* KPI cards: neutral surfaces with semantic accents, not rainbow blocks. */ --}}
 .analytics-page .analytics-kpi-card {
  --kpi-accent: #1769e0;
  min-height: 124px !important;
@@ -4076,7 +4076,7 @@ body.analytics-detail-open { overflow: hidden; }
 .analytics-kpi-card.tone-stock,
 .analytics-kpi-card.tone-attention { --kpi-accent: #d34b4b; }
 
-/* Inline detail is a compact drill-down, not a second page or modal. */
+{{-- /* Inline detail is a compact drill-down, not a second page or modal. */ --}}
 .analytics-detail-inline {
  margin: 0 0 14px;
  border: 1px solid color-mix(in srgb, var(--interactive) 22%, var(--border));
@@ -4106,7 +4106,7 @@ body.analytics-detail-open { overflow: hidden; }
  padding: 12px 16px;
 }
 
-/* Main figure + explanation stay together so a short detail does not become tall. */
+{{-- /* Main figure + explanation stay together so a short detail does not become tall. */ --}}
 .analytics-detail-lead {
  display: flex;
  align-items: center;
@@ -4134,7 +4134,7 @@ body.analytics-detail-open { overflow: hidden; }
  line-height: 1.5;
 }
 
-/* Status figures are intentionally compact; two statuses should not fill a whole row. */
+{{-- /* Status figures are intentionally compact; two statuses should not fill a whole row. */ --}}
 .analytics-detail-inline-body .analytics-stat-grid,
 .analytics-detail-inline-body .analytics-detail-stats {
  grid-template-columns: repeat(auto-fit, minmax(170px, 240px));
@@ -4147,7 +4147,7 @@ body.analytics-detail-open { overflow: hidden; }
  padding: 9px 11px;
 }
 
-/* Breakdown + period comparison share one row when both exist. */
+{{-- /* Breakdown + period comparison share one row when both exist. */ --}}
 .analytics-detail-support {
  display: grid;
  grid-template-columns: minmax(0, 1fr);
@@ -4171,7 +4171,7 @@ body.analytics-detail-open { overflow: hidden; }
  gap: 8px;
 }
 
-/* The inline panel shows comparison figures once; no duplicate bar + figure set. */
+{{-- /* The inline panel shows comparison figures once; no duplicate bar + figure set. */ --}}
 .analytics-detail-inline .analytics-compare {
  display: grid;
  gap: 8px;
@@ -4246,7 +4246,7 @@ body.analytics-detail-open { overflow: hidden; }
  font-size: 11.5px;
 }
 
-/* Overview demand is a time series: keep the line crisp and quiet. */
+{{-- /* Overview demand is a time series: keep the line crisp and quiet. */ --}}
 .analytics-overview-main .analytics-line--trend .analytics-line-stroke {
  stroke-width: 2.2px !important;
 }
@@ -4254,7 +4254,7 @@ body.analytics-detail-open { overflow: hidden; }
  opacity: .55;
 }
 
-/* Demand by weekday is an intensity strip, not another ranking bar. */
+{{-- /* Demand by weekday is an intensity strip, not another ranking bar. */ --}}
 .analytics-peak-heat {
  display: grid;
  grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -4299,7 +4299,7 @@ body.analytics-detail-open { overflow: hidden; }
  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--interactive) 18%, transparent);
 }
 
-/* Return condition is part-to-whole, so use one stacked composition bar. */
+{{-- /* Return condition is part-to-whole, so use one stacked composition bar. */ --}}
 .analytics-condition-composition {
  display: grid;
  gap: 14px;
@@ -4346,7 +4346,7 @@ body.analytics-detail-open { overflow: hidden; }
 }
 .analytics-condition-legend small { color: var(--text-muted); }
 
-/* Forecast cards that cannot calculate yet stay present but quiet. */
+{{-- /* Forecast cards that cannot calculate yet stay present but quiet. */ --}}
 .analytics-forecast-pair.is-waiting .analytics-card {
  background: color-mix(in srgb, var(--surface-subtle) 72%, var(--surface-elevated));
  box-shadow: none;
@@ -4404,10 +4404,10 @@ body.analytics-detail-open { overflow: hidden; }
 </style>
 
 <style>
-/* ================================================================
+{{-- /* ================================================================
  OPTION 6 — compact tabs, plain filters, and colorful KPI cards.
  Presentation only; existing controls and data remain unchanged.
- ================================================================ */
+ ================================================================ */ --}}
 .analytics-page .analytics-tabs {
  display:grid !important;
  grid-auto-flow:column !important;
@@ -4535,7 +4535,7 @@ body.analytics-detail-open { overflow: hidden; }
 .analytics-page .analytics-kpi-card:focus-visible .analytics-kpi-card-arrow { color:#fff !important; }
 .analytics-page .analytics-kpi-card:focus-visible { outline:2px solid #2563eb; }
 
-/* Plain, equal-height filter cards; only the existing dropdown chevrons remain. */
+{{-- /* Plain, equal-height filter cards; only the existing dropdown chevrons remain. */ --}}
 .analytics-page .analytics-filters > label,
 .analytics-page .analytics-filters > .analytics-filter-field {
  min-height:66px !important;
@@ -4580,18 +4580,18 @@ body.analytics-detail-open { overflow: hidden; }
 </style>
 
 <style>
-/* ANALYTICS UNIVERSAL DETAIL REFINEMENT
+{{-- /* ANALYTICS UNIVERSAL DETAIL REFINEMENT
  Shared by every Analytics KPI / summary-card drill-down.
- Presentation only — no metric or workflow logic. */
+ Presentation only — no metric or workflow logic. */ --}}
 
-/* Keep the expanded detail visually connected to the KPI row. */
+{{-- /* Keep the expanded detail visually connected to the KPI row. */ --}}
 .analytics-detail-inline {
  border-color: color-mix(in srgb, var(--interactive) 24%, var(--border));
  border-left: 4px solid var(--interactive);
  box-shadow: 0 6px 18px rgba(15, 35, 58, .05);
 }
 
-/* Clear but compact panel heading. */
+{{-- /* Clear but compact panel heading. */ --}}
 .analytics-detail-inline-head {
  padding: 14px 18px 12px;
 }
@@ -4607,9 +4607,9 @@ body.analytics-detail-open { overflow: hidden; }
  padding: 14px 18px;
 }
 
-/* Main metric:
+{{-- /* Main metric:
  keep the number and its explanation close together instead of
- making the number occupy a wide invisible column. */
+ making the number occupy a wide invisible column. */ --}}
 .analytics-detail-lead {
  display: flex;
  align-items: center;
@@ -4659,8 +4659,8 @@ body.analytics-detail-open { overflow: hidden; }
  line-height: 1.5;
 }
 
-/* Supporting sections should read like one analytics report,
- not several cards nested inside another card. */
+{{-- /* Supporting sections should read like one analytics report,
+ not several cards nested inside another card. */ --}}
 .analytics-detail-support {
  gap: 0;
 }
@@ -4686,8 +4686,8 @@ body.analytics-detail-open { overflow: hidden; }
  margin: 0 0 9px;
 }
 
-/* Period comparison:
- simple three-column evidence row instead of another boxed panel. */
+{{-- /* Period comparison:
+ simple three-column evidence row instead of another boxed panel. */ --}}
 .analytics-detail-inline .analytics-compare {
  gap: 9px;
  margin: 0;
@@ -4734,7 +4734,7 @@ body.analytics-detail-open { overflow: hidden; }
  line-height: 1.4;
 }
 
-/* Proper interpretation / zero-data message. */
+{{-- /* Proper interpretation / zero-data message. */ --}}
 .analytics-detail-empty {
  display: flex;
  align-items: center;
@@ -4760,13 +4760,13 @@ body.analytics-detail-open { overflow: hidden; }
  border-radius: 50%;
 }
 
-/* Tables remain framed because tabular records need a clear boundary. */
+{{-- /* Tables remain framed because tabular records need a clear boundary. */ --}}
 .analytics-detail-table {
  border: 1px solid var(--border);
  border-radius: 10px;
 }
 
-/* Quiet footer: explanation left, source-record action right. */
+{{-- /* Quiet footer: explanation left, source-record action right. */ --}}
 .analytics-detail-inline-foot {
  padding: 10px 18px;
  background: color-mix(
@@ -4776,7 +4776,7 @@ body.analytics-detail-open { overflow: hidden; }
  );
 }
 
-/* Responsive: return to a vertical reading order on narrow screens. */
+{{-- /* Responsive: return to a vertical reading order on narrow screens. */ --}}
 @media (max-width: 620px) {
  .analytics-detail-lead {
  align-items: flex-start;
@@ -4819,12 +4819,12 @@ body.analytics-detail-open { overflow: hidden; }
  }
 }
 
-/* ANALYTICS COLORED DASHBOARD CARDS START */
+{{-- /* ANALYTICS COLORED DASHBOARD CARDS START */ --}}
 
-/*
+{{-- /*
  * Analytics KPI cards intentionally match the colored Dashboard KPI cards.
  * Visual only — no Analytics data or behavior is changed.
- */
+ */ --}}
 
 .analytics-page .analytics-kpis {
  display: grid !important;
@@ -4834,9 +4834,9 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
  BASE CARD
- ========================================================= */
+ ========================================================= */ --}}
 
 .analytics-page .analytics-kpi-card {
  --card-from: #2588ef;
@@ -4891,7 +4891,7 @@ body.analytics-detail-open { overflow: hidden; }
 
 
 
-/* subtle dashboard-style curved highlight at the foot */
+{{-- /* subtle dashboard-style curved highlight at the foot */ --}}
 .analytics-page .analytics-kpi-card::before {
  content: "" !important;
 
@@ -4913,7 +4913,7 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* second soft layer to avoid a flat color block */
+{{-- /* second soft layer to avoid a flat color block */ --}}
 .analytics-page .analytics-kpi-card::after {
  content: "" !important;
 
@@ -4940,9 +4940,9 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
  LARGE CIRCULAR ICON
- ========================================================= */
+ ========================================================= */ --}}
 
 .analytics-page .analytics-kpi-card-icon {
  grid-column: 1 !important;
@@ -4970,9 +4970,9 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
  LABEL
- ========================================================= */
+ ========================================================= */ --}}
 
 .analytics-page .analytics-kpi-card-label {
  grid-column: 2 !important;
@@ -5001,9 +5001,9 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
  VALUE
- ========================================================= */
+ ========================================================= */ --}}
 
 .analytics-page .analytics-kpi-card-value {
  grid-column: 2 !important;
@@ -5026,9 +5026,9 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
  NOTE
- ========================================================= */
+ ========================================================= */ --}}
 
 .analytics-page .analytics-kpi-card-note {
  grid-column: 2 / span 2 !important;
@@ -5052,9 +5052,9 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
  PERIOD COMPARISON
- ========================================================= */
+ ========================================================= */ --}}
 
 .analytics-page .analytics-kpi-card-meta {
  grid-column: 2 / span 2 !important;
@@ -5076,9 +5076,9 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
  TOP-RIGHT ARROW CIRCLE
- ========================================================= */
+ ========================================================= */ --}}
 
 .analytics-page .analytics-kpi-card-arrow {
  position: absolute !important;
@@ -5113,9 +5113,9 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
  INTERACTION
- ========================================================= */
+ ========================================================= */ --}}
 
 .analytics-page .analytics-kpi-card:hover {
  color: #fff !important;
@@ -5139,12 +5139,12 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
  SEMANTIC DASHBOARD COLORS
- ========================================================= */
+ ========================================================= */ --}}
 
 
-/* BLUE — general/request activity */
+{{-- /* BLUE — general/request activity */ --}}
 .analytics-page .analytics-kpi-card.tone-requests,
 .analytics-page .analytics-kpi-card.tone-released,
 .analytics-page .analytics-kpi-card.tone-quantity {
@@ -5154,7 +5154,7 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* GREEN — healthy/current/available */
+{{-- /* GREEN — healthy/current/available */ --}}
 .analytics-page .analytics-kpi-card.tone-custody,
 .analytics-page .analytics-kpi-card.tone-available,
 .analytics-page .analytics-kpi-card.tone-ontime {
@@ -5164,7 +5164,7 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* RED — overdue/problem/accountability */
+{{-- /* RED — overdue/problem/accountability */ --}}
 .analytics-page .analytics-kpi-card.tone-overdue,
 .analytics-page .analytics-kpi-card.tone-attention {
  --card-from: #ff6064;
@@ -5173,7 +5173,7 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* ORANGE — warning/risk/stock */
+{{-- /* ORANGE — warning/risk/stock */ --}}
 .analytics-page .analytics-kpi-card.tone-stock,
 .analytics-page .analytics-kpi-card.tone-units {
  --card-from: #ffbc45;
@@ -5182,11 +5182,11 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
  FORECAST CARDS
  Prevent older forecast-specific sizing from overriding
  the universal Dashboard card geometry.
- ========================================================= */
+ ========================================================= */ --}}
 
 .analytics-page .analytics-forecast-kpis .analytics-kpi-card {
  grid-template-columns: 58px minmax(0, 1fr) 30px !important;
@@ -5218,9 +5218,9 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
  RESPONSIVE
- ========================================================= */
+ ========================================================= */ --}}
 
 @media (max-width: 1050px) {
  .analytics-page .analytics-kpis {
@@ -5250,11 +5250,11 @@ body.analytics-detail-open { overflow: hidden; }
  }
 }
 
-/* ANALYTICS COLORED DASHBOARD CARDS END */
+{{-- /* ANALYTICS COLORED DASHBOARD CARDS END */ --}}
 
-/* ANALYTICS KPI TYPOGRAPHY START */
+{{-- /* ANALYTICS KPI TYPOGRAPHY START */ --}}
 
-/* Label */
+{{-- /* Label */ --}}
 .analytics-page .analytics-kpi-card-label {
  font-size: 12px !important;
  font-weight: 800 !important;
@@ -5262,21 +5262,21 @@ body.analytics-detail-open { overflow: hidden; }
  letter-spacing: 0 !important;
 }
 
-/* Main numeric value */
+{{-- /* Main numeric value */ --}}
 .analytics-page .analytics-kpi-card-value {
  font-size: 30px !important;
  font-weight: 800 !important;
  line-height: 1.05 !important;
 }
 
-/* Text-based KPI values */
+{{-- /* Text-based KPI values */ --}}
 .analytics-page .analytics-kpi-card-value.is-text {
  font-size: 19px !important;
  font-weight: 800 !important;
  line-height: 1.15 !important;
 }
 
-/* Supporting description */
+{{-- /* Supporting description */ --}}
 .analytics-page .analytics-kpi-card-note {
  margin-top: 5px !important;
  font-size: 11px !important;
@@ -5284,7 +5284,7 @@ body.analytics-detail-open { overflow: hidden; }
  line-height: 1.4 !important;
 }
 
-/* Comparison / previous-period text */
+{{-- /* Comparison / previous-period text */ --}}
 .analytics-page .analytics-kpi-card-meta {
  margin-top: 4px !important;
  font-size: 10px !important;
@@ -5292,7 +5292,7 @@ body.analytics-detail-open { overflow: hidden; }
  line-height: 1.35 !important;
 }
 
-/* Keep longer labels readable without making cards uneven */
+{{-- /* Keep longer labels readable without making cards uneven */ --}}
 .analytics-page .analytics-kpi-card-label {
  -webkit-line-clamp: 2 !important;
 }
@@ -5301,16 +5301,16 @@ body.analytics-detail-open { overflow: hidden; }
  -webkit-line-clamp: 2 !important;
 }
 
-/* ANALYTICS KPI TYPOGRAPHY END */
+{{-- /* ANALYTICS KPI TYPOGRAPHY END */ --}}
 
-/* ANALYTICS KPI META VISIBILITY START */
+{{-- /* ANALYTICS KPI META VISIBILITY START */ --}}
 
-/* Remove previous-period / comparison text under Analytics KPI cards */
+{{-- /* Remove previous-period / comparison text under Analytics KPI cards */ --}}
 .analytics-page .analytics-kpi-card-meta {
  display: none !important;
 }
 
-/* Tighten spacing after removing the meta line */
+{{-- /* Tighten spacing after removing the meta line */ --}}
 .analytics-page .analytics-kpi-card-note {
  margin-bottom: 0 !important;
 }
@@ -5319,18 +5319,18 @@ body.analytics-detail-open { overflow: hidden; }
  row-gap: 2px !important;
 }
 
-/* ANALYTICS KPI META VISIBILITY END */
+{{-- /* ANALYTICS KPI META VISIBILITY END */ --}}
 
-/* ANALYTICS UNIQUE ROW COLORS START */
+{{-- /* ANALYTICS UNIQUE ROW COLORS START */ --}}
 
-/*
+{{-- /*
  * Every 4-card Analytics KPI row uses four visually distinct colors.
  * Both legacy and current gradient variables are assigned so the palette
  * remains stable regardless of which KPI visual block is active.
- */
+ */ --}}
 
 
-/* BLUE ------------------------------------------------------- */
+{{-- /* BLUE ------------------------------------------------------- */ --}}
 .analytics-page .analytics-kpi-card.tone-requests {
  --card-from: #39a7f4 !important;
  --card-to: #176bdd !important;
@@ -5342,7 +5342,7 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* PURPLE ----------------------------------------------------- */
+{{-- /* PURPLE ----------------------------------------------------- */ --}}
 .analytics-page .analytics-kpi-card.tone-quantity,
 .analytics-page .analytics-kpi-card.tone-accountability {
  --card-from: #8868f4 !important;
@@ -5355,7 +5355,7 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* GREEN ------------------------------------------------------ */
+{{-- /* GREEN ------------------------------------------------------ */ --}}
 .analytics-page .analytics-kpi-card.tone-released,
 .analytics-page .analytics-kpi-card.tone-custody,
 .analytics-page .analytics-kpi-card.tone-available,
@@ -5370,7 +5370,7 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* ORANGE ----------------------------------------------------- */
+{{-- /* ORANGE ----------------------------------------------------- */ --}}
 .analytics-page .analytics-kpi-card.tone-units,
 .analytics-page .analytics-kpi-card.tone-stock {
  --card-from: #ffbd49 !important;
@@ -5383,7 +5383,7 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* RED -------------------------------------------------------- */
+{{-- /* RED -------------------------------------------------------- */ --}}
 .analytics-page .analytics-kpi-card.tone-overdue,
 .analytics-page .analytics-kpi-card.tone-attention {
  --card-from: #ff6268 !important;
@@ -5395,21 +5395,21 @@ body.analytics-detail-open { overflow: hidden; }
  --kpi-glow: rgba(223, 45, 54, .22) !important;
 }
 
-/* ANALYTICS UNIQUE ROW COLORS END */
+{{-- /* ANALYTICS UNIQUE ROW COLORS END */ --}}
 
-/* ANALYTICS FORCED UNIQUE KPI PALETTE START */
+{{-- /* ANALYTICS FORCED UNIQUE KPI PALETTE START */ --}}
 
-/*
+{{-- /*
  * Final Analytics KPI palette.
  * Card types retain their original palette regardless of the displayed value.
  * Zero and nonzero values use the same gradients and shadows.
- */
+ */ --}}
 
 
-/* ============================================================
+{{-- /* ============================================================
  OVERVIEW
  Blue | Green | Red | Orange
- ============================================================ */
+ ============================================================ */ --}}
 
 .analytics-page .analytics-kpis-overview > .analytics-kpi-card:nth-child(1) {
  background: linear-gradient(135deg, #39a7f4 0%, #176bdd 100%) !important;
@@ -5432,10 +5432,10 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
  DEMAND & UTILIZATION
  Blue | Purple | Green | Orange
- ============================================================ */
+ ============================================================ */ --}}
 
 .analytics-page .analytics-kpis-demand > .analytics-kpi-card:nth-child(1) {
  background: linear-gradient(135deg, #39a7f4 0%, #176bdd 100%) !important;
@@ -5458,10 +5458,10 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
  INVENTORY HEALTH
  Green | Purple | Blue | Red
- ============================================================ */
+ ============================================================ */ --}}
 
 .analytics-page .analytics-kpis-inventory > .analytics-kpi-card:nth-child(1) {
  background: linear-gradient(135deg, #35c7a4 0%, #0c987b 100%) !important;
@@ -5484,10 +5484,10 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
  BORROWING & RETURN PERFORMANCE
  Green | Red | Orange | Purple
- ============================================================ */
+ ============================================================ */ --}}
 
 .analytics-page .analytics-kpis-returns > .analytics-kpi-card:nth-child(1) {
  background: linear-gradient(135deg, #35c7a4 0%, #0c987b 100%) !important;
@@ -5510,10 +5510,10 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
  FORECAST & PLANNING
  Purple | Blue | Green | Red
- ============================================================ */
+ ============================================================ */ --}}
 
 .analytics-page .analytics-kpis-forecast > .analytics-kpi-card:nth-child(1) {
  background: linear-gradient(135deg, #8c70f6 0%, #5f43df 100%) !important;
@@ -5536,7 +5536,7 @@ body.analytics-detail-open { overflow: hidden; }
 }
 
 
-/* keep text/icons consistently white regardless of old tone rules */
+{{-- /* keep text/icons consistently white regardless of old tone rules */ --}}
 .analytics-page
 .analytics-kpis-overview > .analytics-kpi-card,
 .analytics-page
@@ -5587,7 +5587,7 @@ body.analytics-detail-open { overflow: hidden; }
  color: #fff !important;
 }
 
-/* ANALYTICS FORCED UNIQUE KPI PALETTE END */
+{{-- /* ANALYTICS FORCED UNIQUE KPI PALETTE END */ --}}
 
 
 

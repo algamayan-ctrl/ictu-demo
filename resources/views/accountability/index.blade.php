@@ -362,12 +362,12 @@
 @media (max-width: 560px) { .head-case-summary, .head-offense-preview, .head-offense-choices { grid-template-columns:1fr; } }
 
 
-/* ACCOUNTABILITY THREE KPI CARDS START */
+{{-- /* ACCOUNTABILITY THREE KPI CARDS START */ --}}
 
-/*
+{{-- /*
  * Head/Admin overview:
  * three primary cards fill the complete available row.
- */
+ */ --}}
 .accountability-overview {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -380,41 +380,41 @@
     max-width: none !important;
 }
 
-/* Tablet */
+{{-- /* Tablet */ --}}
 @media (max-width: 1050px) {
     .accountability-overview {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 }
 
-/* Mobile */
+{{-- /* Mobile */ --}}
 @media (max-width: 640px) {
     .accountability-overview {
         grid-template-columns: 1fr !important;
     }
 }
 
-/* ACCOUNTABILITY THREE KPI CARDS END */
+{{-- /* ACCOUNTABILITY THREE KPI CARDS END */ --}}
 
-/* ==========================================================
+{{-- /* ==========================================================
    ACCOUNTABILITY ROLE-BASED CARD COLORS START
-   ========================================================== */
+   ========================================================== */ --}}
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | KPI colors should depend on card role / label,
 | not on visual position.
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 
 [data-accountability-card-label] {
     position: relative;
     overflow: hidden;
 }
 
-/* -------------------------
+{{-- /* -------------------------
    Needs My Decision = BLUE
-   ------------------------- */
+   ------------------------- */ --}}
 [data-accountability-card-label="Needs My Decision"] {
     background: linear-gradient(135deg, #2f5fe3 0%, #39a9f3 100%) !important;
     color: #ffffff !important;
@@ -431,9 +431,9 @@
     border-color: rgba(255,255,255,.22) !important;
 }
 
-/* --------------------------------------------
+{{-- /* --------------------------------------------
    Ready for Closure / For Final Resolution = GREEN
-   -------------------------------------------- */
+   -------------------------------------------- */ --}}
 [data-accountability-card-label="Ready for Closure"],
 [data-accountability-card-label="For Final Resolution"] {
     background: linear-gradient(135deg, #129a74 0%, #1dbf8a 100%) !important;
@@ -455,9 +455,9 @@
     border-color: rgba(255,255,255,.22) !important;
 }
 
-/* ------------------------------------------------
+{{-- /* ------------------------------------------------
    Pending Physical Verification = AMBER / ORANGE
-   ------------------------------------------------ */
+   ------------------------------------------------ */ --}}
 [data-accountability-card-label="Pending Physical Verification"] {
     background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%) !important;
     color: #ffffff !important;
@@ -474,9 +474,9 @@
     border-color: rgba(255,255,255,.22) !important;
 }
 
-/* ------------------------------------
+{{-- /* ------------------------------------
    Open Accountability Cases = RED
-   ------------------------------------ */
+   ------------------------------------ */ --}}
 [data-accountability-card-label="Open Accountability Cases"] {
     background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%) !important;
     color: #ffffff !important;
@@ -493,9 +493,9 @@
     border-color: rgba(255,255,255,.22) !important;
 }
 
-/* -----------------------------
+{{-- /* -----------------------------
    Unsettled Accountability Charges = AMBER
-   ----------------------------- */
+   ----------------------------- */ --}}
 [data-accountability-card-label="Unsettled Accountability Charges"] {
     background: linear-gradient(135deg, #dd8b00 0%, #f2a300 100%) !important;
     color: #ffffff !important;
@@ -512,20 +512,20 @@
     border-color: rgba(255,255,255,.22) !important;
 }
 
-/* Keep subtle decorative bubble visible on colored cards */
+{{-- /* Keep subtle decorative bubble visible on colored cards */ --}}
 [data-accountability-card-label]::before,
 [data-accountability-card-label]::after {
     opacity: 1 !important;
 }
 
-/* ==========================================================
+{{-- /* ==========================================================
    ACCOUNTABILITY ROLE-BASED CARD COLORS END
-   ========================================================== */
+   ========================================================== */ --}}
 </style>
 @include('accountability.partials.oversight-styles')
 <style>
-/* Accountability KPI cards use the same full-color visual family as Analytics.
-   Meaning remains role-specific; only the visual component is unified. */
+{{-- /* Accountability KPI cards use the same full-color visual family as Analytics.
+   Meaning remains role-specific; only the visual component is unified. */ --}}
 .accountability-overview {
     display:grid;
     grid-template-columns:repeat(4,minmax(0,1fr));
@@ -652,7 +652,7 @@ html[data-theme="dark"] .accountability-overview-card.tone-balance { --tone-from
 :root[data-theme="dark"] .accountability-overview-card.tone-resolved,
 html[data-theme="dark"] .accountability-overview-card.tone-resolved { --tone-from:#115e59; --tone-to:#059669; --tone-glow:rgba(0,0,0,.42); }
 
-/* Case identity: make borrower/reference/status scannable instead of one bold line. */
+{{-- /* Case identity: make borrower/reference/status scannable instead of one bold line. */ --}}
 .accountability-case-ref {
     align-items:center;
     gap:5px 0;
@@ -679,7 +679,7 @@ html[data-theme="dark"] .accountability-overview-card.tone-resolved { --tone-fro
 }
 .accountability-case-ref > .accountability-case-ref__restriction::after { content:none; }
 
-/* Concise flag on the collapsed row - full reason/dates live in the expanded Borrowing Restriction panel instead. */
+{{-- /* Concise flag on the collapsed row - full reason/dates live in the expanded Borrowing Restriction panel instead. */ --}}
 .accountability-restriction-flag {
     display:block;
     margin-top:2px;
@@ -703,8 +703,8 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     background:var(--surface-subtle);
 }
 
-/* A current action exposes one true CTA. The billing form does not need a
-   second disclosure button repeating the same action name. */
+{{-- /* A current action exposes one true CTA. The billing form does not need a
+   second disclosure button repeating the same action name. */ --}}
 .accountability-action-body--direct {
     margin-top:10px;
     padding-top:12px;
@@ -725,14 +725,14 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     .accountability-overview { grid-template-columns:1fr; }
 }
 
-/*
+{{-- /*
  | The heading action sits at the upper right of this heading only. The global
  | .page-heading is already a space-between flex row, so the button needs no
  | float or absolute positioning - only the cross-axis start alignment that
  | levels it with the title block instead of the subtitle baseline. Below
  | 768px app.css turns .page-heading into a column, so it wraps under the
  | heading on its own; flex-shrink keeps the label on one line above that.
- */
+ */ --}}
 .accountability-heading { align-items: flex-start; }
 .accountability-heading > .accountability-heading-action { flex-shrink: 0; }
 
@@ -988,9 +988,9 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 @endphp
 
 <style>
-/* ACCOUNTABILITY UNIVERSAL KPI DASHBOARD START */
+{{-- /* ACCOUNTABILITY UNIVERSAL KPI DASHBOARD START */ --}}
 
-/* Accountability KPI cards intentionally reuse the established white-card design above. */
+{{-- /* Accountability KPI cards intentionally reuse the established white-card design above. */ --}}
 
 </style>
 
@@ -2809,12 +2809,12 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 {{-- ACCOUNTABILITY TABLE BROWSER + PAGINATION START --}}
 
 <style>
-/* ACCOUNTABILITY FILTER ALIGNMENT START */
+{{-- /* ACCOUNTABILITY FILTER ALIGNMENT START */ --}}
 
-/*
+{{-- /*
  * Compact filter layout.
  * Search stays wider while dropdown filters remain beside it.
- */
+ */ --}}
 .accountability-browser-toolbar:has(#accountability-borrower-search) {
     display: grid !important;
     grid-template-columns:
@@ -2846,7 +2846,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     gap: 12px !important;
 }
 
-/* Remove inherited width limits inside these compact toolbars. */
+{{-- /* Remove inherited width limits inside these compact toolbars. */ --}}
 .accountability-browser-toolbar:has(#accountability-borrower-search)
 :is(.accountability-browser-search, .accountability-browser-filter),
 .accountability-browser-toolbar:has(#resolved-history-search)
@@ -2885,7 +2885,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     box-sizing: border-box !important;
 }
 
-/* Uniform label spacing. */
+{{-- /* Uniform label spacing. */ --}}
 .accountability-browser-toolbar:has(#accountability-borrower-search)
 :is(.accountability-browser-search, .accountability-browser-filter) > span:first-child,
 .accountability-browser-toolbar:has(#resolved-history-search)
@@ -2897,7 +2897,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     margin-bottom: 6px;
 }
 
-/* Tablet */
+{{-- /* Tablet */ --}}
 @media (max-width: 980px) {
     .accountability-browser-toolbar:has(#accountability-borrower-search),
     .accountability-sanctions-toolbar {
@@ -2913,7 +2913,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     }
 }
 
-/* Mobile */
+{{-- /* Mobile */ --}}
 @media (max-width: 760px) {
     .accountability-browser-toolbar:has(#accountability-borrower-search),
     .accountability-browser-toolbar:has(#resolved-history-search),
@@ -2922,7 +2922,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     }
 }
 
-/* ACCOUNTABILITY FILTER ALIGNMENT END */
+{{-- /* ACCOUNTABILITY FILTER ALIGNMENT END */ --}}
 </style>
 <style>
 .accountability-table-browser-footer {
@@ -3141,9 +3141,9 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     }
 
 
-    /* ======================================================
-       ALL ACTIVE CASES
-       ====================================================== */
+
+
+
 
     const borrowerBody =
         document.getElementById('accountability-borrower-body');
@@ -3251,9 +3251,9 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     }
 
 
-    /* ======================================================
-       RESOLVED HISTORY
-       ====================================================== */
+
+
+
 
     const history =
         document.getElementById('resolved-history');
@@ -3373,11 +3373,11 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             );
         };
 
-        /*
-         * Existing History filtering executes first.
-         * queueMicrotask lets pagination apply after that filter
-         * without changing its existing behavior.
-         */
+
+
+
+
+
         search?.addEventListener('input', () => {
             currentPage = 1;
             queueMicrotask(renderHistory);
@@ -3404,7 +3404,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 </script>
 
 <script>
-/* SANCTIONS CLIENT FILTER START */
+
 (() => {
     const search = document.querySelector('#accountability-sanction-search');
     const status = document.querySelector('#accountability-sanction-status');
@@ -3432,10 +3432,10 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         header => header.textContent.trim().toLocaleLowerCase() === 'status'
     );
 
-    /*
-     * Build Status options from the statuses actually rendered
-     * by the system. No sanction status is invented here.
-     */
+
+
+
+
     const renderedStatuses = new Map();
 
     rows.forEach(row => {
@@ -3521,7 +3521,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 
     applyFilters();
 })();
-/* SANCTIONS CLIENT FILTER END */
+
 </script>
 {{-- ACCOUNTABILITY TABLE BROWSER + PAGINATION END --}}
 
@@ -3723,12 +3723,12 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     line-height: 1.4;
 }
 
-/* ACCOUNTABILITY SECONDARY BUTTON HOVER CONSISTENCY */
-/*
+{{-- /* ACCOUNTABILITY SECONDARY BUTTON HOVER CONSISTENCY */ --}}
+{{-- /*
  * Preserve the normal appearance of secondary controls.
  * On hover/focus, white/plain Accountability actions use the standard
  * interactive blue feedback. Active and disabled controls are excluded.
- */
+ */ --}}
 .button.secondary:not(:disabled):not([aria-disabled="true"]):not(.is-active):hover,
 .button.secondary:not(:disabled):not([aria-disabled="true"]):not(.is-active):focus-visible {
     color: #fff !important;

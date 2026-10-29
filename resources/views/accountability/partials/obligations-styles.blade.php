@@ -1,5 +1,5 @@
 <style>
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Borrower - My Obligations (Grouped)
 |--------------------------------------------------------------------------
@@ -8,7 +8,7 @@
 | obligation card so Incident + Billing + Restriction do not look like three
 | different problems.
 |
-*/
+*/ --}}
 
 .ob-workspace {
     display: grid;
@@ -37,7 +37,7 @@
     font-size: 12px;
 }
 
-/* Record summary --------------------------------------------------------- */
+{{-- /* Record summary --------------------------------------------------------- */ --}}
 
 .ob-summary {
     display: grid;
@@ -45,8 +45,8 @@
     gap: 12px;
 }
 
-/* Universal KPI card: matches Admin/AO/Borrower dashboard and the SPMU
-   accountability summary cards in size, spacing, border and hover rhythm. */
+{{-- /* Universal KPI card: matches Admin/AO/Borrower dashboard and the SPMU
+   accountability summary cards in size, spacing, border and hover rhythm. */ --}}
 .ob-summary-card {
     --ob-accent: var(--info);
     --ob-hover: rgba(23, 105, 224, .045);
@@ -138,7 +138,7 @@ html[data-theme="dark"] .ob-summary-card.is-success {
     --ob-tint: var(--surface-subtle);
 }
 
-/* Current obligations heading ------------------------------------------- */
+{{-- /* Current obligations heading ------------------------------------------- */ --}}
 
 .ob-current-header {
     display: flex;
@@ -175,7 +175,7 @@ html[data-theme="dark"] .ob-summary-card.is-success {
     margin: 0;
 }
 
-/* Obligation cards ------------------------------------------------------- */
+{{-- /* Obligation cards ------------------------------------------------------- */ --}}
 
 .ob-case-list {
     display: grid;
@@ -343,12 +343,12 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
     position: relative;
 }
 
-/*
+{{-- /*
  * One obligation = one obvious primary action. This is the sole visible
  * control on the collapsed card, so it carries the exact same look as the
  * universal primary button used everywhere else in the system (View
  * Request, View Record, and so on) - not a secondary/outline treatment.
- */
+ */ --}}
 .ob-details > summary:not(.disclosure-trigger) {
     display: inline-flex;
     align-items: center;
@@ -392,9 +392,9 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
     transform: rotate(180deg);
 }
 
-/* Expanded obligation: Documents / Borrowing Reference / Restriction /
+{{-- /* Expanded obligation: Documents / Borrowing Reference / Restriction /
    History, each its own labeled group instead of one undifferentiated
-   button row - and never repeating what the collapsed card already shows. */
+   button row - and never repeating what the collapsed card already shows. */ --}}
 .ob-detail-body {
     display: grid;
     gap: 14px;
@@ -534,7 +534,7 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
     text-align: center;
 }
 
-/* Responsive ------------------------------------------------------------- */
+{{-- /* Responsive ------------------------------------------------------------- */ --}}
 
 @media (max-width: 1080px) {
     .ob-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -576,8 +576,8 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
     .ob-detail-grid { grid-template-columns: 1fr; }
 }
 
-/* Borrower summary cards use the same KPI language as the dashboards and
-   AO/Admin accountability summary: white body, colored top accent, tinted icon. */
+{{-- /* Borrower summary cards use the same KPI language as the dashboards and
+   AO/Admin accountability summary: white body, colored top accent, tinted icon. */ --}}
 .ob-summary-card {
     border-top:3px solid var(--ob-accent);
     box-shadow:0 1px 2px rgba(7, 27, 53, .05);
@@ -598,11 +598,11 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
 html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover); }
 
 
-/* -----------------------------------------------------------------------
+{{-- /* -----------------------------------------------------------------------
 | My Obligations summary cards — exact dashboard KPI proportions
 | Matches the SPMU Head / Administrator dashboard card dimensions and
 | information hierarchy while remaining non-clickable summary content.
-| ------------------------------------------------------------------------ */
+| ------------------------------------------------------------------------ */ --}}
 .ob-summary-card {
     position: relative;
     display: grid;
@@ -677,9 +677,9 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     .ob-summary { grid-template-columns: 1fr; }
 }
 
-/* Resolved History disclosure --------------------------------------------
+{{-- /* Resolved History disclosure --------------------------------------------
    Kept out of the way by default so My Obligations stays one clean, active
-   workspace; the borrower's own resolved records remain one click away. */
+   workspace; the borrower's own resolved records remain one click away. */ --}}
 .ob-resolved-history-disclosure {
     margin-top: 4px;
     padding: 16px 18px;
@@ -715,8 +715,8 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 
 </style>
 <style>
-/* Final borrower-facing obligation cleanup: current information first,
-   no hover affordance on summary-only cards, and one consistent disclosure. */
+{{-- /* Final borrower-facing obligation cleanup: current information first,
+   no hover affordance on summary-only cards, and one consistent disclosure. */ --}}
 .ob-workspace { gap: 18px; }
 
 .ob-summary-card {
@@ -763,8 +763,8 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* Compact borrower surface: do not let an empty My Obligations workspace
-   stretch its lone state card to the remaining viewport height. */
+{{-- /* Compact borrower surface: do not let an empty My Obligations workspace
+   stretch its lone state card to the remaining viewport height. */ --}}
 .app-main > .ob-workspace {
     flex: 0 0 auto;
     width: 100%;
@@ -815,16 +815,16 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 </style>
 
 <style>
-/* MY OBLIGATIONS FULL COLOR KPI START */
+{{-- /* MY OBLIGATIONS FULL COLOR KPI START */ --}}
 
-/*
+{{-- /*
  | Exact visual alignment with the main role dashboard KPI cards.
  | Presentation only.
- */
+ */ --}}
 
-/* ============================================================
+{{-- /* ============================================================
    GRID
-   ============================================================ */
+   ============================================================ */ --}}
 
 .ob-workspace .ob-summary {
     display:grid !important;
@@ -834,9 +834,9 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
    CARD
-   ============================================================ */
+   ============================================================ */ --}}
 
 .ob-workspace .ob-summary-card {
     --ob-from:#32a5f5;
@@ -891,9 +891,9 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
    DASHBOARD LOWER CURVE
-   ============================================================ */
+   ============================================================ */ --}}
 
 .ob-workspace .ob-summary-card::before {
     content:"" !important;
@@ -916,9 +916,9 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
    DASHBOARD ARROW
-   ============================================================ */
+   ============================================================ */ --}}
 
 .ob-workspace .ob-summary-card::after {
     content:"→" !important;
@@ -957,15 +957,15 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
    UNIVERSAL DASHBOARD SEMANTIC COLORS
-   ============================================================ */
+   ============================================================ */ --}}
 
-/*
+{{-- /*
  | RED
  | Active Obligations = same metric and same semantic treatment
  | as the Borrower Dashboard.
- */
+ */ --}}
 .ob-workspace .ob-summary-card.is-info {
     --ob-from:#fb5d5d;
     --ob-mid:#ea3939;
@@ -974,10 +974,10 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/*
+{{-- /*
  | BLUE
  | Needs My Action = primary/current action.
- */
+ */ --}}
 .ob-workspace .ob-summary-card.is-warning {
     --ob-from:#32a5f5;
     --ob-mid:#1479ea;
@@ -986,10 +986,10 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/*
+{{-- /*
  | AMBER
  | My Unsettled Charges = financial warning / unpaid amount.
- */
+ */ --}}
 .ob-workspace .ob-summary-card.is-orange {
     --ob-from:#ffc443;
     --ob-mid:#f6a10c;
@@ -998,10 +998,10 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/*
+{{-- /*
  | GREEN
  | Borrowing status clear.
- */
+ */ --}}
 .ob-workspace .ob-summary-card.is-success {
     --ob-from:#2acb9e;
     --ob-mid:#12ab83;
@@ -1010,11 +1010,11 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/*
+{{-- /*
  | If Borrowing Status becomes restricted, its existing Blade
  | changes the tone to warning. Since "warning" above is used by
  | Needs My Action, override the last card specifically to amber.
- */
+ */ --}}
 .ob-workspace .ob-summary-card:last-child.is-warning {
     --ob-from:#ffc443;
     --ob-mid:#f6a10c;
@@ -1023,7 +1023,7 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* Future danger support */
+{{-- /* Future danger support */ --}}
 .ob-workspace .ob-summary-card.is-danger {
     --ob-from:#fb5d5d;
     --ob-mid:#ea3939;
@@ -1032,9 +1032,9 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
    ICON
-   ============================================================ */
+   ============================================================ */ --}}
 
 .ob-workspace .ob-summary-icon {
     grid-column:1 !important;
@@ -1067,9 +1067,9 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
    LABEL
-   ============================================================ */
+   ============================================================ */ --}}
 
 .ob-workspace .ob-summary-label {
     grid-column:2 !important;
@@ -1097,9 +1097,9 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
    VALUE
-   ============================================================ */
+   ============================================================ */ --}}
 
 .ob-workspace .ob-summary-value {
     grid-column:2 !important;
@@ -1123,15 +1123,15 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* My Unsettled Charges */
+{{-- /* My Unsettled Charges */ --}}
 .ob-workspace .ob-summary-card.is-orange .ob-summary-value {
     font-size:28px !important;
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
    NOTE
-   ============================================================ */
+   ============================================================ */ --}}
 
 .ob-workspace .ob-summary-note {
     grid-column:2 !important;
@@ -1155,9 +1155,9 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
    HOVER
-   ============================================================ */
+   ============================================================ */ --}}
 
 .ob-workspace .ob-summary-card:hover {
     background:
@@ -1182,15 +1182,15 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
    REMOVE FILTER-SELECTION VISUAL DIFFERENCE
-   ============================================================ */
+   ============================================================ */ --}}
 
-/*
+{{-- /*
  | The URL focus behavior still works.
  | We only remove the special yellow/white outline so cards remain
  | visually identical to dashboard cards.
- */
+ */ --}}
 
 .ob-workspace .ob-summary-card.is-selected,
 .ob-workspace .ob-summary-card[aria-current="true"] {
@@ -1208,22 +1208,22 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* keyboard accessibility remains visible */
+{{-- /* keyboard accessibility remains visible */ --}}
 .ob-workspace .ob-summary-card:focus-visible {
     outline:2px solid rgba(255,255,255,.95) !important;
     outline-offset:2px !important;
 }
 
 
-/* Zero values retain full semantic color */
+{{-- /* Zero values retain full semantic color */ --}}
 .ob-workspace .ob-summary-card.is-empty {
     opacity:1 !important;
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
    RESPONSIVE
-   ============================================================ */
+   ============================================================ */ --}}
 
 @media (max-width:1100px) {
 
@@ -1260,11 +1260,11 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 
 }
 
-/* MY OBLIGATIONS FULL COLOR KPI END */
+{{-- /* MY OBLIGATIONS FULL COLOR KPI END */ --}}
 </style>
 
 <style>
-/* MY OBLIGATIONS ALL CLEAR PANEL START */
+{{-- /* MY OBLIGATIONS ALL CLEAR PANEL START */ --}}
 
 .ob-workspace
 .ob-clear-card.ob-all-clear-card {
@@ -1303,7 +1303,7 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* ICON */
+{{-- /* ICON */ --}}
 
 .ob-workspace
 .ob-all-clear-icon {
@@ -1332,7 +1332,7 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* COPY */
+{{-- /* COPY */ --}}
 
 .ob-workspace
 .ob-all-clear-copy {
@@ -1365,7 +1365,7 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 
 
-/* VIEW HISTORY */
+{{-- /* VIEW HISTORY */ --}}
 
 .ob-workspace
 .ob-all-clear-history {
@@ -1426,12 +1426,12 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     }
 }
 
-/* MY OBLIGATIONS ALL CLEAR PANEL END */
+{{-- /* MY OBLIGATIONS ALL CLEAR PANEL END */ --}}
 </style>
 
 <style>
-/* Borrower My Obligations: viewport-filling KPI row and compact record disclosures.
-   The three-card layout must override the older forced four-column KPI CSS. */
+{{-- /* Borrower My Obligations: viewport-filling KPI row and compact record disclosures.
+   The three-card layout must override the older forced four-column KPI CSS. */ --}}
 .ob-workspace { width:100%; min-width:0; gap:14px; align-content:start; }
 .ob-workspace .ob-summary.is-three { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
 .ob-workspace .ob-summary:not(.is-three) { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
@@ -1449,7 +1449,7 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 .ob-workspace .ob-resolved-history-body .resolved-history-card .card-header small { display:block; margin-top:3px; }
 .ob-workspace .ob-resolved-history-body .resolved-history-summary { margin:8px 0 0; padding:7px 0 0; border-top:1px solid var(--border); }
 .ob-workspace .ob-resolved-history-body .resolved-history-card > .accountability-case-details { margin-top:8px; padding:0; }
-/* A collapsed sanctions disclosure must be only its heading, never a full-height panel. */
+{{-- /* A collapsed sanctions disclosure must be only its heading, never a full-height panel. */ --}}
 .ob-sanctions-history { display:block; flex:0 0 auto; align-self:auto; height:auto; min-height:0 !important; width:100%; margin:0; padding:0; overflow:hidden; }
 .ob-sanctions-history > summary { min-height:58px; padding:15px 19px; }
 .ob-sanctions-history:not([open]) > .accountability-sanctions-section { display:none !important; }
@@ -1466,23 +1466,23 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
  .ob-workspace .ob-resolved-history-body { padding:10px; }
  .ob-sanctions-history > .accountability-sanctions-section { padding:10px; }
 }
-/* Final borrower spacing rhythm: no empty grid row in the clear state. */
+{{-- /* Final borrower spacing rhythm: no empty grid row in the clear state. */ --}}
 .ob-workspace { gap: 16px !important; margin: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
 .ob-workspace .ob-summary { gap: 14px !important; margin: 0 !important; }
 .ob-workspace .ob-summary-card { margin: 0 !important; }
 .ob-workspace .ob-resolved-history-disclosure { margin: 0 !important; }
 .ob-workspace .ob-resolved-history-disclosure > summary,
 .ob-sanctions-history > summary { min-height: 60px !important; padding: 16px 20px !important; }
-/* Sanctions follow the self-contained borrower workspace as a separate sibling. */
+{{-- /* Sanctions follow the self-contained borrower workspace as a separate sibling. */ --}}
 body:has(.ob-workspace) #sanction-history { margin-top: 16px !important; margin-bottom: 0 !important; }
-/* Keep the heading close to the dashboard rather than stacking large generic margins. */
+{{-- /* Keep the heading close to the dashboard rather than stacking large generic margins. */ --}}
 body:has(.ob-workspace) .accountability-heading { margin-bottom: 18px !important; padding-bottom: 0 !important; }
 @media (max-width: 660px) {
   .ob-workspace { gap: 12px !important; }
   body:has(.ob-workspace) #sanction-history { margin-top: 12px !important; }
   body:has(.ob-workspace) .accountability-heading { margin-bottom: 14px !important; }
 }
-/* Borrower dashboard: balanced spacing for active and clear states. */
+{{-- /* Borrower dashboard: balanced spacing for active and clear states. */ --}}
 .ob-workspace { gap: 20px !important; align-content: start !important; }
 .ob-workspace .ob-summary { gap: 14px !important; }
 .ob-workspace .ob-summary-card { height: 122px !important; min-height: 122px !important; }
@@ -1515,7 +1515,7 @@ body:has(.ob-workspace) .accountability-heading { margin-bottom: 18px !important
 .ob-workspace .ob-next-action > strong { font-size: 12px; font-weight: 650; }
 .ob-workspace .ob-case-actions { margin-top: 11px !important; }
 .ob-workspace .ob-resolved-history-disclosure { margin: 0 !important; }
-/* Sanction disclosure is a sibling, not a child of .ob-workspace. */
+{{-- /* Sanction disclosure is a sibling, not a child of .ob-workspace. */ --}}
 body:has(.ob-workspace) #sanction-history { margin: 18px 0 0 !important; }
 @media(max-width:1000px) {
  .ob-workspace .ob-summary-card { height: 122px !important; }
@@ -1530,7 +1530,7 @@ body:has(.ob-workspace) #sanction-history { margin: 18px 0 0 !important; }
  .ob-workspace .ob-case-actions { margin-left: 0; }
  body:has(.ob-workspace) #sanction-history { margin-top: 16px !important; }
 }
-/* Only My Unsettled Charges uses blue when the balance is zero. */
+{{-- /* Only My Unsettled Charges uses blue when the balance is zero. */ --}}
 .ob-workspace .ob-summary-card.is-blue {
     --ob-from:#38a0f2;
     --ob-mid:#1777dc;

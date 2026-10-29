@@ -6,17 +6,17 @@
     max-width: 100%;
     color: var(--text);
     font-size: 13px;
-    /* This is .app-main's only child on this page, so it - not a nested
+    {{-- /* This is .app-main's only child on this page, so it - not a nested
        .content-area - is what needs to fill the remaining viewport height
-       when there are no Gate Pass records yet. */
+       when there are no Gate Pass records yet. */ --}}
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
 }
 .gate-pass-browser [hidden] { display: none !important; }
-/* Only the true "no records" panel grows to fill the leftover space; a
-   populated toolbar/table keeps its natural height. */
+{{-- /* Only the true "no records" panel grows to fill the leftover space; a
+   populated toolbar/table keeps its natural height. */ --}}
 .gate-pass-browser > .gate-pass-empty-card { flex: 1 1 auto; }
 .gate-pass-browser .gate-pass-heading { margin: 0 0 20px; }
 .gate-pass-browser .gate-pass-heading .eyebrow { margin-bottom: 9px; font-size: 9.5px; letter-spacing: .1em; }
@@ -155,7 +155,7 @@ html[data-theme="dark"] .gate-pass-browser { --gate-pass-blue: #72b7f4; }
     .gate-pass-browser .gate-pass-toolbar { grid-template-columns: minmax(0, 1fr); }
     .gate-pass-toolbar > label:first-child { grid-column: auto; }
 }
-/* Compact Gate Pass actions and clear hover/focus labels */
+{{-- /* Compact Gate Pass actions and clear hover/focus labels */ --}}
 .gate-pass-browser .gate-pass-table th:last-child,
 .gate-pass-browser .gate-pass-table td:last-child { text-align: center; }
 .gate-pass-browser .gate-pass-row-actions { display: flex; justify-content: center; align-items: center; flex-wrap: nowrap; gap: 7px; overflow: visible; }

@@ -107,6 +107,7 @@ class LaundryController extends Controller
         $laundryJob->load([
             'custody.borrower',
             'custody.request.currentVersion',
+            'custody.returns.receivedBy',
             'custody.lines.requestItem.inventoryItem',
             'document.file',
             'latestEvidence.file',
@@ -114,8 +115,16 @@ class LaundryController extends Controller
             'lines.custodyLine.requestItem.inventoryItem.unit',
         ]);
 
+        $linenReturnIds = $laundryJob->lines
+            ->flatMap(fn ($line) => $line->custodyLine?->returnLines ?? collect())
+            ->pluck('return_transaction_id')->unique();
+        $recordedReturn = $laundryJob->custody->returns
+            ->whereIn('id', $linenReturnIds)
+            ->sortByDesc('created_at')->first();
+
         return view('laundry.show', [
             'job' => $laundryJob,
+            'recordedReturn' => $recordedReturn,
         ]);
     }
 

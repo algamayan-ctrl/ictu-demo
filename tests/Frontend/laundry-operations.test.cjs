@@ -12,7 +12,6 @@ const styles = partial('operations-styles');
 const interactions = partial('operations-interactions');
 const detail = read('resources/views/laundry/show.blade.php');
 const detailStyles = read('resources/views/laundry/partials/detail-styles.blade.php');
-const progress = read('resources/views/components/laundry-progress-tracker.blade.php');
 const returnWorkspace = read('resources/views/custody/partials/return-workspace.blade.php');
 const script = interactions.match(/<script>([\s\S]*?)<\/script>/)[1];
 
@@ -126,31 +125,23 @@ test('the page keeps active and completed laundry records in one workspace', () 
 });
 
 test('detail view uses the accomplished form as one record instead of tracking wet signatures separately', () => {
-    /*
-     * $formArchived (hasVerifiedAccomplishedForm()) is the single source of
-     * truth driving both the "Completed form" fact and the Availability
-     * state below - there is no separate wet-signature/reclassification
-     * record to keep in sync with it.
-     */
     assert.match(detail, /\$formArchived = \$job->hasVerifiedAccomplishedForm\(\);/);
-    assert.match(detail, /Completed form:<\/dt><dd>\{\{ \$formArchived \? 'Received by SPMU' : 'Pending from Laundry Personnel' \}\}<\/dd>/);
-    assert.match(detail, /SPMU return encoding:<\/dt><dd>\{\{ \$returnEncoded \? 'Complete' : 'Pending' \}\}<\/dd>/);
-    assert.match(detail, /Serviceable quantity:/);
-    assert.match(detail, /Received by Laundry:/);
+    assert.match(detail, /\$serviceableQuantity = \(int\) \$job->lines->sum\('completed_quantity'\)/);
+    assert.match(detail, /Received by Laundry<\/dt>/);
+    assert.match(detail, /Returned in Good Condition<\/dt><dd>\{\{ \$serviceableQuantity \}\}/);
     assert.doesNotMatch(detail, /<dt>.*Issued by:|<dt>.*Received by:|Pending return/);
-    assert.match(detail, /No Action Officer action is required\./);
-    assert.match(detail, /No second linen inspection is required\./);
+    assert.match(detail, /no further action is needed\./);
+    assert.match(detail, /route\('custody\.return\.show', \$job->custody\)/);
+    assert.match(detail, /'#return-primary' : '#return-documents'/);
+    assert.doesNotMatch(detail, /<form|method="post"/);
 });
 
-test('detail tracker is monotonic after SPMU return encoding', () => {
-    /* The tracker was consolidated from 4 steps down to 3: Laundry Processing -> SPMU Return Encoding -> Return Reconciled. */
-    for (const label of ['Laundry Processing', 'SPMU Return Encoding', 'Return Reconciled']) {
-        assert.ok(progress.includes(`'label' => '${label}'`));
-    }
-    assert.match(progress, /\$returnEncoded = \$inspectionComplete/);
-    assert.match(progress, /\$available = \$job->status === 'LAUNDRY_COMPLETED';/);
-    assert.doesNotMatch(progress, /Laundry Receipt & Form|Laundry Complete \/ Available/);
-    assert.match(detailStyles, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+test('detail shows one concise record without a separate offline tracker or duplicate summary', () => {
+    assert.doesNotMatch(detail, /laundry-progress-tracker|Completion Summary|Linen Status|No Laundry portal login/);
+    assert.equal((detail.match(/class="card /g) || []).length, 1);
+    assert.match(detail, /<h2>Return Details<\/h2>/);
+    assert.match(detail, /route\('laundry\.index'\)/);
+    assert.doesNotMatch(detailStyles, /laundry-progress|laundry-next-action/);
 });
 
 test('return workspace keeps the linen instructions concise', () => {
@@ -168,16 +159,13 @@ test('return workspace keeps the linen instructions concise', () => {
     assert.doesNotMatch(returnWorkspace, /I confirm this is the accomplished Laundry Form signed by Laundry Personnel\.|Open (?:Internal )?Laundry Processing/);
 });
 
-test('flow card stays within the content width and reflows without widening the page', () => {
-    const card = styles.match(/\.laundry-operations \.laundry-flow-card \{([\s\S]*?)\}/)[1];
-    assert.match(card, /width: 100%;/);
-    assert.match(card, /min-width: 0;/);
-    assert.match(card, /max-width: 100%;/);
-    assert.match(card, /padding: 0;/);
-    assert.doesNotMatch(card, /\d+vw|min-width: \d+px|min-height/);
-    assert.match(styles, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
-    assert.match(styles, /@media \(max-width: 700px\)/);
-    assert.match(styles, /@media \(max-width: 400px\)/);
+test('Laundry uses the shared page heading and keeps responsive tables within the workspace', () => {
+    assert.ok(page.indexOf('<section class="page-heading">') < page.indexOf('data-laundry-browser'));
+    assert.match(page, /class="content-area laundry-operations"/);
+    assert.match(page, /class="laundry-unified-workspace" data-laundry-tabs/);
+    assert.doesNotMatch(styles, /laundry-flow-card|laundry-operations-heading/);
+    assert.match(styles, /@media \(max-width: 900px\)/);
+    assert.match(styles, /@media \(max-width: 760px\)/);
     assert.match(styles, /\.laundry-table-wrap \{[^}]*overflow-x: auto/);
 });
 
@@ -192,8 +180,10 @@ test('case tables preserve live data, current statuses and protected navigation'
         assert.ok(page.includes(field), `Missing live field: ${field}`);
     }
     /* The hardcoded two-arm status match was replaced by the richer $laundryFilterStatus closure. */
-    assert.match(page, /\$job->status === 'FOR_LAUNDRY' && \$job->hasVerifiedAccomplishedForm\(\)\s+=> \['key' => 'READY_FOR_SPMU_ENCODING', 'label' => 'Ready for SPMU Encoding'\]/);
-    assert.match(page, /\$job->status === 'TURNED_OVER_TO_LAUNDRY'\s+=> \['key' => 'RECONCILIATION_PENDING', 'label' => 'Reconciliation Pending'\]/);
+    assert.match(page, /\$job->status === 'FOR_LAUNDRY' && \$job->hasVerifiedAccomplishedForm\(\)\s+=> \['key' => 'READY_FOR_SPMU_ENCODING', 'label' => 'For Return Recording'\]/);
+    assert.match(page, /\$job->status === 'TURNED_OVER_TO_LAUNDRY'\s+=> \['key' => 'RECONCILIATION_PENDING', 'label' => 'Updating Record'\]/);
+    assert.match(page, /\$jobs->getCollection\(\)->contains\('status', 'TURNED_OVER_TO_LAUNDRY'\)/);
+    assert.match(page, /\$statusText = \$filterStatus\['label'\];/);
     assert.doesNotMatch(page, /FOR_SPMU_FINAL_CHECK|AWAITING_FINAL_FORM_UPLOAD|READY_FOR_SPMU_RETURN|For SPMU Acceptance/);
     assert.doesNotMatch(page, /Juan Dela Cruz|CSPC Foundation Day 2026|CUS-2026/);
 });

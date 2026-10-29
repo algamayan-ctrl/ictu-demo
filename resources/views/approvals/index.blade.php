@@ -52,11 +52,11 @@
             @endif
 
             <label>
-                Sort
+                {{ $mode === 'ACTION_OFFICER_VERIFICATION' ? 'Queue order' : 'Sort' }}
                 <select id="approval-queue-sort">
                     @if($mode === 'ACTION_OFFICER_VERIFICATION')
-                        <option value="newest">Newest first</option>
-                        <option value="oldest">Oldest first</option>
+                        <option value="oldest">Oldest submitted first</option>
+                        <option value="newest">Newest submitted first</option>
                     @else
                         <option value="oldest">Oldest submitted</option>
                         <option value="newest">Newest submitted</option>
@@ -133,12 +133,12 @@
 @include('approvals.partials.queue-interactions')
 @endsection
 
-<!-- SPMU APPROVAL NOTICE ALIGNMENT START -->
+{{-- <!-- SPMU APPROVAL NOTICE ALIGNMENT START --> --}}
 <style>
-/*
+{{-- /*
  * Keep the approval success notice on the same horizontal grid
  * as the page heading, action button, and approval cards.
- */
+ */ --}}
 .spmu-approval-success-notice {
     box-sizing: border-box !important;
     width: 100% !important;
@@ -170,9 +170,9 @@
     margin-bottom: 0 !important;
 }
 
-/*
+{{-- /*
  * Avoid a visually higher icon when the message wraps onto two lines.
- */
+ */ --}}
 .spmu-approval-success-notice svg {
     display: block !important;
 }
@@ -183,10 +183,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const expectedText =
         'Verified request E-signed and approved by the authorized SPMU Head signatory';
 
-    /*
-     * Locate the success notice by its message rather than depending
-     * on one specific historical alert class.
-     */
+
+
+
+
     const candidates = Array.from(
         document.querySelectorAll(
             '[role="alert"], .alert, .notice, .flash-message, .success-message, .message, .banner'
@@ -205,10 +205,10 @@ document.addEventListener('DOMContentLoaded', () => {
         'spmu-approval-success-notice'
     );
 
-    /*
-     * Wrap text separately from the status icon so both remain
-     * vertically aligned even when the message occupies two lines.
-     */
+
+
+
+
     const children = Array.from(notice.childNodes);
 
     const iconNode = Array.from(notice.children).find((child) =>
@@ -243,4 +243,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 </script>
-<!-- SPMU APPROVAL NOTICE ALIGNMENT END -->
+{{-- <!-- SPMU APPROVAL NOTICE ALIGNMENT END --> --}}

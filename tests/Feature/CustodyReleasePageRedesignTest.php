@@ -46,6 +46,8 @@ class CustodyReleasePageRedesignTest extends TestCase
 
         $response->assertOk();
         $response->assertDontSee('Action Officer Verification');
+        $response->assertDontSee('Request Prepared');
+        $this->assertTrackerLayout($response->getContent(), 6);
     }
 
     public function test_off_campus_release_tracker_includes_ao_verification(): void
@@ -59,6 +61,8 @@ class CustodyReleasePageRedesignTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Action Officer Verification');
+        $response->assertDontSee('Request Prepared');
+        $this->assertTrackerLayout($response->getContent(), 7);
     }
 
     public function test_release_tracker_stage_is_labelled_release_processing(): void
@@ -84,9 +88,9 @@ class CustodyReleasePageRedesignTest extends TestCase
             ->get(route('custody.release.show', $custody));
 
         $response->assertOk();
-        $response->assertSee('Borrowing &amp; Release Details', false);
+        $response->assertSee('Borrowing Details', false);
         $response->assertSee('Release Documents');
-        $response->assertSeeInOrder(['Borrowing', 'Requirements', 'Release Documents']);
+        $response->assertSeeInOrder(['Purpose', 'Date Needed', 'Return Date', 'Use Location', 'Release Documents']);
     }
 
     public function test_the_numbered_release_process_container_and_its_step_chrome_are_gone(): void
@@ -273,6 +277,16 @@ class CustodyReleasePageRedesignTest extends TestCase
         $response->assertOk();
         $content = $response->getContent();
 
+        $response->assertSee('Release Confirmation')
+            ->assertSee('Confirm that the items are ready before proceeding.')
+            ->assertSee('I confirm that the borrower has received the items and the required forms have been signed.')
+            ->assertSee('Confirm Release');
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($content);
+        $xpath = new \DOMXPath($dom);
+        $this->assertSame(1, $xpath->query('//*[contains(concat(" ", normalize-space(@class), " "), " release-confirmation-fields ") and not(@hidden)]')->length);
+        $this->assertSame(0, $xpath->query('//*[@id="physical-signatures-confirmed"]/ancestor::*[@hidden]')->length);
+        $this->assertSame(1, $xpath->query('//textarea[@name="remarks" and @disabled]')->length);
         $this->assertMatchesRegularExpression(
             '/id="physical-signatures-confirmed"[^>]*disabled/',
             $content,
@@ -296,6 +310,23 @@ class CustodyReleasePageRedesignTest extends TestCase
 
         $response->assertOk();
         $response->assertDontSee('Processing...');
+    }
+
+    private function assertTrackerLayout(string $html, int $expectedSteps): void
+    {
+        $dom = new \DOMDocument;
+        @$dom->loadHTML($html);
+        $xpath = new \DOMXPath($dom);
+        $rail = $xpath->query('//ol[contains(concat(" ", normalize-space(@class), " "), " request-tracker__rail ")]')->item(0);
+
+        $this->assertNotNull($rail);
+        $this->assertSame($expectedSteps, $xpath->query('./li', $rail)->length);
+        $this->assertStringContainsString('--request-tracker-step-count: '.$expectedSteps, $rail->getAttribute('style'));
+        $labels = $xpath->query('.//*[@data-workflow-title]', $rail);
+        $this->assertSame('Submitted', $labels->item(0)->getAttribute('data-workflow-title'));
+        $this->assertSame('Completed', $labels->item($expectedSteps - 1)->getAttribute('data-workflow-title'));
+        $current = $xpath->query('./li[@aria-current="step"]//*[@data-workflow-title]', $rail);
+        $this->assertSame('Release Processing', $current->item(0)?->getAttribute('data-workflow-title'));
     }
 
     private function preparingCustody(bool $offCampus): CustodyTransaction

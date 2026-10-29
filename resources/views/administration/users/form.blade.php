@@ -456,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!additionalAssignment) return;
         const isBorrower = !classification || classification.value === 'BORROWER_ONLY';
         additionalAssignment.hidden = !isBorrower;
-        // The server accepts additional requesting units for borrowers only.
+
         const newUnitOption = unit.querySelector('[data-new-unit]');
         if (newUnitOption) {
             newUnitOption.hidden = !isBorrower;
@@ -548,12 +548,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 <style>
-/* ADMIN PASSWORD LIVE HELP START */
+{{-- /* ADMIN PASSWORD LIVE HELP START */ --}}
 
 
-/* =========================================================
+{{-- /* =========================================================
    PASSWORD INPUT + EYE ICON
-   ========================================================= */
+   ========================================================= */ --}}
 
 .ictu-password-input-wrap {
     position: relative !important;
@@ -632,9 +632,9 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
    INVALID / VALID FIELD STATE
-   ========================================================= */
+   ========================================================= */ --}}
 
 .ictu-password-input-wrap.password-is-invalid > input {
     border-color: #dc3545 !important;
@@ -665,9 +665,9 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
    PASSWORD GUIDANCE
-   ========================================================= */
+   ========================================================= */ --}}
 
 .password-guidance-block {
     display: grid;
@@ -729,9 +729,9 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
    REQUIREMENT LIST
-   ========================================================= */
+   ========================================================= */ --}}
 
 .password-requirements {
     display: grid;
@@ -794,9 +794,9 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
    CONFIRM PASSWORD FEEDBACK
-   ========================================================= */
+   ========================================================= */ --}}
 
 .password-confirm-feedback {
     display: inline-flex;
@@ -840,9 +840,9 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
    MOBILE
-   ========================================================= */
+   ========================================================= */ --}}
 
 @media (max-width: 720px) {
     .password-requirements {
@@ -851,7 +851,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 }
 
-/* ADMIN PASSWORD LIVE HELP END */
+{{-- /* ADMIN PASSWORD LIVE HELP END */ --}}
 </style>
 
 
@@ -904,9 +904,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-    /*
-     * Prevent duplicate UI after browser history restore.
-     */
+
+
+
     passwordField
         .querySelectorAll('[data-password-guidance]')
         .forEach((element) => element.remove());
@@ -916,9 +916,9 @@ document.addEventListener('DOMContentLoaded', function () {
         .forEach((element) => element.remove());
 
 
-    /*
-     * Password guidance.
-     */
+
+
+
     const guidance = document.createElement('div');
 
     guidance.className =
@@ -975,9 +975,9 @@ document.addEventListener('DOMContentLoaded', function () {
     );
 
 
-    /*
-     * Confirm feedback.
-     */
+
+
+
     let confirmFeedback = null;
 
     if (
@@ -1193,10 +1193,10 @@ document.addEventListener('DOMContentLoaded', function () {
             passwordInput.value;
 
 
-        /*
-         * Blank remains neutral because existing accounts may retain
-         * their current password.
-         */
+
+
+
+
         if (value === '') {
 
             clearFieldState(passwordWrap);
@@ -1255,10 +1255,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         else {
 
-            /*
-             * Show only the first unmet rule.
-             * The checklist below already shows all remaining requirements.
-             */
+
+
+
+
             const firstInvalid =
                 Object.keys(rules)
                     .find(

@@ -414,6 +414,70 @@ class InventoryAdjustmentWorkflowTest extends TestCase
         $this->assertSame(5.0, (float) $item->fresh()->total_quantity);
     }
 
+    public function test_action_officer_overview_combines_item_details_and_preserves_history_navigation(): void
+    {
+        $item = $this->item('SAO Overview Item', 5);
+        $officer = $this->officer();
+
+        foreach (['', '?tab=item-information'] as $query) {
+            $this->withSession(['active_workspace' => 'SPMU'])
+                ->actingAs($officer)
+                ->get(route('inventory.show', $item).$query)
+                ->assertOk()
+                ->assertSeeText('Item Details')
+                ->assertSeeText('Stock Details')
+                ->assertSee('data-inventory-tab="overview" role="tab" aria-selected="true"', false)
+                ->assertSee('data-inventory-tab="stock-card"', false)
+                ->assertSee('data-inventory-tab="borrowing-history"', false)
+                ->assertDontSee('data-inventory-tab="item-information"', false)
+                ->assertDontSeeText('Last stock movement')
+                ->assertDontSeeText('Records behind the current counts')
+                ->assertDontSee('class="inventory-adjustment-form" data-inventory-adjustment-form', false);
+        }
+
+        $this->assertSame(5.0, (float) $item->fresh()->total_quantity);
+    }
+
+    public function test_action_officer_overview_keeps_stock_findings_open_without_changing_balances(): void
+    {
+        $item = $this->item('SAO Maintenance Item', 10);
+        $this->inventory->recordAdjustment($item, $this->spmuHead(), [
+            'action' => 'PLACE_UNDER_MAINTENANCE',
+            'quantity' => 2,
+            'reason' => 'Two units require repair after physical assessment.',
+        ]);
+        $transactionsBefore = DB::table('inventory_transactions')->count();
+
+        $response = $this->withSession(['active_workspace' => 'SPMU'])
+            ->actingAs($this->officer())
+            ->get(route('inventory.show', $item))
+            ->assertOk()
+            ->assertSeeText('Under Maintenance')
+            ->assertSeeText('Damaged / Under Repair')
+            ->assertSeeText('Current Records');
+        $this->assertMatchesRegularExpression('/<details[^>]*class="card sao-stock-details"[^>]*\bopen/', $response->getContent());
+        $this->assertMatchesRegularExpression('/<details[^>]*class="card sao-current-records"[^>]*\bopen/', $response->getContent());
+        $balance = $this->inventory->availability($item->fresh(), now(), now()->addMinute());
+        $this->assertSame(10.0, (float) $item->fresh()->total_quantity);
+        $this->assertSame(8.0, $balance['borrower_available']);
+        $this->assertSame(2.0, $balance['condition_hold']);
+        $this->assertSame($transactionsBefore, DB::table('inventory_transactions')->count());
+    }
+
+    public function test_head_retains_the_existing_inventory_management_details(): void
+    {
+        $item = $this->item('Head Overview Item', 5);
+        $this->withSession(['active_workspace' => 'SPMU'])
+            ->actingAs($this->spmuHead())
+            ->get(route('inventory.show', $item))
+            ->assertOk()
+            ->assertSee('data-inventory-tab="item-information"', false)
+            ->assertSeeText('Last stock movement')
+            ->assertSeeText('Unavailable breakdown')
+            ->assertSee('class="inventory-adjustment-form" data-inventory-adjustment-form', false)
+            ->assertDontSeeText('Item Details');
+    }
+
     public function test_manual_inventory_adjustment_cannot_duplicate_ao_compliance_restoration(): void
     {
         [$item, $incident] = $this->incidentItem('LOST', 'COMPLIANCE_REQUIRED');

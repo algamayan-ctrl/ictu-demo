@@ -1,11 +1,11 @@
 <style>
-/* SHARED LOGIN CARD TYPOGRAPHY AND SPACING START */
+{{-- /* SHARED LOGIN CARD TYPOGRAPHY AND SPACING START */ --}}
 .spmu-shared-login-card {
     width: 100%;
 }
 
 .spmu-shared-login-card .google-auth-error {
-    margin-top: -4px; /* The form's 14px grid gap leaves 10px below Google. */
+    margin-top: -4px; {{-- /* The form's 14px grid gap leaves 10px below Google. */ --}}
     color: #c62828;
     font-size: 13px;
     line-height: 1.45;
@@ -164,7 +164,7 @@
         row-gap: 12px !important;
     }
 }
-/* SHARED LOGIN CARD TYPOGRAPHY AND SPACING END */
+{{-- /* SHARED LOGIN CARD TYPOGRAPHY AND SPACING END */ --}}
 </style>
 
 <div class="spmu-shared-login-card">
@@ -172,7 +172,7 @@
 
 
         <div class="login-heading">
-                    <!-- LOGIN CARD LOGO SWAP START -->
+                    {{-- <!-- LOGIN CARD LOGO SWAP START --> --}}
         <div class="landing-login-badge landing-login-badge--logo">
             <img
                 src="{{ \App\Support\StaticAsset::url('images/spmu-acpmp-logo.png') }}"
@@ -180,7 +180,7 @@
                 class="landing-login-badge-logo"
             >
         </div>
-        <!-- LOGIN CARD LOGO SWAP END -->
+        {{-- <!-- LOGIN CARD LOGO SWAP END --> --}}
 <h1 id="landing-login-title">Welcome to SPMU-ACPMP</h1>
 
             <p>Sign in using your authorized SPMU-ACPMP account.</p>
@@ -380,8 +380,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // An inline Google error may grow the card downward, but must not change
-    // the landing slot's centering or the campus background's cover geometry.
+
+
     const googleError = document.querySelector('.google-auth-error');
     const sharedCard = googleError?.closest('.spmu-shared-login-card');
     if (sharedCard) {
@@ -418,19 +418,19 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
 
 <style>
-/* SPMU REMEMBER CHECKBOX ALIGNMENT START */
+{{-- /* SPMU REMEMBER CHECKBOX ALIGNMENT START */ --}}
 
-/*
+{{-- /*
  * Align the Remember checkbox and its text on one clean baseline.
  * Scoped only to the SPMU login card.
- */
+ */ --}}
 
 .spmu-shared-login-card *:has(> input[type="checkbox"][name="remember"]) {
     display: flex !important;
     align-items: center !important;
 }
 
-/* Checkbox */
+{{-- /* Checkbox */ --}}
 .spmu-shared-login-card input[type="checkbox"][name="remember"],
 .spmu-shared-login-card #remember {
     width: 17px !important;
@@ -451,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function () {
     top: 0 !important;
 }
 
-/* "Keep me signed in" text */
+{{-- /* "Keep me signed in" text */ --}}
 .spmu-shared-login-card label[for="remember"] {
     margin: 0 !important;
     padding: 0 !important;
@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', function () {
     cursor: pointer;
 }
 
-/* Bootstrap form-check compatibility */
+{{-- /* Bootstrap form-check compatibility */ --}}
 .spmu-shared-login-card .form-check:has(input[name="remember"]) {
     display: flex !important;
     align-items: center !important;
@@ -492,11 +492,11 @@ document.addEventListener('DOMContentLoaded', function () {
     line-height: 1.2 !important;
 }
 
-/* SPMU REMEMBER CHECKBOX ALIGNMENT END */
+{{-- /* SPMU REMEMBER CHECKBOX ALIGNMENT END */ --}}
 </style>
 
 <style>
-/* LOGIN OTP VERIFICATION FINAL */
+{{-- /* LOGIN OTP VERIFICATION FINAL */ --}}
 
 .spmu-shared-login-card .login-help .login-otp-verification {
     margin-top: 14px;

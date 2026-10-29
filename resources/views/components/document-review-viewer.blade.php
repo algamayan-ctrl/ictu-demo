@@ -53,6 +53,8 @@
         : ['orientation' => 'unknown', 'ratio' => null];
     $previewOrientation = $previewGeometry['orientation'] ?? 'unknown';
     $previewRatio = $previewGeometry['ratio'] ?? null;
+    $canExpandDocument = auth()->user()?->access_classification === \App\Enums\AccessClassification::SpmuOfficer
+        && $file && ($isPdf || $isImage);
 @endphp
 
 <article
@@ -79,6 +81,12 @@
                     {{ $title }}
                 </h2>
             </div>
+        </div>
+    @endif
+
+    @if($canExpandDocument)
+        <div class="document-viewer-actions">
+            <button class="button secondary small link-button" type="button" data-document-fullscreen-toggle aria-expanded="false">Full Screen</button>
         </div>
     @endif
 
@@ -358,13 +366,13 @@
 </script>
 @endonce
 
-<!-- SPMU_COMPACT_REVIEW_OVERRIDE -->
+{{-- <!-- SPMU_COMPACT_REVIEW_OVERRIDE --> --}}
 <style>
-/*
+{{-- /*
  * Compact approval document review.
  * The native PDF/image stage keeps its own scrolling; the page no longer
  * needs an oversized 680â€“900px preview.
- */
+ */ --}}
 .formal-document-review-card,
 .scanned-document-card {
     min-height: 0 !important;
@@ -415,23 +423,29 @@
 }
 </style>
 
+@if($canExpandDocument)
+    @once
+        @include('components.document-viewer-fullscreen')
+    @endonce
+@endif
+
 <style>
-/*
+{{-- /*
  * Universal standalone preview.
  *
  * The default is always FULL-PAGE FIT: the whole first page stays visible,
  * while the available preview height changes from the physical page geometry.
  * There are no document-name rules and no forced numerical zoom. Portrait,
  * landscape, square, and future document types all use the same component.
- */
+ */ --}}
 .scanned-document-card--expanded {
     width: 100%;
     margin-inline: auto;
 }
 
-/* A portrait sheet does not need a full desktop-wide card. Keeping the card
+{{-- /* A portrait sheet does not need a full desktop-wide card. Keeping the card
  * moderately narrow plus a tall viewer makes the full page materially more
- * readable without cropping it. */
+ * readable without cropping it. */ --}}
 .scanned-document-card--expanded[data-preview-orientation="portrait"] {
     max-width: 920px;
 }
@@ -468,7 +482,7 @@
     max-height: 880px !important;
 }
 
-/* Image previews follow the same full-page-fit rule as PDFs. */
+{{-- /* Image previews follow the same full-page-fit rule as PDFs. */ --}}
 .scanned-document-card--expanded .scanned-image-stage {
     overflow: hidden !important;
 }

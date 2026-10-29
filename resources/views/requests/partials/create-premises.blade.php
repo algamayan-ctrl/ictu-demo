@@ -33,13 +33,13 @@
 </fieldset>
 
 <style>
-    /* Hide helper when On-campus is selected. */
+    {{-- /* Hide helper when On-campus is selected. */ --}}
     #request-premises-panel #request-premises-help {
         display: none;
         margin-top: 8px;
     }
 
-    /* Show helper only when Off-campus is selected. */
+    {{-- /* Show helper only when Off-campus is selected. */ --}}
     #request-premises-panel:has(#request-off-campus-toggle:checked)
     #request-premises-help {
         display: block;

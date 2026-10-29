@@ -50,12 +50,12 @@ test('release layout is scoped to unreleased preparing records in the officer re
     assert.match(page, /@if\(\$showReturnWorkflow\)/);
 });
 
-test('release overview combines borrowing and requirements on the left with release documents on the right', () => {
+test('release overview keeps essential borrowing details on the left and documents on the right', () => {
     assert.match(processLayout, /class="content-grid two release-overview-grid"/);
-    assert.match(processLayout, /<h2>Borrowing &amp; Release Details<\/h2>/);
+    assert.match(processLayout, /<h2>Borrowing Details<\/h2>/);
     assert.match(processLayout, /class="release-details-columns"/);
-    assert.match(processLayout, /<h3>Borrowing<\/h3>/);
-    assert.match(processLayout, /<h3>Requirements<\/h3>/);
+    assert.match(processLayout, /<dt>Date Needed<\/dt>/);
+    assert.match(processLayout, /<dt>Return Date<\/dt>/);
     assert.match(processLayout, /class="card release-documents-card" id="release-actions"/);
     assert.equal((processLayout.match(/<h2>Release Documents<\/h2>/g) || []).length, 1);
 });
@@ -120,14 +120,12 @@ test('pickup schedule panel is a read-only status display fed by the automatic s
      * Action Officer confirms/reschedules it but no longer types a date.
      */
     assert.doesNotMatch(schedule, /type="datetime-local"|name="pickup_at"|name="pickup_expires_at"/);
-    assert.match(schedule, /Waiting for automatic schedule activation/);
-    assert.match(schedule, /SPMU follow-up required/);
-    assert.match(schedule, /Borrower notification/);
-    assert.match(schedule, /\{\{ \$scheduleNotificationFailed \? 'Needs attention' : 'Sent' \}\}/);
+    assert.match(schedule, /\$scheduleNotificationFailed/);
+    assert.match(schedule, /Borrower notification failed\. Check notification history\./);
     assert.match(schedule, /method="post" action="\{\{ route\('custody\.reschedule-pickup', \$custody\) \}\}"/);
     assert.match(schedule, /@csrf/);
-    assert.match(schedule, /Set Next Valid Pickup Schedule/);
-    assert.match(schedule, /Pickup missed|Pickup schedule needs SPMU follow-up/);
+    assert.match(schedule, /Set Pickup Schedule/);
+    assert.match(processLayout, /Pickup Missed/);
 });
 
 /*
@@ -207,9 +205,10 @@ test('physical release shows timing notices and disables handover inputs until e
     const physicalStep = processLayout.slice(processLayout.indexOf('id="physical-release-title"'));
     assert.match(physicalStep, /@if\(\$preparationComplete && \$hasPickupSchedule\)\s+@if\(\$pickupWindowUpcoming\)/);
     assert.match(physicalStep, /@elseif\(\$pickupWindowPassed\)/);
-    assert.match(physicalStep, /@endif\s+@include\('custody\.partials\.physical-release-form'\)/);
+    assert.match(physicalStep, /class="release-confirmation-fields">/);
+    assert.match(physicalStep, /@include\('custody\.partials\.physical-release-form'\)/);
     assert.equal((physical.match(/@disabled\(!\$preparationComplete \|\| !\$pickupWindowOpen\)/g) || []).length, 2);
-    assert.match(physicalStep, /Do not record a late physical release/);
+    assert.match(physicalStep, /Pickup schedule has ended/);
 });
 
 test('document links preserve current-document filtering and Gate Pass preview/final distinction', () => {
@@ -217,9 +216,9 @@ test('document links preserve current-document filtering and Gate Pass preview/f
     assert.match(documents, /route\('documents\.preview', \$document\)/);
     assert.doesNotMatch(documents, /route\('documents\.download', \$document\)/);
     assert.match(documents, /\['READY_FOR_PRINTING', 'VERIFIED'\]/);
-    assert.match(documents, /APPROVED GATE PASS — VALIDATE PRESENTED COPY/);
-    assert.match(documents, /INVALID — DO NOT RELEASE/);
-    assert.match(documents, /Borrower Copy \/ Reference/);
+    assert.match(documents, /=> 'Approved'/);
+    assert.match(documents, /Not valid for release/);
+    assert.doesNotMatch(documents, /Borrower Copy \/ Reference/);
 });
 
 test('edit, toggle and cancel update the schedule panel without submitting the form', () => {
@@ -281,7 +280,7 @@ test('release tracker reuses the canonical shared milestone labels instead of ro
     const tracker = read('resources/views/components/request-progress-tracker.blade.php');
     assert.match(tracker, /'releaseView' => false/);
     assert.match(processLayout, /:show-current-status="false" :compact="true" :release-view="true"/);
-    for (const label of ['Request Prepared', 'SPMU Head Review', 'Pickup Scheduled', 'Release Processing', 'Return Processing', 'Completed']) {
+    for (const label of ['Submitted', 'SPMU Head Review', 'Pickup Scheduled', 'Release Processing', 'Return Processing', 'Completed']) {
         assert.ok(tracker.includes(`'label' => '${label}'`), `Missing canonical tracker label: ${label}`);
     }
     assert.doesNotMatch(tracker, /\$steps\[1\]\['label'\] = 'Prepared'/);

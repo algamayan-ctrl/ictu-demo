@@ -404,19 +404,19 @@
 
 <script>
 (() => {
-    /*
-     * Live report preview.
-     *
-     * The records load with the page. When the builder's period or filters
-     * change, or the table is searched, sorted or paged, only the live
-     * regions are fetched and replaced: one request at a time, the newest
-     * wins, and the address bar keeps the state so a reload, Print and the
-     * exports all describe the records on screen.
-     *
-     * A new report type also replaces the builder, because its filters are
-     * its own. The builder is therefore looked up when needed and its events
-     * are heard on the page, never on a form that may have been replaced.
-     */
+
+
+
+
+
+
+
+
+
+
+
+
+
     const page = document.querySelector('.reports-detail-page');
     const results = document.querySelector('[data-report-results]');
     const loading = results?.querySelector('[data-report-results-loading]');
@@ -441,7 +441,7 @@
         if (loading) loading.hidden = !busy;
     };
 
-    /* Inline scripts do not run when inserted as markup, so they are re-created. */
+
     const runScripts = (region) => {
         region.querySelectorAll('script').forEach((stale) => {
             const fresh = document.createElement('script');
@@ -481,9 +481,9 @@
             }
 
             document.querySelectorAll('[data-report-live]').forEach((region) => {
-                /* The builder keeps its controls (and the operator's focus) unless the report type changed. */
+
                 if (region.dataset.reportLive === 'builder' && !rebuild) return;
-                /* A region inside a builder that was just replaced is already current. */
+
                 if (!region.isConnected) return;
                 const next = fetched.querySelector(`[data-report-live="${region.dataset.reportLive}"]`);
                 if (!next) return;
@@ -496,7 +496,7 @@
             if (rebuild) document.querySelector('[data-report-type]')?.focus({ preventScroll: true });
         } catch (error) {
             if (error.name === 'AbortError') return;
-            /* Anything unexpected (expired session, server error) falls back to a normal page load. */
+
             window.location.assign(target);
             return;
         } finally {
@@ -508,7 +508,7 @@
         }
     };
 
-    /* The builder's scope as a Reports URL; blank filters are left out. */
+
     const builderUrl = () => {
         const form = builderForm();
         const params = new URLSearchParams();
@@ -532,7 +532,7 @@
         return /^\d{4}-\d{2}-\d{2}$/.test(start) && /^\d{4}-\d{2}-\d{2}$/.test(end) && end >= start;
     };
 
-    /* Several controls can change together (Clear all, cascading filters): refresh once. */
+
     const schedule = ({ force = false } = {}) => {
         window.clearTimeout(timer);
         timer = window.setTimeout(() => {
@@ -542,7 +542,7 @@
 
     page.addEventListener('change', (event) => {
         if (!event.target.closest('[data-report-preview-form]')) return;
-        /* Report Type announces itself below; the picker's search box is not a filter. */
+
         if (event.target.matches('[data-report-type], [data-borrower-search]')) return;
         schedule();
     });
@@ -553,7 +553,7 @@
         load(event.detail.url, { rebuild: true });
     });
 
-    /* Table navigation stays on the page. */
+
     results.addEventListener('click', (event) => {
         const link = event.target.closest('a[data-report-table-nav], .report-pagination a');
         if (!link || event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
@@ -572,7 +572,7 @@
         load(`${tableForm.getAttribute('action') || window.location.pathname}?${params.toString()}`);
     });
 
-    /* "Change Period or Filters" returns focus to the builder. */
+
     results.addEventListener('click', (event) => {
         if (!event.target.closest('[data-focus-report-builder]')) return;
         const builder = document.getElementById('report-builder');
@@ -585,7 +585,7 @@
 </script>
 
 <style>
-/* ACADEMIC PERIOD EMPTY STATE ICON FINAL */
+{{-- /* ACADEMIC PERIOD EMPTY STATE ICON FINAL */ --}}
 
 .report-period-unavailable-icon {
     display: none;
@@ -614,10 +614,10 @@
     height: 62px;
 }
 
-/*
+{{-- /*
  * When the problem is the academic-period configuration,
  * use the academic/calendar icon instead of the report-type icon.
- */
+ */ --}}
 .report-no-results.is-period-unavailable
 .report-no-results-illustration,
 

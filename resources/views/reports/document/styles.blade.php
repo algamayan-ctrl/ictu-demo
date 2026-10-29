@@ -1,12 +1,12 @@
 <style>
-/*
+{{-- /*
 | Formal report document.
 |
 | One stylesheet for the on-screen preview and the printed page, so the sheet
 | a reader reviews is the sheet that comes out of the printer. Institutional,
 | not decorative: white ground, hairline rules, no radius, no shadow, no
 | colour beyond the text itself.
-*/
+*/ --}}
 .doc-sheet {
     max-width: 1180px;
     margin: 0 auto;
@@ -65,17 +65,17 @@
 .doc-footer { margin-top: 22px; padding-top: 8px; border-top: 1px solid #999; }
 .doc-footer p { margin: 0; font-size: 10px; color: #333; }
 
-/* The table can outgrow the screen; on paper it is fitted by orientation. */
+{{-- /* The table can outgrow the screen; on paper it is fitted by orientation. */ --}}
 .doc-table-scroll { overflow-x: auto; }
 
 @media print {
     .doc-sheet { max-width: none; margin: 0; padding: 0; }
     .doc-table-scroll { overflow: visible; }
 
-    /* An on-screen record link is not usable on paper. */
+    {{-- /* An on-screen record link is not usable on paper. */ --}}
     .doc-table-action-column { display: none; }
 
-/* Universal print table fitting */
+{{-- /* Universal print table fitting */ --}}
 .doc-table {
     width: 100%;
     max-width: 100%;
@@ -106,16 +106,16 @@
 </style>
 
 <style>
-/* REMOVE GENERATED REPORT SUMMARY FINAL */
+{{-- /* REMOVE GENERATED REPORT SUMMARY FINAL */ --}}
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Generated formal reports
 |--------------------------------------------------------------------------
 | Formal reports should present institutional metadata + actual records.
 | Summary/KPI-style counts belong to Analytics, not the printed record.
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 
 .doc-sheet .doc-summary,
 .doc-sheet .report-summary,
@@ -125,19 +125,19 @@
     display: none !important;
 }
 
-/*
+{{-- /*
  * Hide a standalone Report Summary heading when it is part of
  * the shared generated document summary section.
- */
+ */ --}}
 .doc-sheet .doc-summary-title,
 .doc-sheet .report-summary-title,
 .doc-sheet [data-report-summary-title] {
     display: none !important;
 }
 
-/*
+{{-- /*
  * Prevent residual spacing from a hidden summary section.
- */
+ */ --}}
 .doc-sheet .doc-summary + *,
 .doc-sheet .report-summary + *,
 .doc-sheet [data-report-summary] + * {
@@ -160,13 +160,13 @@
 </style>
 
 <style>
-/* FORMAL REPORT FOOTER RENDERER FINAL */
+{{-- /* FORMAL REPORT FOOTER RENDERER FINAL */ --}}
 
-/*
+{{-- /*
  * IMPORTANT:
  * This positioning is intentionally NOT limited to @media print.
  * The PDF renderer may render the document using screen media.
- */
+ */ --}}
 .doc-footer {
     position: fixed !important;
 
@@ -218,10 +218,10 @@
     line-height: 1.35 !important;
 }
 
-/*
+{{-- /*
  * Reserve the bottom portion of the paper so the records table
  * cannot collide with the fixed institutional footer.
- */
+ */ --}}
 .doc-sheet {
     box-sizing: border-box !important;
 
@@ -229,15 +229,15 @@
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
    NORMAL APP SCREEN
-   ============================================================ */
+   ============================================================ */ --}}
 
-/*
+{{-- /*
  * The formal print source is already hidden in the system preview.
  * If a document sheet is displayed directly, keep its footer
  * attached to the bottom of the sheet rather than the viewport.
- */
+ */ --}}
 @media screen {
 
     .report-preview-sheet .doc-footer {
@@ -254,9 +254,9 @@
 }
 
 
-/* ============================================================
+{{-- /* ============================================================
    PRINT
-   ============================================================ */
+   ============================================================ */ --}}
 
 @media print {
 

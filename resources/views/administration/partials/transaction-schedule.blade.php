@@ -191,10 +191,10 @@
     padding: 18px 28px 26px;
 }
 
-/*
+{{-- /*
  * Minimums total 732px, plus 4 x 14px gaps and the grid's 56px side padding =
  * 844px of card width. The stacked layout below takes over before that runs out.
- */
+ */ --}}
 .txn-schedule-head,
 .txn-schedule-row {
     display: grid;
@@ -320,7 +320,7 @@
     transform: translateY(-50%);
 }
 
-/* Keep the native picker clickable while our own clock icon is the visible one. */
+{{-- /* Keep the native picker clickable while our own clock icon is the visible one. */ --}}
 .txn-time-field input::-webkit-calendar-picker-indicator {
     position: absolute;
     top: 0;
@@ -341,10 +341,10 @@
     font-weight: 600;
 }
 
-/*
+{{-- /*
  * The caption repeats the column header, so it only appears once the header
  * row is dropped on narrow screens.
- */
+ */ --}}
 .txn-availability-title {
     display: none;
     grid-column: 1 / -1;
@@ -417,7 +417,7 @@
     color: var(--success);
 }
 
-/* A closed day's permissions and hours are locked, not merely dimmed. */
+{{-- /* A closed day's permissions and hours are locked, not merely dimmed. */ --}}
 .txn-schedule-row.is-closed .txn-check,
 .txn-schedule-row.is-closed .txn-time-field input {
     color: var(--text-soft) !important;
@@ -525,10 +525,10 @@ html[data-theme="dark"] .txn-schedule-card {
             stateLabel.textContent = open.checked ? 'OPEN' : 'CLOSED';
         }
 
-        /*
-         * A closed day permits no physical Pickup / Release or Return and
-         * keeps no operating hours, so those controls are locked.
-         */
+
+
+
+
         lockedFields(row).forEach((field) => {
             field.disabled = !open.checked;
         });
@@ -542,7 +542,7 @@ html[data-theme="dark"] .txn-schedule-card {
         });
     };
 
-    /* Closing a day withdraws what it had allowed, matching what is stored. */
+
     const clearRow = (row) => {
         row.querySelectorAll('[data-weekday-capability]').forEach((input) => {
             input.checked = false;
@@ -569,11 +569,11 @@ html[data-theme="dark"] .txn-schedule-card {
         });
     });
 
-    /*
-     * The native reset restores the server-rendered values; re-syncing on the
-     * next tick restores what those values imply — the closed styling, the
-     * status text, the OPEN/CLOSED pill and the locked controls.
-     */
+
+
+
+
+
     form.addEventListener('reset', () => {
         window.setTimeout(() => rows.forEach(syncRow), 0);
     });

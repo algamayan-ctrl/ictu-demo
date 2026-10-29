@@ -73,7 +73,7 @@
 
     workspace.querySelector('[data-release-cancel-request-form]')?.addEventListener('submit', (event) => {
         const confirmed = window.confirm(
-            'Cancel this unreleased borrowing request? Use this only after confirming that the borrower will no longer proceed. The reserved quantity will be restored to Available inventory and the record will remain in Request Records as Cancelled.'
+            `Cancel this unreleased borrowing request? Use this only after confirming that the borrower will no longer proceed. The ${workspace.dataset.allocationTerm === 'allocated' ? 'allocated' : 'reserved'} quantity will be restored to Available inventory and the record will remain in Request Records as Cancelled.`
         );
 
         if (!confirmed) event.preventDefault();

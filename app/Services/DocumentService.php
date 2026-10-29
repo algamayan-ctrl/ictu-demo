@@ -77,8 +77,8 @@ class DocumentService
          * borrower can download, print, and bring the physical form to SPMU.
          * The approved custody quantities are already fixed at this point.
          * Item preparation later validates this approved document and the
-         * same approved quantities. Controlled copies may still be replaced
-         * after release or return so their operational sections stay current.
+         * same approved quantities. Later operational facts are shown through
+         * the read-only system record; they never replace this pickup copy.
          */
 
         $customTemplate = $this->activeUploadedTemplate('BORROWER_SLIP');
@@ -113,7 +113,78 @@ class DocumentService
         );
     }
 
-    private function borrowerSlipHtml(CustodyTransaction $custody, bool $documentShell = true, int $pageNumber = 1, int $pageCount = 1): string
+    /** Render current operational facts without replacing the original pickup document. */
+    public function borrowerSlipRecordHtml(GeneratedDocument $document): string
+    {
+        abort_unless($document->document_type === 'BORROWER_SLIP'
+            && $document->subject_type === CustodyTransaction::class, 404);
+
+        $document->loadMissing('version.borrowerSignature.file');
+        $version = $document->version;
+        $custody = CustodyTransaction::query()->with([
+            'request.borrower', 'lines.requestItem.inventoryItem',
+            'returns.lines', 'laundryJob.latestEvidence.file',
+        ])->find($document->subject_id);
+
+        abort_unless($custody && $version
+            && (int) $version->request_id === (int) $custody->request_id
+            && (int) $custody->request->borrower_user_id === (int) $custody->borrower_user_id
+            && $custody->lines->every(fn ($line) => (int) $line->requestItem?->request_version_id === (int) $version->id), 403);
+
+        // Use the document's signed version, even if another request version now exists.
+        $version->loadMissing(['approvalSteps.approver', 'approvalSteps.signatureSnapshot.file']);
+        $custody->request->setRelation('currentVersion', $version);
+        $this->assertFinalApprovalForOperationalDocument($custody);
+        $approval = $this->approvalSignatory($version);
+
+        $record = [
+            'borrower_name' => $version->borrowerSignature?->signer_name ?: $custody->request->borrower->full_name,
+            'approver_name' => $approval['snapshot']?->signer_name ?: $approval['name'],
+            'released_on' => $custody->released_at?->copy()->timezone('Asia/Manila')->format('m/d/Y') ?? '',
+            'release_time' => $custody->released_at?->copy()->timezone('Asia/Manila')->format('g:i A') ?? '',
+            'returned_on' => '',
+            'remarks' => [],
+        ];
+
+        $lines = $custody->lines->filter(fn ($line) => (float) $line->actual_released_quantity > 0);
+        $inspections = $custody->returns->where('status', 'INSPECTED')->flatMap->lines->groupBy('custody_line_id');
+        $allReceived = $custody->released_at && $lines->isNotEmpty()
+            && $custody->returns->every(fn ($return) => $return->status === 'INSPECTED')
+            && $lines->every(fn ($line) => (float) $line->returned_quantity >= (float) $line->actual_released_quantity
+                && (float) $inspections->get($line->id, collect())->sum('quantity_received') >= (float) $line->actual_released_quantity);
+        $requiresLaundry = $lines->contains(fn ($line) => (bool) $line->requestItem?->inventoryItem?->laundry_required);
+        $laundryReady = ! $requiresLaundry || ($custody->laundryJob?->status === 'LAUNDRY_COMPLETED'
+            && $custody->laundryJob->hasVerifiedAccomplishedForm()
+            && $custody->laundryJob->latestEvidence?->file !== null);
+
+        if ($allReceived && $laundryReady) {
+            // Project the existing transaction date; never assess fees or change return records here.
+            [$actualReturn] = app(LateReturnService::class)->actualReturn($custody);
+            $record['returned_on'] = $actualReturn?->format('m/d/Y') ?? '';
+
+            if ($actualReturn) {
+                $labels = ['FINE' => 'good condition', 'DAMAGED' => 'damaged', 'DESTROYED' => 'destroyed',
+                    'MISSING' => 'missing', 'LOST' => 'lost', 'STOLEN' => 'stolen'];
+                foreach ($lines as $line) {
+                    $breakdown = $inspections->get($line->id, collect())->groupBy('condition_code')
+                        ->map(fn ($findings) => (float) $findings->sum('quantity_received'))->filter(fn ($qty) => $qty > 0);
+                    $record['remarks'][$line->id] = $breakdown->keys()->all() === ['FINE']
+                        ? 'Good condition'
+                        : $breakdown->map(fn ($qty, $condition) => rtrim(rtrim(number_format($qty, 3, '.', ''), '0'), '.')
+                            .' '.($labels[$condition] ?? str($condition)->replace('_', ' ')->lower()->toString()))->implode('; ');
+                }
+            }
+        }
+
+        return $this->borrowerSlipHtml($custody, recordFields: $record);
+    }
+
+    public function borrowerSlipRecordPdf(GeneratedDocument $document): string
+    {
+        return $this->pdf->html($this->borrowerSlipRecordHtml($document));
+    }
+
+    private function borrowerSlipHtml(CustodyTransaction $custody, bool $documentShell = true, int $pageNumber = 1, int $pageCount = 1, array $recordFields = []): string
     {
         $version = $custody->request->currentVersion;
         $affiliation = $this->affiliations->resolve($version);
@@ -125,7 +196,7 @@ class DocumentService
             ? '<img src="data:image/jpeg;base64,'.base64_encode((string) file_get_contents($logoPath)).'" alt="CSPC logo">'
             : '<div class="borrower-logo-fallback">CSPC</div>';
 
-        $borrowerName = e((string) $borrower->full_name);
+        $borrowerName = e((string) ($recordFields['borrower_name'] ?? $borrower->full_name));
         $borrowerDesignationValue = trim((string) $borrower->designation);
         if ($borrowerDesignationValue === ''
             || strcasecmp($borrowerDesignationValue, AccessClassification::BorrowerOnly->label()) === 0
@@ -135,7 +206,7 @@ class DocumentService
         $borrowerDesignation = e($borrowerDesignationValue);
 
         $borrowerSignature = $this->signatureImage($version?->borrowerSignature, 72, 22);
-        $approverName = e((string) $approval['name']);
+        $approverName = e((string) ($recordFields['approver_name'] ?? $approval['name']));
         $approverDesignation = e((string) $approval['designation']);
         $approverSignature = $this->signatureImage($approval['snapshot'], 72, 22);
 
@@ -156,6 +227,9 @@ class DocumentService
         $purposeRaw = trim((string) ($version?->purpose_event ?: ''));
         $purpose = e($purposeRaw);
         $expectedReturn = $custody->due_at?->format('m/d/Y') ?? '';
+        $recordReleasedOn = e((string) ($recordFields['released_on'] ?? ''));
+        $recordReleaseTime = e((string) ($recordFields['release_time'] ?? ''));
+        $recordReturnedOn = e((string) ($recordFields['returned_on'] ?? ''));
 
         $contentWeight = 0;
         foreach ($custody->lines as $line) {
@@ -208,6 +282,7 @@ class DocumentService
                 : rtrim(rtrim(number_format($quantityValue, 3, '.', ''), '0'), '.');
             $unit = e((string) $line->requestItem?->unit_snapshot);
             $description = e((string) $line->requestItem?->description_snapshot);
+            $recordRemarks = e((string) ($recordFields['remarks'][$line->id] ?? ''));
 
             $itemRows .=
                 '<tr class="actual-item">'
@@ -217,10 +292,10 @@ class DocumentService
                 .'<td class="c-purpose">'.$purpose.'</td>'
                 .'<td class="c-expected">'.$expectedReturn.'</td>'
                 .'<td class="split-gap"></td>'
-                .'<td class="c-release-date"></td>'
-                .'<td class="c-release-time"></td>'
-                .'<td class="c-return-date"></td>'
-                .'<td class="c-remarks"></td>'
+                .'<td class="c-release-date">'.$recordReleasedOn.'</td>'
+                .'<td class="c-release-time">'.$recordReleaseTime.'</td>'
+                .'<td class="c-return-date">'.$recordReturnedOn.'</td>'
+                .'<td class="c-remarks">'.$recordRemarks.'</td>'
                 .'</tr>';
         }
 
@@ -266,7 +341,7 @@ class DocumentService
         </tr>
     </table>
 
-    <div class="borrower-blue-rule"></div>
+    <div class="borrower-blue-rule"><span class="borrower-form-code">CSPC-F-SPMU-26</span></div>
     <div class="borrower-title">BORROWER'S SLIP</div>
 </div>
 HTML;
@@ -469,7 +544,8 @@ HTML;
     .borrower-logo-fallback { width: 29pt; height: 29pt; font-weight: bold; font-size: 6pt; }
     .borrower-school { padding-top: 1pt !important; font-size: 6.3pt; line-height: 1.12; text-align: left; }
     .borrower-school strong { display: block; font-size: 7.8pt; line-height: 1.08; }
-    .borrower-blue-rule { border-top: .9pt solid #78a6c8; margin: 7pt 0 5pt; }
+    .borrower-blue-rule { position: relative; border-top: .9pt solid #78a6c8; margin: 7pt 0 5pt; }
+    .borrower-form-code { position: absolute; top: -6.8pt; right: 0; padding: 0 0 0 5pt; background: #fff; white-space: nowrap; font-size: 7pt; line-height: 8pt; }
     .borrower-title { text-align: center; font-weight: bold; font-size: 8.7pt; margin: 0; letter-spacing: .08pt; }
 
     .borrower-date { margin: 0 0 4pt; font-size: 6.5pt; }

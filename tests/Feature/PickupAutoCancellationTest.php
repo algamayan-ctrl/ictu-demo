@@ -562,8 +562,9 @@ class PickupAutoCancellationTest extends TestCase
 
         $response->assertOk();
         $response->assertDontSee('Continue Release');
+        $response->assertDontSee('data-pickup-confirmation-open', false);
         $response->assertSee('Cancel Borrowing');
-        $response->assertSee('This approved release can no longer be continued', false);
+        $response->assertSee('The pickup period has ended.', false);
     }
 
     // ------------------------------------------------------------------

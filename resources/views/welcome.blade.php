@@ -543,8 +543,8 @@
 
 
 
-/* LANDING EMBEDDED LOGIN START */
-/* Reuse existing .login-page card styling without its stand-alone page backdrop. */
+{{-- /* LANDING EMBEDDED LOGIN START */ --}}
+{{-- /* Reuse existing .login-page card styling without its stand-alone page backdrop. */ --}}
 .landing-hero .landing-hero-grid {
     display: flex !important;
     align-items: center;
@@ -587,7 +587,7 @@
     border-radius: 18px !important;
     box-shadow: 0 14px 38px rgba(27,55,91,.12) !important;
 }
-/* The removed marketing hero h1 rule must not enlarge the login heading. */
+{{-- /* The removed marketing hero h1 rule must not enlarge the login heading. */ --}}
 .landing-hero .landing-login-slot .login-heading h1 {
     max-width: none;
     font-size: 24px !important;
@@ -615,11 +615,11 @@
         padding: 20px !important;
     }
 }
-/* LANDING EMBEDDED LOGIN END */
+{{-- /* LANDING EMBEDDED LOGIN END */ --}}
 
-/* LOGIN CARD LOGO OVERRIDE START */
+{{-- /* LOGIN CARD LOGO OVERRIDE START */ --}}
 
-/* SPMU logo */
+{{-- /* SPMU logo */ --}}
 .login-page .login-card .landing-login-badge.landing-login-badge--logo {
     display: grid !important;
     place-items: start center !important;
@@ -627,7 +627,7 @@
     width: 241.5px !important;
     min-width: 0 !important;
     max-width: 241.5px !important;
-    /* Preserve the original logo slot so the card and form stay in place. */
+    {{-- /* Preserve the original logo slot so the card and form stay in place. */ --}}
     height: calc(210px * 254 / 1626 + 14px) !important;
     min-height: 0 !important;
 
@@ -648,7 +648,7 @@
     object-fit: contain !important;
 }
 
-/* Slightly smaller welcome heading */
+{{-- /* Slightly smaller welcome heading */ --}}
 .login-page .login-card .login-heading h1 {
     font-size: 22px !important;
     font-weight: 750 !important;
@@ -656,7 +656,7 @@
     letter-spacing: -0.025em !important;
 }
 
-/* Mobile */
+{{-- /* Mobile */ --}}
 @media (max-width: 640px) {
 
     .login-page .login-card .landing-login-badge.landing-login-badge--logo {
@@ -675,7 +675,7 @@
     }
 }
 
-/* LOGIN CARD LOGO OVERRIDE END */
+{{-- /* LOGIN CARD LOGO OVERRIDE END */ --}}
 </style>
 
 <div class="landing-shell">

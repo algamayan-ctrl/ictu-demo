@@ -5,20 +5,20 @@
 .borrower-inventory-card label { min-width: 0; margin: 0; display: grid; gap: 8px; color: var(--text-secondary); font-size: 12px; font-weight: 700; }
 .borrower-inventory-card input, .borrower-inventory-card select { width: 100%; min-height: 44px; border-radius: 9px; font-size: 12px; }
 
-/* Search, category, and premises */
+{{-- /* Search, category, and premises */ --}}
 .borrower-inventory-filters { display: grid; grid-template-columns: minmax(0, 2fr) minmax(190px, .9fr) minmax(190px, .9fr); align-items: end; gap: 14px 18px; margin-bottom: 12px; }
 .borrower-inventory-filters .search-input-shell input { padding-left: 36px; }
 
-/* Availability note */
+{{-- /* Availability note */ --}}
 .borrower-inventory-helper { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 14px; padding: 0 2px; color: var(--text-muted); font-size: 12px; line-height: 1.5; }
 .borrower-inventory-helper > .ui-icon { flex-shrink: 0; margin-top: 1px; color: var(--text-soft); }
 
-/* Result summary above the table */
+{{-- /* Result summary above the table */ --}}
 .borrower-inventory-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 18px; margin-bottom: 12px; padding: 0 2px; color: var(--text-secondary); font-size: 12px; }
 .borrower-inventory-page-size { display: inline-flex; align-items: center; }
 .borrower-inventory-page-size select { min-height: 40px; width: auto; min-width: 160px; padding: 8px 36px 8px 13px; border: 1px solid var(--border); border-radius: 9px; background-color: var(--surface-elevated); color: var(--heading); font-size: 12px; font-weight: 650; }
 
-/* Table */
+{{-- /* Table */ --}}
 .borrower-inventory-table-wrap { border: 1px solid var(--border); border-radius: 12px; background: var(--surface-elevated); }
 .borrower-inventory-table-scroll { width: 100%; min-width: 0; overflow-x: auto; }
 .borrower-inventory .borrower-inventory-table { width: 100%; min-width: 940px; margin: 0; border-collapse: collapse; }
@@ -44,7 +44,7 @@
 .borrower-premises { display: inline-flex; align-items: center; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-subtle); color: var(--text-secondary); font-size: 11px; font-weight: 650; white-space: nowrap; }
 .borrower-inventory-static-empty { padding: 34px 16px !important; color: var(--text-muted); text-align: center; }
 
-/* Footer / pagination */
+{{-- /* Footer / pagination */ --}}
 .borrower-inventory-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 18px; padding: 15px 18px; border-top: 1px solid var(--border); }
 .borrower-inventory-footer > p { margin: 0; color: var(--text-secondary); font-size: 12px; }
 .borrower-inventory-pagination-group { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px 14px; margin-left: auto; }
@@ -57,7 +57,7 @@
 .borrower-inventory-page-previous { transform: rotate(180deg); }
 .borrower-inventory-page-ellipsis { padding: 0 3px; color: var(--text-muted); font-size: 11px; }
 
-/* No results */
+{{-- /* No results */ --}}
 .borrower-inventory-no-results { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 40px 20px; color: var(--text-muted); text-align: center; }
 .borrower-inventory-no-results strong { color: var(--heading); font-size: 14px; }
 .borrower-inventory-no-results p { margin: 0; font-size: 12px; }

@@ -208,10 +208,10 @@
     |--------------------------------------------------------------------------
     |
     | Normal on-campus request:
-    | Prepared -> Submitted -> SPMU Head / Admin Review -> Pickup -> Release
+    | Submitted -> SPMU Head / Admin Review -> Pickup -> Release
     |
     | Gate Pass / off-campus request:
-    | Prepared -> Submitted -> Action Officer Verification ->
+    | Submitted -> Action Officer Verification ->
     | SPMU Head / Admin Review -> Pickup -> Release
     |
     */
@@ -284,7 +284,7 @@
     */
 
     $returnDescription =
-        'Return processing starts after the issued items are brought back for the required return workflow.';
+        'SPMU will inspect the items upon return.';
 
     /*
      * Completed transaction:
@@ -293,8 +293,8 @@
      */
     if ($isClosed) {
         $returnDescription = $laundry
-            ? 'SPMU recorded the completed Laundry Form and finished the borrower return reconciliation. Serviceable linen is Available; any adverse finding follows Accountability Processing.'
-            : 'SPMU completed the return inspection and final reconciliation.';
+            ? 'SPMU has checked the returned items and the completed Laundry Form.'
+            : 'SPMU has completed the return inspection.';
     }
 
     /*
@@ -311,23 +311,23 @@
                 'FOR_LAUNDRY'
                     => $laundry->hasVerifiedAccomplishedForm()
                         ? ($hasOutstandingNonLinen
-                            ? 'The completed Laundry Form is on file for linen. Return every outstanding non-linen item to SPMU in one complete AO return inspection while SPMU encodes the linen result.'
-                            : 'The completed Laundry Form is on file. SPMU is encoding the linen return result.')
+                            ? 'The Laundry Form has been recorded. Return all outstanding non-linen items together to SPMU.'
+                            : 'SPMU is recording the linen return using the completed Laundry Form.')
                         : ($hasOutstandingNonLinen
-                            ? 'This is a mixed return: return every outstanding non-linen item to SPMU, and return every outstanding linen item with the same printed Laundry Form to the Laundry Area. Each branch must be complete.'
-                            : 'Return every outstanding linen item and the same printed Laundry Form to the Laundry Area. Laundry Personnel record Received by, finish the laundry process, fill Date Completed, then deliver the completed form to SPMU.'),
+                            ? 'Return all outstanding non-linen items together to SPMU and all outstanding linen with the printed Laundry Form to the Laundry Area.'
+                            : 'Return all outstanding linen together with the printed Laundry Form to the Laundry Area.'),
 
                 'TURNED_OVER_TO_LAUNDRY'
-                    => 'This is an older Laundry record awaiting compatibility availability reconciliation.',
+                    => 'SPMU is reviewing the linen return record.',
 
                 'LAUNDRY_COMPLETED'
-                    => 'The completed Laundry Form was recorded and serviceable linen is Available.',
+                    => 'The completed Laundry Form has been recorded. Serviceable linen is available.',
 
                 'IN_PROCESS', 'READY_FOR_SPMU_RETURN', 'AWAITING_FINAL_FORM_UPLOAD', 'FORM_REPLACEMENT_REQUIRED'
-                    => 'This Laundry record is being aligned to the simplified turnover workflow.',
+                    => 'SPMU is reviewing the existing Laundry Form and linen return record.',
 
                 default
-                    => 'The required linen/laundry return process is in progress.',
+                    => 'The linen return is being processed.',
             };
         }
 
@@ -338,16 +338,16 @@
             $returnDescription = match ($custodyStatus) {
 
                 'RETURN_PROCESSING'
-                    => 'SPMU is processing the returned items and completing final reconciliation.',
+                    => 'SPMU is checking the returned items and completing the return record.',
 
                 'OBLIGATION_OPEN'
-                    => 'Return inspection was recorded, but an outstanding obligation still requires resolution.',
+                    => 'The items have been inspected. Outstanding requirements must still be settled.',
 
                 'OVERDUE'
-                    => 'The borrowing is overdue and remains under SPMU monitoring.',
+                    => 'The return is overdue and remains under SPMU review.',
 
                 default
-                    => 'SPMU has received the returned items and is completing the return inspection.',
+                    => 'SPMU is completing the inspection of the returned items.',
             };
         }
 
@@ -357,21 +357,21 @@
         elseif ($custody?->due_at) {
             $returnDescription = now()->greaterThan($custody->due_at)
                 ? ($hasOutstandingLinen && $hasOutstandingNonLinen
-                    ? 'Return is overdue since '.$custody->due_at->format('d M Y, g:i A').'. Return non-linen to SPMU and linen with the Laundry Form to the Laundry Area immediately.'
+                    ? 'The return was due on '.$custody->due_at->format('d M Y, g:i A').'. Return all non-linen items to SPMU and all linen with the Laundry Form to the Laundry Area immediately.'
                     : ($hasOutstandingLinen
-                        ? 'Linen return is overdue since '.$custody->due_at->format('d M Y, g:i A').'. Return the linen with the Laundry Form to the Laundry Area immediately.'
-                        : 'Return is overdue since '.$custody->due_at->format('d M Y, g:i A').'. Return all outstanding non-linen items to SPMU immediately.'))
+                        ? 'The linen return was due on '.$custody->due_at->format('d M Y, g:i A').'. Return all linen with the Laundry Form to the Laundry Area immediately.'
+                        : 'The return was due on '.$custody->due_at->format('d M Y, g:i A').'. Return all outstanding items to SPMU immediately.'))
                 : ($hasOutstandingLinen && $hasOutstandingNonLinen
-                    ? 'Mixed items are currently on custody. By '.$custody->due_at->format('d M Y, g:i A').', return non-linen to SPMU and linen with the Laundry Form to the Laundry Area.'
+                    ? 'Return all non-linen items to SPMU and all linen with the Laundry Form to the Laundry Area by '.$custody->due_at->format('d M Y, g:i A').'.'
                     : ($hasOutstandingLinen
-                        ? 'Linen is currently on custody. Return it with the Laundry Form to the Laundry Area by '.$custody->due_at->format('d M Y, g:i A').'.'
-                        : 'Items are currently on custody. Return all outstanding non-linen items to SPMU by '.$custody->due_at->format('d M Y, g:i A').'.'));
+                        ? 'Return all linen with the Laundry Form to the Laundry Area by '.$custody->due_at->format('d M Y, g:i A').'.'
+                        : 'Return all outstanding items to SPMU by '.$custody->due_at->format('d M Y, g:i A').'.'));
         }
 
         else {
             $returnDescription = $hasOutstandingLinen
-                ? 'Follow the applicable Laundry Area return process for linen; return any outstanding non-linen items to SPMU.'
-                : 'Items are currently on custody and are awaiting return to SPMU.';
+                ? 'Return all linen with the Laundry Form to the Laundry Area and all non-linen items to SPMU.'
+                : 'Return all outstanding items to SPMU.';
         }
     }
 
@@ -382,16 +382,6 @@
     */
 
     $steps = [
-        1 => [
-            'label' => 'Request Prepared',
-            'icon' => 'requests',
-            'time' => $request->created_at,
-            'description' =>
-                $statusValue === 'DRAFT'
-                    ? 'Complete the request and required documents before submission.'
-                    : 'Borrowing request created.',
-        ],
-
         2 => [
             'label' => 'Submitted',
             'icon' => 'upload',
@@ -414,16 +404,16 @@
             'time' => $verificationStep?->decided_at ?: $verificationStep?->received_at,
             'description' => match (true) {
                 $verificationStep?->decision === 'RETURNED_FOR_REVISION'
-                    => 'The Action Officer returned the Gate Pass request for correction and resubmission.',
+                    => 'The Action Officer has requested corrections to the off-campus borrowing request.',
 
                 $verificationStep?->decision === 'VERIFIED'
                     => 'Request verified by the SPMU Action Officer.',
 
                 $waitingForActionOfficer
-                    => 'The Gate Pass request is awaiting verification by the Action Officer.',
+                    => 'The Action Officer will verify the off-campus borrowing request and its supporting documents.',
 
                 default
-                    => 'Action Officer verification applies only to Gate Pass / off-campus requests.',
+                    => 'Off-campus borrowing requests require verification by the Action Officer.',
             },
         ];
     }
@@ -449,16 +439,16 @@
                 => 'Request approved by the SPMU Head / Admin.',
 
             $waitingForHead && $requiresActionOfficerVerification
-                => 'The Gate Pass request was verified by the Action Officer and is awaiting the SPMU Head / Admin final decision.',
+                => 'The verified off-campus request is awaiting final review by the SPMU Head.',
 
             $waitingForHead
-                => 'The submitted request is awaiting the SPMU Head / Admin final review and decision.',
+                => 'The request is awaiting review by the SPMU Head.',
 
             $waitingForActionOfficer
-                => 'This stage becomes available after the Action Officer verifies the Gate Pass request.',
+                => 'The SPMU Head will review the request after verification by the Action Officer.',
 
             default
-                => 'Final review and decision are handled by the SPMU Head / Admin.',
+                => 'The SPMU Head will review the request for approval.',
         },
     ];
 
@@ -476,16 +466,16 @@
                     .'.',
 
             (bool) $pickupScheduledAt
-                => 'SPMU set the pickup schedule.',
+                => 'SPMU has confirmed the pickup schedule.',
 
             $pickupExpired
-                => 'The pickup was missed. SPMU is reviewing whether to continue the release or cancel the borrowing.',
+                => 'The pickup schedule was missed. SPMU will review the request.',
 
             $isApproved
-                => 'Waiting for SPMU operational processing and pickup scheduling.',
+                => 'SPMU is arranging the pickup schedule.',
 
             default
-                => 'Pickup scheduling becomes available after final approval.',
+                => 'SPMU will arrange pickup after approval.',
         },
     ];
 
@@ -498,11 +488,11 @@
                 ? 'Requested items released to the borrower.'
                 : match (true) {
                     ! $hasActivePickupSchedule
-                        => 'Pickup must be scheduled before item preparation and release.',
+                        => 'The pickup schedule must be confirmed before the items are released.',
                     ! $preparationComplete
-                        => 'SPMU is preparing the approved items for release.',
+                        => 'SPMU is preparing the approved items for pickup.',
                     default
-                        => 'Item preparation is complete. Waiting for the scheduled physical handover.',
+                        => 'The items are ready for the scheduled pickup.',
                 },
     ];
 
@@ -520,10 +510,36 @@
             'label' => 'Accountability',
             'icon' => 'warning',
             'time' => $accountabilityStartedAt,
-            'description' => trim(
-                (($obligationSummary['title'] ?? $activeAccountability['label'] ?? 'Accountability processing').'. ')
-                .($obligationSummary['copy'] ?? 'An unresolved accountability case must be cleared before this borrowing transaction can be completed.')
-            ),
+            'description' => match ($obligationSummary['key'] ?? null) {
+                'BILLING_ISSUED', 'RSLDDP_PAYMENT_REQUIRED'
+                    => 'Settle the issued Billing Statement through the CSPC Cashier.',
+                'PAYMENT_VERIFICATION'
+                    => 'SPMU is verifying the CSPC Cashier receipt.',
+                'BILLING_OPEN', 'BILLING_PENDING'
+                    => 'The financial obligation must be settled or formally waived before completion.',
+                'FOR_BILLING'
+                    => 'The SPMU Head has required billing. SPMU must issue the Billing Statement.',
+                'COMPLIANCE_REQUIRED'
+                    => 'SPMU must verify the required repair, replacement, or other corrective action.',
+                'COMPLIANCE_RSLDDP_PENDING'
+                    => 'Present proof of the completed corrective action to the SPMU Action Officer.',
+                'F2F_PROCESSING', 'RSLDDP_AWAITING_UPLOAD', 'RSLDDP_DISPOSITION_PENDING'
+                    => 'Visit SPMU to complete the required documents and discuss the necessary corrective action.',
+                'RSLDDP_FOR_ACCOUNTING_PROCESSING'
+                    => 'The Accounting Office is processing the documents for the Billing Statement.',
+                'RSLDDP_COMPLIANCE_VERIFICATION'
+                    => 'SPMU must verify payment or completion of the required corrective action.',
+                'RSLDDP_FOR_RESOLUTION'
+                    => 'The SPMU Head will complete the final review of the case.',
+                'LATE_RETURN'
+                    => 'SPMU is reviewing the late return and any related requirements.',
+                'GATE_PASS_PENDING'
+                    => 'SPMU must record the accomplished Gate Pass.',
+                'LINEN_PENDING'
+                    => 'SPMU is reviewing the Laundry Form and linen return records.',
+                default
+                    => 'Outstanding accountability requirements must be settled before completion.',
+            },
         ];
     }
 
@@ -533,10 +549,10 @@
         'time' => $completedAt,
         'description' =>
             $statusValue === 'CANCELLED'
-                ? 'Not applicable: this request was cancelled before completion.'
+                ? 'The request was cancelled before completion.'
                 : ($isClosed
                     ? 'Transaction completed.'
-                    : 'Completed after final SPMU return reconciliation.'),
+                    : 'The transaction will be completed after all return requirements are met.'),
     ];
 
     ksort($steps);
@@ -554,22 +570,22 @@
     */
 
     $trackerEyebrow =
-        $isClosed
-            ? 'Request progress'
-            : 'Real-time progress';
+        $requiresActionOfficerVerification
+            ? 'Off-Campus Borrowing'
+            : 'On-Campus Borrowing';
 
     $trackerTitle = match (true) {
-        $isClosed => 'Borrowing request progress',
-        (bool) $custody => 'Borrowing transaction progress',
-        default => 'Request progress',
+        $isClosed => 'Borrowing Progress',
+        (bool) $custody => 'Borrowing Progress',
+        default => 'Request Progress',
     };
 
     $trackerIntro =
         $isClosed
-            ? 'Review the completed stages of this borrowing transaction.'
+            ? 'View the completed stages of this borrowing transaction.'
             : ((bool) $custody
-                ? 'Follow this borrowing from request approval through pickup, return, accountability when applicable, and final completion.'
-                : 'Follow your request from preparation through final approval.');
+                ? 'View the progress of item pickup and return.'
+                : 'Track the review and approval of this request.');
 
     /*
     |--------------------------------------------------------------------------
@@ -967,13 +983,11 @@
 
                 @if($isClosed)
 
-                    This completed workflow history is retained in the
-                    request record for reference.
+                    This history is retained for reference.
 
                 @else
 
-                    This progress updates as SPMU processes the request,
-                    pickup, release, return, and final reconciliation.
+                    Progress is updated as each stage is completed.
 
                 @endif
 

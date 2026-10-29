@@ -835,7 +835,7 @@
     }
 
 
-    /* Final Stage 3 confirmation */
+    {{-- /* Final Stage 3 confirmation */ --}}
     .final-confirmation {
         display: flex;
         align-items: flex-start;
@@ -875,7 +875,7 @@
     }
 
 
-    /* Create Request final action must always receive pointer input when enabled. */
+    {{-- /* Create Request final action must always receive pointer input when enabled. */ --}}
     #request-submit-button:not(:disabled) {
         pointer-events: auto !important;
         cursor: pointer;
@@ -893,8 +893,8 @@
     .create-request-heading { margin-bottom: 12px; }
     .create-request-heading h1 { margin-bottom: 3px; font-size: clamp(21px, 1.65vw, 25px); line-height: 1.2; }
     .create-request-heading .heading-copy { font-size: 12.5px; line-height: 1.4; }
-    /* Match the existing 1120px request-form shell so the restriction notice,
-       stepper, and form cards share the same left/right edges. */
+    {{-- /* Match the existing 1120px request-form shell so the restriction notice,
+       stepper, and form cards share the same left/right edges. */ --}}
     .create-request-restriction {
         width: 100%;
         max-width: 1120px;
@@ -928,9 +928,9 @@
     .request-restriction-alert .restriction-obligations-link:focus-visible { color: #06479a; text-decoration: underline; }
     .request-restriction-alert .restriction-obligations-link:focus-visible { outline: 2px solid #075ac2; outline-offset: 2px; border-radius: 2px; }
 
-    /* Same universal interactive surface as the other borrower forms.
+    {{-- /* Same universal interactive surface as the other borrower forms.
        Only ENABLED controls respond to hover; disabled stages stay locked
-       until the existing client-side validation enables them. */
+       until the existing client-side validation enables them. */ --}}
     #request-form .create-request-ui .stage-actions :is(a.button, button.button):not(:disabled):is(:hover, :focus-visible),
     #request-form .create-request-ui .request-card :is(a.button, button.button):not(:disabled):is(:hover, :focus-visible) {
         background: #065df0;
@@ -939,7 +939,7 @@
         text-decoration: none;
         cursor: pointer;
     }
-    /* Match the existing Borrowing Schedule heading; retain its blue exactly. */
+    {{-- /* Match the existing Borrowing Schedule heading; retain its blue exactly. */ --}}
     #request-form .create-request-ui .request-details-card .request-card-header #request-details-heading {
         color: #065df0;
         font-size: 12px;
@@ -949,8 +949,8 @@
         text-transform: uppercase;
     }
 
-    /* Documents & Review uses request-review-actions (not stage-actions).
-       Keep default outlined buttons; apply the universal blue on enabled hover/focus. */
+    {{-- /* Documents & Review uses request-review-actions (not stage-actions).
+       Keep default outlined buttons; apply the universal blue on enabled hover/focus. */ --}}
     #request-form .create-request-ui .request-review-actions :is(a.button, button.button):not(:disabled):is(:hover, :focus-visible) {
         background-color: #065df0;
         border-color: #065df0;
@@ -1844,11 +1844,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('[data-stage-target]')
     );
 
-    /*
-     * Stage the borrower stopped on, derived from the saved draft in the
-     * Blade template above. Stages up to it stay unlocked in the stepper
-     * because showStage() raises furthestStage to the stage it opens.
-     */
+
+
+
+
+
     const resumeStage = {{ $resumeStage }};
 
     let activeStage = 1;
@@ -1914,7 +1914,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     )?.value || '0';
                     const tr = document.createElement('tr');
 
-                    // The item code rides along inside the Item cell.
+
                     const itemCell = document.createElement('td');
                     itemCell.className = 'review-item-cell';
 
@@ -2165,16 +2165,16 @@ document.addEventListener('DOMContentLoaded', () => {
             stageTwoNextButton.disabled = !isStageTwoReady();
         }
 
-        /*
-         * FINAL E-SIGN / SUBMIT READINESS
-         *
-         * E-sign & Submit to SPMU stays DISABLED until all required
-         * submission requirements are complete.
-         *
-         * Borrowing Request Letter = always required.
-         * PTC = required only for Student Activity.
-         * Save Draft is NOT affected by this rule.
-         */
+
+
+
+
+
+
+
+
+
+
 
         const requestLetterReady = Boolean(
             requestLetterAlreadyUploaded ||
@@ -2204,9 +2204,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (submitButton) {
             submitButton.disabled = !canSubmit;
 
-            /*
-             * Helpful explanation for why submission is unavailable.
-             */
+
+
+
             if (!detailsReady) {
                 submitButton.title =
                     'Complete all required Request Details first.';
@@ -2258,10 +2258,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function syncOfficeOptions() {
-        /*
-         * Division / office are no longer borrower-editable. Kept as a small
-         * compatibility hook so older event calls do not break this page.
-         */
+
+
+
+
         syncRequestingUnitProfile();
     }
 
@@ -2301,8 +2301,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const to = returnDate?.value || '';
         const validationId = ++operationalDateValidationId;
 
-        // Field validity is owned by the date-validation block
-        // (SPMU_CREATE_REQUEST_DATE_VALIDATION); do not clear it here.
+
+
 
         if (!from || !to) {
             return true;
@@ -2791,17 +2791,17 @@ document.addEventListener('DOMContentLoaded', () => {
             updateReviewSummary();
         }
     });
-    // SPMU_CREATE_REQUEST_DATE_VALIDATION_START
-    /*
-     * Items Needed From / Expected Return Date checks, using the native date
-     * picker. Mirrors the server rules exactly (the server stays authoritative
-     * on Save Draft and Submit):
-     * - Items Needed From is after today (the input's min attribute);
-     * - Expected Return Date is after Items Needed From;
-     * - both fall on a day SPMU is open in the Operational Calendar,
-     *   including special openings and excluding closures/holidays.
-     * One message line per field; never auto-picks a date for the borrower.
-     */
+
+
+
+
+
+
+
+
+
+
+
     var spmuDateStates = null;
     var spmuDefaultReturnMin = '';
 
@@ -2843,8 +2843,8 @@ document.addEventListener('DOMContentLoaded', () => {
             state.node.style.display = showMessage ? 'block' : 'none';
         }
 
-        // One message per field: once the live message speaks, hide the
-        // server-rendered error under the same input.
+
+
         if (showMessage && state.serverError) {
             state.serverError.hidden = true;
         }
@@ -2873,11 +2873,11 @@ document.addEventListener('DOMContentLoaded', () => {
             && returnDate.value > scheduleDate.value;
     }
 
-    /*
-     * Local rules first; only a locally valid date is sent to the
-     * Operational Calendar. Bumping the serial makes any older in-flight
-     * check for this field irrelevant (it can never overwrite this result).
-     */
+
+
+
+
+
     function spmuDateEvaluate(field, { userChange, emptyMessage = null }) {
         const state = spmuDateStates.get(field);
         const value = field.value;
@@ -2924,8 +2924,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let result;
 
         try {
-            // The endpoint checks two dates independently; sending the picked
-            // date as both lets one field be checked before the other is set.
+
+
             const query = new URLSearchParams({ schedule_date: picked, return_date: picked });
             const response = await fetch(`${spmuDateCheckUrl}?${query}`, {
                 headers: { Accept: 'application/json' },
@@ -2956,9 +2956,9 @@ document.addEventListener('DOMContentLoaded', () => {
             state.message = result.message
                 || `SPMU is closed on ${spmuDateLabel(picked)}. Please choose another date.`;
 
-            // The borrower's selection is never changed or cleared for them: the
-            // date stays visible, marked invalid, with the calendar's explanation
-            // beside it. They cannot continue until they choose another date.
+
+
+
             state.status = 'invalid';
         }
 
@@ -2971,7 +2971,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ret = spmuDateStates.get(returnDate).status;
 
         if (spmuDatesReady() || schedule === 'empty' || ret === 'empty') {
-            // Existing availability flow (also resets it when a date is empty).
+
             void refreshAvailability();
         } else {
             syncDateContext();
@@ -2987,8 +2987,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function spmuDateOnUserChange(field) {
         const state = spmuDateStates.get(field);
 
-        // Chrome fires both input and change for one pick; handle a value once,
-        // except to retry after a failed check.
+
+
         if (field.value === state.lastValue && state.status !== 'error') return;
 
         state.lastValue = field.value;
@@ -3005,8 +3005,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const returnState = spmuDateStates.get(returnDate);
 
             if (returnDate.value && scheduleDate.value && returnDate.value <= scheduleDate.value) {
-                // The earlier return date is no longer valid: clear only it and
-                // let the borrower choose a new one.
+
+
                 returnDate.value = '';
                 returnState.lastValue = '';
                 returnState.touched = true;
@@ -3019,7 +3019,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     emptyMessage: `Please choose a new return date after ${spmuDateLabel(scheduleDate.value)}.`,
                 });
             } else if (returnDate.value && returnState.status === 'invalid') {
-                // An order problem may now be fixed by the new Items Needed From.
+
                 spmuDateEvaluate(returnDate, { userChange: true });
             }
         }
@@ -3027,11 +3027,11 @@ document.addEventListener('DOMContentLoaded', () => {
         spmuDateAfterChange();
     }
 
-    /*
-     * Called by validateOperationalDates() when the availability refresh
-     * re-checks both dates on the server. Only a closure for the value still
-     * selected is applied; it never overrides a newer selection.
-     */
+
+
+
+
+
     function spmuDateServerResult(field, result) {
         if (!spmuDateStates || !field || !result || result.open) return;
 
@@ -3054,7 +3054,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return [field, {
                 node: document.getElementById(field === scheduleDate ? 'spmu-schedule-live-error' : 'spmu-return-live-error'),
                 serverError,
-                // Do not repeat a server error already shown under this input.
+
                 suppressMessage: Boolean(serverError),
                 status: 'empty',
                 message: '',
@@ -3066,8 +3066,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         spmuSyncReturnMin();
 
-        // Saved draft / redisplayed values are checked but never cleared.
-        // Deferred until the page script has finished initializing.
+
+
         queueMicrotask(() => {
             [scheduleDate, returnDate].forEach((field) => spmuDateEvaluate(field, { userChange: false }));
         });
@@ -3077,10 +3077,10 @@ document.addEventListener('DOMContentLoaded', () => {
             returnDate.addEventListener(eventName, () => spmuDateOnUserChange(returnDate));
         });
 
-        /*
-         * Step 2 cannot be reached (Continue or the step indicator) while a
-         * date is missing, invalid, or still being checked.
-         */
+
+
+
+
         document.addEventListener('click', (event) => {
             const button = event.target instanceof Element
                 ? event.target.closest('[data-stage-next], [data-stage-target]')
@@ -3112,7 +3112,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .focus();
         }, true);
     }
-    // SPMU_CREATE_REQUEST_DATE_VALIDATION_END
+
 
     searchInput?.addEventListener('input', renderCatalog);
 
@@ -3187,16 +3187,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     requestOffCampusToggle?.addEventListener('change', handlePremisesChange);
     requestOnCampusToggle?.addEventListener('change', handlePremisesChange);
-    /*
-     * PRE-CONFIRMATION CLICK
-     * ----------------------
-     * The visible E-sign button is intentionally type="button".
-     * We run the existing submit validation path with the hidden submit trigger,
-     * but temporarily opt this preflight submit out of the global duplicate-submit
-     * lock. This lets the local handler validate the request and open the
-     * confirmation modal WITHOUT changing the visible button to Processing...
-     * and WITHOUT locking the form before the borrower confirms.
-     */
+
+
+
+
+
+
+
+
+
+
     submitButton?.addEventListener('click', () => {
         if (!form || !submitTrigger || submitButton.disabled) return;
 
@@ -3341,20 +3341,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (eSignatureConfirmation) eSignatureConfirmation.value = '1';
         if (confirmSubmitButton) confirmSubmitButton.disabled = true;
 
-        /*
-         * Re-enter the same submit path using the visible submitter so the
-         * submit intent stays "submit" and all existing backend validation,
-         * E-sign snapshot handling, and duplicate-submission protection remain intact.
-         *
-         * submitButton must stay enabled until AFTER requestSubmit() dispatches
-         * the form's submit event: that listener reads submitButton.disabled to
-         * decide whether the "submit" intent is blocked, so disabling it first
-         * caused this confirmed re-submission to be cancelled every time.
-         */
+
+
+
+
+
+
+
+
+
+
         if (typeof form.requestSubmit === 'function' && submitTrigger) {
             form.requestSubmit(submitTrigger);
         } else {
-            // Older-browser fallback. Backend validation remains authoritative.
+
             const fallbackIntent = document.createElement('input');
             fallbackIntent.type = 'hidden';
             fallbackIntent.name = 'intent';
@@ -3364,16 +3364,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (submitButton) {
-            // Keep the original borrower-facing action label visible.
-            // Disabling the button is enough to prevent a second confirmation
-            // while the request is being submitted.
+
+
+
             submitButton.disabled = true;
         }
 
-        // A request that never navigates away (e.g. a dropped connection)
-        // would otherwise leave these buttons disabled forever; re-enable
-        // them automatically so the borrower can retry. This never fires on
-        // a normal submission because the page has already navigated away.
+
+
+
+
         window.setTimeout(() => {
             if (confirmSubmitButton) confirmSubmitButton.disabled = false;
             if (submitButton) submitButton.disabled = false;
@@ -3423,9 +3423,9 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <script>
-// SPMU_CREATE_REQUEST_UNSAVED_GUARD_START
-// Warns before leaving Create/Edit Request with unsaved changes. It never
-// submits, saves, or deletes anything, so an existing saved draft is untouched.
+
+
+
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('request-form');
     const dialog = document.querySelector('[data-request-leave-dialog]');
@@ -3435,10 +3435,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const stayButton = dialog.querySelector('.request-dialog-actions [data-request-leave-stay]');
     const confirmButton = dialog.querySelector('[data-request-leave-confirm]');
 
-    // Values written by scripts or the submit flow, not entered by the borrower.
+
     const ignoredNames = new Set(['_token', '_method', '_action_token', 'intent', 'confirm_e_signature']);
 
-    // A redisplayed form after failed validation holds input that was NOT saved.
+
     const startsDirty = @json($errors->any());
 
     let baseline = null;
@@ -3474,12 +3474,12 @@ document.addEventListener('DOMContentLoaded', () => {
             })
     );
 
-    /*
-     * The baseline is taken at the borrower's first real interaction, after
-     * the page's own initialization has populated derived values (division,
-     * office, normalized quantities, E-sign flag). Script-driven changes made
-     * before that point are therefore never reported as unsaved changes.
-     */
+
+
+
+
+
+
     const captureBaseline = (event) => {
         if (baseline === null && event.isTrusted) {
             baseline = snapshot();
@@ -3496,26 +3496,26 @@ document.addEventListener('DOMContentLoaded', () => {
         submitting = true;
         window.clearTimeout(submitResetTimer);
 
-        // Matches the existing 20-second retry window: if the submission never
-        // navigates away (e.g. dropped connection), the guard becomes active again.
+
+
         submitResetTimer = window.setTimeout(() => {
             submitting = false;
         }, 20000);
     };
 
-    /*
-     * Window bubble phase runs after every form/document submit handler, so a
-     * blocked or invalid submission (defaultPrevented) is never treated as an
-     * accepted Save Draft or E-sign & Submit.
-     */
+
+
+
+
+
     window.addEventListener('submit', (event) => {
         if (event.target === form && !event.defaultPrevented) {
             markSubmitting();
         }
     });
 
-    // Older-browser fallback in the existing confirm flow uses form.submit(),
-    // which fires no submit event.
+
+
     document.querySelector('[data-confirm-request-submit]')?.addEventListener('click', () => {
         if (typeof form.requestSubmit !== 'function') {
             markSubmitting();
@@ -3542,12 +3542,12 @@ document.addEventListener('DOMContentLoaded', () => {
         returnFocus = null;
     };
 
-    /*
-     * Same-window links only (Cancel, sidebar, top bar, in-page links to other
-     * modules). Runs in the window bubble phase so links already handled by
-     * other scripts (defaultPrevented) are left alone. The intended
-     * destination is kept and used after confirmation.
-     */
+
+
+
+
+
+
     window.addEventListener('click', (event) => {
         if (
             leaving
@@ -3579,7 +3579,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!['http:', 'https:'].includes(url.protocol)) return;
 
-        // In-page anchors (e.g. Terms and Conditions) do not leave the page.
+
         if (
             url.origin === window.location.origin
             && url.pathname === window.location.pathname
@@ -3613,16 +3613,16 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.assign(pendingHref);
     });
 
-    /*
-     * Refresh, browser Back/Forward to another page, tab/window close, and
-     * other forms (e.g. Logout). The browser shows its own native text.
-     * Switching tabs does not unload the page, so it is never affected.
-     */
+
+
+
+
+
     window.addEventListener('beforeunload', (event) => {
         if (
             leaving
             || submitting
-            // The layout already ended an idle session; nothing can be saved.
+
             || document.documentElement.classList.contains('spmu-session-ended')
             || !isDirty()
         ) {
@@ -3633,7 +3633,7 @@ document.addEventListener('DOMContentLoaded', () => {
         event.returnValue = '';
     });
 
-    // Returning via the back/forward cache after leaving or submitting.
+
     window.addEventListener('pageshow', (event) => {
         if (!event.persisted) return;
 
@@ -3645,13 +3645,13 @@ document.addEventListener('DOMContentLoaded', () => {
         leaving = false;
     });
 });
-// SPMU_CREATE_REQUEST_UNSAVED_GUARD_END
+
 </script>
 
 <style>
-/* E-SIGN CONFIRM MODAL ENHANCEMENTS START */
+{{-- /* E-SIGN CONFIRM MODAL ENHANCEMENTS START */ --}}
 
-/* Title */
+{{-- /* Title */ --}}
 [data-esign-modal-title] {
     margin:0 !important;
     color:var(--heading, #0f2d57) !important;
@@ -3660,7 +3660,7 @@ document.addEventListener('DOMContentLoaded', () => {
     line-height:1.2 !important;
 }
 
-/* Intro */
+{{-- /* Intro */ --}}
 [data-esign-modal-intro] {
     margin:0 !important;
     color:var(--text-secondary, #4a6284) !important;
@@ -3668,7 +3668,7 @@ document.addEventListener('DOMContentLoaded', () => {
     line-height:1.65 !important;
 }
 
-/* Notice / confirmation box */
+{{-- /* Notice / confirmation box */ --}}
 [data-esign-modal-note] {
     margin-top:14px !important;
     padding:16px 18px !important;
@@ -3689,7 +3689,7 @@ document.addEventListener('DOMContentLoaded', () => {
     text-decoration:underline !important;
 }
 
-/* Secondary CTA */
+{{-- /* Secondary CTA */ --}}
 [data-esign-cancel] {
     min-width:132px !important;
     min-height:44px !important;
@@ -3705,7 +3705,7 @@ document.addEventListener('DOMContentLoaded', () => {
     box-shadow:none !important;
 }
 
-/* Primary CTA */
+{{-- /* Primary CTA */ --}}
 [data-esign-confirm] {
     min-width:180px !important;
     min-height:44px !important;
@@ -3732,7 +3732,7 @@ document.addEventListener('DOMContentLoaded', () => {
     box-shadow:0 0 0 3px rgba(23, 105, 224, .14) !important;
 }
 
-/* Slightly calmer spacing on narrow screens */
+{{-- /* Slightly calmer spacing on narrow screens */ --}}
 @media (max-width:640px) {
     [data-esign-modal-title] {
         font-size:1.45rem !important;
@@ -3745,21 +3745,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 }
 
-/* E-SIGN CONFIRM MODAL ENHANCEMENTS END */
+{{-- /* E-SIGN CONFIRM MODAL ENHANCEMENTS END */ --}}
 </style>
 
 
 
 @endsection
 
-<!-- SPMU-QUANTITY-WHOLE-NUMBER-FIX:START -->
+{{-- <!-- SPMU-QUANTITY-WHOLE-NUMBER-FIX:START --> --}}
 
 <style>
-    /*
+    {{-- /*
      * Quantity fields:
      * - whole numbers only
      * - remove browser number spinner arrows
-     */
+     */ --}}
 
     input[type="number"][name^="quantities"]::-webkit-inner-spin-button,
     input[type="number"][name^="quantities"]::-webkit-outer-spin-button {
@@ -3782,19 +3782,19 @@ document.addEventListener('DOMContentLoaded', () => {
         element instanceof HTMLInputElement &&
         element.matches(quantitySelector);
 
-    /*
-     * Make every current/future quantity input integer-only.
-     *
-     * Do NOT set min="1" here: unselected rows keep their template default
-     * value of 0 while hidden, and forcing min="1" makes that 0 natively
-     * invalid on a field the browser cannot focus (it's inside a hidden
-     * row) — the browser then silently blocks the whole form submission
-     * (native constraint validation fails before the JS submit handler
-     * ever runs) any time not every catalog item is selected. Whole-number
-     * / minimum-1 enforcement for an actually selected quantity is already
-     * handled by the input/paste/change handlers below plus backend
-     * validation, so no native min constraint is needed here.
-     */
+
+
+
+
+
+
+
+
+
+
+
+
+
     const configureQuantityInput = (input) => {
         if (!isQuantityInput(input)) {
             return;
@@ -3808,10 +3808,10 @@ document.addEventListener('DOMContentLoaded', () => {
         .querySelectorAll(quantitySelector)
         .forEach(configureQuantityInput);
 
-    /*
-     * Create Request can dynamically add selected-item rows,
-     * so configure quantity fields added later as well.
-     */
+
+
+
+
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
@@ -3835,10 +3835,10 @@ document.addEventListener('DOMContentLoaded', () => {
         subtree: true
     });
 
-    /*
-     * Prevent mouse wheel / touchpad scrolling from changing
-     * the focused number input.
-     */
+
+
+
+
     document.addEventListener(
         'wheel',
         (event) => {
@@ -3857,9 +3857,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     );
 
-    /*
-     * Prevent decimal, scientific notation, plus and minus.
-     */
+
+
+
     document.addEventListener(
         'keydown',
         (event) => {
@@ -3878,15 +3878,15 @@ document.addEventListener('DOMContentLoaded', () => {
         true
     );
 
-    /*
-     * Handle pasted values.
-     *
-     * Examples:
-     *  5     -> 5
-     *  3.7   -> 3
-     *  -4    -> rejected / minimum 1
-     *  abc   -> rejected
-     */
+
+
+
+
+
+
+
+
+
     document.addEventListener(
         'paste',
         (event) => {
@@ -3928,9 +3928,9 @@ document.addEventListener('DOMContentLoaded', () => {
         true
     );
 
-    /*
-     * Final safety normalization.
-     */
+
+
+
     document.addEventListener(
         'change',
         (event) => {
@@ -3958,15 +3958,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- SPMU-QUANTITY-WHOLE-NUMBER-FIX:END -->
+{{-- <!-- SPMU-QUANTITY-WHOLE-NUMBER-FIX:END --> --}}
 
-<!-- SPMU-QUANTITY-SCROLL-LOCK:START -->
+{{-- <!-- SPMU-QUANTITY-SCROLL-LOCK:START --> --}}
 
 <style>
-    /*
+    {{-- /*
      * Hide the browser's own number-spinner controls.
      * Keep the custom minus / plus buttons unchanged.
-     */
+     */ --}}
     input[type="number"][name^="quantities"]::-webkit-inner-spin-button,
     input[type="number"][name^="quantities"]::-webkit-outer-spin-button {
         -webkit-appearance: none !important;
@@ -3981,11 +3981,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <script>
 (() => {
-    /*
-     * Targets only the center quantity field.
-     *
-     * Custom - and + buttons are NOT affected.
-     */
+
+
+
+
+
     const isQuantityField = (element) => {
         return element instanceof HTMLInputElement
             && element.matches(
@@ -3995,10 +3995,10 @@ document.addEventListener('DOMContentLoaded', () => {
             );
     };
 
-    /*
-     * BLOCK mouse-wheel / touchpad scrolling from modifying
-     * the number while the center quantity field is focused.
-     */
+
+
+
+
     document.addEventListener(
         'wheel',
         (event) => {
@@ -4015,12 +4015,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     );
 
-    /*
-     * BLOCK keyboard number stepping.
-     *
-     * ArrowUp / ArrowDown normally increment/decrement
-     * <input type="number"> values.
-     */
+
+
+
+
+
+
     document.addEventListener(
         'keydown',
         (event) => {
@@ -4036,9 +4036,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            /*
-             * Whole-number quantity only.
-             */
+
+
+
             if (
                 event.key === '.' ||
                 event.key === ',' ||
@@ -4053,9 +4053,9 @@ document.addEventListener('DOMContentLoaded', () => {
         true
     );
 
-    /*
-     * Normalize manually entered / pasted values.
-     */
+
+
+
     document.addEventListener(
         'input',
         (event) => {
@@ -4069,9 +4069,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            /*
-             * Strip anything except digits.
-             */
+
+
+
             const clean = input.value.replace(/[^0-9]/g, '');
 
             if (input.value !== clean) {
@@ -4083,4 +4083,4 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 </script>
 
-<!-- SPMU-QUANTITY-SCROLL-LOCK:END -->
+{{-- <!-- SPMU-QUANTITY-SCROLL-LOCK:END --> --}}

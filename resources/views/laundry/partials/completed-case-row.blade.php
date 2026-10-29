@@ -80,13 +80,13 @@
     <td>
         <div class="completed-laundry-outcomes">
             @if($serviceableQuantity > 0)
-                <span class="completed-laundry-badge is-available" title="{{ $serviceableQuantity }} serviceable linen available">Available</span>
+                <span class="completed-laundry-badge is-available" title="{{ $serviceableQuantity }} linen items available for borrowing">Available for Borrowing</span>
             @endif
             @if($hasAccountability)
-                <span class="completed-laundry-badge is-maintenance" title="Referred to Accountability Processing: {{ $accountabilityReason }}">Accountability Required<br>{{ $accountabilityReason }}</span>
+                <span class="completed-laundry-badge is-maintenance" title="Recorded return findings: {{ $accountabilityReason }}">{{ $accountabilityReason }}</span>
             @endif
             @if($serviceableQuantity === 0 && ! $hasAccountability)
-                <span class="completed-laundry-badge is-neutral">Completed</span>
+                <span class="completed-laundry-badge is-neutral">Recorded</span>
             @endif
         </div>
     </td>

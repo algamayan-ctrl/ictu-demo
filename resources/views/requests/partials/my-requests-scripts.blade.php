@@ -14,10 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const emptyState = document.getElementById('request-filter-empty');
     const resetButton = document.getElementById('request-filter-reset');
 
-    /*
-     * Search, status, and sort operate on the current page of records.
-     * Pagination itself stays server-side.
-     */
+
+
+
+
     const applyFilters = () => {
         const query = (searchInput?.value || '').trim().toLowerCase();
         const status = statusFilter?.value || 'all';
@@ -45,11 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (countLabel) {
-            /*
-             * Unfiltered, the count reflects every record across all pages.
-             * Once a search or status filter is applied it reports the
-             * matches on the page currently in view.
-             */
+
+
+
+
+
             const unfiltered = !query && status === 'all';
             const shown = unfiltered ? Number(countLabel.dataset.total) : visible;
 
@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     applyFilters();
 
-    /* Row overflow menus */
+
     const closeMenus = (except = null) => {
         document.querySelectorAll('[data-request-menu]').forEach((menu) => {
             if (menu === except) {

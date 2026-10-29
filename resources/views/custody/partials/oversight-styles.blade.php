@@ -3,10 +3,10 @@
     --oversight-blue: #0865df;
     width: 100%;
     min-width: 0;
-    /* display:flex behaves the same as the previous display:grid for this
+    {{-- /* display:flex behaves the same as the previous display:grid for this
        simple single-column stack (identical gap behavior), but also lets
        the empty-state panel below grow to fill leftover height when the
-       toolbar above it is the only other content on the page. */
+       toolbar above it is the only other content on the page. */ --}}
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -14,7 +14,7 @@
 .custody-oversight > .custody-oversight-empty { flex: 1 1 auto; }
 .custody-oversight [hidden] { display: none !important; }
 
-/* Filter bar */
+{{-- /* Filter bar */ --}}
 .custody-oversight-filters { display: grid; grid-template-columns: minmax(320px, 1.8fr) minmax(170px, .75fr) minmax(145px, .65fr) minmax(145px, .65fr) minmax(190px, .85fr); align-items: end; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-elevated); box-shadow: var(--shadow-sm); }
 .custody-oversight-filters label { min-width: 0; margin: 0; display: grid; gap: 6px; color: var(--text-muted); font-size: 12px; font-weight: 800; }
 .custody-oversight-filters input, .custody-oversight-filters select { width: 100%; min-height: 42px; border-radius: 7px; font-size: 12px; }
@@ -22,12 +22,12 @@
 .custody-oversight-date-error { grid-column: 1 / -1; margin: 0; padding: 9px 12px; border: 1px solid var(--danger-border); border-radius: 7px; background: var(--danger-bg); color: var(--danger); font-size: 11px; font-weight: 700; line-height: 1.5; }
 .custody-oversight-filters input.is-invalid { border-color: var(--danger); box-shadow: 0 0 0 2px var(--danger-bg); }
 
-/* Result summary */
+{{-- /* Result summary */ --}}
 .custody-oversight-section-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; padding: 0 3px; }
 .custody-oversight .custody-oversight-section-head h2 { margin: 0; color: var(--heading); font-size: 16px; font-weight: 750; line-height: 1.3; }
 .custody-oversight-record-count { color: var(--text-muted); font-size: 12px; font-weight: 650; white-space: nowrap; }
 
-/* Transaction rows */
+{{-- /* Transaction rows */ --}}
 .custody-oversight-list { display: grid; gap: 10px; }
 .custody-oversight-row { display: grid; grid-template-columns: minmax(210px, 1fr) minmax(0, 2.2fr) auto; align-items: center; gap: 14px 18px; padding: 14px 16px; border: 1px solid var(--border); border-left: 3px solid var(--border-strong); border-radius: 9px; background: var(--surface-elevated); color: inherit; text-decoration: none; }
 .custody-oversight-row:hover, .custody-oversight-row:focus-visible { box-shadow: var(--shadow-sm); border-color: var(--border-strong); background: var(--row-hover); }
@@ -59,16 +59,16 @@
 .custody-oversight-fact > strong { color: var(--heading); font-size: 12px; font-weight: 650; line-height: 1.45; overflow-wrap: anywhere; }
 .custody-oversight-fact .status-badge { justify-self: start; }
 
-/*
+{{-- /*
  * The whole row is the link, so this is a styled span rather than a nested
  * button. It gives the row a clear, aligned action on the far right.
- */
+ */ --}}
 .custody-oversight-view { display: inline-flex; align-items: center; justify-content: center; gap: 6px; align-self: center; justify-self: end; min-width: 74px; min-height: 32px; padding: 6px 12px; border: 1px solid var(--oversight-blue); border-radius: 6px; color: var(--oversight-blue); font-size: 11px; font-weight: 700; white-space: nowrap; transition: color var(--motion) ease, background-color var(--motion) ease; }
 .custody-oversight-row:hover .custody-oversight-view, .custody-oversight-row:focus-visible .custody-oversight-view { color: #fff; background: var(--oversight-blue); }
 .custody-oversight-row[data-custody-group="release"] .custody-oversight-fact .status-badge { color: var(--warning); background: var(--warning-bg); border-color: var(--warning-border); }
 .custody-oversight-row[data-custody-group="return"] .custody-oversight-fact .status-badge { color: var(--info); background: var(--info-bg); border-color: var(--info-border); }
 
-/* Footer / pagination */
+{{-- /* Footer / pagination */ --}}
 .custody-oversight-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 18px; padding: 4px 3px 0; }
 .custody-oversight-page-size { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--text-secondary); font-size: 12px; font-weight: 650; }
 .custody-oversight-page-size select { min-height: 34px; width: auto; min-width: 68px; padding: 6px 34px 6px 10px; border-radius: 6px; font-size: 12px; }
@@ -80,7 +80,7 @@
 .custody-oversight-page-previous { transform: rotate(180deg); }
 .custody-oversight-page-ellipsis { padding: 0 3px; color: var(--text-muted); font-size: 11px; }
 
-/* Empty and no-results states */
+{{-- /* Empty and no-results states */ --}}
 .custody-oversight-empty { display: flex; min-height: 300px; align-items: center; justify-content: center; padding: 40px 22px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); text-align: center; }
 .custody-oversight-empty-content { display: flex; flex-direction: column; align-items: center; max-width: 460px; }
 .custody-oversight-empty-icon { display: grid; place-items: center; width: 86px; height: 86px; margin-bottom: 22px; border: 1px solid var(--border); border-radius: 50%; background: var(--surface-subtle); color: var(--oversight-blue); }

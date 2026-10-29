@@ -8,11 +8,11 @@
         });
     }
 
-    /*
-     * Linen return date:
-     * source of truth = Laundry Form RECEIVED BY date.
-     * Upload/encoding date does not determine borrower timeliness.
-     */
+
+
+
+
+
     const laundryDateInput = document.querySelector('[data-laundry-return-date]');
     const laundryDateStatus = document.querySelector('[data-laundry-return-date-status]');
 
@@ -118,8 +118,8 @@
             if (detailsRow) detailsRow.hidden = nonFine <= epsilon;
             if (policeWrap) policeWrap.hidden = stolen <= epsilon;
 
-            // Laundry Form = authoritative condition evidence for linen.
-            // Extra linen photos/files are optional.
+
+
             if (evidence) evidence.required = kind !== 'linen' && nonFine > epsilon;
             if (police) police.required = stolen > epsilon;
 

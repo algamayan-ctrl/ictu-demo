@@ -82,7 +82,7 @@ test('completed laundry has separate empty and populated states matching the ref
 });
 
 test('table shows live case identity, borrower, units, dates and the original details route', () => {
-    for (const heading of ['Case ID', 'Borrower', 'Items', 'Completed Date', 'Outcome', 'Actions']) {
+    for (const heading of ['Case ID', 'Borrower', 'Items', 'Completed Date', 'Return Result', 'Actions']) {
         assert.ok(page.includes(`<th scope="col">${heading}</th>`));
     }
     assert.match(page, /@foreach\(\$jobs as \$job\)/);
@@ -114,7 +114,9 @@ test('outcomes reflect recorded quantities, including mixed and unknown results'
     assert.match(row, /\$serviceableQuantity > 0 \? 'available' : null/);
     assert.match(row, /\$hasAccountability \? 'accountability' : null/);
     assert.match(row, /if \(! \$caseOutcomes\) \{\s+\$caseOutcomes = \['completed'\];\s+\}/);
-    assert.match(row, /Accountability Required/);
+    assert.match(row, /Recorded return findings:/);
+    assert.match(page, /With Return Findings/);
+    assert.doesNotMatch(page, /<option value="completed">/);
     assert.doesNotMatch(row, /status === 'LAUNDRY_COMPLETED'[^;]*'available'/);
 });
 
@@ -181,7 +183,7 @@ test('true empty pages and out-of-range server pages are handled without errors'
     const ui = mount({ withRecords: false, paginated: true });
     assert.equal(ui.count.textContent, 'Showing 0 to 0 of 25 completed cases');
     assert.equal(ui.empty.hidden, false);
-    assert.match(page, /Search, outcome, and sort apply to the cases on this page\./);
+    assert.match(page, /Filters apply to the cases on this page\./);
 });
 
 test('completed UI contains no processing forms or workflow mutations', () => {

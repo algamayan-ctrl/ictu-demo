@@ -11,6 +11,9 @@
     ];
 
     $documentLabel = $documentLabels[$document->document_type] ?? str($document->document_type)->replace('_', ' ')->title()->toString();
+    if ($originalCopy ?? false) {
+        $documentLabel .= ' (Original pickup copy)';
+    }
 
     if ($document->document_type === 'BILLING_STATEMENT'
         && $document->subject instanceof \App\Models\BillingStatement
@@ -42,19 +45,19 @@
         :title="$documentLabel"
         :eyebrow="null"
         empty-text="This document has no readable file on record."
-        :preview-url="route('documents.view', $document, false)"
+        :preview-url="route(($showSystemRecord ?? false) ? 'documents.record' : 'documents.view', $document, false)"
         :expanded="true"
         :compact-header="true"
     />
 </section>
 
 <style>
-    /*
+    {{-- /*
      * Standalone document preview hierarchy:
      * one page title, one document reference, then the document itself.
      * The application header already says "Document Preview", so repeating
      * that label inside the page adds noise without adding information.
-     */
+     */ --}}
     .document-preview-heading {
         margin-bottom: 14px;
     }
@@ -91,7 +94,7 @@
         margin-top: 0;
     }
 
-    /* The viewer card has no second title/reference strip on this page. */
+    {{-- /* The viewer card has no second title/reference strip on this page. */ --}}
     .document-preview-area .scanned-document-card--compact-header > .scanned-document-reference {
         display: none;
     }
@@ -107,7 +110,7 @@
     }
 </style>
 <style>
-/* SPMU-COMPACT-DOCUMENT-PREVIEW START */
+{{-- /* SPMU-COMPACT-DOCUMENT-PREVIEW START */ --}}
 @media screen {
   .document-preview-heading { margin-bottom: 10px !important; }
   .document-preview-heading h1 { font-size: 21px !important; margin-bottom: 4px !important; }
@@ -115,6 +118,6 @@
   .document-preview-area { margin-top: 0 !important; }
   .document-preview-area .scanned-document-card { padding: 0 !important; }
 }
-/* SPMU-COMPACT-DOCUMENT-PREVIEW END */
+{{-- /* SPMU-COMPACT-DOCUMENT-PREVIEW END */ --}}
 </style>
 @endsection

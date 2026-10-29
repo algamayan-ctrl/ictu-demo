@@ -1,5 +1,5 @@
 <style>
-/* Only the approved SPMU request detail uses this compact presentation. */
+{{-- /* Only the approved SPMU request detail uses this compact presentation. */ --}}
 .request-operational-page {
     --request-blue: #0863db;
     --request-green: #00a20b;
@@ -275,9 +275,9 @@
     cursor: pointer;
     list-style: none;
 }
-/* Base accordion styling lives in requests/partials/audit-history.blade.php,
+{{-- /* Base accordion styling lives in requests/partials/audit-history.blade.php,
    which both this layout and the SPMU review layout include. Only the
-   operational-page spacing overrides remain here. */
+   operational-page spacing overrides remain here. */ --}}
 .request-operational-page .request-activity-history > .table-wrap { margin: 0 18px 18px; }
 html[data-theme="dark"] .request-operational-page { --request-blue: #72b7f4; }
 html[data-theme="dark"] .request-operational-page .request-custody-link { background: #0863db; border-color: #0863db; }

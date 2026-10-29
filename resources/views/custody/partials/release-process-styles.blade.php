@@ -1,5 +1,5 @@
 <style>
-/* Release-only scope: borrower records, return inspection and oversight stay unchanged. */
+{{-- /* Release-only scope: borrower records, return inspection and oversight stay unchanged. */ --}}
 .release-flow-page {
     --release-blue: #0863db;
     --release-green: #08a536;
@@ -14,9 +14,9 @@
     gap: 18px;
     margin-bottom: 14px;
 }
-/* The global heading utility uses display:contents so actions align to the title
+{{-- /* The global heading utility uses display:contents so actions align to the title
    row. This release header is a true two-column summary; keep its copy grouped
-   so the status card cannot create a tall empty row between the title and ID. */
+   so the status card cannot create a tall empty row between the title and ID. */ --}}
 .release-flow-page .release-page-heading > div:first-child {
     display: block;
     min-width: 0;
@@ -29,12 +29,15 @@
 }
 .release-flow-page .release-page-heading h1 {
     margin: 0 0 4px;
-    font-size: clamp(26px, 2.65vw, 34px);
+    font-size: 24px;
     font-weight: 750;
     overflow-wrap: anywhere;
 }
 .release-flow-page .release-page-heading > div > p:last-child { max-width: 900px; margin: 0; font-size: 12.5px; line-height: 1.4; }
 .release-flow-page .release-status-summary {
+    width: 100%;
+    max-width: 440px;
+    justify-self: end;
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -57,7 +60,7 @@
 .release-status-heading--warning { color: var(--warning); background: var(--warning-bg); }
 .release-status-dates {
     display: grid;
-    grid-template-columns: minmax(0, 1.7fr) minmax(95px, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     padding: 13px 16px;
 }
 .release-status-dates > div { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
@@ -90,7 +93,7 @@
 .release-flow-page .release-detail-group h3 { margin: 0 8px 5px; color: var(--text-muted); font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .release-flow-page .release-card-title { display: flex; align-items: center; gap: 9px; margin-bottom: 13px; }
 .release-card-title > .ui-icon { flex-shrink: 0; color: #5388ce; }
-.release-flow-page .release-card-title h2 { margin: 0; font-size: 13px; font-weight: 800; text-transform: uppercase; line-height: 1.4; }
+.release-flow-page .release-card-title h2 { margin: 0; font-size: 16px; font-weight: 700; text-transform: none; line-height: 1.4; }
 .release-flow-page .release-context-card .release-card-title { padding: 0 10px 13px; border-bottom: 1px solid var(--row-border); }
 .release-flow-page .release-context-list { grid-template-columns: minmax(105px, .9fr) minmax(0, 1fr); margin: 0 8px; }
 .release-flow-page .release-context-list dt,
@@ -127,6 +130,29 @@
 .release-flow-page .release-schedule-exception p { margin: 5px 0 0; color: var(--text-muted); font-size: 11.5px; line-height: 1.55; }
 .release-flow-page .release-schedule-exception .meta { color: var(--text-muted); }
 .release-flow-page .release-schedule-exception-note { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.release-flow-page .release-delayed-review { margin: 0; padding: 0; border: 0; }
+.release-flow-page .release-schedule-review-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; padding-right: 0; margin-top: 14px; }
+.release-flow-page .release-schedule-review-form { display: flex; align-items: center; gap: 12px; margin: 0; }
+.release-flow-page .release-schedule-exception-card .release-card-title { padding-bottom: 12px; border-bottom: 1px solid var(--row-border); margin-bottom: 12px; }
+.release-flow-page .release-compact-pickup { margin: 0; padding: 0; border: 0; }
+.release-flow-page .release-compact-pickup > div { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.release-flow-page .release-compact-pickup > div > p { flex: 1 1 300px; margin: 0; }
+.release-flow-page .release-compact-pickup .release-form-actions { flex: 0 0 auto; margin: 0 0 0 auto; padding-right: 0; }
+.release-flow-page .release-compact-pickup > div > .release-pickup-notice,
+.release-flow-page .release-compact-pickup > div > .field-error { flex-basis: 100%; }
+.release-flow-page .release-compact-pickup .release-schedule-history { flex: 1 0 100%; margin-top: 2px; }
+@media (max-width: 640px) {
+    .release-flow-page .release-compact-pickup .release-form-actions { flex: 1 0 100%; margin-left: 0; }
+}
+.release-pickup-dialog { position: fixed; top: 50%; left: 50%; right: auto; bottom: auto; transform: translate(-50%, -50%); width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); margin: 0; padding: 22px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-elevated); color: var(--heading); box-shadow: var(--shadow-md); }
+.release-pickup-dialog::backdrop { background: rgba(10, 27, 47, .48); }
+.release-pickup-dialog h2 { margin: 0 0 10px; font-size: 19px; line-height: 1.4; }
+.release-pickup-dialog p { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+.release-pickup-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+[data-pickup-confirmation] .button.primary:not(:disabled) { color: #fff !important; background: #0863db !important; border-color: #0863db !important; }
+[data-pickup-confirmation] .button.primary:not(:disabled):is(:hover, :focus-visible) { background: #0452bc !important; border-color: #0452bc !important; }
+.release-flow-page .release-schedule-history { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 12px; }
+.release-flow-page .release-schedule-history summary { cursor: pointer; }
 .release-preparation-status { display: inline-flex; align-items: center; justify-content: center; min-height: 24px; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 750; line-height: 1.3; white-space: nowrap; }
 .release-preparation-status.is-pending { color: var(--text-muted); background: var(--surface-muted); }
 .release-preparation-status.is-issue { color: var(--danger, #b42318); background: var(--danger-bg, #fff1f0); }
@@ -135,7 +161,7 @@
 .release-form-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding-right: 40px; }
 .release-document-row { display: grid; grid-template-columns: minmax(0, 1fr) var(--release-actions-width); align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--row-border); }
 .release-document-row:last-child { border-bottom: 0; }
-.release-document-copy { display: grid; grid-template-columns: 20px minmax(130px, .52fr) minmax(0, 1fr); align-items: center; gap: 9px; }
+.release-document-copy { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 9px; }
 .release-document-copy > .ui-icon { color: #5388ce; }
 .release-document-copy > strong { font-size: 12px; color: var(--heading); }
 .release-document-copy > small { font-size: 12px; text-transform: none; }
@@ -179,6 +205,8 @@ html[data-theme="dark"] .release-flow-page .request-tracker__step.is-current .re
     .release-document-copy > small { grid-column: 2; }
 }
 @media (max-width: 640px) {
+    .release-flow-page .release-schedule-review-form { grid-template-columns: minmax(0, 1fr); }
+    .release-flow-page .release-schedule-review-form .button { justify-self: stretch; }
     .release-document-row { grid-template-columns: minmax(0, 1fr) auto; }
     .release-flow-page .release-schedule-fields { grid-template-columns: minmax(0, 1fr); }
     .release-flow-page .release-schedule-detail-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }

@@ -50,6 +50,9 @@
     $writeOffSources = collect($eligibleWriteOffSources ?? []);
 
     $requestedInventoryTab = (string) request('tab', 'overview');
+    if ($isActionOfficer && $requestedInventoryTab === 'item-information') {
+        $requestedInventoryTab = 'overview';
+    }
     $activeInventoryTab = in_array($requestedInventoryTab, [
         'overview',
         'stock-card',
@@ -68,7 +71,7 @@
     $currentSourceGroups = $currentSources->groupBy('group');
     $currentSourceOrder = [
         'DISCREPANCY' => 'Preparation discrepancies',
-        'RESERVED' => 'Reserved',
+        'RESERVED' => $isActionOfficer ? 'Allocated' : 'Reserved',
         'CUSTODY' => 'On custody',
         'LAUNDRY' => 'Laundry',
         'ISSUE' => 'Inventory exceptions',
@@ -100,7 +103,7 @@
     </a>
 </section>
 
-<section class="content-area inventory-detail-page">
+<section class="content-area inventory-detail-page{{ $isActionOfficer ? ' is-action-officer' : '' }}">
     @if($isBorrower)
         <article class="card borrower-inventory-detail-card borrower-inventory-polished">
             <div class="card-header borrower-inventory-card-header">
@@ -183,7 +186,7 @@
                     <strong>{{ $total + 0 }}</strong>
                 </div>
             </div>
-            <div class="inventory-admin-summary-item is-available" title="Serviceable units currently free for a new allocation; approved reservations are already excluded.">
+            <div class="inventory-admin-summary-item is-available" title="{{ $isActionOfficer ? 'Usable items not already allocated to approved requests.' : 'Serviceable units currently free for a new allocation; approved reservations are already excluded.' }}">
                 <span class="inventory-summary-icon" aria-hidden="true"><x-icon name="success" size="18" /></span>
                 <div class="inventory-summary-copy">
                     <span>Available</span>
@@ -193,7 +196,7 @@
             <div class="inventory-admin-summary-item is-reserved" title="Units allocated to approved requests and awaiting physical release.">
                 <span class="inventory-summary-icon" aria-hidden="true"><x-icon name="bookmark" size="18" /></span>
                 <div class="inventory-summary-copy">
-                    <span>Reserved</span>
+                    <span>{{ $isActionOfficer ? 'Allocated' : 'Reserved' }}</span>
                     <strong>{{ $reserved + 0 }}</strong>
                 </div>
             </div>
@@ -213,6 +216,7 @@
             </div>
         </section>
 
+        @unless($isActionOfficer)
         <div class="inventory-last-movement" role="note" aria-label="Last stock movement">
             <span class="inventory-last-movement-icon" aria-hidden="true"><x-icon name="box" size="17" /></span>
             <div class="inventory-last-movement-copy">
@@ -238,12 +242,15 @@
                 @endif
             </div>
         </div>
+        @endunless
 
         <nav class="inventory-detail-tabs" aria-label="Inventory detail sections" role="tablist">
-            <button type="button" class="inventory-detail-tab {{ $activeInventoryTab === 'overview' ? 'is-active' : '' }}" data-inventory-tab="overview" role="tab" aria-selected="{{ $activeInventoryTab === 'overview' ? 'true' : 'false' }}">Overview</button>
-            <button type="button" class="inventory-detail-tab {{ $activeInventoryTab === 'stock-card' ? 'is-active' : '' }}" data-inventory-tab="stock-card" role="tab" aria-selected="{{ $activeInventoryTab === 'stock-card' ? 'true' : 'false' }}">Stock Card</button>
-            <button type="button" class="inventory-detail-tab {{ $activeInventoryTab === 'borrowing-history' ? 'is-active' : '' }}" data-inventory-tab="borrowing-history" role="tab" aria-selected="{{ $activeInventoryTab === 'borrowing-history' ? 'true' : 'false' }}">Borrowing History</button>
-            <button type="button" class="inventory-detail-tab {{ $activeInventoryTab === 'item-information' ? 'is-active' : '' }}" data-inventory-tab="item-information" role="tab" aria-selected="{{ $activeInventoryTab === 'item-information' ? 'true' : 'false' }}">Item Information</button>
+            <button type="button" class="{{ $isActionOfficer ? 'link-button ' : '' }}inventory-detail-tab {{ $activeInventoryTab === 'overview' ? 'is-active' : '' }}" data-inventory-tab="overview" role="tab" aria-selected="{{ $activeInventoryTab === 'overview' ? 'true' : 'false' }}">Overview</button>
+            <button type="button" class="{{ $isActionOfficer ? 'link-button ' : '' }}inventory-detail-tab {{ $activeInventoryTab === 'stock-card' ? 'is-active' : '' }}" data-inventory-tab="stock-card" role="tab" aria-selected="{{ $activeInventoryTab === 'stock-card' ? 'true' : 'false' }}">Stock Card</button>
+            <button type="button" class="{{ $isActionOfficer ? 'link-button ' : '' }}inventory-detail-tab {{ $activeInventoryTab === 'borrowing-history' ? 'is-active' : '' }}" data-inventory-tab="borrowing-history" role="tab" aria-selected="{{ $activeInventoryTab === 'borrowing-history' ? 'true' : 'false' }}">Borrowing History</button>
+            @unless($isActionOfficer)
+                <button type="button" class="inventory-detail-tab {{ $activeInventoryTab === 'item-information' ? 'is-active' : '' }}" data-inventory-tab="item-information" role="tab" aria-selected="{{ $activeInventoryTab === 'item-information' ? 'true' : 'false' }}">Item Information</button>
+            @endunless
         </nav>
 
         <section class="inventory-tab-panel inventory-tab-overview" data-inventory-panel="overview" role="tabpanel" @if($activeInventoryTab !== 'overview') hidden @endif>
@@ -350,6 +357,9 @@
                 </article>
             @endif
 
+            @if($isActionOfficer)
+                @include('inventory.partials.sao-overview')
+            @else
             <div class="inventory-detail-grid inventory-overview-grid">
                 <article class="card inventory-overview-card">
                     <div class="card-header">
@@ -493,9 +503,13 @@
                     </p>
                 @endif
             </article>
+            @endif
         </section>
 
         <section class="inventory-tab-panel" data-inventory-panel="stock-card" role="tabpanel" @if($activeInventoryTab !== 'stock-card') hidden @endif>
+        @if($isActionOfficer)
+            @include('inventory.partials.sao-stock-card', ['card' => $saoStockCard])
+        @else
         <article class="card inventory-borrowing-history-card" id="stock-card">
             <div class="card-header inventory-history-header">
                 <div>
@@ -543,9 +557,13 @@
                 </table>
             </div>
         </article>
+        @endif
         </section>
 
         <section class="inventory-tab-panel" data-inventory-panel="borrowing-history" role="tabpanel" @if($activeInventoryTab !== 'borrowing-history') hidden @endif>
+        @if($isActionOfficer)
+            @include('inventory.partials.sao-borrowing-history', ['history' => $saoBorrowingHistory])
+        @else
         <article class="card inventory-borrowing-history-card" id="borrowing-history">
             <div class="card-header inventory-history-header">
                 <div>
@@ -778,8 +796,10 @@
                 </table>
             </div>
         </article>
+        @endif
         </section>
 
+        @unless($isActionOfficer)
         <section class="inventory-tab-panel" data-inventory-panel="item-information" role="tabpanel" @if($activeInventoryTab !== 'item-information') hidden @endif>
         <article class="card inventory-master-detail-card">
             <div class="card-header">
@@ -826,6 +846,7 @@
             </dl>
         </article>
         </section>
+        @endunless
     @endif
 </section>
 
@@ -1511,8 +1532,8 @@
     }
 }
 
-/* Keep Unavailable Breakdown and Physical Condition on one desktop row.
-   Stack only when the content area is genuinely narrow. */
+{{-- /* Keep Unavailable Breakdown and Physical Condition on one desktop row.
+   Stack only when the content area is genuinely narrow. */ --}}
 @media (max-width: 860px) {
     .inventory-tab-overview .inventory-detail-grid {
         grid-template-columns: 1fr;
@@ -1934,5 +1955,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 </style>
 {{-- BORROWER_INVENTORY_POLISH_V3_END --}}
+
+@if($isActionOfficer)
+    @include('inventory.partials.sao-detail-styles')
+@endif
 
 @endsection

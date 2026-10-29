@@ -132,7 +132,7 @@
 @else
 <section class="page-heading">
     <div>
-        <p class="eyebrow">{{ $isBorrower ? 'My request' : 'Borrowing request' }}</p>
+        <p class="eyebrow">{{ $isBorrower ? 'My request' : ($v->off_campus ? 'Off-Campus Borrowing Request' : 'Borrowing Request') }}</p>
         <h1>{{ $borrowingRequest->request_no }}</h1>
         <p>{{ $v->purpose_event }}</p>
         @if($isBorrower)
@@ -253,7 +253,7 @@
 
 @if($isBorrower)
 <style>
-/* Keep the borrower action and progress cards visually separate and concise. */
+{{-- /* Keep the borrower action and progress cards visually separate and concise. */ --}}
 .borrower-current-action-area {
     margin-bottom: 24px;
 }
@@ -648,7 +648,7 @@
                                 data-approve-button
                                 disabled
                             >
-                                {{ $canVerify ? 'E-sign & Mark VERIFIED' : 'E-sign & Approve' }}
+                                {{ $canVerify ? 'Verify Request' : 'E-sign & Approve' }}
                             </button>
 
                             <button
@@ -695,7 +695,7 @@
                         </div>
 
                         <div class="spmu-confirm-dialog__actions">
-                            <button class="button secondary ui-pressable" type="button" data-confirm-cancel>Go Back</button>
+                            <button class="button secondary ui-pressable" type="button" data-confirm-cancel>Cancel</button>
                             <button class="button primary ui-pressable" type="button" data-confirm-submit>Confirm</button>
                         </div>
                     </div>
@@ -725,7 +725,7 @@
             <div class="card-header">
                 <div>
                     <p class="eyebrow">Request details</p>
-                    <h2>Borrowing information</h2>
+                    <h2>Borrowing Information</h2>
                 </div>
             </div>
 
@@ -757,7 +757,7 @@
                 </div>
 
                 <div class="spmu-left-borrowing-cell">
-                    <span>Items Needed From</span>
+                    <span>Date Needed</span>
                     <strong>{{ optional($v->schedule_date ?: $v->needed_from)->format('d F Y') }}</strong>
                 </div>
 
@@ -1195,22 +1195,24 @@
 
     const decisionCopy = {
         VERIFIED: {
-            title: 'Confirm E-signature and Verification',
-            message: 'Your registered e-signature will be applied to this Action Officer verification.',
-            note: 'This will mark the request as VERIFIED and route it to the SPMU Head. It does not approve the request, reserve inventory, or generate release documents.',
-            confirm: 'E-sign & Mark VERIFIED',
+            title: 'Confirm Verification',
+            message: 'Your electronic signature will confirm that you have reviewed the request and its supporting documents.',
+            note: 'The request will be forwarded to the SPMU Head for approval.',
+            confirm: 'Confirm Verification',
             tone: 'primary',
         },
         APPROVED: {
             title: 'Confirm E-signature and Approval',
             message: 'Your registered e-signature will be applied to this final approval.',
-            note: 'Approved quantities will be reserved and the required release documents will be generated. The property is not yet physically released to the borrower.',
+            note: @js(auth()->user()?->access_classification?->value === 'SPMU_OFFICER'
+                ? 'Approved quantities will be allocated and the required release documents will be generated. The property is not yet physically released to the borrower.'
+                : 'Approved quantities will be reserved and the required release documents will be generated. The property is not yet physically released to the borrower.'),
             confirm: 'E-sign & Approve',
             tone: 'primary',
         },
         RETURNED_FOR_REVISION: {
-            title: 'Return this request for revision?',
-            message: 'The borrower will receive your remarks and must correct the request or supporting documents before resubmitting.',
+            title: 'Return Request for Revision',
+            message: 'The request will be returned to the borrower for correction.',
             confirm: 'Return for Revision',
             tone: 'secondary',
         },
@@ -1228,7 +1230,7 @@
     const headApprovalUsesPriorAoVerification =
         @json($canDecide && $v->off_campus && $actionOfficerVerified);
 
-    // SPMU_AO_VERIFIED_HEAD_APPROVAL_FIX
+
     const checklistComplete = () =>
         requiredSupportingPresent &&
         hasCurrentESignature &&
@@ -1269,9 +1271,9 @@
         remarksField.value = remarksInput.value || '';
 
         if (decision === 'RETURNED_FOR_REVISION') {
-            remarksLabel.textContent = 'Revision instructions *';
-            remarksHelp.textContent = 'State exactly what the borrower needs to correct before resubmitting.';
-            remarksField.placeholder = 'Example: Upload a clearer signed BR Letter and correct the requested quantity.';
+            remarksLabel.textContent = 'Required Corrections *';
+            remarksHelp.textContent = 'These instructions will be sent to the borrower.';
+            remarksField.placeholder = 'Enter the corrections needed in the request or supporting documents.';
         } else {
             remarksLabel.textContent = 'Reason for rejection *';
             remarksHelp.textContent = 'State a clear reason that can be shown to the borrower.';
@@ -1290,10 +1292,10 @@
         confirmSubmit.textContent = copy.confirm;
         confirmSubmit.className = `button ${copy.tone} ui-pressable`;
 
-        /*
-         * Approval receives the richer confirmation treatment.
-         * Verification / revision / rejection retain the standard dialog.
-         */
+
+
+
+
         const approvalMode = decision === 'APPROVED';
 
         dialog.classList.toggle(
@@ -1329,9 +1331,9 @@
         }
 
 
-        /* -----------------------------------------------
-           Icon
-           ----------------------------------------------- */
+
+
+
 
         const icon =
             dialog.querySelector('.spmu-confirm-dialog__icon');
@@ -1347,9 +1349,9 @@
         }
 
 
-        /* -----------------------------------------------
-           CONFIRMATION eyebrow
-           ----------------------------------------------- */
+
+
+
 
         let eyebrow =
             dialog.querySelector(
@@ -1380,9 +1382,9 @@
         }
 
 
-        /* -----------------------------------------------
-           Approval information panel
-           ----------------------------------------------- */
+
+
+
 
         let approvalNote =
             dialog.querySelector(
@@ -1441,12 +1443,12 @@
             }
         }
 
-        /*
-         * Keep the approval information panel inside the normal
-         * dialog content column. The shared SPMU dialog surface
-         * is already a grid: adding this panel directly to the
-         * surface places it in the narrow icon column.
-         */
+
+
+
+
+
+
         if (
             approvalNote &&
             copyWrap &&
@@ -1486,13 +1488,13 @@
             }
         }
 
-        /* ADMIN APPROVAL INLINE VISUAL START */
 
-        /*
-         * Compact, universal approval confirmation modal.
-         * Uses the shared app typography by inheriting font-family.
-         * Presentation only.
-         */
+
+
+
+
+
+
 
         const applyApprovalInlineStyle = (element, declarations) => {
             if (!element) {
@@ -1777,18 +1779,23 @@
             );
         }
 
-/* ADMIN APPROVAL INLINE VISUAL END */
 
-/* RETURN REVISION INLINE VISUAL START */
 
-        /*
-         * Return for Revision uses the same compact modal
-         * geometry and typography as final approval, while
-         * retaining an amber revision/warning semantic tone.
-         */
+
+
+
+
+
+
+
 
         const revisionMode =
             decision === 'RETURNED_FOR_REVISION';
+
+        const remarksContainer = revisionMode ? surface : copyWrap;
+        if (remarksContainer && remarksWrap.parentElement !== remarksContainer) {
+            remarksContainer.insertBefore(remarksWrap, revisionMode ? actions : null);
+        }
 
         const revisionStyledElements = [
             dialog,
@@ -1809,9 +1816,9 @@
 
         if (revisionMode) {
 
-            /* ---------------------------------------------
-               Dialog
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 dialog,
@@ -1826,10 +1833,10 @@
             );
 
 
-            /* ---------------------------------------------
-               Surface
-               Same medium size as Approval
-               --------------------------------------------- */
+
+
+
+
 
             applyApprovalInlineStyle(
                 surface,
@@ -1840,7 +1847,7 @@
                         '46px minmax(0, 1fr)',
 
                     'grid-template-rows':
-                        'auto auto',
+                        'auto auto auto',
 
                     'column-gap': '11px',
                     'row-gap': '12px',
@@ -1874,9 +1881,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Amber revision icon
-               --------------------------------------------- */
+
+
+
 
             icon.textContent = '?';
 
@@ -1917,9 +1924,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Main content
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 copyWrap,
@@ -1941,9 +1948,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Title
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 confirmTitle,
@@ -1970,9 +1977,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Description
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 confirmMessage,
@@ -1999,17 +2006,19 @@
             );
 
 
-            /* ---------------------------------------------
-               Revision remarks section
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 remarksWrap,
                 {
+                    'grid-column': '1 / -1',
+                    'grid-row': '2',
                     width: '100%',
                     'min-width': '0',
 
-                    margin: '14px 0 0',
+                    margin: '0',
                     padding: '0',
 
                     'font-family': 'inherit'
@@ -2022,7 +2031,7 @@
                 {
                     display: 'block',
 
-                    margin: '0 0 6px',
+                    margin: '0',
 
                     color: '#324966',
 
@@ -2035,7 +2044,7 @@
             );
 
 
-            /* textarea */
+
 
             applyApprovalInlineStyle(
                 remarksField,
@@ -2075,14 +2084,14 @@
             );
 
 
-            /* helper text */
+
 
             applyApprovalInlineStyle(
                 remarksHelp,
                 {
                     display: 'block',
 
-                    margin: '5px 0 0',
+                    margin: '0',
 
                     color: '#657a96',
 
@@ -2095,15 +2104,15 @@
             );
 
 
-            /* ---------------------------------------------
-               Actions
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 actions,
                 {
                     'grid-column': '1 / -1',
-                    'grid-row': '2',
+                    'grid-row': '3',
 
                     display: 'flex',
 
@@ -2122,7 +2131,7 @@
             );
 
 
-            /* Go Back */
+
 
             applyApprovalInlineStyle(
                 confirmCancel,
@@ -2155,7 +2164,7 @@
             );
 
 
-            /* Return for Revision */
+
 
             applyApprovalInlineStyle(
                 confirmSubmit,
@@ -2192,25 +2201,25 @@
         }
         else if (!approvalMode) {
 
-            /*
-             * Restore the normal shared modal for Reject /
-             * Verification. Approval has its own inline styling.
-             */
+
+
+
+
 
             revisionStyledElements.forEach(
                 restoreApprovalInlineStyle
             );
         }
 
-        /* RETURN REVISION INLINE VISUAL END */
 
-/* REJECT REQUEST INLINE VISUAL START */
 
-        /*
-         * Reject uses the same universal modal geometry and
-         * typography as Approval and Return for Revision.
-         * Only the destructive semantic treatment differs.
-         */
+
+
+
+
+
+
+
 
         const rejectMode =
             decision === 'REJECTED';
@@ -2234,9 +2243,9 @@
 
         if (rejectMode) {
 
-            /* ---------------------------------------------
-               Dialog
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 dialog,
@@ -2255,9 +2264,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Universal 500px surface
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 surface,
@@ -2302,9 +2311,9 @@
             );
 
 
-            /* ---------------------------------------------
-               RED destructive icon
-               --------------------------------------------- */
+
+
+
 
             icon.textContent = '!';
 
@@ -2346,9 +2355,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Main content
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 copyWrap,
@@ -2370,9 +2379,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Title
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 confirmTitle,
@@ -2399,9 +2408,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Description
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 confirmMessage,
@@ -2428,9 +2437,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Rejection reason section
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 remarksWrap,
@@ -2464,7 +2473,7 @@
             );
 
 
-            /* textarea */
+
 
             applyApprovalInlineStyle(
                 remarksField,
@@ -2504,7 +2513,7 @@
             );
 
 
-            /* helper */
+
 
             applyApprovalInlineStyle(
                 remarksHelp,
@@ -2524,9 +2533,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Actions
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 actions,
@@ -2551,7 +2560,7 @@
             );
 
 
-            /* Go Back */
+
 
             applyApprovalInlineStyle(
                 confirmCancel,
@@ -2584,7 +2593,7 @@
             );
 
 
-            /* Reject */
+
 
             applyApprovalInlineStyle(
                 confirmSubmit,
@@ -2619,10 +2628,10 @@
             );
         }
 
-        /*
-         * Do not restore while Approval or Return for Revision
-         * has its own universal treatment active.
-         */
+
+
+
+
         else if (
             !approvalMode &&
             decision !== 'RETURNED_FOR_REVISION'
@@ -2632,19 +2641,19 @@
             );
         }
 
-        /* REJECT REQUEST INLINE VISUAL END */
 
-/* ACTION OFFICER VERIFIED INLINE VISUAL START */
+
+
 
         const verificationMode =
             decision === 'VERIFIED';
 
         if (verificationMode) {
 
-            /*
-             * Reuse the universal confirmation elements already
-             * created for the shared SPMU decision dialog.
-             */
+
+
+
+
 
             if (eyebrow) {
                 eyebrow.hidden = false;
@@ -2665,33 +2674,14 @@
                 }
             }
 
-            if (
-                approvalNote &&
-                copyWrap &&
-                approvalNote.parentElement !== copyWrap
-            ) {
-                const remarksBlock =
-                    copyWrap.querySelector(
-                        '[data-confirm-remarks-wrap]'
-                    );
-
-                if (remarksBlock) {
-                    copyWrap.insertBefore(
-                        approvalNote,
-                        remarksBlock
-                    );
-                }
-                else {
-                    copyWrap.appendChild(
-                        approvalNote
-                    );
-                }
+            if (approvalNote && surface && actions) {
+                surface.insertBefore(approvalNote, actions);
             }
 
 
-            /* ---------------------------------------------
-               Dialog
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 dialog,
@@ -2706,9 +2696,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Universal 500px confirmation card
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 surface,
@@ -2719,7 +2709,7 @@
                         '46px minmax(0, 1fr)',
 
                     'grid-template-rows':
-                        'auto auto',
+                        'auto auto auto',
 
                     'column-gap': '11px',
                     'row-gap': '12px',
@@ -2753,9 +2743,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Verification check icon
-               --------------------------------------------- */
+
+
+
 
             if (icon) {
                 icon.textContent = '✓';
@@ -2799,9 +2789,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Copy column
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 copyWrap,
@@ -2823,7 +2813,7 @@
             );
 
 
-            /* eyebrow */
+
 
             applyApprovalInlineStyle(
                 eyebrow,
@@ -2849,7 +2839,7 @@
             );
 
 
-            /* title */
+
 
             applyApprovalInlineStyle(
                 confirmTitle,
@@ -2876,7 +2866,7 @@
             );
 
 
-            /* subtitle */
+
 
             applyApprovalInlineStyle(
                 confirmMessage,
@@ -2903,9 +2893,9 @@
             );
 
 
-            /* ---------------------------------------------
-               Verification information box
-               --------------------------------------------- */
+
+
+
 
             if (approvalNote) {
 
@@ -2922,6 +2912,8 @@
                 applyApprovalInlineStyle(
                     approvalNote,
                     {
+                        'grid-column': '1 / -1',
+                        'grid-row': '2',
                         display: 'grid',
 
                         'grid-template-columns':
@@ -2935,7 +2927,7 @@
                         'min-width': '0',
                         'max-width': '100%',
 
-                        margin: '10px 0 0',
+                        margin: '0',
 
                         padding: '10px 12px',
 
@@ -3009,15 +3001,15 @@
             }
 
 
-            /* ---------------------------------------------
-               Footer
-               --------------------------------------------- */
+
+
+
 
             applyApprovalInlineStyle(
                 actions,
                 {
                     'grid-column': '1 / -1',
-                    'grid-row': '2',
+                    'grid-row': '3',
 
                     display: 'flex',
 
@@ -3036,7 +3028,7 @@
             );
 
 
-            /* Go Back */
+
 
             applyApprovalInlineStyle(
                 confirmCancel,
@@ -3069,7 +3061,7 @@
             );
 
 
-            /* E-sign & Mark VERIFIED */
+
 
             applyApprovalInlineStyle(
                 confirmSubmit,
@@ -3104,7 +3096,7 @@
             );
         }
 
-        /* ACTION OFFICER VERIFIED INLINE VISUAL END */
+
 
         configureRemarks(decision);
 
@@ -3127,7 +3119,7 @@
         const fallbackRemarks = window.prompt(
             decision === 'REJECTED'
                 ? 'Enter the reason for rejection:'
-                : 'Enter the revision instructions:'
+                : 'Enter the required corrections:'
         );
 
         if (fallbackRemarks && fallbackRemarks.trim()) {
@@ -3181,7 +3173,7 @@
                 remarksError.textContent =
                     pendingDecision === 'REJECTED'
                         ? 'Enter the reason for rejection before continuing.'
-                        : 'Enter revision instructions before continuing.';
+                        : 'Please enter the required corrections.';
                 remarksError.hidden = false;
                 remarksField.focus();
                 return;
@@ -3194,10 +3186,10 @@
         }
 
         confirmSubmit.disabled = true;
-        // A request that never navigates away (e.g. a dropped connection)
-        // would otherwise leave this button disabled forever; re-enable it
-        // automatically so the user can retry. This never fires on a normal
-        // submission because the page has already navigated away by then.
+
+
+
+
         window.setTimeout(() => { confirmSubmit.disabled = false; }, 20000);
         form.submit();
     });
@@ -3254,7 +3246,7 @@
     gap: 14px;
 }
 
-/* Borrower monitoring is always visible above the detail tabs. */
+{{-- /* Borrower monitoring is always visible above the detail tabs. */ --}}
 .borrower-progress-always > .request-tracker-card {
     margin-top: 0;
 }
@@ -3318,12 +3310,12 @@
     </div>
 @endif
 <style>
-/* SPMU REVIEW WORKSPACE RECOVERY START */
+{{-- /* SPMU REVIEW WORKSPACE RECOVERY START */ --}}
 
 
-/* =========================================================
+{{-- /* =========================================================
    EQUAL HEIGHT LEFT / RIGHT
-   ========================================================= */
+   ========================================================= */ --}}
 
 .spmu-verification-workspace
 .spmu-review-top-row {
@@ -3354,9 +3346,9 @@
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
    DOCUMENT TABS
-   ========================================================= */
+   ========================================================= */ --}}
 
 .spmu-verification-workspace
 .spmu-document-tabs {
@@ -3415,9 +3407,9 @@
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
    CHECKLIST → READINESS
-   ========================================================= */
+   ========================================================= */ --}}
 
 .spmu-verification-workspace
 .spmu-checklist {
@@ -3444,7 +3436,7 @@
 }
 
 
-/* heading */
+{{-- /* heading */ --}}
 
 .spmu-verification-workspace
 .spmu-review-readiness-heading {
@@ -3477,7 +3469,7 @@
 }
 
 
-/* status */
+{{-- /* status */ --}}
 
 .spmu-verification-workspace
 .spmu-review-readiness-status {
@@ -3510,7 +3502,7 @@
 }
 
 
-/* count */
+{{-- /* count */ --}}
 
 .spmu-verification-workspace
 .spmu-review-readiness-summary {
@@ -3538,7 +3530,7 @@
 }
 
 
-/* progress */
+{{-- /* progress */ --}}
 
 .spmu-verification-workspace
 .spmu-review-readiness-track {
@@ -3575,7 +3567,7 @@
 }
 
 
-/* message */
+{{-- /* message */ --}}
 
 .spmu-verification-workspace
 .spmu-review-readiness-message {
@@ -3595,9 +3587,9 @@
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
    KEEP DECISION ACTIONS LOW / BALANCED
-   ========================================================= */
+   ========================================================= */ --}}
 
 .spmu-verification-workspace
 .spmu-decision-actions {
@@ -3606,9 +3598,9 @@
 }
 
 
-/* =========================================================
+{{-- /* =========================================================
    MOBILE
-   ========================================================= */
+   ========================================================= */ --}}
 
 @media (max-width:680px) {
 
@@ -3629,7 +3621,7 @@
 }
 
 
-/* SPMU DOCUMENT TAB CLICKABILITY FIX */
+{{-- /* SPMU DOCUMENT TAB CLICKABILITY FIX */ --}}
 
 .spmu-verification-workspace
 .spmu-document-tabs {
@@ -3673,13 +3665,13 @@
     margin: 0 auto;
 }
 
-/* SPMU IMAGE HAND CURSOR START */
+{{-- /* SPMU IMAGE HAND CURSOR START */ --}}
 
-/*
+{{-- /*
  * Uploaded image documents are interactive inspection surfaces.
  * The hand cursor makes it clear that the image can be inspected
  * while the existing - / + / Fit controls handle zoom.
- */
+ */ --}}
 .spmu-verification-workspace
 .scanned-document-card img:not([hidden]) {
     cursor: grab !important;
@@ -3693,9 +3685,9 @@
     cursor: grabbing !important;
 }
 
-/*
+{{-- /*
  * Keep the hand cursor on dynamically-created tab images as well.
- */
+ */ --}}
 .spmu-verification-workspace
 .spmu-tab-document-image {
     cursor: grab !important;
@@ -3709,14 +3701,14 @@
     cursor: grabbing !important;
 }
 
-/* SPMU IMAGE HAND CURSOR END */
+{{-- /* SPMU IMAGE HAND CURSOR END */ --}}
 
-/* SPMU IMAGE-ONLY ZOOM CSS START */
+{{-- /* SPMU IMAGE-ONLY ZOOM CSS START */ --}}
 
-/*
+{{-- /*
  * Browser/page zoom must not take over while the user is
  * inspecting an uploaded image document.
- */
+ */ --}}
 .spmu-verification-workspace
 .scanned-document-card img:not([hidden]) {
     cursor: grab !important;
@@ -3724,15 +3716,15 @@
     -webkit-user-select: none !important;
     -webkit-user-drag: none !important;
 
-    /*
+    {{-- /*
      * Prevent touch gestures on the image itself from zooming
      * the whole browser page.
-     */
+     */ --}}
     touch-action: none !important;
 
-    /*
+    {{-- /*
      * JS controls image zoom/pan using transform only.
-     */
+     */ --}}
     transform-origin: center center !important;
     will-change: transform;
 }
@@ -3744,18 +3736,18 @@
 
 .spmu-verification-workspace
 .scanned-document-card {
-    /*
+    {{-- /*
      * Keep transformed image interaction inside the document viewer.
-     */
+     */ --}}
     overscroll-behavior: contain;
 }
 
-/* SPMU IMAGE-ONLY ZOOM CSS END */
-/* SPMU REVIEW WORKSPACE RECOVERY END */
+{{-- /* SPMU IMAGE-ONLY ZOOM CSS END */ --}}
+{{-- /* SPMU REVIEW WORKSPACE RECOVERY END */ --}}
 </style>
 
 <script>
-/* SPMU REVIEW WORKSPACE RECOVERY SCRIPT START */
+
 
 (() => {
     const workspace =
@@ -3766,9 +3758,9 @@
     }
 
 
-    /* =====================================================
-       DOCUMENT TABS
-       ===================================================== */
+
+
+
 
     const tabList =
         workspace.querySelector('[data-spmu-document-tabs]');
@@ -3783,10 +3775,10 @@
         const frame =
             viewer?.querySelector('.scanned-pdf-frame');
 
-        /*
-         | Visually place tabs directly below:
-         | "Inspect the signed Borrowing Request Letter"
-         */
+
+
+
+
         if (viewer && header && tabList.parentElement !== viewer) {
             header.insertAdjacentElement('afterend', tabList);
         }
@@ -3795,7 +3787,7 @@
             tabList.querySelectorAll('[data-document-tab]')
         );
 
-        /* SPMU DOCUMENT TAB IMAGE/PDF COMPATIBILITY FIX */
+
         let documentActivationSequence = 0;
 
         const detectDocumentType = async (documentUrl) => {
@@ -3819,14 +3811,14 @@
                 }
             }
             catch (error) {
-                // Fallback detection below handles servers that reject HEAD.
+
             }
 
-            /*
-             * Fallback:
-             * try loading the file as an image.
-             * If the browser cannot decode it as an image, use the frame.
-             */
+
+
+
+
+
             return await new Promise((resolve) => {
                 const probe = new Image();
 
@@ -3863,10 +3855,10 @@
             const activationSequence =
                 ++documentActivationSequence;
 
-            /*
-             * Update tab state immediately so the user gets
-             * visual feedback as soon as the tab is clicked.
-             */
+
+
+
+
             tabs.forEach((candidate) => {
                 const active = candidate === tab;
 
@@ -3887,10 +3879,10 @@
             const documentType =
                 await detectDocumentType(documentUrl);
 
-            /*
-             * Ignore a late response if the user already selected
-             * another tab while document type detection was running.
-             */
+
+
+
+
             if (
                 activationSequence !==
                 documentActivationSequence
@@ -3912,20 +3904,20 @@
                     'img[data-document-image]'
                 );
 
-            /*
-             * Existing image viewers may not have a dedicated
-             * image class, so use the image inside the card
-             * as the final fallback.
-             */
+
+
+
+
+
             if (!imageElement) {
                 imageElement =
                     viewer.querySelector('img');
             }
 
-            /*
-             * Make image-document interaction obvious to the reviewer.
-             * Zoom remains controlled by the existing - / + / Fit controls.
-             */
+
+
+
+
             if (imageElement) {
                 imageElement.classList.add(
                     'spmu-document-zoom-image'
@@ -3946,10 +3938,10 @@
                 pdfFrame?.parentElement ||
                 imageElement?.parentElement;
 
-            /*
-             * Very defensive fallback. Normally the existing
-             * document viewer already provides a media wrapper.
-             */
+
+
+
+
             if (!mediaHost) {
                 mediaHost =
                     document.createElement('div');
@@ -3961,11 +3953,11 @@
             }
 
             if (documentType === 'image') {
-                /*
-                 * Reuse the component's original image whenever
-                 * possible so its existing zoom / Fit controls
-                 * continue to operate.
-                 */
+
+
+
+
+
                 if (!imageElement) {
                     imageElement =
                         document.createElement('img');
@@ -4001,11 +3993,11 @@
                 return;
             }
 
-            /*
-             * PDF / non-image document.
-             * If the initial viewer was an image, create the
-             * PDF frame only when it is actually needed.
-             */
+
+
+
+
+
             if (!pdfFrame) {
                 pdfFrame =
                     document.createElement('iframe');
@@ -4101,9 +4093,9 @@
     }
 
 
-    /* =====================================================
-       APPROVAL / VERIFICATION READINESS
-       ===================================================== */
+
+
+
 
     workspace
         .querySelectorAll('[data-verification-form]')
@@ -4232,7 +4224,7 @@
 })();
 
 
-/* SPMU IMAGE-ONLY ZOOM SCRIPT START */
+
 
 (() => {
     const workspace =
@@ -4250,9 +4242,9 @@
     const imageSelector =
         '.scanned-document-card img:not([hidden])';
 
-    /*
-     * Keep independent zoom/pan state for every image document.
-     */
+
+
+
     const imageStates = new WeakMap();
 
     const getState = (image) => {
@@ -4306,17 +4298,17 @@
     };
 
 
-    /*
-     * ---------------------------------------------------------
-     * PINCH / CTRL + MOUSE WHEEL
-     * ---------------------------------------------------------
-     *
-     * Chrome represents trackpad pinch as a wheel event with
-     * ctrlKey=true.
-     *
-     * preventDefault() here stops Chrome from zooming the whole
-     * SPMU-ACPMP page and applies the zoom to the image instead.
-     */
+
+
+
+
+
+
+
+
+
+
+
     workspace.addEventListener(
         'wheel',
         (event) => {
@@ -4332,10 +4324,10 @@
                 return;
             }
 
-            /*
-             * Only intercept browser-zoom gestures.
-             * Plain mouse-wheel scrolling remains normal.
-             */
+
+
+
+
             if (!event.ctrlKey) {
                 return;
             }
@@ -4345,10 +4337,10 @@
 
             const state = getState(image);
 
-            /*
-             * Smooth but controlled zoom.
-             * Minimum 50%, maximum 300%.
-             */
+
+
+
+
             const direction =
                 event.deltaY < 0 ? 1 : -1;
 
@@ -4360,9 +4352,9 @@
                 3.00
             );
 
-            /*
-             * If returning to 100%, also recenter the document.
-             */
+
+
+
             if (
                 Math.abs(nextScale - 1) < 0.001
             ) {
@@ -4386,14 +4378,14 @@
     );
 
 
-    /*
-     * ---------------------------------------------------------
-     * CLICK + DRAG PAN
-     * ---------------------------------------------------------
-     *
-     * Once the image has been zoomed, grab it and move around
-     * inside the document viewer without moving the whole page.
-     */
+
+
+
+
+
+
+
+
     workspace.addEventListener(
         'pointerdown',
         (event) => {
@@ -4415,10 +4407,10 @@
 
             const state = getState(image);
 
-            /*
-             * Pan is useful after zooming.
-             * At normal/fit size, leave normal page interaction alone.
-             */
+
+
+
+
             if (state.scale <= 1) {
                 return;
             }
@@ -4445,7 +4437,7 @@
                 );
             }
             catch (error) {
-                // Pointer capture is optional.
+
             }
         },
         true
@@ -4532,7 +4524,7 @@
                 );
             }
             catch (error) {
-                // Safe if pointer capture was unavailable.
+
             }
 
             break;
@@ -4552,15 +4544,15 @@
     );
 
 
-    /*
-     * ---------------------------------------------------------
-     * RESET GESTURE TRANSFORM WHEN USING EXISTING TOOLBAR
-     * ---------------------------------------------------------
-     *
-     * Existing -, + and Fit controls continue to own their normal
-     * zoom behavior. Before they run, remove gesture-only transform
-     * so the two zoom systems never stack on top of each other.
-     */
+
+
+
+
+
+
+
+
+
     workspace.addEventListener(
         'click',
         (event) => {
@@ -4608,10 +4600,10 @@
     );
 
 
-    /*
-     * Switching BR Letter / PTC starts the newly-selected image
-     * from its normal document-viewer position.
-     */
+
+
+
+
     workspace
         .querySelectorAll(
             '[data-document-tab]'
@@ -4636,17 +4628,17 @@
 
 })();
 
-/* SPMU IMAGE-ONLY ZOOM SCRIPT END */
-/* SPMU REVIEW WORKSPACE RECOVERY SCRIPT END */
+
+
 </script>
 
 <style>
-/* ADMIN REQUEST DETAILS CLEAN START */
+{{-- /* ADMIN REQUEST DETAILS CLEAN START */ --}}
 
-/*
+{{-- /*
  | Clean request details presentation.
  | Keep the original request data; presentation only.
- */
+ */ --}}
 
 .spmu-verification-workspace
 .spmu-left-borrowing-info
@@ -4669,9 +4661,9 @@
 }
 
 
-/* ---------------------------------------------------------
+{{-- /* ---------------------------------------------------------
    Remove the previous table/cell appearance
-   --------------------------------------------------------- */
+   --------------------------------------------------------- */ --}}
 
 .spmu-verification-workspace
 .spmu-left-borrowing-grid-clean
@@ -4691,9 +4683,9 @@
 }
 
 
-/* ---------------------------------------------------------
+{{-- /* ---------------------------------------------------------
    Label
-   --------------------------------------------------------- */
+   --------------------------------------------------------- */ --}}
 
 .spmu-verification-workspace
 .spmu-left-borrowing-grid-clean
@@ -4714,9 +4706,9 @@
 }
 
 
-/* ---------------------------------------------------------
+{{-- /* ---------------------------------------------------------
    Value
-   --------------------------------------------------------- */
+   --------------------------------------------------------- */ --}}
 
 .spmu-verification-workspace
 .spmu-left-borrowing-grid-clean
@@ -4742,9 +4734,9 @@
 }
 
 
-/* ---------------------------------------------------------
+{{-- /* ---------------------------------------------------------
    Header remains separate and clean
-   --------------------------------------------------------- */
+   --------------------------------------------------------- */ --}}
 
 .spmu-verification-workspace
 .spmu-left-borrowing-info
@@ -4753,9 +4745,9 @@
 }
 
 
-/* ---------------------------------------------------------
+{{-- /* ---------------------------------------------------------
    Responsive
-   --------------------------------------------------------- */
+   --------------------------------------------------------- */ --}}
 
 @media (max-width:760px) {
 
@@ -4772,7 +4764,7 @@
 
 }
 
-/* ADMIN REQUEST DETAILS CLEAN END */
+{{-- /* ADMIN REQUEST DETAILS CLEAN END */ --}}
 </style>
 
 @endsection

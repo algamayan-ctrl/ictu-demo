@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AccessClassification;
 use App\Enums\UserRole;
 use App\Models\BillingStatement;
 use App\Models\BorrowerRestriction;
@@ -18,6 +19,7 @@ use App\Models\Sanction;
 use App\Models\SignatureSnapshot;
 use App\Models\StoredFile;
 use App\Models\UserSignature;
+use App\Services\DocumentService;
 use App\Services\ProtectedFileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -78,7 +80,7 @@ class DocumentController extends Controller
 
     /**
      * In-system preview page for a generated/uploaded accountability
-     * document. Embeds the same authorized documents.view stream in a
+     * document. Embeds the authorized document stream in a
      * page-level iframe (see components.document-review-viewer) instead of
      * opening documents.view directly in a new tab, so document actions use
      * the in-system Preview page with the PDF viewer's native Print/Download
@@ -90,7 +92,40 @@ class DocumentController extends Controller
 
         $document->loadMissing(['file', 'subject']);
 
-        return view('documents.preview', ['document' => $document]);
+        $showSystemRecord = $document->document_type === 'BORROWER_SLIP'
+            && $document->subject instanceof CustodyTransaction
+            && $document->subject->released_at !== null;
+
+        return view('documents.preview', compact('document', 'showSystemRecord'));
+    }
+
+    public function originalPreview(Request $request, GeneratedDocument $document): View
+    {
+        abort_unless($request->user()?->access_classification === AccessClassification::SpmuHead, 403);
+        abort_unless($document->document_type === 'BORROWER_SLIP', 404);
+        $this->authorizeGeneratedDocument($request, $document);
+        $document->loadMissing(['file', 'subject']);
+
+        return view('documents.preview', [
+            'document' => $document,
+            'showSystemRecord' => false,
+            'originalCopy' => true,
+        ]);
+    }
+
+    public function record(Request $request, GeneratedDocument $document, DocumentService $documents): StreamedResponse
+    {
+        $this->authorizeGeneratedDocument($request, $document);
+        abort_unless($document->file, 404);
+        $bytes = $documents->borrowerSlipRecordPdf($document);
+
+        return response()->stream(fn () => print $bytes, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="borrower-slip-system-record.pdf"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'Pragma' => 'no-cache',
+        ]);
     }
 
     private function authorizeGeneratedDocument(

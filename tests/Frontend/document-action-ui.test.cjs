@@ -43,13 +43,12 @@ const legacyDocumentActions = [
   'Open Accomplished Scan',
   'Open Scanned Cashier Receipt',
   'View Document',
-  'View Form',
   'View PDF',
   'View uploaded file',
   'Open original',
 ];
 
-test('all user-facing document actions use Preview wording', () => {
+test('document lists retain Preview wording and the concise Laundry record may use View Form', () => {
   for (const legacy of legacyDocumentActions) {
     assert.equal(allBlade.includes(legacy), false, `legacy action remains in Blade: ${legacy}`);
     assert.equal(obligationService.includes(legacy), false, `legacy action remains in obligation service: ${legacy}`);

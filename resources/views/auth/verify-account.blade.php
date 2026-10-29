@@ -18,18 +18,18 @@
 @endphp
 
 <style>
-/* ==========================================================
+{{-- /* ==========================================================
    SPMU-ACPMP UNIVERSAL OTP AUTH PAGE
-   ========================================================== */
+   ========================================================== */ --}}
 
-/* The normal public header is intentionally hidden here so
-   Verification uses the same full-page experience as Login. */
+{{-- /* The normal public header is intentionally hidden here so
+   Verification uses the same full-page experience as Login. */ --}}
 .site-header.public-header {
     display: none !important;
 }
 
-/* The app layout normally prints flash messages above the page content.
-   The OTP card displays them itself so there is no duplicate. */
+{{-- /* The app layout normally prints flash messages above the page content.
+   The OTP card displays them itself so there is no duplicate. */ --}}
 #main-content > .notice {
     display: none !important;
 }
@@ -424,7 +424,7 @@ body > footer {
     text-decoration: underline;
 }
 
-/* Existing global button rules must not alter these controls. */
+{{-- /* Existing global button rules must not alter these controls. */ --}}
 .otp-auth-card button {
     transform: none;
 }

@@ -3,7 +3,7 @@
 .sanction-rules-config [hidden] { display: none !important; }
 .sanction-rules-config .sanction-offense-card { padding: 20px 22px; }
 
-/* Offense application: intent copy beside the eligible case types. */
+{{-- /* Offense application: intent copy beside the eligible case types. */ --}}
 .sanction-rules-config .offense-application-panel { display: grid; grid-template-columns: minmax(240px, .8fr) minmax(0, 2.2fr); gap: 22px; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; }
 .sanction-rules-config .offense-application-copy { display: block; align-content: start; }
 .sanction-rules-config .offense-application-icon { display: grid; place-items: center; width: 50px; height: 50px; margin-bottom: 16px; border-radius: 13px; background: var(--blue-50); color: var(--interactive); }
@@ -24,7 +24,7 @@
 .sanction-rules-config .offense-application-save { justify-self: start; min-height: 40px; }
 
 
-/* Per-offense default rules. */
+{{-- /* Per-offense default rules. */ --}}
 .sanction-rules-config .sanction-rule-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; gap: 16px; }
 .sanction-rules-config .sanction-rule-card { display: flex; min-width: 0; flex-direction: column; gap: 0; padding: 18px 20px 20px; background: var(--surface-elevated); }
 .sanction-rules-config .sanction-rule-title { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 15px; font-weight: 750; }
@@ -42,12 +42,12 @@
 .sanction-rules-config .sanction-advanced[open] summary { margin-bottom:10px; }
 .sanction-rules-config .sanction-advanced label { margin-bottom:0; }
 
-/* Compact policy-history helper. */
+{{-- /* Compact policy-history helper. */ --}}
 .sanction-rules-config .sanction-policy-history { display:flex; align-items:center; justify-content:center; gap:7px; margin:0; color:var(--text-muted); font-size:11.5px; line-height:1.45; text-align:center; }
 .sanction-rules-config .sanction-policy-history > .ui-icon { flex-shrink:0; color:var(--text-muted); }
 
 
-/* Dark mode recesses the nested tiles instead of lifting them. */
+{{-- /* Dark mode recesses the nested tiles instead of lifting them. */ --}}
 html[data-theme="dark"] .sanction-rules-config .offense-type-option { background: var(--surface-subtle); }
 html[data-theme="dark"] .sanction-rules-config .offense-type-option:hover { background: var(--surface-muted); }
 

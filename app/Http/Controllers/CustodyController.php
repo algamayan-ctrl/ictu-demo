@@ -522,21 +522,27 @@ class CustodyController extends Controller
 
         $request->validate([
             'borrower_confirmation_note' => ['nullable', 'string', 'max:200'],
+            'confirm_pickup' => $request->has('borrower_present') ? ['required', 'accepted'] : ['sometimes', 'accepted'],
+            'borrower_present' => ['sometimes', 'accepted'],
         ]);
 
         $service->rescheduleMissedPickup(
             $custody,
             $request->user(),
             $request->boolean('borrower_need_confirmed'),
-            $request->input('borrower_confirmation_note')
+            $request->input('borrower_confirmation_note'),
+            $request->boolean('confirm_pickup'),
+            $request->boolean('borrower_present')
         );
 
-        if ($delayedApprovalReview) {
+        if ($request->boolean('borrower_present') || $delayedApprovalReview) {
             return redirect()
                 ->to(route('custody.release.show', $custody).'#pickup-schedule')
                 ->with(
                     'status',
-                    'Pickup & Issuance was scheduled in the next valid SPMU operating window after your confirmation that the borrower still needs the equipment. The borrower was notified of the schedule.'
+                    $request->boolean('borrower_present')
+                        ? 'Borrower pickup confirmed. Continue with release processing.'
+                        : 'Pickup schedule confirmed.'
                 );
         }
 

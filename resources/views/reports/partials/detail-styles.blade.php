@@ -79,15 +79,15 @@
 </style>
 
 <style>
-/*
+{{-- /*
 | Reports chrome.
 |
 | The builder is interface; everything below it is a document. The two are
 | deliberately styled apart so the preview reads as a sheet of paper sitting
 | on the application, not as another panel of it.
-*/
+*/ --}}
 
-/* Report builder */
+{{-- /* Report builder */ --}}
 .reporting-workspace .report-builder-card { display: grid; gap: 0; padding: 26px; border-radius: 12px; }
 .report-builder-primary { display: grid; grid-template-columns: minmax(0, 30fr) minmax(0, 25fr) minmax(0, 27fr) auto; gap: 18px; align-items: start; margin-top: 14px; }
 .report-builder-field { display: grid; gap: 7px; align-content: start; min-width: 0; margin: 0; font-size: 11.5px; font-weight: 750; letter-spacing: .02em; color: var(--text-secondary); }
@@ -98,7 +98,7 @@
 .report-resolved-period .ui-icon { color: var(--text-soft); flex: 0 0 auto; }
 .report-resolved-period small { color: var(--text-muted); font-size: 11px; font-weight: 500; }
 
-/* The primary action shares the top row, so opening the filters never moves it. */
+{{-- /* The primary action shares the top row, so opening the filters never moves it. */ --}}
 .reporting-workspace .report-generate-button { min-height: 42px; padding: 10px 18px; font-size: 12.5px; }
 .report-no-filters { display: block; margin: 18px 0 0; color: var(--text-muted); font-size: 12px; }
 
@@ -111,14 +111,14 @@
 .report-filter-grid { display: grid; grid-template-columns: repeat(var(--report-filter-columns, 3), minmax(0, 1fr)); gap: 16px; }
 .report-builder-card .report-description { margin: 22px 0 0; }
 
-/* Preview */
+{{-- /* Preview */ --}}
 .report-preview-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin: 0 0 10px; }
 .report-preview-label { margin: 0; color: var(--text-muted); font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .report-preview-title { margin: 3px 0 0; color: var(--heading); font-size: 16px; font-weight: 750; }
 .report-preview-context { margin: 3px 0 0; color: var(--text-muted); font-size: 11px; line-height: 1.35; }
 .report-filter-warning { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 12px; color: var(--warning); font-size: 12px; }
 
-/* Records footer and pagination */
+{{-- /* Records footer and pagination */ --}}
 .report-records-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
 .report-records-footer > p { margin: 0; color: var(--text-secondary); font-size: 12px; }
 .report-records-label { display: grid; gap: 2px; }
@@ -133,7 +133,7 @@
 .report-boundary-note { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-subtle); color: var(--text-muted); font-size: 12px; line-height: 1.55; }
 .report-boundary-note .ui-icon { flex: 0 0 auto; color: var(--info); margin-top: 1px; }
 
-/* Report Options dialog */
+{{-- /* Report Options dialog */ --}}
 .report-options-dialog { width: min(560px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-elevated); color: var(--text); box-shadow: var(--shadow); }
 .report-options-dialog::backdrop { background: rgba(7, 27, 53, .45); }
 .report-options-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--border); }
@@ -178,7 +178,7 @@
 </style>
 
 <style>
-/* Universal Reports UX refinements shared by every formal report type. */
+{{-- /* Universal Reports UX refinements shared by every formal report type. */ --}}
 .report-filter-actions { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .report-clear-filters { color: var(--primary-action); font-size: 11px; font-weight: 750; text-decoration: none; }
 .report-clear-filters:hover { text-decoration: underline; }
@@ -219,11 +219,11 @@
 
 
 <style>
-/* ============================================================
+{{-- /* ============================================================
  SYSTEM REPORT PREVIEW
  Normal browser view = application UI.
  Print/export source = formal paper document.
- ============================================================ */
+ ============================================================ */ --}}
 
 .report-print-view {
  display: none !important;
@@ -457,7 +457,7 @@
  font-size: 11px;
 }
 
-/* The preview header is application chrome, not part of the paper. */
+{{-- /* The preview header is application chrome, not part of the paper. */ --}}
 .reporting-detail .report-preview-bar {
  margin-bottom: 16px;
  padding: 0;
@@ -485,11 +485,11 @@
 </style>
 
 <style>
-/* =========================================================
+{{-- /* =========================================================
  SYSTEM REPORT PREVIEW — server-rendered records table
  The on-screen preview is application UI only. The formal
  document exists only in Print and the exported files.
- ========================================================= */
+ ========================================================= */ --}}
 
 
 .report-preview-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -542,9 +542,9 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
 
 
 <style>
-/* =========================================================
+{{-- /* =========================================================
  SYSTEM REPORT PREVIEW V2
- ========================================================= */
+ ========================================================= */ --}}
 
 @media screen {
 
@@ -560,7 +560,7 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
  }
 
 
- /* Summary cards */
+ {{-- /* Summary cards */ --}}
 
  .report-system-summary-grid {
  display: grid;
@@ -625,7 +625,7 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
  }
 
 
- /* Records card */
+ {{-- /* Records card */ --}}
 
  .report-system-records-card {
  width: 100%;
@@ -663,7 +663,7 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
  }
 
 
- /* Search */
+ {{-- /* Search */ --}}
 
  .report-system-search {
  position: relative;
@@ -708,7 +708,7 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
  }
 
 
- /* System table */
+ {{-- /* System table */ --}}
 
  .report-system-table-scroll {
  width: 100%;
@@ -827,7 +827,7 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
  }
 
 
- /* Preview heading remains application UI */
+ {{-- /* Preview heading remains application UI */ --}}
 
  .reporting-detail .report-preview-bar {
  margin-bottom: 16px;
@@ -859,7 +859,7 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
 </style>
 
 <style>
-/* REMOVE SUMMARY LETTER ICONS + CORRUPTED PREVIEW SEPARATOR */
+{{-- /* REMOVE SUMMARY LETTER ICONS + CORRUPTED PREVIEW SEPARATOR */ --}}
 
 .report-system-summary-icon {
  display: none !important;
@@ -876,7 +876,7 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
 
 </style>
 <style>
-/* REPORT UNIVERSAL EMPTY STATE FINAL */
+{{-- /* REPORT UNIVERSAL EMPTY STATE FINAL */ --}}
 
 .report-no-results {
  display: grid !important;
@@ -994,13 +994,13 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
 
 
 <style>
-/* EXPORT PRINT MODAL CANONICAL FINAL */
+{{-- /* EXPORT PRINT MODAL CANONICAL FINAL */ --}}
 
-/*
+{{-- /*
  * IMPORTANT:
  * The dialog must shrink to the real form content.
  * Do not let dialog/form inherit a stretched height.
- */
+ */ --}}
 dialog.report-options-dialog[open] {
  display: block !important;
 
@@ -1023,10 +1023,10 @@ dialog.report-options-dialog[open] {
  border-radius: 13px !important;
 }
 
-/*
+{{-- /*
  * This is the important part:
  * force the FORM itself to shrink to its contents.
- */
+ */ --}}
 dialog.report-options-dialog[open] > form {
  display: grid !important;
 
@@ -1051,7 +1051,7 @@ dialog.report-options-dialog[open] > form {
  padding: 0 !important;
 }
 
-/* Header */
+{{-- /* Header */ --}}
 .report-options-header {
  padding: 11px 15px !important;
 }
@@ -1061,7 +1061,7 @@ dialog.report-options-dialog[open] > form {
  font-size: 15px !important;
 }
 
-/* Actual modal content */
+{{-- /* Actual modal content */ --}}
 .report-options-body {
  display: grid !important;
 
@@ -1080,7 +1080,7 @@ dialog.report-options-dialog[open] > form {
  overflow-y: auto !important;
 }
 
-/* Compact report identity */
+{{-- /* Compact report identity */ --}}
 .report-options-scope {
  display: grid !important;
  gap: 2px !important;
@@ -1102,7 +1102,7 @@ dialog.report-options-dialog[open] > form {
  line-height: 1.35 !important;
 }
 
-/* Export format */
+{{-- /* Export format */ --}}
 .report-options-format {
  padding: 0 !important;
 }
@@ -1119,7 +1119,7 @@ dialog.report-options-dialog[open] > form {
  font-size: 12.5px !important;
 }
 
-/* Page layout */
+{{-- /* Page layout */ --}}
 .report-options-section {
  gap: 8px !important;
 
@@ -1132,7 +1132,7 @@ dialog.report-options-dialog[open] > form {
  font-size: 10.5px !important;
 }
 
-/* Helper sentence not needed */
+{{-- /* Helper sentence not needed */ --}}
 .report-options-section-heading small {
  display: none !important;
 }
@@ -1146,7 +1146,7 @@ dialog.report-options-dialog[open] > form {
  gap: 10px !important;
 }
 
-/* Include report summary */
+{{-- /* Include report summary */ --}}
 .report-options-content {
  display: flex !important;
 
@@ -1170,12 +1170,12 @@ dialog.report-options-dialog[open] > form {
  margin: 0 !important;
 }
 
-/* Remove large automatic-info box */
+{{-- /* Remove large automatic-info box */ --}}
 .report-options-auto-note {
  display: none !important;
 }
 
-/* Advanced settings */
+{{-- /* Advanced settings */ --}}
 .report-options-advanced {
  margin: 0 !important;
 
@@ -1210,7 +1210,7 @@ dialog.report-options-dialog[open] > form {
  padding: 9px !important;
 }
 
-/* Footer MUST sit directly after form content */
+{{-- /* Footer MUST sit directly after form content */ --}}
 .report-options-footer {
  position: static !important;
 
@@ -1244,7 +1244,7 @@ dialog.report-options-dialog[open] > form {
  padding: 0 14px !important;
 }
 
-/* Nothing should create phantom space after footer */
+{{-- /* Nothing should create phantom space after footer */ --}}
 .report-options-footer:last-child {
  margin-bottom: 0 !important;
 }
@@ -1254,7 +1254,7 @@ dialog.report-options-dialog[open] > form::after {
  content: none !important;
 }
 
-/* Mobile */
+{{-- /* Mobile */ --}}
 @media (max-width: 620px) {
 
  dialog.report-options-dialog[open] {
@@ -1275,13 +1275,13 @@ dialog.report-options-dialog[open] > form::after {
 
 
 <style>
-/* INVENTORY STYLE REPORT TABLES FINAL */
+{{-- /* INVENTORY STYLE REPORT TABLES FINAL */ --}}
 
 @media screen {
 
- /* =====================================================
+ {{-- /* =====================================================
  TABLE WRAPPER
- ===================================================== */
+ ===================================================== */ --}}
 
  .report-system-table-scroll {
  width: 100%;
@@ -1296,9 +1296,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /* =====================================================
+ {{-- /* =====================================================
  TABLE BASE
- ===================================================== */
+ ===================================================== */ --}}
 
  [data-report-system-table] table {
  width: max-content !important;
@@ -1315,10 +1315,10 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /* =====================================================
+ {{-- /* =====================================================
  HEADER
  Similar to Inventory table
- ===================================================== */
+ ===================================================== */ --}}
 
  [data-report-system-table] thead th {
  padding: 10px 12px !important;
@@ -1358,9 +1358,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /* =====================================================
+ {{-- /* =====================================================
  BODY
- ===================================================== */
+ ===================================================== */ --}}
 
  [data-report-system-table] tbody td {
  padding: 11px 12px !important;
@@ -1394,9 +1394,9 @@ dialog.report-options-dialog[open] > form::after {
  border-bottom: 0 !important;
  }
 
- /*
+ {{-- /*
  * Clean row hover similar to inventory list.
- */
+ */ --}}
  [data-report-system-table] tbody tr:hover td {
  background:
  color-mix(
@@ -1407,14 +1407,14 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /* =====================================================
+ {{-- /* =====================================================
  COLUMN SIZING
  Compact and based on content
- ===================================================== */
+ ===================================================== */ --}}
 
- /*
+ {{-- /*
  * Request / transaction IDs
- */
+ */ --}}
  [data-report-system-table] .report-col-id {
  width: 1% !important;
  min-width: 135px !important;
@@ -1427,9 +1427,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /*
+ {{-- /*
  * Borrower / personnel
- */
+ */ --}}
  [data-report-system-table] .report-col-person {
  min-width: 110px !important;
  max-width: 150px !important;
@@ -1438,9 +1438,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /*
+ {{-- /*
  * Division / Office / College / Unit
- */
+ */ --}}
  [data-report-system-table] .report-col-organization {
  min-width: 120px !important;
  max-width: 190px !important;
@@ -1449,9 +1449,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /*
+ {{-- /*
  * Dates
- */
+ */ --}}
  [data-report-system-table] .report-col-date {
  width: 1% !important;
 
@@ -1464,9 +1464,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /*
+ {{-- /*
  * Status / decision
- */
+ */ --}}
  [data-report-system-table] .report-col-status {
  min-width: 105px !important;
  max-width: 145px !important;
@@ -1475,9 +1475,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /*
+ {{-- /*
  * Purpose / description / remarks / reason
- */
+ */ --}}
  [data-report-system-table] .report-col-wrap {
  min-width: 125px !important;
  max-width: 210px !important;
@@ -1486,9 +1486,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /*
+ {{-- /*
  * Version / count / quantity
- */
+ */ --}}
  [data-report-system-table] .report-col-compact {
  width: 1% !important;
 
@@ -1501,9 +1501,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /*
+ {{-- /*
  * Turnaround / duration
- */
+ */ --}}
  [data-report-system-table] .report-col-duration {
  width: 1% !important;
 
@@ -1518,9 +1518,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /*
+ {{-- /*
  * Amounts / numeric values
- */
+ */ --}}
  [data-report-system-table] .report-col-number {
  width: 1% !important;
 
@@ -1535,9 +1535,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /* =====================================================
+ {{-- /* =====================================================
  NUMERIC HEADER ALIGNMENT
- ===================================================== */
+ ===================================================== */ --}}
 
  [data-report-system-table] thead .report-col-compact,
  [data-report-system-table] thead .report-col-duration,
@@ -1546,9 +1546,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /* =====================================================
+ {{-- /* =====================================================
  STATUS / ACTIONS
- ===================================================== */
+ ===================================================== */ --}}
 
  [data-report-system-table] .status-badge {
  display: inline-flex !important;
@@ -1575,9 +1575,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /* =====================================================
+ {{-- /* =====================================================
  EMPTY CELLS
- ===================================================== */
+ ===================================================== */ --}}
 
  [data-report-system-table] tbody td:empty::after {
  content: "—";
@@ -1586,9 +1586,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /* =====================================================
+ {{-- /* =====================================================
  SCROLLBAR
- ===================================================== */
+ ===================================================== */ --}}
 
  .report-system-table-scroll::-webkit-scrollbar {
  height: 8px;
@@ -1612,9 +1612,9 @@ dialog.report-options-dialog[open] > form::after {
  }
 
 
- /* =====================================================
+ {{-- /* =====================================================
  MOBILE
- ===================================================== */
+ ===================================================== */ --}}
 
  @media (max-width: 760px) {
 
@@ -1634,7 +1634,7 @@ dialog.report-options-dialog[open] > form::after {
 
 </style>
 <style>
-/* CENTER REPORT TABLE HEADERS FINAL */
+{{-- /* CENTER REPORT TABLE HEADERS FINAL */ --}}
 
 @media screen {
 
@@ -1643,17 +1643,17 @@ dialog.report-options-dialog[open] > form::after {
  vertical-align: middle !important;
  }
 
- /*
+ {{-- /*
  * Keep actual record values readable.
  * Only the header labels are centered.
- */
+ */ --}}
  [data-report-system-table] tbody td {
  text-align: left !important;
  }
 
- /*
+ {{-- /*
  * Compact/numeric columns may remain centered in the body.
- */
+ */ --}}
  [data-report-system-table] tbody .report-col-compact,
  [data-report-system-table] tbody .report-col-duration,
  [data-report-system-table] tbody .report-col-number {
@@ -1664,7 +1664,7 @@ dialog.report-options-dialog[open] > form::after {
 
 </style>
 <style>
-/* REPORT RECORDS PAGINATION INVENTORY STYLE */
+{{-- /* REPORT RECORDS PAGINATION INVENTORY STYLE */ --}}
 
 @media screen {
 
@@ -1704,7 +1704,7 @@ dialog.report-options-dialog[open] > form::after {
  margin-left: auto;
  }
 
- /* Records per page */
+ {{-- /* Records per page */ --}}
 
  .report-per-page-control {
  margin: 0;
@@ -1731,7 +1731,7 @@ dialog.report-options-dialog[open] > form::after {
  font-weight: 650 !important;
  }
 
- /* Previous / pages / Next */
+ {{-- /* Previous / pages / Next */ --}}
 
  .report-records-controls .report-pagination {
  display: flex !important;
@@ -1843,19 +1843,19 @@ dialog.report-options-dialog[open] > form::after {
 
 </style>
 <style>
-/* HIDE REPORT BUILDER DESCRIPTION FINAL */
+{{-- /* HIDE REPORT BUILDER DESCRIPTION FINAL */ --}}
 
-/*
+{{-- /*
  * Remove the report-specific explanatory sentence shown
  * underneath the Report Builder controls.
- */
+ */ --}}
 .reporting-workspace
 .report-builder-card
 .report-description {
  display: none !important;
 }
 
-/* Prevent leftover spacing */
+{{-- /* Prevent leftover spacing */ --}}
 .reporting-workspace
 .report-builder-card {
  row-gap: 0;
@@ -1863,10 +1863,10 @@ dialog.report-options-dialog[open] > form::after {
 
 </style>
 <style>
-/* =========================================================
+{{-- /* =========================================================
  SYSTEM PREVIEW — COMPACT LAYOUT (final overrides)
  Dense, dashboard-style cards and table consistent with Analytics.
- ========================================================= */
+ ========================================================= */ --}}
 .reporting-detail .report-system-preview { gap: 14px; }
 .reporting-detail .report-system-summary-grid { grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 10px; }
 .reporting-detail .report-system-summary-card { min-height: 0; padding: 12px 14px; border-radius: 9px; }
@@ -1876,7 +1876,7 @@ dialog.report-options-dialog[open] > form::after {
 .reporting-detail .report-system-records-header { margin-bottom: 12px; }
 .reporting-detail .report-system-table { min-width: 860px; }
 .reporting-detail .report-system-table th, .reporting-detail .report-system-table td { padding: 9px 10px !important; }
-/* Only horizontal overflow scrolls inside the card; rows never scroll in a nested box. */
+{{-- /* Only horizontal overflow scrolls inside the card; rows never scroll in a nested box. */ --}}
 .reporting-detail .report-system-table-scroll { max-height: none; overflow-x: auto; overflow-y: visible; }
 .reporting-detail .report-system-table td.report-cell-nowrap { white-space: nowrap !important; }
 .reporting-detail .report-records-footer { margin-top: 12px; }
@@ -1891,7 +1891,7 @@ dialog.report-options-dialog[open] > form::after {
 </style>
 
 <style>
-/* SPMU-REPORTS-INVENTORY-TABLE-V1 — display only; print/export stays unchanged */
+{{-- /* SPMU-REPORTS-INVENTORY-TABLE-V1 — display only; print/export stays unchanged */ --}}
 @media screen {
   .reporting-detail .report-system-table-scroll {
     max-width: 100%;
@@ -1970,7 +1970,7 @@ dialog.report-options-dialog[open] > form::after {
     color: var(--primary-action) !important;
     text-decoration: none !important;
     box-shadow: none !important;
-    font-size: 0 !important; /* Visible eye icon, accessible View Record text remains in HTML */
+    font-size: 0 !important; {{-- /* Visible eye icon, accessible View Record text remains in HTML */ --}}
   }
   .reporting-detail .report-inventory-view-action:hover {
     background: color-mix(in srgb, var(--primary-action) 9%, var(--surface-elevated)) !important;
@@ -2002,7 +2002,7 @@ dialog.report-options-dialog[open] > form::after {
     font-variant-numeric: tabular-nums;
     font-weight: 700 !important;
   }
-  /* All Transactions: retain all fields with sensible widths and scroll, never squash. */
+  {{-- /* All Transactions: retain all fields with sensible widths and scroll, never squash. */ --}}
   .all-transactions-page .all-transactions-table { min-width: 1280px !important; }
   .all-transactions-page .all-transactions-table thead th { white-space: nowrap !important; }
   .all-transactions-page .all-transactions-table tbody td { height: 54px; white-space: nowrap !important; }
@@ -2042,8 +2042,8 @@ dialog.report-options-dialog[open] > form::after {
 </style>
 
 <style>
-/* SPMU-COMPACT-REPORTS START */
-/* Screen UI only. Formal printed/exported report sheets are not changed. */
+{{-- /* SPMU-COMPACT-REPORTS START */ --}}
+{{-- /* Screen UI only. Formal printed/exported report sheets are not changed. */ --}}
 @media screen {
   .reporting-workspace.reporting-detail .page-heading { margin-bottom: 14px !important; }
   .reporting-workspace.reporting-detail .page-heading h1 { font-size: 21px !important; }
@@ -2072,5 +2072,5 @@ dialog.report-options-dialog[open] > form::after {
   .reporting-workspace.reporting-detail .report-generator-card { padding: 14px !important; }
   .reporting-workspace.reporting-detail .report-system-summary-card { min-height: 72px !important; }
 }
-/* SPMU-COMPACT-REPORTS END */
+{{-- /* SPMU-COMPACT-REPORTS END */ --}}
 </style>

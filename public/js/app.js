@@ -54,7 +54,7 @@
     });
 
     systemTheme.addEventListener('change', () => {
-        // Default is now always light, so no need to reapply on system theme change
+
     });
 
     applyPreference(storedPreference());
@@ -196,7 +196,7 @@
     const filterEmptyCopy = calendar.querySelector('[data-calendar-filter-empty-copy]');
     const defaultEmptyStates = calendar.querySelectorAll('[data-calendar-default-empty]');
     const compactViewport = window.matchMedia('(max-width: 700px)');
-    let selectedPhaseCategory = ''; // empty means all activities
+    let selectedPhaseCategory = '';
     let selectedListStatus = '';
     let selectedListQuery = '';
     let selectedListSort = 'date-soonest';
@@ -636,10 +636,10 @@
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // The topbar is sticky, not removed from flow, so scrollIntoView() alone
-    // lands a target flush with the viewport top - directly underneath it.
-    // Only #main-content carries scroll-margin-top for this; any other
-    // in-page anchor target needs the same offset applied manually here.
+
+
+
+
     const topbarOffset = () => {
         const raw = getComputedStyle(document.documentElement).getPropertyValue('--topbar-height');
         const parsed = parseInt(raw, 10);
@@ -737,7 +737,7 @@
     });
 })();
 
-/* SIDEBAR SECTION ACCORDION START */
+
 (() => {
     const toggles = Array.from(
         document.querySelectorAll('[data-sidebar-section-toggle]')
@@ -770,10 +770,10 @@
             return;
         }
 
-        /*
-         * Accordion behavior:
-         * only one module submenu may be expanded at a time.
-         */
+
+
+
+
         toggles.forEach((otherToggle) => {
             if (otherToggle !== toggle) {
                 closeGroup(otherToggle);
@@ -784,13 +784,13 @@
         toggle.setAttribute('aria-expanded', 'true');
     };
 
-    /*
-     * KEEP ACTIVE SIDEBAR GROUP OPEN
-     *
-     * Start with every group closed, then reopen the group containing
-     * the currently active submenu item. This keeps Accountability or
-     * Analytics expanded after navigating between their child pages.
-     */
+
+
+
+
+
+
+
     toggles.forEach(closeGroup);
 
     const activeToggle = toggles.find((toggle) => {
@@ -812,20 +812,20 @@
             return;
         }
 
-        /*
-         * The parent module becomes an accordion control.
-         * Its existing href remains as a no-JavaScript fallback.
-         */
+
+
+
+
         event.preventDefault();
         event.stopPropagation();
 
-        /*
-         * COLLAPSED SIDEBAR ACCORDION FIX
-         *
-         * A grouped module cannot display its submenu while the desktop
-         * sidebar is collapsed. Clicking its icon first expands the main
-         * sidebar, then opens that module's submenu.
-         */
+
+
+
+
+
+
+
         const isDesktop = window.matchMedia('(min-width: 1050px)').matches;
         const sidebarIsCollapsed =
             document.documentElement.dataset.sidebarState === 'collapsed';
@@ -869,4 +869,3 @@
         openToggle.focus();
     });
 })();
-/* SIDEBAR SECTION ACCORDION END */

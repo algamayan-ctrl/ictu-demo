@@ -22,9 +22,9 @@
 >
     <div class="spmu-availability-review__header">
         <div>
-            <p class="eyebrow">Inventory check</p>
-            <h3>Requested items &amp; availability</h3>
-            <p class="meta">Check requested quantities for the selected dates.</p>
+            <p class="eyebrow">Item Availability</p>
+            <h3>Requested Items</h3>
+            <p class="meta">Review item availability for the requested borrowing period.</p>
         </div>
 
         <span
@@ -33,28 +33,28 @@
             role="status"
             aria-live="polite"
         >
-            Checking&hellip;
+            Checking Availability&hellip;
         </span>
     </div>
 
     @if($availabilityFrom && $availabilityTo)
         <div class="spmu-availability-period">
             <span>
-                <small>Items needed from</small>
+                <small>Date Needed</small>
                 <strong>{{ \Illuminate\Support\Carbon::parse($availabilityFrom)->format('d M Y') }}</strong>
             </span>
 
             <span class="spmu-availability-period__arrow" aria-hidden="true">&rarr;</span>
 
             <span>
-                <small>Expected return</small>
+                <small>Expected Return Date</small>
                 <strong>{{ \Illuminate\Support\Carbon::parse($availabilityTo)->format('d M Y') }}</strong>
             </span>
         </div>
     @else
         <div class="callout warning spmu-availability-guidance">
             <strong>Borrowing dates are incomplete.</strong>
-            Availability cannot be calculated until the requested period is complete.
+            Both borrowing dates are required to check item availability.
         </div>
     @endif
 
@@ -65,9 +65,9 @@
                     <th>Item</th>
                     <th>Requested</th>
                     <th>Available</th>
-                    <th>Reserved</th>
-                    <th>Remaining</th>
-                    <th>Result</th>
+                    <th>{{ auth()->user()?->access_classification?->value === 'SPMU_OFFICER' ? 'Allocated' : 'Reserved' }}</th>
+                    <th>After Approval</th>
+                    <th>Availability</th>
                 </tr>
             </thead>
 
@@ -120,13 +120,13 @@
     </div>
 
     <div class="callout info spmu-availability-guidance" data-availability-guidance>
-        <strong>Checking availability for the selected dates.</strong>
-        Final availability is rechecked upon approval.
+        <strong>Checking item availability for the requested dates.</strong>
+        Availability will be confirmed when the request is approved.
     </div>
 </section>
 
 <style>
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Inventory check - requested items and availability
 |--------------------------------------------------------------------------
@@ -136,7 +136,7 @@
 | full-width card, so it needs no internal scrolling of its own; the page
 | scrolls instead.
 |
-*/
+*/ --}}
 
 .spmu-availability-review {
     display: grid;
@@ -175,7 +175,7 @@
     white-space: nowrap;
 }
 
-/* Borrowing period */
+{{-- /* Borrowing period */ --}}
 .spmu-availability-period {
     display: flex;
     align-items: center;
@@ -208,7 +208,7 @@
     font-size: 15px;
 }
 
-/* Item table */
+{{-- /* Item table */ --}}
 .spmu-availability-table-wrap {
     margin: 0;
     overflow-x: auto;
@@ -253,7 +253,7 @@
     font-size: 11px;
 }
 
-/* Quantities read as a column of figures, so they are aligned and compact. */
+{{-- /* Quantities read as a column of figures, so they are aligned and compact. */ --}}
 .spmu-availability-table th:not(:first-child),
 .spmu-availability-table td:not(:first-child) { text-align: center; }
 
@@ -273,13 +273,15 @@
 .spmu-availability-table th:nth-child(6),
 .spmu-availability-table td:nth-child(6) { width: 17%; }
 
-/* A result never breaks across lines. */
+.spmu-availability-table th:nth-child(5) { white-space: normal; }
+
+{{-- /* A result never breaks across lines. */ --}}
 .spmu-availability-table .status-badge {
     white-space: nowrap;
     font-size: 11px;
 }
 
-/* Compact result notice */
+{{-- /* Compact result notice */ --}}
 .spmu-availability-guidance {
     margin: 0;
     padding: 10px 13px;
@@ -356,11 +358,11 @@
         return numeric.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
     };
 
-    /*
-     * The notice states the outcome and the one thing that is not obvious
-     * from the table: the backend rechecks availability on approval. It
-     * deliberately does not restate the per-item results above it.
-     */
+
+
+
+
+
     const updateGuidance = (state) => {
         if (!guidance) return;
 
@@ -369,31 +371,31 @@
         if (state === 'sufficient') {
             guidance.classList.add('success');
             guidance.innerHTML =
-                '<strong>Quantities are sufficient for the selected dates.</strong> '
-                + 'Final availability is rechecked upon approval.';
+                '<strong>All requested items are available for the selected dates.</strong> '
+                + 'Availability will be confirmed when the request is approved.';
             return;
         }
 
         if (state === 'exact') {
             guidance.classList.add('warning');
             guidance.innerHTML =
-                '<strong>Fulfillable, but one or more items will have no stock left after approval.</strong> '
-                + 'Final availability is rechecked upon approval.';
+                '<strong>The requested quantities are available.</strong> '
+                + 'Approval will use all available stock for one or more items.';
             return;
         }
 
         if (state === 'insufficient') {
             guidance.classList.add('warning');
             guidance.innerHTML =
-                '<strong>One or more quantities cannot be fulfilled for these dates.</strong> '
-                + 'Return the request for revision instead of approving it.';
+                '<strong>Some requested quantities exceed the available stock.</strong> '
+                + 'Return the request for correction.';
             return;
         }
 
         guidance.classList.add('info');
         guidance.innerHTML =
-            '<strong>Availability could not be checked.</strong> '
-            + 'Reload the page; the final check still runs on approval.';
+            '<strong>Item availability could not be confirmed.</strong> '
+            + 'Please refresh the page to try again.';
     };
 
     if (approveButton) {
@@ -414,7 +416,7 @@
 
     if (!endpoint || !from || !to || rows.length === 0) {
         inventoryState = 'error';
-        setBadge(summary, 'Unavailable', 'warning');
+        setBadge(summary, 'Check Unavailable', 'warning');
         updateGuidance('error');
         return;
     }
@@ -477,12 +479,12 @@
                     sufficient && Math.abs(available - requested) < 0.0005;
 
                 if (exactAvailability) {
-                    setBadge(result, 'Exact', 'warning');
+                    setBadge(result, 'Exact Quantity', 'warning');
                     hasExactAvailability = true;
                 } else if (sufficient) {
-                    setBadge(result, 'Sufficient', 'success');
+                    setBadge(result, 'Available', 'success');
                 } else {
-                    setBadge(result, 'Insufficient', 'danger');
+                    setBadge(result, 'Shortage', 'danger');
                     allSufficient = false;
                 }
             });
@@ -496,10 +498,10 @@
             setBadge(
                 summary,
                 !allSufficient
-                    ? 'Inventory conflict'
+                    ? 'Quantity Shortage'
                     : (hasExactAvailability
-                        ? 'Exact availability'
-                        : 'All quantities sufficient'),
+                        ? 'Exact Quantity Available'
+                        : 'All Items Available'),
                 !allSufficient
                     ? 'danger'
                     : (hasExactAvailability ? 'warning' : 'success')
@@ -514,12 +516,12 @@
             rows.forEach((row) => {
                 setBadge(
                     row.querySelector('[data-availability-result]'),
-                    'Unavailable',
+                    'Not Checked',
                     'warning'
                 );
             });
 
-            setBadge(summary, 'Check unavailable', 'warning');
+            setBadge(summary, 'Check Unavailable', 'warning');
             updateGuidance('error');
         });
 })();

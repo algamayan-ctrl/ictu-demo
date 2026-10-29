@@ -1,5 +1,5 @@
 <style>
-/* Form content only: the existing request stepper keeps its markup and styling. */
+{{-- /* Form content only: the existing request stepper keeps its markup and styling. */ --}}
 .create-request-heading h1 { font-size: clamp(21px, 1.65vw, 25px); font-weight: 750; }
 .create-request-heading .heading-copy { font-size: 12.5px; line-height: 1.4; color: var(--text-muted); }
 #request-form .create-request-ui .request-details-card,
@@ -37,7 +37,7 @@
 #request-form .create-request-ui .request-continue-icon { flex-shrink: 0; }
 #request-form .create-request-ui .request-back-icon { transform: rotate(180deg); }
 
-/* Item search and the selected-item table. */
+{{-- /* Item search and the selected-item table. */ --}}
 #request-form .create-request-ui .request-picker-card { overflow: visible; position: relative; z-index: 1; }
 #request-form .create-request-ui .request-picker-card .request-card-header { position: relative; padding-bottom: 18px; }
 #request-form .create-request-ui .request-picker-card .request-card-header::after { content: ""; position: absolute; right: 24px; bottom: 0; left: 24px; border-bottom: 1px solid var(--border); }
@@ -100,7 +100,7 @@
 [data-theme="dark"] #request-form .create-request-ui .request-premises-option:has(:checked) { color: var(--heading); background: #163967; border-color: #4c88eb; }
 [data-theme="dark"] #request-form .create-request-ui .request-premises-option:is(:hover, :focus-within) { color: #fff; background: #065df0; border-color: #065df0; }
 
-/* BORROWING-SCHEDULE-ALIGNMENT-FIX-V2 */
+{{-- /* BORROWING-SCHEDULE-ALIGNMENT-FIX-V2 */ --}}
 #request-form .create-request-ui .request-schedule-heading > .eyebrow {
     margin: 0;
     color: #065df0;

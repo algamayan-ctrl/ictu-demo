@@ -15,6 +15,8 @@ use App\Models\LaundryJob;
 use App\Models\LaundryJobLine;
 use App\Models\OverdueCase;
 use App\Models\RequestItem;
+use App\Models\ReturnLine;
+use App\Models\ReturnTransaction;
 use App\Models\StoredFile;
 use App\Models\User;
 use App\Services\InventoryService;
@@ -104,8 +106,15 @@ class SimpleLaundryWorkflowTest extends TestCase
             ->actingAs($officer)
             ->get(route('laundry.show', $job))
             ->assertOk()
-            ->assertSeeText('Completion Summary')
-            ->assertSeeText('returned to Available inventory')
+            ->assertSeeText('Return Details')
+            ->assertSeeText('Returned in Good Condition')
+            ->assertSeeText($item->unique_description)
+            ->assertSeeText($officer->full_name)
+            ->assertSeeText('Quantity Returned')
+            ->assertSeeText('Good: 2')
+            ->assertSeeText('Recorded on')
+            ->assertDontSeeText('Completion Summary')
+            ->assertDontSeeText('Linen return progress')
             ->assertDontSeeText('Confirm Laundry Turnover')
             ->assertDontSeeText('Archive accomplished Laundry Form')
             ->assertDontSeeText('Clean / Available')
@@ -143,6 +152,61 @@ class SimpleLaundryWorkflowTest extends TestCase
             ->where('incident_type', 'DAMAGED')
             ->count()
         );
+
+        $this->withSession(['active_workspace' => 'SPMU'])
+            ->actingAs($officer)
+            ->get(route('laundry.show', $job))
+            ->assertOk()
+            ->assertSee('<dt>Returned in Good Condition</dt><dd>1</dd>', false)
+            ->assertSeeText('Good: 1')
+            ->assertSeeText('Damaged: 1')
+            ->assertSeeText('Return Findings: Damaged Item')
+            ->assertDontSeeText('Accountability Required');
+    }
+
+    public function test_laundry_record_excludes_missing_items_from_returned_quantity_and_uses_the_linen_recorder(): void
+    {
+        [$job, $jobLine, $borrower, $custody] = $this->outstandingLaundryCase(quantity: 3);
+        $linenOfficer = $this->classificationUser(AccessClassification::SpmuOfficer);
+        $otherOfficer = User::factory()->create([
+            'access_classification' => AccessClassification::SpmuOfficer,
+            'full_name' => 'Other Return Officer',
+        ]);
+        $linenReturn = ReturnTransaction::create([
+            'return_no' => 'RET-LINEN-DISPLAY', 'custody_transaction_id' => $custody->id,
+            'received_by_user_id' => $linenOfficer->id, 'return_type' => 'FULL',
+            'status' => 'CONFIRMED', 'received_at' => now(),
+        ]);
+        foreach (['FINE' => 2, 'LOST' => 1] as $condition => $quantity) {
+            ReturnLine::create([
+                'return_transaction_id' => $linenReturn->id, 'custody_line_id' => $jobLine->custody_line_id,
+                'quantity_received' => $quantity, 'condition_code' => $condition,
+                'disposition_state' => $condition === 'FINE' ? 'LAUNDRY' : 'LOST',
+            ]);
+        }
+        ReturnTransaction::create([
+            'return_no' => 'RET-OTHER-DISPLAY', 'custody_transaction_id' => $custody->id,
+            'received_by_user_id' => $otherOfficer->id, 'return_type' => 'FULL',
+            'status' => 'CONFIRMED', 'received_at' => now()->addHour(), 'created_at' => now()->addHour(),
+        ]);
+        $jobLine->update(['completed_quantity' => 2, 'received_quantity' => 2]);
+        $job->update(['status' => 'LAUNDRY_COMPLETED', 'worker_received_at' => now()->startOfDay(), 'completed_at' => now()->addHours(2)]);
+
+        $response = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($linenOfficer)
+            ->get(route('laundry.show', $job))->assertOk()
+            ->assertSeeText('Good: 2')->assertSeeText('Lost: 1')
+            ->assertSee('<dt>Returned in Good Condition</dt><dd>2</dd>', false)
+            ->assertSee('<dt>Recorded by</dt><dd>'.$linenOfficer->full_name.'</dd>', false)
+            ->assertSee('<dt>Recorded on</dt><dd>'.$linenReturn->created_at->format('d M Y, g:i A').'</dd>', false)
+            ->assertDontSee('<dt>Recorded by</dt><dd>'.$otherOfficer->full_name.'</dd>', false);
+
+        $html = new \DOMDocument();
+        @$html->loadHTML($response->getContent());
+        $cells = (new \DOMXPath($html))->query('//tr[@data-laundry-item-row]/td');
+        $this->assertSame('3', trim($cells->item(1)->textContent));
+        $this->assertSame('2', trim($cells->item(2)->textContent));
+        $this->assertEquals(3, $jobLine->fresh()->issued_quantity);
+        $this->assertSame(2, $linenReturn->lines()->count());
     }
 
     public function test_received_by_date_prevents_late_accountability_when_form_is_uploaded_later(): void
@@ -194,9 +258,9 @@ class SimpleLaundryWorkflowTest extends TestCase
             ->actingAs($officer)
             ->get(route('laundry.show', $job))
             ->assertOk()
-            ->assertSeeText('Next: Complete the Laundry Form')
-            ->assertSeeText('complete the offline laundry process')
-            ->assertSeeText('Open SPMU Return')
+            ->assertSeeText('Awaiting Laundry Form')
+            ->assertSeeText('Record Laundry Form')
+            ->assertSee(route('custody.return.show', $custody).'#return-documents', false)
             ->assertDontSeeText('Archive accomplished Laundry Form')
             ->assertDontSeeText('Finalize Linen Availability');
 

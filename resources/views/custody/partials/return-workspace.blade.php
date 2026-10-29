@@ -61,7 +61,16 @@
 
     $showLaundryDocument = (bool) $hasLaundryItem;
     $showGatePassDocument = (bool) $hasOffCampusItem;
-    $hasOperationalReturnDocuments = $showLaundryDocument || $showGatePassDocument;
+    $returnSlipDocument = $custody->released_at
+        ? App\Models\GeneratedDocument::query()
+            ->where('subject_type', App\Models\CustodyTransaction::class)
+            ->where('subject_id', $custody->id)
+            ->where('document_type', 'BORROWER_SLIP')
+            ->where('status', 'FINAL')
+            ->latest('id')
+            ->first()
+        : null;
+    $hasOperationalReturnDocuments = $returnSlipDocument || $showLaundryDocument || $showGatePassDocument;
 
     $laundryFormRecorded = (bool) $laundryJob?->latestEvidence?->file;
     $gatePassRecorded = (bool) $custody->gatePass?->accomplishedFile;
@@ -208,6 +217,17 @@
                 </div>
 
                 <div class="return-document-list return-document-list--compact">
+                    @if($returnSlipDocument)
+                        <div class="return-document-row">
+                            <div class="return-document-copy">
+                                <x-icon name="requests" size="22" />
+                                <div><strong>Borrower Slip</strong></div>
+                            </div>
+                            <div class="return-document-actions">
+                                <a class="button secondary small ui-pressable return-navigation-action" href="{{ route('documents.preview', $returnSlipDocument) }}">Preview</a>
+                            </div>
+                        </div>
+                    @endif
                     @if($showLaundryDocument)
                         @if($laundryFormRecorded)
                             <div class="return-document-row return-document-row-laundry">

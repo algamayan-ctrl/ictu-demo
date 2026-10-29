@@ -4,16 +4,16 @@
     width: 100%;
     min-width: 0;
     font-size: 13px;
-    /* Lets the empty-state card below grow to fill leftover height when the
+    {{-- /* Lets the empty-state card below grow to fill leftover height when the
        toolbar above it is the only other content on the page; existing
-       child margins already provide the spacing, so no gap is added here. */
+       child margins already provide the spacing, so no gap is added here. */ --}}
     display: flex;
     flex-direction: column;
 }
 .my-borrowings [hidden] { display: none !important; }
 .my-borrowings > .my-borrowings-card { flex: 1 1 auto; }
 
-/* Use the same Search + Status + Sort pattern as the other transaction lists. */
+{{-- /* Use the same Search + Status + Sort pattern as the other transaction lists. */ --}}
 .borrowings-toolbar {
     display: grid;
     grid-template-columns: minmax(280px, 1fr) minmax(190px, 230px) minmax(150px, 190px);
@@ -42,14 +42,14 @@
     background: var(--surface-elevated);
     box-shadow: var(--shadow-sm);
     overflow: hidden;
-    /* Lets .borrowings-empty below fill and center within this card's own
-       (now possibly stretched) height. */
+    {{-- /* Lets .borrowings-empty below fill and center within this card's own
+       (now possibly stretched) height. */ --}}
     display: flex;
     flex-direction: column;
 }
 .borrowings-filter-empty { margin-top: 10px; }
 
-/* Empty state */
+{{-- /* Empty state */ --}}
 .my-borrowings-card > .borrowings-empty { flex: 1 1 auto; }
 .borrowings-empty { display: flex; min-height: 300px; align-items: center; justify-content: center; padding: 40px 20px 44px; text-align: center; }
 .borrowings-empty-content { display: flex; flex-direction: column; align-items: center; max-width: 500px; }

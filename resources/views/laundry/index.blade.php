@@ -23,11 +23,11 @@
     $laundryFilterStatus = static function ($job): array {
         return match (true) {
             $job->status === 'FOR_LAUNDRY' && $job->hasVerifiedAccomplishedForm()
-                => ['key' => 'READY_FOR_SPMU_ENCODING', 'label' => 'Ready for SPMU Encoding'],
+                => ['key' => 'READY_FOR_SPMU_ENCODING', 'label' => 'For Return Recording'],
             $job->status === 'FOR_LAUNDRY'
-                => ['key' => 'LAUNDRY_FORM_PENDING', 'label' => 'Laundry Form Pending'],
+                => ['key' => 'LAUNDRY_FORM_PENDING', 'label' => 'Awaiting Laundry Form'],
             $job->status === 'TURNED_OVER_TO_LAUNDRY'
-                => ['key' => 'RECONCILIATION_PENDING', 'label' => 'Reconciliation Pending'],
+                => ['key' => 'RECONCILIATION_PENDING', 'label' => 'Updating Record'],
             $job->status === 'LAUNDRY_COMPLETED'
                 => ['key' => 'AVAILABLE', 'label' => 'Available'],
             default
@@ -36,27 +36,29 @@
     };
 
     $laundryStatuses = collect([
-        ['key' => 'LAUNDRY_FORM_PENDING', 'label' => 'Laundry Form Pending'],
-        ['key' => 'READY_FOR_SPMU_ENCODING', 'label' => 'Ready for SPMU Encoding'],
-        ['key' => 'RECONCILIATION_PENDING', 'label' => 'Reconciliation Pending'],
+        ['key' => 'LAUNDRY_FORM_PENDING', 'label' => 'Awaiting Laundry Form'],
+        ['key' => 'READY_FOR_SPMU_ENCODING', 'label' => 'For Return Recording'],
     ]);
+    if ($jobs->getCollection()->contains('status', 'TURNED_OVER_TO_LAUNDRY')) {
+        $laundryStatuses->push(['key' => 'RECONCILIATION_PENDING', 'label' => 'Updating Record']);
+    }
 @endphp
 
 @include('laundry.partials.operations-styles')
 
-<div class="laundry-operations" data-laundry-browser>
-    <section class="page-heading laundry-operations-heading">
+    <section class="page-heading">
         <div>
             <p class="eyebrow">SPMU Action Officer</p>
             <h1>Laundry Operations</h1>
-            <p>Monitor active linen cases and review completed laundry records in one workspace.</p>
+            <p>Review active linen returns and completed laundry records.</p>
         </div>
     </section>
 
-    <div class="card laundry-unified-workspace" data-laundry-tabs>
+<div class="content-area laundry-operations" data-laundry-browser>
+    <div class="laundry-unified-workspace" data-laundry-tabs>
         <div class="laundry-tabs" role="tablist" aria-label="Laundry case status">
-            <button type="button" class="laundry-tab is-selected" id="laundry-tab-active" role="tab" aria-controls="laundry-panel-active" aria-selected="true" data-laundry-tab="active">Active <span class="laundry-tab-count">{{ $jobs->total() }}</span></button>
-            <button type="button" class="laundry-tab" id="laundry-tab-completed" role="tab" aria-controls="laundry-panel-completed" aria-selected="false" tabindex="-1" data-laundry-tab="completed">Completed <span class="laundry-tab-count">{{ $completedJobs->total() }}</span></button>
+            <button type="button" class="link-button laundry-tab is-selected" id="laundry-tab-active" role="tab" aria-controls="laundry-panel-active" aria-selected="true" data-laundry-tab="active">Active <span class="laundry-tab-count">{{ $jobs->total() }}</span></button>
+            <button type="button" class="link-button laundry-tab" id="laundry-tab-completed" role="tab" aria-controls="laundry-panel-completed" aria-selected="false" tabindex="-1" data-laundry-tab="completed">Completed <span class="laundry-tab-count">{{ $completedJobs->total() }}</span></button>
         </div>
         <div id="laundry-panel-active" role="tabpanel" aria-labelledby="laundry-tab-active" data-laundry-panel="active">
         <section class="card record-browser-toolbar laundry-toolbar" aria-label="Active laundry case filters">
@@ -82,7 +84,8 @@
             </label>
         </section>
 
-    <section class="card laundry-cases-card" aria-labelledby="laundry-cases-title">
+    <section class="card laundry-cases-card {{ $hasLaundryCases ? '' : 'is-empty' }}" aria-label="Active Laundry Cases">
+        @if($hasLaundryCases)
         <div class="laundry-cases-heading">
             <h2 id="laundry-cases-title">Active Laundry Cases</h2>
             <p data-laundry-count data-total="{{ $jobs->total() }}" data-paginated="{{ $jobs->hasPages() ? 'true' : 'false' }}" role="status" aria-live="polite">
@@ -93,6 +96,7 @@
                 @endif
             </p>
         </div>
+        @endif
 
         @if($hasLaundryCases)
             <div class="laundry-table-wrap">
@@ -107,9 +111,14 @@
                                 $caseBorrower = $caseCustody?->borrower;
                                 $caseRequest = $caseCustody?->request;
                                 $casePurpose = $caseRequest?->currentVersion?->purpose_event;
-                                $statusText = $job->displayStatusLabel();
-                                $statusDescription = $job->displayStatusDescription();
                                 $filterStatus = $laundryFilterStatus($job);
+                                $statusText = $filterStatus['label'];
+                                $statusDescription = match ($filterStatus['key']) {
+                                    'LAUNDRY_FORM_PENDING' => 'Awaiting the accomplished Laundry Form.',
+                                    'READY_FOR_SPMU_ENCODING' => 'The accomplished form is on file. Record the return in the Return page.',
+                                    'RECONCILIATION_PENDING' => 'Availability is being updated automatically; no further action is needed.',
+                                    default => $statusText,
+                                };
                                 $caseSearch = implode(' ', [
                                     $job->id,
                                     $caseRequest?->request_no,
@@ -144,7 +153,7 @@
             @endif
         @else
             <div class="laundry-inline-empty">
-                @include('laundry.partials.empty-illustration')
+                <span class="laundry-empty-icon"><x-icon name="success" size="30" /></span>
                 <div>
                     <strong>No active laundry cases need action.</strong>
                     <p>New linen cases will appear here after physical release.</p>
@@ -156,7 +165,6 @@
         </div>
         <div id="laundry-panel-completed" role="tabpanel" aria-labelledby="laundry-tab-completed" data-laundry-panel="completed" hidden>
     <div class="laundry-completed-block" id="completed-laundry-cases" data-completed-laundry>
-        @if($hasCompletedCases)
             <section class="card record-browser-toolbar laundry-toolbar laundry-completed-toolbar" aria-label="Completed laundry case filters">
                 <label class="record-browser-search" for="completed-laundry-search">Search
                     <span class="search-input-shell">
@@ -164,12 +172,11 @@
                         <input id="completed-laundry-search" type="search" placeholder="Search borrower, request no., custody no., or items..." data-completed-search autocomplete="off">
                     </span>
                 </label>
-                <label for="completed-laundry-outcome">Outcome
+                <label for="completed-laundry-outcome">Return Result
                     <select id="completed-laundry-outcome" data-completed-outcome>
-                        <option value="">All outcomes</option>
-                        <option value="available">Available</option>
-                        <option value="accountability">Accountability required</option>
-                        <option value="completed">Completed</option>
+                        <option value="">All results</option>
+                        <option value="available">Available for Borrowing</option>
+                        <option value="accountability">With Return Findings</option>
                     </select>
                 </label>
                 <label for="completed-laundry-sort">Sort
@@ -179,9 +186,9 @@
                     </select>
                 </label>
             </section>
-        @endif
 
-        <section class="card laundry-cases-card laundry-completed-card" aria-labelledby="completed-laundry-title">
+        <section class="card laundry-cases-card laundry-completed-card {{ $hasCompletedCases ? '' : 'is-empty' }}" aria-label="Completed Laundry Cases">
+            @if($hasCompletedCases)
             <div class="laundry-cases-heading">
                 <h2 id="completed-laundry-title">Completed Laundry Cases</h2>
                 <p data-completed-count
@@ -198,12 +205,13 @@
                     @endif
                 </p>
             </div>
+            @endif
 
             @if($hasCompletedCases)
                 <div class="laundry-table-wrap">
                     <table class="laundry-cases-table laundry-completed-table">
                         <thead>
-                            <tr><th scope="col">Request No.</th><th scope="col">Borrower</th><th scope="col">Items</th><th scope="col">Completed Date</th><th scope="col">Outcome</th><th scope="col">Actions</th></tr>
+                            <tr><th scope="col">Request No.</th><th scope="col">Borrower</th><th scope="col">Items</th><th scope="col">Completed Date</th><th scope="col">Return Result</th><th scope="col">Actions</th></tr>
                         </thead>
                         <tbody data-completed-list>
                             @foreach($completedJobs as $job)
@@ -291,13 +299,13 @@
                                     <td>
                                         <div class="laundry-outcomes">
                                             @if($serviceableQuantity > 0)
-                                                <span class="laundry-outcome-badge is-available" title="{{ $serviceableQuantity }} serviceable linen available">Available</span>
+                                                <span class="laundry-outcome-badge is-available" title="{{ $serviceableQuantity }} linen items available for borrowing">Available for Borrowing</span>
                                             @endif
                                             @if($hasAccountability)
-                                                <span class="laundry-outcome-badge is-accountability" title="Referred to Accountability Processing: {{ $accountabilityReason }}">Accountability Required<br>{{ $accountabilityReason }}</span>
+                                                <span class="laundry-outcome-badge is-accountability" title="Recorded return findings: {{ $accountabilityReason }}">{{ $accountabilityReason }}</span>
                                             @endif
                                             @if($serviceableQuantity === 0 && ! $hasAccountability)
-                                                <span class="laundry-outcome-badge is-neutral">Completed</span>
+                                                <span class="laundry-outcome-badge is-neutral">Recorded</span>
                                             @endif
                                         </div>
                                     </td>
@@ -310,7 +318,7 @@
                 <div class="laundry-filter-empty" data-completed-empty hidden>
                     <x-icon name="search" size="27" />
                     <strong>No completed cases match your filters.</strong>
-                    <p>Try another search or outcome.</p>
+                    <p>Try another search or result.</p>
                     <button class="button secondary small ui-pressable" type="button" data-completed-reset>Clear filters</button>
                 </div>
                 @if($completedJobs->hasPages())
@@ -318,7 +326,7 @@
                 @endif
             @else
                 <div class="laundry-inline-empty is-completed">
-                    <x-icon name="check-circle" size="34" />
+                    <span class="laundry-empty-icon"><x-icon name="check-circle" size="30" /></span>
                     <div>
                         <strong>No completed laundry cases yet.</strong>
                         <p>Finished cases will stay visible here for record review.</p>

@@ -29,7 +29,7 @@ class SecurityHeaders
             'camera=(), microphone=(), geolocation=()'
         );
 
-        if ($request->routeIs('files.show', 'documents.view')) {
+        if ($request->routeIs('files.show', 'documents.view', 'documents.record')) {
             /*
              * A protected PDF/image may be displayed only inside the same
              * SPMU-ACPMP application. The generated document remains

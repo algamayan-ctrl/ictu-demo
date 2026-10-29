@@ -312,7 +312,7 @@
                                             )
                                     )
                             }}"
-                            
+
                             @selected($displayPeriodSelection === $value)
                         >
                             {{ $reportingPeriod['label'] }}
@@ -441,7 +441,7 @@
                         <p class="report-filters-title" id="report-filters-heading">
                             <x-icon name="settings" size="15" />
                             <span>Filters</span>
-                            
+
                         </p>
                         <p class="report-filters-help">Narrow the report when needed. Leave a filter blank to include all matching records.</p>
                     </div>
@@ -775,11 +775,11 @@
     }
 }
 
-/*
+{{-- /*
  * Borrower stays visually aligned with the native Reports selects, but opens
  * a searchable scoped picker. No press/translate animation is allowed on
  * report filter controls so controls do not jump up/down when clicked.
- */
+ */ --}}
 .report-borrower-field { position: relative; min-width: 0; }
 
 .report-builder-card .report-builder-field select,
@@ -960,10 +960,10 @@
 }
 
 
-/* BORROWER_SELECT_VISUAL_MATCH_V1
+{{-- /* BORROWER_SELECT_VISUAL_MATCH_V1
    Make the closed Borrower picker visually match Division / Office selects.
    Search/cascade logic is untouched.
-*/
+*/ --}}
 .report-builder-card .report-builder-field select,
 .report-builder-card .report-borrower-trigger {
     width: 100% !important;
@@ -1025,7 +1025,7 @@
     translate: none !important;
 }
 
-/* Keep dropdown aligned exactly with the closed Borrower field */
+{{-- /* Keep dropdown aligned exactly with the closed Borrower field */ --}}
 .report-builder-card .report-borrower-menu {
     left: 0 !important;
     right: 0 !important;
@@ -1040,12 +1040,12 @@
 
 
 
-/* REPORTS_BUILDER_COMPACT_TEXT_V2
+{{-- /* REPORTS_BUILDER_COMPACT_TEXT_V2
    Match compact typography used across Admin workspaces.
    UI only â€” no report/filter/cascade logic changes.
-*/
+*/ --}}
 
-/* Main field values */
+{{-- /* Main field values */ --}}
 .report-builder-card select,
 .report-builder-card input,
 .report-builder-card button,
@@ -1055,7 +1055,7 @@
     line-height: 1.3 !important;
 }
 
-/* Labels: Report Type, Reporting Period, Division, Office, etc. */
+{{-- /* Labels: Report Type, Reporting Period, Division, Office, etc. */ --}}
 .report-builder-card .report-builder-field > span,
 .report-builder-card label > span,
 .report-builder-card .report-builder-label {
@@ -1064,14 +1064,14 @@
     font-weight: 600 !important;
 }
 
-/* Report Type / Period / Division / Office / Borrower / Status */
+{{-- /* Report Type / Period / Division / Office / Borrower / Status */ --}}
 .report-builder-card .report-builder-field select,
 .report-builder-card .report-borrower-trigger {
     font-size: 13px !important;
     font-weight: 400 !important;
 }
 
-/* Borrower searchable dropdown */
+{{-- /* Borrower searchable dropdown */ --}}
 .report-builder-card .report-borrower-search {
     font-size: 12px !important;
 }
@@ -1084,19 +1084,19 @@
     font-size: 10px !important;
 }
 
-/* Date range */
+{{-- /* Date range */ --}}
 .report-builder-card .report-date-range,
 .report-builder-card [data-date-range] {
     font-size: 12px !important;
 }
 
-/* Preview Report button */
+{{-- /* Preview Report button */ --}}
 .report-builder-card .report-generate-button,
 .report-builder-card [data-preview-button-label] {
     font-size: 12px !important;
 }
 
-/* Filters heading/helper text */
+{{-- /* Filters heading/helper text */ --}}
 .report-builder-card .report-filters-title,
 .report-builder-card .report-filter-title {
     font-size: 12px !important;
@@ -1107,7 +1107,7 @@
     font-size: 11px !important;
 }
 
-/* Optional/applied indicators */
+{{-- /* Optional/applied indicators */ --}}
 .report-builder-card .badge,
 .report-builder-card .report-filter-count {
     font-size: 10px !important;
@@ -1115,11 +1115,11 @@
 
 
 
-/* REPORTS_FILTER_ROW_AND_CHEVRON_V1
+{{-- /* REPORTS_FILTER_ROW_AND_CHEVRON_V1
    Layout/visual only. No report/filter/cascade logic changes.
-*/
+*/ --}}
 
-/* Maximum 4 filters per row on desktop */
+{{-- /* Maximum 4 filters per row on desktop */ --}}
 .report-builder-card .report-filter-grid {
     display: grid !important;
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
@@ -1127,7 +1127,7 @@
     align-items: end !important;
 }
 
-/* Native report selects: restore a stable visible chevron */
+{{-- /* Native report selects: restore a stable visible chevron */ --}}
 .report-builder-card .report-builder-field select {
     width: 100% !important;
     padding-right: 38px !important;
@@ -1144,7 +1144,7 @@
     background-size: 14px 14px !important;
 }
 
-/* Borrower custom picker arrow matches the native select arrows */
+{{-- /* Borrower custom picker arrow matches the native select arrows */ --}}
 .report-builder-card .report-borrower-chevron {
     width: 14px !important;
     height: 14px !important;
@@ -1156,7 +1156,7 @@
     rotate: none !important;
 }
 
-/* Nothing should jump when clicked/opened */
+{{-- /* Nothing should jump when clicked/opened */ --}}
 .report-builder-card .report-builder-field select:active,
 .report-builder-card .report-builder-field select:focus,
 .report-builder-card .report-borrower-trigger:active,
@@ -1167,14 +1167,14 @@
     top: auto !important;
 }
 
-/* Tablet */
+{{-- /* Tablet */ --}}
 @media (max-width: 1100px) {
     .report-builder-card .report-filter-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 }
 
-/* Mobile */
+{{-- /* Mobile */ --}}
 @media (max-width: 650px) {
     .report-builder-card .report-filter-grid {
         grid-template-columns: 1fr !important;
@@ -1251,11 +1251,11 @@
         );
 
 
-    /*
-     * The builder is replaced when the report type changes and this script
-     * runs again for the new one. Listeners on the document and window are
-     * released then, so a replaced builder leaves nothing behind.
-     */
+
+
+
+
+
     window.reportBuilderListeners?.abort();
     window.reportBuilderListeners = new AbortController();
     const builderSignal = { signal: window.reportBuilderListeners.signal };
@@ -1791,12 +1791,12 @@
         positionDatePicker,
         builderSignal
     );
-    /*
-     * A new report type has its own filters, so the live preview replaces
-     * the builder together with the records. Only the scope every report
-     * understands is carried over; the previous report's own filters do not
-     * apply to the new one.
-     */
+
+
+
+
+
+
     reportType?.addEventListener('change', () => {
         if (reportType.value === 'all-transactions') {
             window.location.assign(@json(route('reports.index')));
@@ -1819,7 +1819,7 @@
         }));
     });
 
-    /* Tell the live preview that the report scope changed outside a native change event. */
+
     const announceScopeChange = () =>
         previewForm?.dispatchEvent(new CustomEvent('report:scope-change', { bubbles: true }));
 
@@ -1830,23 +1830,23 @@
             dateError.hidden = false;
             return;
         }
-        /*
-         * The preview refreshes in place; the live preview script owns the
-         * request, so repeated clicks never start duplicate page loads.
-         */
+
+
+
+
         event.preventDefault();
         previewForm.dispatchEvent(new CustomEvent('report:refresh', { bubbles: true }));
     });
 
-    /*
-     * Cascade:
-     * Reporting Period -> Division -> Office / Unit -> Borrower.
-     *
-     * Borrowers are requested from the server using the current upstream
-     * scope. Only the first 50 are returned for a broad scope; typing a name
-     * or email performs a server-side scoped search instead of rendering
-     * hundreds of borrowers at once.
-     */
+
+
+
+
+
+
+
+
+
     const unitOptions = dependent ? Array.from(dependent.options) : [];
     let borrowerRequestController = null;
     let borrowerSearchTimer = null;
@@ -1910,17 +1910,17 @@
         if (query.trim() !== '') params.set('q', query.trim());
         if (borrowerValue?.value) params.set('selected_borrower', borrowerValue.value);
 
-        /*
-         * Do not concatenate "?..." onto previewForm.action.
-         * When a form has no explicit action, HTMLFormElement.action may resolve
-         * to the current document URL including its existing query string.
-         * Appending another "?" makes borrower_options part of the old query
-         * value instead of a real query parameter, so Laravel returns the full
-         * HTML report page and response.json() fails.
-         *
-         * Build a fresh URL from the form's explicit action (if any) or the
-         * current pathname, then replace its search parameters atomically.
-         */
+
+
+
+
+
+
+
+
+
+
+
         const endpoint = new URL(
             previewForm.getAttribute('action') || window.location.pathname,
             window.location.origin
@@ -1982,10 +1982,10 @@
         ).find((option) => option.dataset.value === selected);
 
         if (validateSelection && selected !== '' && !selectedOption) {
-            /*
-             * Upstream scope changed and the selected borrower no longer
-             * exists in that scope. Reset immediately to All borrowers.
-             */
+
+
+
+
             setBorrower('', 'All borrowers');
             announceScopeChange();
         } else {
@@ -2158,11 +2158,11 @@
 
         if (!custom && !periodAvailable) {
 
-            // Academic period exists as a choice but has no configured dates.
+
             appliedStartLabel.textContent = 'Not set';
             appliedEndLabel.textContent = 'Not set';
 
-            // Do not duplicate the configuration message under the fields.
+
             periodNote.textContent = '';
             periodNote.hidden = true;
 
@@ -2181,8 +2181,8 @@
         });
     });
 
-    
-    /* UNAVAILABLE PERIOD INITIAL DISPLAY START */
+
+
     (() => {
         const selected =
             period?.selectedOptions?.[0];
@@ -2200,7 +2200,7 @@
             periodNote.hidden = true;
         }
     })();
-    /* UNAVAILABLE PERIOD INITIAL DISPLAY END */
+
 
 document.addEventListener('click', (event) => {
         if (!borrowerPicker || borrowerPicker.contains(event.target)) return;
@@ -2219,14 +2219,14 @@ document.addEventListener('click', (event) => {
 </script>
 
 <style>
-/* REMOVE DATE RANGE FILL */
+{{-- /* REMOVE DATE RANGE FILL */ --}}
 .report-date-picker .report-calendar-day.is-between {
     background: transparent !important;
     border-radius: var(--radius-sm) !important;
 }
 </style>
 <style>
-/* ACTIVE FIELD SINGLE DATE FINAL */
+{{-- /* ACTIVE FIELD SINGLE DATE FINAL */ --}}
 
 .report-date-picker .report-calendar-day.is-between {
     background: transparent !important;
@@ -2245,13 +2245,13 @@ document.addEventListener('click', (event) => {
 
 
 <style>
-/* COLLAPSIBLE REPORT FILTERS FINAL */
+{{-- /* COLLAPSIBLE REPORT FILTERS FINAL */ --}}
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Compact Filters Trigger
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 
 .report-filter-toggle-row {
     display: flex;
@@ -2384,11 +2384,11 @@ document.addEventListener('click', (event) => {
 }
 
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Clear Filters
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 
 .report-filter-clear {
     appearance: none;
@@ -2417,16 +2417,16 @@ document.addEventListener('click', (event) => {
 }
 
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Existing Filter Panel
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 
-/*
+{{-- /*
  * The toggle above now serves as the Filters heading,
  * so remove the duplicate heading inside the old panel.
- */
+ */ --}}
 .report-filters-panel .report-filters-heading {
     display: none !important;
 }
@@ -2435,20 +2435,20 @@ document.addEventListener('click', (event) => {
     margin-top: 8px !important;
 }
 
-/*
+{{-- /*
  * Browser's hidden attribute must override the panel's
  * existing display:grid declaration.
- */
+ */ --}}
 .report-filters-panel[hidden] {
     display: none !important;
 }
 
 
-/*
+{{-- /*
 |--------------------------------------------------------------------------
 | Expanded State
 |--------------------------------------------------------------------------
-*/
+*/ --}}
 
 .report-filters-panel:not([hidden]) {
     animation: reportFiltersReveal .14s ease-out;
@@ -2486,9 +2486,9 @@ document.addEventListener('click', (event) => {
     }
 }
 
-/* COLLAPSIBLE REPORT FILTERS FINAL END */
+{{-- /* COLLAPSIBLE REPORT FILTERS FINAL END */ --}}
 
-/* Consistent compact report controls; preserve date-picker behavior. */
+{{-- /* Consistent compact report controls; preserve date-picker behavior. */ --}}
 .report-builder-card :is(.report-builder-field select, .report-borrower-trigger, .report-date-input, .report-generate-button) {
     height: 44px !important; min-height: 44px !important; box-sizing: border-box;
 }
@@ -2496,7 +2496,7 @@ document.addEventListener('click', (event) => {
 
 
 <script>
-/* COLLAPSIBLE REPORT FILTERS SCRIPT FINAL */
+
 
 (() => {
     const initReportFilters = () => {
@@ -2506,9 +2506,9 @@ document.addEventListener('click', (event) => {
 
         if (!panel) return;
 
-        /*
-         * Prevent duplicate initialization.
-         */
+
+
+
         if (panel.dataset.collapsibleFiltersReady === '1') {
             return;
         }
@@ -2516,9 +2516,9 @@ document.addEventListener('click', (event) => {
         panel.dataset.collapsibleFiltersReady = '1';
 
 
-        /* --------------------------------------------------------
-           Build compact trigger row
-        -------------------------------------------------------- */
+
+
+
 
         const row = document.createElement('div');
 
@@ -2594,9 +2594,9 @@ document.addEventListener('click', (event) => {
             );
 
 
-        /* --------------------------------------------------------
-           Identify actual active filters
-        -------------------------------------------------------- */
+
+
+
 
         const filterFields = () =>
             Array.from(
@@ -2608,10 +2608,10 @@ document.addEventListener('click', (event) => {
 
                 if (field.disabled) return false;
 
-                /*
-                 * Ignore internal search/display controls that
-                 * do not represent submitted filter values.
-                 */
+
+
+
+
                 if (
                     field.hasAttribute('data-borrower-search') ||
                     field.type === 'search'
@@ -2638,11 +2638,11 @@ document.addEventListener('click', (event) => {
             if (!value) return false;
 
 
-            /*
-             * Treat "All divisions", "All units",
-             * "All decisions", etc. as unfiltered even if
-             * a backend option happens to use a non-empty value.
-             */
+
+
+
+
+
             if (field.tagName === 'SELECT') {
 
                 const option =
@@ -2666,10 +2666,10 @@ document.addEventListener('click', (event) => {
 
         const activeFields = () => {
 
-            /*
-             * Count unique submitted filter names rather than
-             * duplicate UI controls representing the same filter.
-             */
+
+
+
+
             const activeNames = new Set();
 
             filterFields().forEach((field) => {
@@ -2686,9 +2686,9 @@ document.addEventListener('click', (event) => {
         };
 
 
-        /* --------------------------------------------------------
-           State
-        -------------------------------------------------------- */
+
+
+
 
         const setExpanded = (expanded) => {
 
@@ -2721,10 +2721,10 @@ document.addEventListener('click', (event) => {
 
                 clear.hidden = false;
 
-                /*
-                 * Active filters always remain visible so users
-                 * immediately understand why results are narrowed.
-                 */
+
+
+
+
                 setExpanded(true);
 
                 return;
@@ -2744,11 +2744,11 @@ document.addEventListener('click', (event) => {
         };
 
 
-        /*
-         * Initial state:
-         * - no filters => collapsed
-         * - active filters => expanded
-         */
+
+
+
+
+
         const initialCount = activeFields().size;
 
         setExpanded(initialCount > 0);
@@ -2756,9 +2756,9 @@ document.addEventListener('click', (event) => {
         refreshState();
 
 
-        /* --------------------------------------------------------
-           Toggle
-        -------------------------------------------------------- */
+
+
+
 
         toggle.addEventListener('click', () => {
 
@@ -2771,9 +2771,9 @@ document.addEventListener('click', (event) => {
         });
 
 
-        /* --------------------------------------------------------
-           Update applied count when fields change
-        -------------------------------------------------------- */
+
+
+
 
         panel.addEventListener('change', () => {
             requestAnimationFrame(() => {
@@ -2788,18 +2788,18 @@ document.addEventListener('click', (event) => {
         });
 
 
-        /* --------------------------------------------------------
-           Clear all
-        -------------------------------------------------------- */
+
+
+
 
         clear.addEventListener('click', () => {
 
             const fields = filterFields();
 
 
-            /*
-             * Clear normal filter controls.
-             */
+
+
+
             fields.forEach((field) => {
 
                 if (
@@ -2812,9 +2812,9 @@ document.addEventListener('click', (event) => {
 
                 if (field.tagName === 'SELECT') {
 
-                    /*
-                     * Prefer the blank/All option.
-                     */
+
+
+
                     const blankOption =
                         Array.from(field.options)
                             .find((option) =>
@@ -2838,10 +2838,10 @@ document.addEventListener('click', (event) => {
             });
 
 
-            /*
-             * Notify existing report-builder logic, including
-             * dependent Office/Unit and Borrower selectors.
-             */
+
+
+
+
             fields.forEach((field) => {
 
                 field.dispatchEvent(
@@ -2883,5 +2883,5 @@ document.addEventListener('click', (event) => {
     }
 })();
 
-/* COLLAPSIBLE REPORT FILTERS SCRIPT FINAL END */
+
 </script>

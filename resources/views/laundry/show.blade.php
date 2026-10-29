@@ -1,29 +1,15 @@
 @extends('layouts.app', ['title' => 'Laundry Operations'])
 @section('content')
 @php
-    $allLinenReturned = $job->lines->isNotEmpty()
-        && $job->lines->every(function ($line) {
-            $custodyLine = $line->custodyLine;
-            return $custodyLine
-                && (float) $custodyLine->returned_quantity >= (float) $custodyLine->actual_released_quantity;
-        });
-
-    $totalIssued = (int) round($job->lines->sum(fn ($line) => (float) $line->issued_quantity));
     $formArchived = $job->hasVerifiedAccomplishedForm();
-    $internalLaundryQuantity = function ($line): int {
-        $stored = (int) round((float) ($line->received_quantity ?? 0));
-
-        if ($stored > 0) {
-            return $stored;
-        }
-
-        return (int) round((float) $line->custodyLine->returnLines
-            ->where('disposition_state', 'LAUNDRY')
-            ->sum('quantity_received'));
+    $isCompleted = $job->status === 'LAUNDRY_COMPLETED';
+    $serviceableQuantity = (int) $job->lines->sum('completed_quantity');
+    $recordStatus = match (true) {
+        $isCompleted => 'Recorded',
+        $job->status === 'TURNED_OVER_TO_LAUNDRY' => 'Updating Record',
+        $formArchived => 'For Return Recording',
+        default => 'Awaiting Laundry Form',
     };
-    $totalInternalLaundry = $job->lines->sum(fn ($line) => $internalLaundryQuantity($line));
-    $returnEncoded = $allLinenReturned
-        || in_array($job->status, ['TURNED_OVER_TO_LAUNDRY', 'LAUNDRY_COMPLETED'], true);
 
     $expectedReturn = $job->custody?->original_due_at;
     $isLateReturn = $job->worker_received_at && $expectedReturn
@@ -52,136 +38,108 @@
     ])->filter()->implode(' + ') ?: null;
 @endphp
 
-<div class="laundry-detail">
-<section class="page-heading laundry-detail-heading">
+<section class="page-heading">
     <div>
-        <p class="eyebrow">SPMU Action Officer · Laundry</p>
-        <h1>{{ $job->custody->custody_no }}</h1>
+        <h1>Laundry Record</h1>
         <p>{{ $job->custody->borrower->full_name }} · Request {{ $job->custody->request->request_no }}</p>
     </div>
-    <a class="button secondary ui-pressable" href="{{ route('custody.return.show', $job->custody) }}#return-summary"><span>Back</span></a>
+    <a class="button secondary ui-pressable" href="{{ route('laundry.index') }}{{ $isCompleted ? '#completed-laundry-cases' : '' }}"><span>Back to Laundry</span></a>
 </section>
 
-<section class="content-area laundry-detail-tracker">
-    <x-laundry-progress-tracker :job="$job" :inspection-complete="$allLinenReturned" />
-</section>
+<div class="content-area laundry-detail">
+    <article class="card laundry-record-card">
+        <div class="card-header laundry-record-header">
+            <h2>Return Details</h2>
+            <x-status-badge :status="$isCompleted ? 'CLOSED' : $job->status" :label="$recordStatus" />
+        </div>
 
-<section class="content-area">
-    <div class="content-grid two laundry-operation-grid">
-        <article class="card laundry-form-card">
-            <div class="card-header laundry-detail-card-title">
-                <x-icon name="requests" size="27" />
-                <h2>Laundry Form</h2>
-            </div>
-
-            @if($job->status !== 'LAUNDRY_COMPLETED')
-                <p class="laundry-form-description">The same printed form travels with the borrower during custody. On return, Laundry Personnel record <strong>Received by</strong> and the actual receipt date, complete the offline laundry process, then deliver the accomplished form to SPMU. No Laundry portal login is used.</p>
+        <dl class="laundry-record-facts">
+            <div><dt>Custody No.</dt><dd>{{ $job->custody->custody_no }}</dd></div>
+            <div><dt>Received by Laundry</dt><dd>{{ $job->worker_received_at?->format('d M Y') ?: 'Not yet recorded' }}</dd></div>
+            @if($recordedReturn || $isCompleted)
+                <div><dt>Recorded by</dt><dd>{{ $recordedReturn?->receivedBy?->full_name ?: 'Not recorded' }}</dd></div>
+                <div><dt>Recorded on</dt><dd>{{ $recordedReturn?->created_at?->format('d M Y, g:i A') ?: 'Not recorded' }}</dd></div>
             @endif
+            @if($isCompleted)<div><dt>Returned in Good Condition</dt><dd>{{ $serviceableQuantity }}</dd></div>@endif
+        </dl>
 
-            <div class="inline-actions laundry-form-actions">
+        <section class="laundry-record-items" aria-labelledby="laundry-record-items-title">
+            <h3 id="laundry-record-items-title">Linen Items</h3>
+            <div class="table-wrap laundry-record-table-wrap">
+                <table class="laundry-record-table">
+                    <colgroup><col style="width:40%"><col style="width:15%"><col style="width:15%"><col style="width:30%"></colgroup>
+                    <thead><tr><th scope="col">Item</th><th scope="col" class="is-numeric">Quantity Issued</th><th scope="col" class="is-numeric">Quantity Returned</th><th scope="col">Condition</th></tr></thead>
+                    <tbody>
+                        @forelse($job->lines as $line)
+                            @php
+                                $requestItem = $line->custodyLine?->requestItem;
+                                $returnFindings = ($line->custodyLine?->returnLines ?? collect())
+                                    ->filter(fn ($finding) => (int) $finding->quantity_received > 0);
+                                $returnedQuantity = $returnFindings->isEmpty() ? null : $returnFindings
+                                    ->reject(fn ($finding) => in_array(strtoupper((string) $finding->condition_code), ['MISSING', 'LOST', 'STOLEN', 'UNRETURNED', 'NOT_RETURNED'], true))
+                                    ->sum('quantity_received');
+                                $conditionSummary = $returnFindings->groupBy(fn ($finding) => strtoupper((string) $finding->condition_code))
+                                    ->map(function ($findings, $condition) {
+                                        $label = match ($condition) {
+                                            'FINE', 'GOOD', 'SERVICEABLE' => 'Good',
+                                            'DAMAGED' => 'Damaged',
+                                            'DESTROYED' => 'Destroyed',
+                                            'MISSING', 'UNRETURNED', 'NOT_RETURNED' => 'Not Returned',
+                                            'LOST' => 'Lost',
+                                            'STOLEN' => 'Stolen',
+                                            default => ucwords(strtolower(str_replace('_', ' ', $condition))),
+                                        };
+                                        return $label.': '.(int) $findings->sum('quantity_received');
+                                    });
+                            @endphp
+                            <tr data-laundry-item-row>
+                                <td><strong>{{ $requestItem?->description_snapshot ?: 'Item not recorded' }}</strong><small>{{ $requestItem?->unit_snapshot ?: $requestItem?->inventoryItem?->unit?->unit_name }}</small></td>
+                                <td class="is-numeric">{{ $line->issued_quantity }}</td>
+                                <td class="is-numeric">{{ $returnedQuantity === null ? '—' : $returnedQuantity }}</td>
+                                <td>@forelse($conditionSummary as $finding)<span class="laundry-condition-finding">{{ $finding }}</span>@empty<span class="meta">Not yet recorded</span>@endforelse</td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="4" class="meta">No linen items recorded.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="laundry-record-form">
+            <div class="laundry-form-label">
+                <x-icon name="requests" size="24" />
+                <div>
+                    <h3>{{ $formArchived ? 'Accomplished Laundry Form' : 'Laundry Form' }}</h3>
+                    @unless($formArchived)<p>Use the accomplished form to record the return and the date received by Laundry.</p>@endunless
+                </div>
+            </div>
+            <div class="inline-actions laundry-record-actions">
                 @if($job->latestEvidence?->file)
-                    <a class="button secondary small ui-pressable" href="{{ route('files.preview', $job->latestEvidence->file) }}">Preview</a>
+                    <a class="button secondary small ui-pressable" href="{{ route('files.preview', $job->latestEvidence->file) }}">View Form</a>
                 @elseif($job->document)
-                    <a class="button secondary ui-pressable" href="{{ route('documents.preview', $job->document) }}">Preview</a>
+                    <a class="button secondary small ui-pressable" href="{{ route('documents.preview', $job->document) }}">View Form</a>
                 @else
-                    <span class="status-badge status-neutral">Not available</span>
+                    <span class="meta">No form on file</span>
+                @endif
+                @if($job->status === 'FOR_LAUNDRY')
+                    <a class="button primary small ui-pressable" href="{{ route('custody.return.show', $job->custody) }}{{ $formArchived ? '#return-primary' : '#return-documents' }}">{{ $formArchived ? 'Record Return' : 'Record Laundry Form' }}</a>
                 @endif
             </div>
-
-            @if($job->status === 'LAUNDRY_COMPLETED')
-                <p class="meta top-gap"><strong>Received by Laundry</strong> is the borrower's actual linen return date.</p>
-            @else
-                <p class="meta top-gap"><strong>Received by</strong> is the borrower's actual linen return date and controls return timeliness. The later SPMU upload/encoding date does not replace it.</p>
-            @endif
-        </article>
-
-        <article class="card laundry-linen-card">
-            <div class="card-header laundry-detail-card-title"><x-icon name="box" size="27" /><h2>Linen Status</h2></div>
-            <dl class="detail-list laundry-linen-facts">
-                <dt>Total issued:</dt><dd>{{ $totalIssued }}</dd>
-                <dt>Received by Laundry:</dt><dd>{{ $job->worker_received_at?->format('d F Y') ?: 'Pending' }}</dd>
-
-                @if($job->status !== 'LAUNDRY_COMPLETED')
-                    <dt>Completed form:</dt><dd>{{ $formArchived ? 'Received by SPMU' : 'Pending from Laundry Personnel' }}</dd>
-                    <dt>SPMU return encoding:</dt><dd>{{ $returnEncoded ? 'Complete' : 'Pending' }}</dd>
-                @endif
-
-                <dt>Serviceable quantity:</dt><dd>{{ $totalInternalLaundry }}</dd>
-                <dt>Availability:</dt>
-                <dd>
-                    @if($job->status === 'LAUNDRY_COMPLETED')
-                        Available
-                    @elseif($job->status === 'TURNED_OVER_TO_LAUNDRY')
-                        System reconciliation pending
-                    @elseif($formArchived)
-                        Waiting for SPMU return encoding
-                    @else
-                        Waiting for completed form
-                    @endif
-                </dd>
-            </dl>
-        </article>
-    </div>
-</section>
-
-@if($job->status === 'FOR_LAUNDRY')
-<section class="content-area">
-    <article class="card laundry-next-action">
-        <x-icon name="requests" size="36" />
-        <div>
-            @if(! $formArchived)
-                <h2>Next: Complete the Laundry Form</h2>
-                <p>Return the linen and printed form to the Laundry Area. Laundry Personnel record <strong>Received by</strong> and the receipt date, complete processing, then deliver the accomplished form to SPMU. The Received by date controls return timeliness.</p>
-            @else
-                <h2>Encode the completed Laundry Form in SPMU Return</h2>
-                <p>The completed form is already on file. Record the full received quantity as Fine / Good when no issue was reported; otherwise encode the applicable adverse quantity exactly as written on the Laundry Form. The accomplished Laundry Form is the authoritative evidence for linen; extra photos/files are optional. Serviceable linen becomes Available automatically after encoding. No second linen inspection is required.</p>
-            @endif
         </div>
-        <a class="button primary ui-pressable" href="{{ route('custody.return.show', $job->custody) }}#return-primary"><span>Open SPMU Return</span></a>
-    </article>
-</section>
-@endif
-
-@if($job->status === 'TURNED_OVER_TO_LAUNDRY')
-<section class="content-area">
-    <article class="card">
-        <div class="callout info">
-            <strong>Older Laundry record pending automatic reconciliation.</strong>
-            <p>No Action Officer action is required. The system reconciliation restores the already-confirmed serviceable quantity to Available inventory.</p>
-        </div>
-    </article>
-</section>
-@endif
-
-@if($job->status === 'LAUNDRY_COMPLETED')
-<section class="content-area">
-    <article class="card">
-        <div class="card-header">
-            <h2>Completion Summary</h2>
-        </div>
-        <p><strong>{{ $totalInternalLaundry }} serviceable linen {{ $totalInternalLaundry === 1 ? 'item has' : 'items have' }} been returned to Available inventory.</strong></p>
-        <div class="meta top-gap">
-            @if($job->worker_received_at)
-                <span>Borrower return: {{ $job->worker_received_at->format('d M Y') }}</span>
-            @endif
-            @if($job->completed_at)
-                <span> · Recorded by SPMU: {{ $job->completed_at->format('d M Y, g:i A') }}</span>
-            @endif
-        </div>
-
-        @if($accountabilityReason)
-            <div class="callout warning top-gap">
-                <strong>Accountability Required — {{ $accountabilityReason }}</strong>
-                <p>This Laundry case is complete and serviceable linen is already Available. The borrower issue is handled separately in Accountability Processing.</p>
+        @if($job->status === 'TURNED_OVER_TO_LAUNDRY')
+            <p class="meta laundry-record-note">The return has been recorded. Availability is being updated automatically; no further action is needed.</p>
+        @endif
+        @if($isCompleted && $accountabilityReason)
+            <div class="laundry-record-findings">
+                <strong>Return Findings: {{ $accountabilityReason }}</strong>
                 @if($isLateReturn && $expectedReturn && $job->worker_received_at)
                     <p class="meta">Expected return: {{ $expectedReturn->format('d M Y') }} · Actual linen return: {{ $job->worker_received_at->format('d M Y') }}</p>
                 @endif
+                <a href="{{ route('requests.show', $job->custody->request) }}">View Transaction</a>
             </div>
         @endif
     </article>
-</section>
-@endif
-
 </div>
 @include('laundry.partials.detail-styles')
 @endsection

@@ -11,6 +11,7 @@
     $isSpmu = session('active_workspace') === 'SPMU';
     $isInventoryAdmin = auth()->user()?->access_classification?->value === 'SPMU_HEAD';
     $isActionOfficer = auth()->user()?->access_classification?->value === 'SPMU_OFFICER';
+    $spmuDefaultPageSize = $isActionOfficer ? 10 : 15;
 @endphp
 
 <section class="page-heading">
@@ -32,6 +33,8 @@
                 Browse items available for borrowing and review use restrictions before requesting.
             @elseif($isInventoryAdmin)
                 Monitor stock, availability, reservations, custody, laundry, condition, and inventory records.
+            @elseif($isActionOfficer)
+                Check current stock, allocations, custody, returns, laundry, and item condition.
             @else
                 Check current stock, reservations, custody, returns, laundry, and item condition.
             @endif
@@ -215,7 +218,7 @@
             ->values();
     @endphp
 
-    <div class="content-area spmu-inventory {{ $isInventoryAdmin ? 'is-inventory-head' : '' }}" data-spmu-inventory data-pagination-mode="{{ $isInventoryAdmin ? 'simple' : 'numbered' }}">
+    <div class="content-area spmu-inventory {{ $isInventoryAdmin ? 'is-inventory-head' : '' }}" data-spmu-inventory data-default-page-size="{{ $spmuDefaultPageSize }}" data-pagination-mode="{{ $isInventoryAdmin ? 'simple' : 'numbered' }}">
         <div
             class="spmu-inventory-card spmu-inventory-filters"
             aria-label="Search and filter operational inventory"
@@ -263,6 +266,7 @@
             </label>
         </div>
 
+        @if($isInventoryAdmin)
         <div class="spmu-inventory-summary">
             <span data-spmu-inventory-summary role="status" aria-live="polite">
                 Showing {{ $items->count() }} inventory items
@@ -271,13 +275,14 @@
             <span class="spmu-inventory-page-size">
                 <label class="visually-hidden" for="spmu-inventory-page-size-top">Inventory items per page</label>
                 <select id="spmu-inventory-page-size-top" data-spmu-inventory-page-size>
-                    <option value="15">15 items per page</option>
+                    <option value="{{ $spmuDefaultPageSize }}">{{ $spmuDefaultPageSize }} items per page</option>
                     <option value="30">30 items per page</option>
                     <option value="50">50 items per page</option>
                     <option value="100">100 items per page</option>
                 </select>
             </span>
         </div>
+        @endif
 
         <div class="spmu-inventory-table-wrap">
             <div class="spmu-inventory-table-scroll">
@@ -288,7 +293,7 @@
                             <th scope="col">Item</th>
                             <th scope="col" class="is-numeric">Total Stock</th>
                             <th scope="col" class="is-numeric">Available</th>
-                            <th scope="col" class="is-numeric">Reserved</th>
+                            <th scope="col" class="is-numeric">{{ $isActionOfficer ? 'Allocated' : 'Reserved' }}</th>
                             <th scope="col" class="is-numeric">On Custody</th>
                             <th scope="col">Unavailable</th>
                             <th scope="col">Condition</th>
@@ -319,7 +324,7 @@
 
             <div class="spmu-inventory-footer" id="spmu-inventory-footer">
                 @unless($isInventoryAdmin)
-                    <p data-spmu-inventory-summary>
+                    <p data-spmu-inventory-summary role="status" aria-live="polite">
                         Showing {{ $items->count() }} inventory items
                     </p>
                 @endunless
@@ -329,7 +334,7 @@
                         <span class="spmu-inventory-page-size">
                             <label class="visually-hidden" for="spmu-inventory-page-size-bottom">Inventory items per page</label>
                             <select id="spmu-inventory-page-size-bottom" data-spmu-inventory-page-size>
-                                <option value="15">15 items per page</option>
+                                <option value="{{ $spmuDefaultPageSize }}">{{ $spmuDefaultPageSize }} items per page</option>
                                 <option value="30">30 items per page</option>
                                 <option value="50">50 items per page</option>
                                 <option value="100">100 items per page</option>

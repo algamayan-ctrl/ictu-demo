@@ -16,11 +16,13 @@ use App\Models\ReturnTransaction;
 use App\Models\UnitOfMeasure;
 use App\Services\AuditService;
 use App\Services\InventoryService;
+use App\Services\InventoryStockCardService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -910,6 +912,14 @@ class InventoryController extends Controller
             ];
         }
 
+        $isActionOfficer = $workspace === 'SPMU' && $request->user()->access_classification === AccessClassification::SpmuOfficer;
+        $saoStockCard = $isActionOfficer
+            ? $this->stockCardData($request, $inventory, $balance)
+            : null;
+        $saoBorrowingHistory = $isActionOfficer
+            ? $this->borrowingHistoryPage($request, $inventory, $borrowingHistory)
+            : null;
+
         return view('inventory.show', [
             'item' => $inventory,
             'balance' => $balance,
@@ -928,6 +938,74 @@ class InventoryController extends Controller
             'inventoryIssueSources' => $inventoryIssueSources,
             'eligibleWriteOffSources' => $eligibleWriteOffSources,
             'inventoryAdjustmentCapabilities' => $inventoryAdjustmentCapabilities,
+            'saoStockCard' => $saoStockCard,
+            'saoBorrowingHistory' => $saoBorrowingHistory,
+        ]);
+    }
+
+    private function borrowingHistoryPage(Request $request, InventoryItem $item, $rows): array
+    {
+        $filters = $request->validate([
+            'history_per_page' => ['nullable', 'integer', Rule::in([10, 30, 50, 100])],
+            'history_page' => ['nullable', 'integer', 'min:1', 'max:100000'],
+        ]);
+        $perPage = (int) ($filters['history_per_page'] ?? 10);
+        $page = min((int) ($filters['history_page'] ?? 1), max(1, (int) ceil($rows->count() / $perPage)));
+
+        return [
+            'per_page' => $perPage,
+            'page' => new LengthAwarePaginator($rows->forPage($page, $perPage)->values(), $rows->count(), $perPage, $page, [
+                'path' => route('inventory.show', $item),
+                'pageName' => 'history_page',
+                'query' => array_merge($request->except('history_page'), ['tab' => 'borrowing-history']),
+            ]),
+        ];
+    }
+
+    public function printStockCard(Request $request, InventoryItem $inventory, InventoryService $service): View
+    {
+        abort_unless($request->user()->access_classification === AccessClassification::SpmuOfficer, 403);
+        $inventory->loadMissing(['unit', 'category']);
+        $balance = $service->availability($inventory, now(), now()->addSecond());
+
+        return view('inventory.stock-card-print', [
+            'item' => $inventory,
+            'card' => $this->stockCardData($request, $inventory, $balance),
+        ]);
+    }
+
+    private function stockCardData(Request $request, InventoryItem $item, array $balance): array
+    {
+        $filters = $request->validate([
+            'stock_q' => ['nullable', 'string', 'max:200'],
+            'stock_movement' => ['nullable', Rule::in(['ALL', 'RECEIPT', 'ISSUE'])],
+            'stock_per_page' => ['nullable', 'integer', Rule::in([10, 30, 50, 100])],
+            'stock_page' => ['nullable', 'integer', 'min:1', 'max:100000'],
+        ]);
+        $card = app(InventoryStockCardService::class)->forItem($item, $balance);
+        $search = trim((string) ($filters['stock_q'] ?? ''));
+        $movement = $filters['stock_movement'] ?? 'ALL';
+        $rows = $card['rows']->filter(function (array $row) use ($search, $movement): bool {
+            $text = implode(' ', [$row['reference'], $row['office'], $row['remarks'],
+                $row['date'] ? Carbon::parse($row['date'])->format('m-d-Y d M Y') : '']);
+
+            return ($movement === 'ALL' || $row['kind'] === $movement)
+                && ($search === '' || mb_stripos($text, $search) !== false);
+        })->values();
+        $perPage = (int) ($filters['stock_per_page'] ?? 10);
+        $page = min((int) ($filters['stock_page'] ?? 1), max(1, (int) ceil($rows->count() / $perPage)));
+
+        return array_merge($card, [
+            'rows' => $rows,
+            'search' => $search,
+            'movement' => $movement,
+            'per_page' => $perPage,
+            'filtered' => $search !== '' || $movement !== 'ALL',
+            'page' => new LengthAwarePaginator($rows->forPage($page, $perPage)->values(), $rows->count(), $perPage, $page, [
+                'path' => route('inventory.show', $item),
+                'pageName' => 'stock_page',
+                'query' => array_merge($request->except('stock_page'), ['tab' => 'stock-card']),
+            ]),
         ]);
     }
 

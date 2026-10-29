@@ -11,15 +11,7 @@
             autocomplete="off"
             @disabled(!$preparationComplete || !$pickupWindowOpen)
         >
-        <span>
-            @if($hasOffCampusItem)
-                I confirm the barricade was handed to the borrower and the Borrower Slip and Gate Pass were validated.
-            @elseif($hasLaundryItem)
-                I confirm the linen items were issued and the Laundry Form was signed under <strong>ISSUED BY</strong>.
-            @else
-                I confirm the item was handed to the borrower and the Borrower Slip was validated.
-            @endif
-        </span>
+        <span>I confirm that the borrower has received the items and the required forms have been signed.</span>
     </label>
 
     @error('signature')
@@ -28,10 +20,10 @@
 
     <div class="release-handover-footer">
         <label>
-            Release Remarks
+            Remarks (Optional)
             <textarea
                 name="remarks"
-                placeholder="Optional physical handover note"
+                placeholder="Add a short note, if needed"
                 @disabled(!$preparationComplete || !$pickupWindowOpen)
             ></textarea>
         </label>
@@ -42,7 +34,7 @@
             type="submit"
             disabled
         >
-            Confirm Physical Release
+            Confirm Release
         </button>
     </div>
 </form>
@@ -58,11 +50,11 @@
         releaseButton.disabled = confirmation.disabled || !confirmation.checked;
     };
 
-    /*
-     * Browsers can restore checkbox state when navigating back/forward.
-     * Physical Release must always be confirmed deliberately for the
-     * current handover.
-     */
+
+
+
+
+
     const resetReleaseConfirmation = () => {
         confirmation.checked = false;
         refreshReleaseConfirmation();

@@ -1,5 +1,5 @@
 <script>
-/* One open detail at a time. Filtering never changes workflow state. */
+
 document.addEventListener('click', (event) => {
     const button = event.target.closest('[data-case-toggle]');
     if (!button) return;
@@ -57,8 +57,8 @@ document.addEventListener('click', (event) => {
         return row.dataset.caseType === type;
     };
 
-    /* A status that does not exist for the selected type is hidden/disabled.
-       This prevents combinations that look broken but can never return rows. */
+
+
     function syncStatusOptions() {
         if (!statusSelect) return;
 
@@ -110,8 +110,8 @@ document.addEventListener('click', (event) => {
         if (count) count.textContent = String(visible);
     }
 
-    /* Summary-card focus links can still open the correct subset, but only
-       when that control is actually useful enough to be rendered. */
+
+
     if (focus === 'overdue') {
         if (typeSelect && [...typeSelect.options].some(option => option.value === 'LATE_RETURN')) {
             typeSelect.value = 'LATE_RETURN';

@@ -36,6 +36,7 @@
         eyebrow=""
         :expanded="true"
         :compact-header="true"
+        :fullscreen="session('active_workspace') === 'BORROWER'"
     />
 </section>
 <style>

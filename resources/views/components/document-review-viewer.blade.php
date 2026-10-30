@@ -6,6 +6,8 @@
     'previewUrl' => null,
     'expanded' => false,
     'compactHeader' => false,
+    // Opt-in Full screen control. Off by default so existing pages are unchanged.
+    'fullscreen' => false,
 ])
 
 @php
@@ -79,6 +81,21 @@
                     {{ $title }}
                 </h2>
             </div>
+        </div>
+    @endif
+
+    @if($fullscreen && $file && ($isPdf || $isImage))
+        <div class="scanned-document-actions">
+            <button
+                type="button"
+                class="button secondary ui-pressable scanned-document-fullscreen-toggle"
+                data-document-fullscreen-toggle
+                aria-pressed="false"
+            >
+                <svg class="scanned-document-fullscreen-enter" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
+                <svg class="scanned-document-fullscreen-exit" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
+                <span data-document-fullscreen-label>Full screen</span>
+            </button>
         </div>
     @endif
 
@@ -511,3 +528,164 @@
     }
 }
 </style>
+
+@if($fullscreen)
+@once
+<style>
+/*
+ * Opt-in Full screen control (fullscreen prop). Uses the browser Fullscreen
+ * API on the whole viewer card, so the native PDF toolbar and the image zoom
+ * controls keep working. Where the API is unavailable (for example iPhone
+ * Safari) the card fills the window instead.
+ */
+.scanned-document-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border, #d7dee8);
+    background: var(--surface-elevated, #fff);
+}
+
+.scanned-document-fullscreen-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+}
+
+.scanned-document-fullscreen-exit { display: none; }
+.is-document-fullscreen .scanned-document-fullscreen-enter { display: none; }
+.is-document-fullscreen .scanned-document-fullscreen-exit { display: inline; }
+
+.scanned-document-card[data-document-preview-card].is-document-fullscreen {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: none !important;
+    height: 100%;
+    margin: 0;
+    border-radius: 0;
+    background: var(--surface, #fff);
+}
+
+.scanned-document-card[data-document-preview-card].is-pseudo-fullscreen {
+    position: fixed !important;
+    inset: 0;
+    z-index: 2147483000;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+}
+
+.scanned-document-card[data-document-preview-card].is-document-fullscreen .scanned-pdf-stage,
+.scanned-document-card[data-document-preview-card].is-document-fullscreen .scanned-image-viewer {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.scanned-document-card[data-document-preview-card].is-document-fullscreen .scanned-pdf-stage,
+.scanned-document-card[data-document-preview-card].is-document-fullscreen .scanned-image-stage {
+    flex: 1 1 auto;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+}
+
+html.document-fullscreen-open { overflow: hidden; }
+
+@media print {
+    .scanned-document-actions { display: none; }
+}
+</style>
+
+<script>
+(() => {
+    const root = document.documentElement;
+    const currentFullscreen = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+    const canUseNative = (card) => Boolean(
+        (document.fullscreenEnabled || document.webkitFullscreenEnabled)
+        && (card.requestFullscreen || card.webkitRequestFullscreen)
+    );
+    let overlayCard = null;
+
+    const setState = (card, active) => {
+        card.classList.toggle('is-document-fullscreen', active);
+
+        const toggle = card.querySelector('[data-document-fullscreen-toggle]');
+        if (!toggle) return;
+
+        toggle.setAttribute('aria-pressed', active ? 'true' : 'false');
+        const label = toggle.querySelector('[data-document-fullscreen-label]');
+        if (label) label.textContent = active ? 'Exit full screen' : 'Full screen';
+    };
+
+    const openOverlay = (card) => {
+        overlayCard = card;
+        card.classList.add('is-pseudo-fullscreen');
+        root.classList.add('document-fullscreen-open');
+        setState(card, true);
+    };
+
+    const closeOverlay = () => {
+        if (!overlayCard) return;
+
+        const card = overlayCard;
+        overlayCard = null;
+        card.classList.remove('is-pseudo-fullscreen');
+        root.classList.remove('document-fullscreen-open');
+        setState(card, false);
+        card.querySelector('[data-document-fullscreen-toggle]')?.focus();
+    };
+
+    // One page-wide listener, so every viewer on the page works.
+    document.addEventListener('click', (event) => {
+        const toggle = event.target.closest('[data-document-fullscreen-toggle]');
+        const card = toggle?.closest('[data-document-preview-card]');
+        if (!card) return;
+
+        if (card === overlayCard) {
+            closeOverlay();
+            return;
+        }
+
+        if (currentFullscreen() === card) {
+            (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+            return;
+        }
+
+        if (!canUseNative(card)) {
+            openOverlay(card);
+            return;
+        }
+
+        const result = (card.requestFullscreen || card.webkitRequestFullscreen).call(card);
+        if (result && typeof result.catch === 'function') {
+            result.catch(() => openOverlay(card));
+        }
+    });
+
+    const syncNative = () => {
+        const active = currentFullscreen();
+
+        document.querySelectorAll('[data-document-preview-card].is-document-fullscreen:not(.is-pseudo-fullscreen)')
+            .forEach((card) => { if (card !== active) setState(card, false); });
+
+        if (active && active.matches('[data-document-preview-card]')) {
+            setState(active, true);
+        }
+    };
+
+    document.addEventListener('fullscreenchange', syncNative);
+    document.addEventListener('webkitfullscreenchange', syncNative);
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && overlayCard) closeOverlay();
+    });
+})();
+</script>
+@endonce
+@endif

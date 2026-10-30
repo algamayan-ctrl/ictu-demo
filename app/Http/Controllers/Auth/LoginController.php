@@ -52,7 +52,7 @@ class LoginController extends Controller
         if (! Hash::check($credentials['password'], $account->password)) {
             return back()
                 ->withErrors([
-                    'password' => 'Incorrect password. Please try again.',
+                    'password' => 'Incorrect email or password. Please try again.',
                 ])
                 ->onlyInput('email');
         }

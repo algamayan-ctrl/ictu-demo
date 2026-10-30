@@ -471,7 +471,7 @@ class GoogleAuthTest extends TestCase
             ->assertRedirect('/')->assertSessionHasErrors('password');
         $this->withCookie(config('session.cookie'), session()->getId());
         $this->get('/')->assertOk()->assertSeeInOrder([
-            'class="landing-shell"', 'class="login-card"', 'Incorrect password. Please try again.',
+            'class="landing-shell"', 'class="login-card"', 'Incorrect email or password. Please try again.',
         ], false);
         $this->assertGuest();
     }

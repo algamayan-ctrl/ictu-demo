@@ -52,9 +52,15 @@
         <h2>{{ $emptyTitle }}</h2>
         <p>{{ $emptyMessage }}</p>
 
-        <a class="button secondary ui-pressable borrowings-empty-action" href="{{ route('requests.index') }}">
-            <x-icon name="requests" size="18" />
-            <span>View My Requests</span>
-        </a>
+        @if(! empty($emptyActionUrl))
+            <a class="button secondary ui-pressable borrowings-empty-action" href="{{ $emptyActionUrl }}">
+                <span>{{ $emptyActionLabel ?? 'Clear filters' }}</span>
+            </a>
+        @else
+            <a class="button secondary ui-pressable borrowings-empty-action" href="{{ route('requests.index') }}">
+                <x-icon name="requests" size="18" />
+                <span>View My Requests</span>
+            </a>
+        @endif
     </div>
 </div>

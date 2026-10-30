@@ -10,15 +10,13 @@
     $scheduleDate = $version?->schedule_date ?: $version?->needed_from;
     $returnDate = $version?->return_date ?: $version?->return_due_at ?: $custody->due_at;
 
-    $workflowStatus = $custody->workflowStatus();
-    $gatePassOnlyPending = $custody->isGatePassOnlyPending();
-
-    // SPMU still recording the accomplished Gate Pass is internal SPMU
-    // processing, not a borrower obligation - never show it as
-    // "Accountability Pending" in the borrower's own borrowings list.
-    $operationalLabel = $gatePassOnlyPending ? 'Gate Pass Processing' : $workflowStatus['label'];
-    $operationalStatusKey = $gatePassOnlyPending ? 'GATE_PASS_PROCESSING' : $workflowStatus['key'];
-    $workflowGroup = $gatePassOnlyPending ? 'return' : $workflowStatus['group'];
+    // Shared with the server-side status filter so the badge and filter agree.
+    // Gate-Pass-only processing shows as "Gate Pass Processing", never as
+    // "Accountability Pending".
+    $borrowerStatus = $custody->borrowerListStatus();
+    $operationalLabel = $borrowerStatus['label'];
+    $operationalStatusKey = $borrowerStatus['key'];
+    $workflowGroup = $borrowerStatus['group'];
     $isCompleted = $workflowGroup === 'completed';
     $isCancelled = $workflowGroup === 'cancelled';
 @endphp
@@ -29,8 +27,6 @@
     data-borrowings-record
     data-borrowings-group="{{ $workflowGroup }}"
     data-borrowings-status="{{ $operationalStatusKey }}"
-    data-borrowings-created="{{ optional($custody->updated_at)->timestamp ?? 0 }}"
-    data-borrowings-search="{{ strtolower(trim(($custody->custody_no ?? '').' '.($custody->request?->request_no ?? '').' '.($version?->purpose_event ?? ''))) }}"
 >
     <span class="operational-record-primary">
         <strong>{{ $custody->custody_no }}</strong>

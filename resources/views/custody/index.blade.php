@@ -44,15 +44,9 @@
     };
 
 
-    $borrowerFilterStatuses = $isBorrower
-        ? $custodies
-            ->map(fn ($custody) => $custody->isGatePassOnlyPending()
-                ? ['key' => 'GATE_PASS_PROCESSING', 'label' => 'Gate Pass Processing']
-                : $custody->workflowStatus())
-            ->filter(fn ($status) => ! empty($status['key']) && ! empty($status['label']))
-            ->unique('key')
-            ->values()
-        : collect();
+    // My Borrowings search/status/sort run on the server (see CustodyController::index).
+    $borrowerFilters = $borrowerFilters ?? ['search' => '', 'status' => 'all', 'sort' => 'newest', 'active' => false];
+    $borrowerStatusFilters = $borrowerStatusFilters ?? [];
 
     $oversightTabs = [
         'all' => 'All',
@@ -226,18 +220,26 @@
 @elseif($isBorrower)
     <div class="content-area my-borrowings" data-my-borrowings>
         @if($borrowerKpiFilterLabel)
-            <x-filter-context-banner :label="$borrowerKpiFilterLabel" :count="$custodies->count()" :clear-url="route('custody.index')" />
+            <x-filter-context-banner :label="$borrowerKpiFilterLabel" :count="$custodies->total()" :clear-url="route('custody.index')" />
         @endif
 
-        <div class="borrowings-toolbar">
+        {{-- GET form: values stay in the URL, and changing them starts again at page 1. --}}
+        <form class="borrowings-toolbar" id="borrowings-filters" method="GET" action="{{ route('custody.index') }}" role="search" aria-label="Filter my borrowings">
+            @if($borrowerKpiFilter ?? null)
+                <input type="hidden" name="kpi" value="{{ $borrowerKpiFilter }}">
+            @endif
+
             <label>
                 Search
                 <span class="search-input-shell">
                     <span class="search-input-icon" aria-hidden="true"><x-icon name="search" size="17" /></span>
                     <input
                         id="borrowings-search"
+                        name="search"
                         type="search"
-                        placeholder="Search custody no., request no., or event..."
+                        value="{{ $borrowerFilters['search'] }}"
+                        maxlength="100"
+                        placeholder="Search custody no., request no., event, or item..."
                         autocomplete="off"
                     >
                 </span>
@@ -245,35 +247,47 @@
 
             <label>
                 Status
-                <select id="borrowings-status">
+                <select id="borrowings-status" name="status">
                     <option value="all">All statuses</option>
-                    @foreach($borrowerFilterStatuses as $filterStatus)
-                        <option value="{{ $filterStatus['key'] }}">{{ $filterStatus['label'] }}</option>
+                    @foreach($borrowerStatusFilters as $statusKey => $statusLabel)
+                        <option value="{{ $statusKey }}" @selected($borrowerFilters['status'] === $statusKey)>{{ $statusLabel }}</option>
                     @endforeach
                 </select>
             </label>
 
             <label>
                 Sort
-                <select id="borrowings-sort">
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
+                <select id="borrowings-sort" name="sort">
+                    <option value="newest" @selected($borrowerFilters['sort'] === 'newest')>Newest first</option>
+                    <option value="oldest" @selected($borrowerFilters['sort'] === 'oldest')>Oldest first</option>
                 </select>
             </label>
-        </div>
 
-        @if($custodies->isEmpty())
+            <noscript><button class="button secondary" type="submit">Apply</button></noscript>
+        </form>
+
+        @if($custodies->total() === 0)
             <div class="my-borrowings-card">
-                @include('custody.partials.borrowings-empty', [
-                    'emptyHidden' => false,
-                    'emptyTitle' => 'No borrowing records yet.',
-                    'emptyMessage' => 'Approved borrowings will appear here once items are allocated for pickup.',
-                ])
+                @if($borrowerFilters['active'])
+                    @include('custody.partials.borrowings-empty', [
+                        'emptyHidden' => false,
+                        'emptyTitle' => 'No matching borrowings.',
+                        'emptyMessage' => 'Try another search term or status.',
+                        'emptyActionUrl' => route('custody.index', ($borrowerKpiFilter ?? null) ? ['kpi' => $borrowerKpiFilter] : []),
+                        'emptyActionLabel' => 'Clear filters',
+                    ])
+                @else
+                    @include('custody.partials.borrowings-empty', [
+                        'emptyHidden' => false,
+                        'emptyTitle' => 'No borrowing records yet.',
+                        'emptyMessage' => 'Approved borrowings will appear here once items are allocated for pickup.',
+                    ])
+                @endif
             </div>
         @else
             <div class="borrowings-results-head">
                 <strong id="borrowings-result-summary" role="status" aria-live="polite">
-                    {{ $custodies->count() }} {{ $custodies->count() === 1 ? 'borrowing' : 'borrowings' }}
+                    {{ $custodies->total() }} {{ $custodies->total() === 1 ? 'borrowing' : 'borrowings' }}
                 </strong>
             </div>
 
@@ -283,12 +297,25 @@
                 @endforeach
             </div>
 
-            <div class="my-borrowings-card borrowings-filter-empty" id="borrowings-filter-empty" hidden>
-                @include('custody.partials.borrowings-empty', [
-                    'emptyHidden' => false,
-                    'emptyTitle' => 'No matching borrowings.',
-                    'emptyMessage' => 'Try another search term or status.',
-                ])
+            @if($custodies->isEmpty())
+                {{-- Page number past the last page (e.g. an old link). --}}
+                <div class="my-borrowings-card">
+                    @include('custody.partials.borrowings-empty', [
+                        'emptyHidden' => false,
+                        'emptyTitle' => 'This page has no borrowings.',
+                        'emptyMessage' => 'Go back to the first page to see your records.',
+                        'emptyActionUrl' => $custodies->url(1),
+                        'emptyActionLabel' => 'Go to first page',
+                    ])
+                </div>
+            @endif
+
+            <div class="borrowings-footer">
+                <p role="status">Showing {{ $custodies->firstItem() ?? 0 }} to {{ $custodies->lastItem() ?? 0 }} of {{ $custodies->total() }} {{ $custodies->total() === 1 ? 'borrowing' : 'borrowings' }}</p>
+
+                @if($custodies->hasPages())
+                    {{ $custodies->onEachSide(1)->links('custody.partials.borrowings-pagination') }}
+                @endif
             </div>
         @endif
     </div>

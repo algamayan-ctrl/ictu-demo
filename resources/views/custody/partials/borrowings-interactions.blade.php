@@ -1,59 +1,43 @@
 <script>
 (() => {
+    /*
+     * Search, status, and sort are applied on the server. This script only
+     * submits the toolbar form: Status/Sort submit on change, Search submits
+     * on Enter or when the field is cleared. The form never sends "page", so
+     * any change starts again at page 1.
+     */
     const initializeMyBorrowings = () => {
-        const browser = document.querySelector('[data-my-borrowings]');
+        const form = document.querySelector('[data-my-borrowings] #borrowings-filters');
 
-        if (!browser) {
+        if (!form) {
             return;
         }
 
-        const list = browser.querySelector('#borrowings-list');
-        const rows = Array.from(browser.querySelectorAll('[data-borrowings-record]'));
-        const search = browser.querySelector('#borrowings-search');
-        const status = browser.querySelector('#borrowings-status');
-        const sort = browser.querySelector('#borrowings-sort');
-        const summary = browser.querySelector('#borrowings-result-summary');
-        const empty = browser.querySelector('#borrowings-filter-empty');
+        const search = form.querySelector('#borrowings-search');
+        const status = form.querySelector('#borrowings-status');
+        const sort = form.querySelector('#borrowings-sort');
+        const initialSearch = search ? search.value : '';
 
-        if (!list || rows.length === 0 || !search || !status || !sort) {
-            return;
-        }
+        // Keep the URL tidy: leave out empty/default values.
+        form.addEventListener('formdata', (event) => {
+            const data = event.formData;
 
-        const render = () => {
-            const term = search.value.trim().toLowerCase();
-            const selectedStatus = status.value;
-            const direction = sort.value === 'oldest' ? 1 : -1;
+            if ((data.get('search') || '').trim() === '') data.delete('search');
+            if (data.get('status') === 'all') data.delete('status');
+            if (data.get('sort') === 'newest') data.delete('sort');
+        });
 
-            const orderedRows = [...rows].sort((a, b) => {
-                return direction * ((Number(a.dataset.borrowingsCreated) || 0) - (Number(b.dataset.borrowingsCreated) || 0));
-            });
+        const submit = () => form.requestSubmit ? form.requestSubmit() : form.submit();
 
-            orderedRows.forEach((row) => list.appendChild(row));
+        status?.addEventListener('change', submit);
+        sort?.addEventListener('change', submit);
 
-            let visibleCount = 0;
-
-            orderedRows.forEach((row) => {
-                const matchesSearch = term === '' || (row.dataset.borrowingsSearch || '').includes(term);
-                const matchesStatus = selectedStatus === 'all' || (row.dataset.borrowingsStatus || '') === selectedStatus;
-                const visible = matchesSearch && matchesStatus;
-
-                row.hidden = !visible;
-                if (visible) visibleCount += 1;
-            });
-
-            if (summary) {
-                summary.textContent = `${visibleCount} ${visibleCount === 1 ? 'borrowing' : 'borrowings'}`;
+        // The search field's clear (x) button fires "search" with an empty value.
+        search?.addEventListener('search', () => {
+            if (search.value === '' && initialSearch !== '') {
+                submit();
             }
-
-            if (empty) {
-                empty.hidden = visibleCount !== 0;
-            }
-        };
-
-        search.addEventListener('input', render);
-        status.addEventListener('change', render);
-        sort.addEventListener('change', render);
-        render();
+        });
     };
 
     if (document.readyState === 'loading') {

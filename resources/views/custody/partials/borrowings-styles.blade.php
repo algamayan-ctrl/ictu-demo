@@ -47,7 +47,18 @@
     display: flex;
     flex-direction: column;
 }
-.borrowings-filter-empty { margin-top: 10px; }
+
+/* Record range + page links, matching the My Requests footer. */
+.borrowings-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin: 14px 2px 0;
+}
+.borrowings-footer > p { margin: 0; color: var(--text-muted); font-size: 11px; }
+.borrowings-footer .app-pagination { margin-top: 0; margin-left: auto; }
 
 /* Empty state */
 .my-borrowings-card > .borrowings-empty { flex: 1 1 auto; }
@@ -72,6 +83,8 @@ html[data-theme="dark"] .borrowings-empty-checks { stroke: #4d87c9; fill: #1b304
 html[data-theme="dark"] .borrowings-empty-sparkles { fill: #2f4a68; }
 @media (max-width: 760px) {
     .borrowings-toolbar { grid-template-columns: 1fr; }
+    .borrowings-footer { align-items: flex-start; }
+    .borrowings-footer .app-pagination { margin-left: 0; }
 }
 @media (max-width: 620px) {
     .borrowings-toolbar { padding: 12px; }

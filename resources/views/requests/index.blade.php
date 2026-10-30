@@ -223,7 +223,13 @@
 @if($isBorrower)
 
 <div class="my-requests">
-    @if($requests->isEmpty())
+    @if($requests->total() === 0 && ($borrowerRequestFilters['active'] ?? false))
+        @include('requests.partials.my-requests-toolbar')
+
+        <section class="mr-empty mr-filter-empty" aria-live="polite">
+            @include('requests.partials.my-requests-empty-filtered')
+        </section>
+    @elseif($requests->total() === 0)
         @include('requests.partials.my-requests-toolbar')
 
         @include('requests.partials.my-requests-empty')

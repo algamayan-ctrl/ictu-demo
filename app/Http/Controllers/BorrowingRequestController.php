@@ -39,6 +39,37 @@ class BorrowingRequestController extends Controller
 {
     private const MAX_UPLOAD_MB = 64;
 
+    /** Records per page on the borrower's My Requests list. */
+    private const BORROWER_REQUESTS_PER_PAGE = 10;
+
+    /** Longest search term accepted from the My Requests search box. */
+    private const BORROWER_REQUEST_SEARCH_MAX_LENGTH = 100;
+
+    /**
+     * Status filter options on My Requests, in lifecycle order. Each value is
+     * a badge key from BorrowingRequest::borrowerRecordStatus().
+     */
+    public const BORROWER_REQUEST_STATUS_FILTERS = [
+        'DRAFT' => 'Draft',
+        'FOR_REVIEW' => 'For Review',
+        'NEEDS_REVISION' => 'Needs Revision',
+        'PICKUP_SCHEDULED' => 'Pickup Scheduled',
+        'FOR_ISSUANCE' => 'For Issuance',
+        'READY_FOR_PICKUP' => 'Ready for Pickup',
+        'MISSED_PICKUP' => 'Missed Pickup',
+        'ON_CUSTODY' => 'On Custody',
+        'OVERDUE' => 'Overdue',
+        'COMPLETED' => 'Completed',
+        'CANCELLED' => 'Cancelled',
+        'REJECTED' => 'Rejected',
+    ];
+
+    /** Sort options on My Requests. Only these values reach ORDER BY. */
+    private const BORROWER_REQUEST_SORTS = [
+        'newest' => 'desc',
+        'oldest' => 'asc',
+    ];
+
     /**
      * Return active Office / Unit assignments that ICTU has authorized this
      * borrower to represent. The primary assignment is always included.
@@ -272,18 +303,201 @@ class BorrowingRequestController extends Controller
         }
 
         /*
-         * The borrower workspace renders the paginated My Requests list.
-         * Staff record views keep the full unpaginated table.
+         * The borrower workspace renders the paginated My Requests list, with
+         * search, status, and sort applied on the server so they cover every
+         * page. Staff record views keep the full unpaginated table.
          */
+        if ($workspace === 'BORROWER') {
+            $filters = $this->borrowerRequestFilters($request);
+
+            $this->applyBorrowerRequestSearch($query, $filters['search']);
+            $this->applyBorrowerRequestStatusFilter($query, $filters['status']);
+            $this->applyBorrowerRequestSort($query, $filters['sort']);
+
+            return view('requests.index', [
+                'activeCustodiesFilter' => $activeCustodiesFilter,
+                'requests' => $query->paginate(self::BORROWER_REQUESTS_PER_PAGE)->withQueryString(),
+                'borrowerRequestFilters' => $filters,
+                'borrowerRequestStatusFilters' => self::BORROWER_REQUEST_STATUS_FILTERS,
+            ]);
+        }
+
         return view(
             'requests.index',
             [
                 'activeCustodiesFilter' => $activeCustodiesFilter,
-                'requests' => $workspace === 'BORROWER'
-                    ? $query->paginate(10)->withQueryString()
-                    : $query->get(),
+                'requests' => $query->get(),
             ]
         );
+    }
+
+    /**
+     * Read the My Requests search/status/sort query values. Anything not in
+     * the allowed lists falls back to the default instead of erroring, so an
+     * old bookmark or a hand-edited URL still opens the page.
+     *
+     * @return array{search:string,status:string,sort:string,active:bool}
+     */
+    private function borrowerRequestFilters(Request $request): array
+    {
+        $search = trim((string) $request->query('search', ''));
+        $search = mb_substr($search, 0, self::BORROWER_REQUEST_SEARCH_MAX_LENGTH);
+
+        $status = strtoupper(trim((string) $request->query('status', '')));
+        $status = array_key_exists($status, self::BORROWER_REQUEST_STATUS_FILTERS) ? $status : 'all';
+
+        $sort = (string) $request->query('sort', 'newest');
+        $sort = array_key_exists($sort, self::BORROWER_REQUEST_SORTS) ? $sort : 'newest';
+
+        return [
+            'search' => $search,
+            'status' => $status,
+            'sort' => $sort,
+            'active' => $search !== '' || $status !== 'all',
+        ];
+    }
+
+    /**
+     * Search what the borrower sees on the row: request no., purpose/event,
+     * office/organization/location or external company, and item names.
+     */
+    private function applyBorrowerRequestSearch($query, string $search): void
+    {
+        if ($search === '') {
+            return;
+        }
+
+        $term = '%'.addcslashes($search, '%_\\').'%';
+
+        $query->where(function ($match) use ($term): void {
+            $match->where('borrowing_requests.request_no', 'like', $term)
+                ->orWhereHas('currentVersion', fn ($version) => $version->where(
+                    fn ($field) => $field
+                        ->where('purpose_event', 'like', $term)
+                        ->orWhere('student_organization', 'like', $term)
+                        ->orWhere('office_unit', 'like', $term)
+                        ->orWhere('location', 'like', $term)
+                        ->orWhere('external_company_name', 'like', $term)
+                ))
+                ->orWhereHas('currentVersion.items', fn ($item) => $item
+                    ->where('description_snapshot', 'like', $term));
+        });
+    }
+
+    /**
+     * Server-side status filter that always agrees with the row badge.
+     *
+     * Without a custody record, the badge depends only on the request status,
+     * so SQL decides it directly. With a custody record, the badge also
+     * depends on incidents, gate pass, and laundry state, so SQL first
+     * narrows the candidates and each one is then checked with the same
+     * BorrowingRequest::borrowerRecordStatus() method the badge uses.
+     */
+    private function applyBorrowerRequestStatusFilter($query, string $status): void
+    {
+        if ($status === 'all') {
+            return;
+        }
+
+        $statusValues = fn (array $statuses): array => array_map(fn (RequestStatus $s) => $s->value, $statuses);
+
+        // Request statuses that give this badge when there is no custody yet.
+        $withoutCustody = match ($status) {
+            'DRAFT' => $statusValues([RequestStatus::Draft]),
+            'NEEDS_REVISION' => $statusValues([RequestStatus::ReturnedForRevision]),
+            'FOR_ISSUANCE' => $statusValues([RequestStatus::ApprovedReadyForRelease, RequestStatus::FinalApprovedAwaitingDownload]),
+            'REJECTED' => $statusValues([RequestStatus::Rejected]),
+            'CANCELLED' => $statusValues([RequestStatus::Cancelled, RequestStatus::Expired]),
+            default => null,
+        };
+
+        // For Review is every other request status (the row's default).
+        $forReviewWithoutCustody = $status === 'FOR_REVIEW';
+
+        // Custody records that could show this badge (checked one by one below).
+        $custodyCandidates = match ($status) {
+            'FOR_ISSUANCE', 'PICKUP_SCHEDULED', 'READY_FOR_PICKUP', 'MISSED_PICKUP' => fn ($q) => $q->whereHas(
+                'custody',
+                fn ($custody) => $custody->where('status', 'PREPARING_RELEASE')->whereNull('released_at')
+            ),
+            'ON_CUSTODY' => fn ($q) => $q->whereHas('custody', fn ($custody) => $custody->whereNotNull('released_at')),
+            'OVERDUE' => fn ($q) => $q->whereHas('custody', fn ($custody) => $custody->where('status', 'OVERDUE')),
+            'CANCELLED' => fn ($q) => $q->whereHas('custody')->where(fn ($cancelled) => $cancelled
+                ->where('borrowing_requests.status', RequestStatus::Cancelled->value)
+                ->orWhereHas('custody', fn ($custody) => $custody->where('status', 'CANCELLED'))),
+            // Completed also covers accountability cases, which can come from any custody state.
+            'COMPLETED' => fn ($q) => $q->whereHas('custody'),
+            default => null,
+        };
+
+        $matchingCustodyRequestIds = [];
+
+        if ($custodyCandidates) {
+            $candidates = (clone $query)->reorder()->setEagerLoads([]);
+            $custodyCandidates($candidates);
+
+            $candidates
+                ->with([
+                    'custody.lines.requestItem.inventoryItem',
+                    'custody.laundryJob.latestEvidence.file',
+                    'custody.incidents',
+                    'custody.gatePass',
+                ])
+                ->lazyById(200, 'borrowing_requests.id', 'id')
+                ->each(function (BorrowingRequest $candidate) use ($status, &$matchingCustodyRequestIds): void {
+                    if ($candidate->borrowerRecordStatus()['key'] === $status) {
+                        $matchingCustodyRequestIds[] = $candidate->id;
+                    }
+                });
+        }
+
+        $excludedFromForReview = $statusValues([
+            RequestStatus::Draft,
+            RequestStatus::ReturnedForRevision,
+            RequestStatus::ApprovedReadyForRelease,
+            RequestStatus::FinalApprovedAwaitingDownload,
+            RequestStatus::Rejected,
+            RequestStatus::Cancelled,
+            RequestStatus::Expired,
+        ]);
+
+        $query->where(function ($match) use ($withoutCustody, $forReviewWithoutCustody, $excludedFromForReview, $matchingCustodyRequestIds): void {
+            // Always false on its own, so an option with no matches returns nothing.
+            $match->whereIn('borrowing_requests.id', $matchingCustodyRequestIds);
+
+            if ($withoutCustody !== null) {
+                $match->orWhere(fn ($q) => $q->doesntHave('custody')
+                    ->whereIn('borrowing_requests.status', $withoutCustody));
+            }
+
+            if ($forReviewWithoutCustody) {
+                $match->orWhere(fn ($q) => $q->doesntHave('custody')
+                    ->whereNotIn('borrowing_requests.status', $excludedFromForReview));
+            }
+        });
+    }
+
+    /**
+     * Sort by the date shown on the row: the current version's submitted
+     * date, or the creation date for drafts. The direction comes only from
+     * the fixed sort list, never from user input.
+     */
+    private function applyBorrowerRequestSort($query, string $sort): void
+    {
+        $direction = self::BORROWER_REQUEST_SORTS[$sort];
+
+        $currentVersionSubmittedAt = RequestVersion::query()
+            ->select('submitted_at')
+            ->whereColumn('request_versions.request_id', 'borrowing_requests.id')
+            ->orderByDesc('version_no')
+            ->limit(1);
+
+        $query->reorder()
+            ->orderByRaw(
+                'COALESCE(('.$currentVersionSubmittedAt->toSql().'), borrowing_requests.created_at) '.$direction,
+                $currentVersionSubmittedAt->getBindings()
+            )
+            ->orderBy('borrowing_requests.id', $direction);
     }
 
     public function create(Request $request, \App\Services\BorrowerObligationService $obligations): View

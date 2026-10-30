@@ -15,70 +15,10 @@
     $requestStatus = $request->status;
     $custodyWorkflow = $custody?->workflowStatus();
 
-    // SPMU still recording the accomplished Gate Pass is internal SPMU
-    // processing, not a borrower obligation or a separate request status.
-    $gatePassOnlyPending = $custody?->isGatePassOnlyPending() ?? false;
-    $effectiveWorkflowGroup = $gatePassOnlyPending ? 'return' : ($custodyWorkflow['group'] ?? null);
-    $accountabilityKeys = [
-        'INCIDENT_OPEN', 'OBLIGATION_OPEN', 'FOR_BILLING',
-        'BILLING_PENDING', 'BILLING_OPEN', 'BILLING_ISSUED',
-        'PAYMENT_VERIFICATION', 'RECEIPT_SUBMITTED',
-        'COMPLIANCE_REQUIRED', 'COMPLIANCE_RSLDDP_PENDING',
-        'F2F_PROCESSING', 'RSLDDP_AWAITING_UPLOAD',
-        'RSLDDP_FOR_ACCOUNTING_PROCESSING', 'RSLDDP_PAYMENT_REQUIRED',
-        'RSLDDP_DISPOSITION_PENDING', 'RSLDDP_COMPLIANCE_VERIFICATION',
-        'RSLDDP_FOR_RESOLUTION', 'BORROWING_RESTRICTED', 'LATE_RETURN',
-    ];
-
-    if ($gatePassOnlyPending) {
-        [$statusKey, $statusLabel] = ['COMPLETED', 'Completed'];
-    } elseif ($custodyWorkflow && in_array($custodyWorkflow['key'], $accountabilityKeys, true)) {
-        // Accountability is handled in My Obligations. Request Records only
-        // reports the completed borrowing/return transaction.
-        [$statusKey, $statusLabel] = ['COMPLETED', 'Completed'];
-    } elseif ($custodyWorkflow) {
-        [$statusKey, $statusLabel] = match ($custodyWorkflow['key']) {
-            'BORROWED' => ['ON_CUSTODY', 'On Custody'],
-            'RETURN_PROCESSING', 'LINEN_PENDING', 'GATE_PASS_PENDING' => ['ON_CUSTODY', 'On Custody'],
-            'OVERDUE' => ['OVERDUE', 'Overdue'],
-            'COMPLETED' => ['COMPLETED', 'Completed'],
-            'BORROWER_CLEARED' => ['COMPLETED', 'Completed'],
-            'CANCELLED' => ['CANCELLED', 'Cancelled'],
-            'READY_FOR_RELEASE' => ['READY_FOR_PICKUP', 'Ready for Pickup'],
-            'PICKUP_SCHEDULED' => ['PICKUP_SCHEDULED', 'Pickup Scheduled'],
-            'ITEM_PREPARATION', 'PICKUP_SCHEDULING', 'PREPARING_RELEASE' => ['FOR_ISSUANCE', 'For Issuance'],
-            'PICKUP_EXPIRED' => ['MISSED_PICKUP', 'Missed Pickup'],
-            default => [$custodyWorkflow['key'], $custodyWorkflow['label']],
-        };
-    } else {
-        [$statusKey, $statusLabel] = match ($requestStatus) {
-            App\Enums\RequestStatus::Draft
-                => ['DRAFT', 'Draft'],
-
-            App\Enums\RequestStatus::ReturnedForRevision
-                => ['NEEDS_REVISION', 'Needs Revision'],
-
-            App\Enums\RequestStatus::UnderSpmu,
-            App\Enums\RequestStatus::UnderGsu,
-            App\Enums\RequestStatus::UnderVpaf
-                => ['FOR_REVIEW', 'For Review'],
-
-            App\Enums\RequestStatus::ApprovedReadyForRelease,
-            App\Enums\RequestStatus::FinalApprovedAwaitingDownload
-                => ['FOR_ISSUANCE', 'For Issuance'],
-
-            App\Enums\RequestStatus::Rejected
-                => ['REJECTED', 'Rejected'],
-
-            App\Enums\RequestStatus::Cancelled
-                => ['CANCELLED', 'Cancelled'],
-
-            App\Enums\RequestStatus::Expired
-                => ['CANCELLED', 'Cancelled'],
-
-            default => ['FOR_REVIEW', 'For Review'],
-        };
-    }
+    // Shared with the server-side status filter so the badge and filter agree.
+    // Accountability cases and Gate-Pass-only processing show as Completed;
+    // they are followed up in My Obligations.
+    ['key' => $statusKey, 'label' => $statusLabel] = $request->borrowerRecordStatus();
 
     $requiresAction = (
         ! $custody
@@ -114,13 +54,6 @@
         fn ($item) => $item->approved_quantity ?? $item->requested_quantity
     ) ?? 0);
 
-    $searchText = strtolower(trim(
-        ($request->request_no ?? '')
-        .' '.($version?->purpose_event ?? '')
-        .' '.($context ?? '')
-        .' '.$statusLabel
-    ));
-
     /*
      * A DRAFT has not entered the workflow, so its card opens the editor
      * rather than a detail page with nothing to report. requests.show
@@ -141,8 +74,6 @@
     data-request-card
     data-status="{{ $statusKey }}"
     data-status-group="{{ $statusGroup }}"
-    data-search="{{ $searchText }}"
-    data-submitted="{{ optional($submittedAt)->timestamp ?? 0 }}"
 >
     <span class="operational-record-primary">
         <span class="mr-request-identity-line">

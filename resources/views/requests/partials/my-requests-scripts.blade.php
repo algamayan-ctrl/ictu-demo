@@ -1,84 +1,37 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const list = document.getElementById('borrower-request-list');
-
-    if (!list) {
-        return;
-    }
-
-    const searchInput = document.getElementById('request-search');
-    const statusFilter = document.getElementById('request-status-filter');
-    const sortSelect = document.getElementById('request-sort');
-    const cards = Array.from(list.querySelectorAll('[data-request-card]'));
-    const countLabel = document.querySelector('[data-request-count]');
-    const emptyState = document.getElementById('request-filter-empty');
-    const resetButton = document.getElementById('request-filter-reset');
-
     /*
-     * Search, status, and sort operate on the current page of records.
-     * Pagination itself stays server-side.
+     * Search, status, and sort are applied on the server across every page.
+     * This only submits the toolbar form: Status/Sort submit on change, Search
+     * submits on Enter or when the field is cleared. The form never sends
+     * "page", so any change starts again at page 1.
      */
-    const applyFilters = () => {
-        const query = (searchInput?.value || '').trim().toLowerCase();
-        const status = statusFilter?.value || 'all';
+    const filterForm = document.getElementById('request-filters');
 
-        if (sortSelect) {
-            const direction = sortSelect.value === 'oldest' ? -1 : 1;
+    if (filterForm) {
+        const searchInput = filterForm.querySelector('#request-search');
+        const initialSearch = searchInput ? searchInput.value : '';
+        const submitFilters = () => filterForm.requestSubmit ? filterForm.requestSubmit() : filterForm.submit();
 
-            [...cards]
-                .sort((a, b) => (Number(b.dataset.submitted) - Number(a.dataset.submitted)) * direction)
-                .forEach((card) => list.appendChild(card));
-        }
+        // Keep the URL tidy: leave out empty/default values.
+        filterForm.addEventListener('formdata', (event) => {
+            const data = event.formData;
 
-        let visible = 0;
-
-        cards.forEach((card) => {
-            const matchesSearch = !query || (card.dataset.search || '').includes(query);
-            const matchesStatus = status === 'all' || card.dataset.status === status;
-            const show = matchesSearch && matchesStatus;
-
-            card.hidden = !show;
-
-            if (show) {
-                visible++;
-            }
+            if ((data.get('search') || '').trim() === '') data.delete('search');
+            if (data.get('status') === 'all') data.delete('status');
+            if (data.get('sort') === 'newest') data.delete('sort');
         });
 
-        if (countLabel) {
-            /*
-             * Unfiltered, the count reflects every record across all pages.
-             * Once a search or status filter is applied it reports the
-             * matches on the page currently in view.
-             */
-            const unfiltered = !query && status === 'all';
-            const shown = unfiltered ? Number(countLabel.dataset.total) : visible;
+        filterForm.querySelector('#request-status-filter')?.addEventListener('change', submitFilters);
+        filterForm.querySelector('#request-sort')?.addEventListener('change', submitFilters);
 
-            countLabel.textContent = shown + (shown === 1 ? ' request found' : ' requests found');
-        }
-
-        if (emptyState) {
-            emptyState.hidden = visible !== 0;
-        }
-    };
-
-    searchInput?.addEventListener('input', applyFilters);
-    statusFilter?.addEventListener('change', applyFilters);
-    sortSelect?.addEventListener('change', applyFilters);
-
-    resetButton?.addEventListener('click', () => {
-        if (searchInput) {
-            searchInput.value = '';
-        }
-
-        if (statusFilter) {
-            statusFilter.value = 'all';
-        }
-
-        applyFilters();
-        searchInput?.focus();
-    });
-
-    applyFilters();
+        // The search field's clear (x) button fires "search" with an empty value.
+        searchInput?.addEventListener('search', () => {
+            if (searchInput.value === '' && initialSearch !== '') {
+                submitFilters();
+            }
+        });
+    }
 
     /* Row overflow menus */
     const closeMenus = (except = null) => {

@@ -340,13 +340,21 @@ class BorrowingRequestController extends Controller
      */
     private function borrowerRequestFilters(Request $request): array
     {
-        $search = trim((string) $request->query('search', ''));
+        // Only plain string values count; arrays such as ?status[]=x fall back
+        // to the default instead of causing a server error.
+        $stringQuery = function (string $key, string $default) use ($request): string {
+            $value = $request->query($key, $default);
+
+            return is_string($value) ? $value : $default;
+        };
+
+        $search = trim($stringQuery('search', ''));
         $search = mb_substr($search, 0, self::BORROWER_REQUEST_SEARCH_MAX_LENGTH);
 
-        $status = strtoupper(trim((string) $request->query('status', '')));
+        $status = strtoupper(trim($stringQuery('status', '')));
         $status = array_key_exists($status, self::BORROWER_REQUEST_STATUS_FILTERS) ? $status : 'all';
 
-        $sort = (string) $request->query('sort', 'newest');
+        $sort = $stringQuery('sort', 'newest');
         $sort = array_key_exists($sort, self::BORROWER_REQUEST_SORTS) ? $sort : 'newest';
 
         return [

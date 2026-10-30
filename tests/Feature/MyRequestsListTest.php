@@ -22,6 +22,7 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -390,6 +391,38 @@ class MyRequestsListTest extends TestCase
         $this->assertSame([$newer->id, $older->id], $this->ids($response));
         $this->assertSame('all', $response->viewData('borrowerRequestFilters')['status']);
         $this->assertSame('newest', $response->viewData('borrowerRequestFilters')['sort']);
+    }
+
+    /** @return array<string, array{string}> */
+    public static function arrayQueryStrings(): array
+    {
+        return [
+            'search[]' => ['search[]=x'],
+            'status[]' => ['status[]=x'],
+            'sort[]' => ['sort[]=x'],
+            'all three' => ['search[]=x&status[]=x&sort[]=x'],
+        ];
+    }
+
+    #[DataProvider('arrayQueryStrings')]
+    public function test_array_query_values_fall_back_to_defaults(string $queryString): void
+    {
+        $borrower = $this->borrower();
+        $older = $this->request($borrower);
+        $newer = $this->request($borrower);
+        $this->request($this->borrower());
+
+        // Raw bracket notation, so the controller receives real arrays.
+        $response = $this->withSession(['active_workspace' => 'BORROWER'])
+            ->actingAs($borrower)
+            ->get(route('requests.index').'?'.$queryString);
+
+        $response->assertOk();
+        $this->assertSame([$newer->id, $older->id], $this->ids($response));
+        $this->assertSame(
+            ['search' => '', 'status' => 'all', 'sort' => 'newest', 'active' => false],
+            $response->viewData('borrowerRequestFilters')
+        );
     }
 
     /* ------------------------------------------------------------------ */

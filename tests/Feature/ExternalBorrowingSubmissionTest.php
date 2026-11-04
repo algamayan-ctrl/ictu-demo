@@ -137,6 +137,17 @@ class ExternalBorrowingSubmissionTest extends TestCase
         return [['borrower_acknowledgement'], ['confirm_e_signature']];
     }
 
+    #[DataProvider('missingConsent')]
+    public function test_draft_submission_requires_explicit_acknowledgment_and_signature_confirmation(string $field): void
+    {
+        $request = $this->draft(withLetter: true);
+        $payload = ['borrower_acknowledgement' => 1, 'confirm_e_signature' => 1];
+        unset($payload[$field]);
+
+        $this->post(route('requests.submit', $request), $payload)->assertSessionHasErrors($field);
+        $this->assertUnsigned($request);
+    }
+
     public function test_missing_signature_or_letter_cannot_submit(): void
     {
         $borrower = $this->borrower();

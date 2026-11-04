@@ -10,6 +10,8 @@ use App\Models\InventoryItem;
 use App\Models\OrganizationalUnit;
 use App\Models\UnitOfMeasure;
 use App\Models\User;
+use App\Services\OperationalCalendarService;
+use Carbon\Carbon;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -99,17 +101,40 @@ class CreateRequestOrganizationalUnitTest extends TestCase
     /** @return array<string, mixed> */
     private function payload(int $requestingUnitId, InventoryItem $item, array $overrides = []): array
     {
+        // The controller requires both dates to be open SPMU days, so pick
+        // them from the configured calendar instead of fixed day offsets.
+        $timezone = config('app.timezone') ?: 'Asia/Manila';
+        $scheduleDate = $overrides['schedule_date']
+            ?? $this->nextOpenDateAfter(now($timezone)->startOfDay())->toDateString();
+        $returnDate = $overrides['return_date']
+            ?? $this->nextOpenDateAfter(Carbon::parse($scheduleDate, $timezone)->startOfDay())->toDateString();
+
         return array_merge([
             'purpose_event' => 'Organizational unit fixture request',
             'location' => 'Campus',
             'requesting_organizational_unit_id' => $requestingUnitId,
-            'schedule_date' => now()->addDay()->toDateString(),
-            'return_date' => now()->addDays(2)->toDateString(),
+            'schedule_date' => $scheduleDate,
+            'return_date' => $returnDate,
             'intent' => 'draft',
             'item_ids' => [$item->id],
             'quantities' => [$item->id => 1],
             'locations' => [$item->id => 'ON_CAMPUS'],
         ], $overrides);
+    }
+
+    /** First date strictly after $after that the SPMU calendar marks open. */
+    private function nextOpenDateAfter(Carbon $after): Carbon
+    {
+        $calendar = app(OperationalCalendarService::class);
+        $date = $after->copy()->addDay();
+
+        for ($i = 0; $i < 60; $i++, $date->addDay()) {
+            if ($calendar->isOpenDate($date)) {
+                return $date;
+            }
+        }
+
+        $this->fail('No open SPMU date found within 60 days after '.$after->toDateString().'.');
     }
 
     /* ------------------------------------------------------------------ */

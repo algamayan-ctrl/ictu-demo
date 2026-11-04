@@ -48,6 +48,7 @@
         :preview-url="route(($showSystemRecord ?? false) ? 'documents.record' : 'documents.view', $document, false)"
         :expanded="true"
         :compact-header="true"
+        :fullscreen="session('active_workspace') === 'BORROWER'"
     />
 </section>
 

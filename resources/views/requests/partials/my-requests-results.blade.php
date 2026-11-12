@@ -1,6 +1,6 @@
 <section id="my-requests-results" class="mr-results" aria-label="Borrowing request results">
     <div class="mr-results-head">
-        <strong class="mr-result-count" data-request-count data-total="{{ $requests->total() }}" role="status" aria-live="polite">
+        <strong class="mr-result-count" data-request-count role="status" aria-live="polite">
             {{ $requests->total() }} {{ $requests->total() === 1 ? 'request found' : 'requests found' }}
         </strong>
     </div>
@@ -11,19 +11,20 @@
         @endforeach
     </div>
 
-    <section
-        id="request-filter-empty"
-        class="mr-empty mr-filter-empty"
-        hidden
-    >
-        @include('requests.partials.my-requests-empty-filtered')
-    </section>
+    @if($requests->isEmpty())
+        {{-- Page number past the last page (e.g. an old link). --}}
+        <section class="mr-empty mr-filter-empty">
+            @include('requests.partials.my-requests-empty-filtered', [
+                'emptyTitle' => 'This page has no requests.',
+                'emptyMessage' => 'Go back to the first page to see your requests.',
+                'emptyActionUrl' => $requests->url(1),
+                'emptyActionLabel' => 'Go to first page',
+            ])
+        </section>
+    @endif
 
     <div class="mr-footer">
-        <p role="status" aria-live="polite">
-            Showing {{ $requests->firstItem() ?? 0 }} to {{ $requests->lastItem() ?? 0 }}
-            of {{ $requests->total() }} {{ $requests->total() === 1 ? 'request' : 'requests' }}
-        </p>
+        <p role="status">Showing {{ $requests->firstItem() ?? 0 }} to {{ $requests->lastItem() ?? 0 }} of {{ $requests->total() }} {{ $requests->total() === 1 ? 'request' : 'requests' }}</p>
 
         {{ $requests->onEachSide(1)->links('requests.partials.my-requests-pagination') }}
     </div>

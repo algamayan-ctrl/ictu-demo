@@ -1,4 +1,18 @@
-<section class="record-browser-toolbar mr-toolbar" aria-label="Borrowing request controls">
+@php
+    // Search, status, and sort run on the server (see BorrowingRequestController::index).
+    $borrowerRequestFilters = $borrowerRequestFilters ?? ['search' => '', 'status' => 'all', 'sort' => 'newest', 'active' => false];
+    $borrowerRequestStatusFilters = $borrowerRequestStatusFilters ?? [];
+@endphp
+
+{{-- GET form: values stay in the URL, and changing them starts again at page 1. --}}
+<form
+    class="record-browser-toolbar mr-toolbar"
+    id="request-filters"
+    method="GET"
+    action="{{ route('requests.index') }}"
+    role="search"
+    aria-label="Borrowing request controls"
+>
     <label class="record-browser-search">
         Search
 
@@ -9,7 +23,10 @@
 
             <input
                 id="request-search"
+                name="search"
                 type="search"
+                value="{{ $borrowerRequestFilters['search'] }}"
+                maxlength="100"
                 placeholder="Search request no., purpose, or item..."
                 autocomplete="off"
             >
@@ -19,29 +36,22 @@
     <label>
         Status
 
-        <select id="request-status-filter">
+        <select id="request-status-filter" name="status">
             <option value="all">All statuses</option>
-            <option value="DRAFT">Draft</option>
-            <option value="FOR_REVIEW">For Review</option>
-            <option value="NEEDS_REVISION">Needs Revision</option>
-            <option value="PICKUP_SCHEDULED">Pickup Scheduled</option>
-            <option value="FOR_ISSUANCE">For Issuance</option>
-            <option value="READY_FOR_PICKUP">Ready for Pickup</option>
-            <option value="MISSED_PICKUP">Missed Pickup</option>
-            <option value="ON_CUSTODY">On Custody</option>
-            <option value="OVERDUE">Overdue</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
-            <option value="REJECTED">Rejected</option>
+            @foreach($borrowerRequestStatusFilters as $statusKey => $statusLabel)
+                <option value="{{ $statusKey }}" @selected($borrowerRequestFilters['status'] === $statusKey)>{{ $statusLabel }}</option>
+            @endforeach
         </select>
     </label>
 
     <label>
         Sort
 
-        <select id="request-sort" aria-label="Sort requests">
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
+        <select id="request-sort" name="sort" aria-label="Sort requests">
+            <option value="newest" @selected($borrowerRequestFilters['sort'] === 'newest')>Newest first</option>
+            <option value="oldest" @selected($borrowerRequestFilters['sort'] === 'oldest')>Oldest first</option>
         </select>
     </label>
-</section>
+
+    <noscript><button class="button secondary" type="submit">Apply</button></noscript>
+</form>

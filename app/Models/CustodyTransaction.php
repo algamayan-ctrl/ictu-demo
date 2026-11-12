@@ -504,6 +504,25 @@ class CustodyTransaction extends Model
     }
 
     /**
+     * The status shown on the borrower's My Borrowings row. Same as
+     * workflowStatus(), except that SPMU still recording the accomplished
+     * Gate Pass is internal SPMU processing, not a borrower obligation, so it
+     * is shown as "Gate Pass Processing" instead of "Accountability Pending".
+     * The My Borrowings status filter uses this same method, so the filter
+     * always agrees with the badge.
+     *
+     * @return array{key:string,label:string,group:string}
+     */
+    public function borrowerListStatus(): array
+    {
+        if ($this->isGatePassOnlyPending()) {
+            return ['key' => 'GATE_PASS_PROCESSING', 'label' => 'Gate Pass Processing', 'group' => 'return'];
+        }
+
+        return $this->workflowStatus();
+    }
+
+    /**
      * Return one borrower/SPMU-facing lifecycle status for this custody.
      * This is the single source of truth used by list/detail pages so a
      * cancelled record cannot also appear as Completed just because closed_at

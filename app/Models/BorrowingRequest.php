@@ -74,6 +74,12 @@ class BorrowingRequest extends Model
         return $this->hasMany(RequestCancellation::class, 'request_id');
     }
 
+    /** The most recent recorded reason when this request was cancelled. */
+    public function latestCancellation(): HasOne
+    {
+        return $this->hasOne(RequestCancellation::class, 'request_id')->latestOfMany('cancelled_at');
+    }
+
     /**
      * Custody workflow keys that belong to the separate Accountability case.
      * My Requests reports the borrowing itself as Completed for these; the
@@ -128,7 +134,7 @@ class BorrowingRequest extends Model
                 'CANCELLED' => ['CANCELLED', 'Cancelled'],
                 'READY_FOR_RELEASE' => ['READY_FOR_PICKUP', 'Ready for Pickup'],
                 'PICKUP_SCHEDULED' => ['PICKUP_SCHEDULED', 'Pickup Scheduled'],
-                'ITEM_PREPARATION', 'PICKUP_SCHEDULING', 'PREPARING_RELEASE' => ['FOR_ISSUANCE', 'For Issuance'],
+                'ITEM_PREPARATION', 'PICKUP_SCHEDULING', 'PREPARING_RELEASE' => ['FOR_ISSUANCE', 'Preparing for Pickup'],
                 'PICKUP_EXPIRED' => ['MISSED_PICKUP', 'Missed Pickup'],
                 default => [$workflow['key'], $workflow['label']],
             };
@@ -140,7 +146,7 @@ class BorrowingRequest extends Model
             RequestStatus::Draft => ['DRAFT', 'Draft'],
             RequestStatus::ReturnedForRevision => ['NEEDS_REVISION', 'Needs Revision'],
             RequestStatus::UnderSpmu, RequestStatus::UnderGsu, RequestStatus::UnderVpaf => ['FOR_REVIEW', 'For Review'],
-            RequestStatus::ApprovedReadyForRelease, RequestStatus::FinalApprovedAwaitingDownload => ['FOR_ISSUANCE', 'For Issuance'],
+            RequestStatus::ApprovedReadyForRelease, RequestStatus::FinalApprovedAwaitingDownload => ['FOR_ISSUANCE', 'Preparing for Pickup'],
             RequestStatus::Rejected => ['REJECTED', 'Rejected'],
             RequestStatus::Cancelled, RequestStatus::Expired => ['CANCELLED', 'Cancelled'],
             default => ['FOR_REVIEW', 'For Review'],

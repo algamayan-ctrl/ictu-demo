@@ -11,7 +11,7 @@
     $isSpmu = session('active_workspace') === 'SPMU';
     $isInventoryAdmin = auth()->user()?->access_classification?->value === 'SPMU_HEAD';
     $isActionOfficer = auth()->user()?->access_classification?->value === 'SPMU_OFFICER';
-    $spmuDefaultPageSize = $isActionOfficer ? 10 : 15;
+    $spmuDefaultPageSize = $isActionOfficer ? 7 : 15;
 @endphp
 
 <section class="page-heading">

@@ -22,6 +22,7 @@ use App\Models\UserSignature;
 use App\Services\DocumentService;
 use App\Services\ProtectedFileService;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -65,8 +66,16 @@ class DocumentController extends Controller
 
         $safeName = str_replace(['"', "\r", "\n"], '', $file->original_name ?: 'document.pdf');
 
+        /*
+         * Read and verify the protected copy before the response begins.
+         * A PDF viewer otherwise receives a 200 response first and only sees
+         * a generic load failure if a storage validation error occurs while
+         * the stream callback is running.
+         */
+        $bytes = $files->bytes($file);
+
         return response()->stream(
-            fn () => print $files->bytes($file),
+            fn () => print $bytes,
             200,
             [
                 'Content-Type' => $file->mime_type ?: 'application/pdf',
@@ -86,11 +95,38 @@ class DocumentController extends Controller
      * the in-system Preview page with the PDF viewer's native Print/Download
      * controls.
      */
-    public function preview(Request $request, GeneratedDocument $document): View
+    public function preview(Request $request, GeneratedDocument $document): View|RedirectResponse
     {
-        $this->authorizeGeneratedDocument($request, $document);
-
         $document->loadMissing(['file', 'subject']);
+
+        /*
+         * A controlled Late Return Billing Statement may be reissued when its
+         * print layout changes. A bookmarked Preview URL for the old PDF
+         * should still take staff and the borrower to the current cashier
+         * copy, rather than silently showing an outdated statement. The
+         * superseded file remains retained in the audit record.
+         */
+        if ($document->document_type === 'BILLING_STATEMENT'
+            && $document->status === 'SUPERSEDED'
+            && $document->subject instanceof BillingStatement
+            && $document->subject->isLateReturnBilling()) {
+            // Keep the same owner/staff authorization for an old link, but
+            // allow it through long enough to redirect to the valid copy.
+            // The historical PDF itself is never previewed or streamed.
+            $this->authorizeGeneratedDocument($request, $document, true);
+
+            $latest = $document->subject->documents()
+                ->where('document_type', 'BILLING_STATEMENT')
+                ->where('status', 'FINAL')
+                ->latest('generated_at')
+                ->first();
+
+            if ($latest) {
+                return redirect()->route('documents.preview', $latest);
+            }
+        }
+
+        $this->authorizeGeneratedDocument($request, $document);
 
         $showSystemRecord = $document->document_type === 'BORROWER_SLIP'
             && $document->subject instanceof CustodyTransaction
@@ -130,7 +166,8 @@ class DocumentController extends Controller
 
     private function authorizeGeneratedDocument(
         Request $request,
-        GeneratedDocument $document
+        GeneratedDocument $document,
+        bool $allowHistoricalRedirect = false
     ): ?\App\Models\BorrowingRequest {
         $document->loadMissing(['file', 'version.request']);
 
@@ -200,11 +237,13 @@ class DocumentController extends Controller
             403
         );
 
-        abort_if(
-            in_array($document->status, ['SUPERSEDED', 'INVALIDATED', 'EXPIRED'], true),
-            410,
-            'This controlled document is historical and is no longer valid for operational use.'
-        );
+        if (! $allowHistoricalRedirect) {
+            abort_if(
+                in_array($document->status, ['SUPERSEDED', 'INVALIDATED', 'EXPIRED'], true),
+                410,
+                'This controlled document is historical and is no longer valid for operational use.'
+            );
+        }
 
         return $borrowingRequest;
     }

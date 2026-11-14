@@ -171,7 +171,7 @@ class BorrowingActivityReport implements ReportBuilder
             'Ready for Release' => (int) ($counts['APPROVED_READY_FOR_RELEASE'] ?? 0)
                 + (int) ($counts['PREPARING_RELEASE'] ?? 0),
             'Pickup Scheduled' => (int) ($counts['PICKUP_SCHEDULED'] ?? 0),
-            'Released / On Custody' => (int) ($counts['ACTIVE'] ?? 0),
+            'On Custody' => (int) ($counts['ACTIVE'] ?? 0),
             'Return Processing' => (int) ($counts['RETURN_PROCESSING'] ?? 0),
             'Overdue' => (int) ($counts['OVERDUE'] ?? 0),
             'Incident Open' => (int) ($counts['INCIDENT_OPEN'] ?? 0),

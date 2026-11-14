@@ -24,6 +24,7 @@ use App\Models\StoredFile;
 use App\Models\UnitOfMeasure;
 use App\Models\User;
 use App\Models\UserSignature;
+use App\Services\DocumentService;
 use App\Services\LateReturnService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -405,8 +406,74 @@ class AccountabilityDocumentLabelingTest extends TestCase
             ->assertOk()
             ->assertSee('Late Return Notice')
             ->assertSee('Late Return Billing Statement')
-            ->assertSee('Preview')
+            ->assertSee('View Notice')
+            ->assertSee('View Cashier Copy')
             ->assertDontSee('Open Late Return Billing Statement');
+    }
+
+    public function test_late_return_billing_statement_uses_a_compact_cashier_copy(): void
+    {
+        [, $billing] = $this->lateReturnBilling();
+        $billing->load(['borrower.organizationalUnit', 'responsibleSpmuUser', 'lines.incident.custody.request.currentVersion', 'lines.penalty.custody.request.currentVersion']);
+
+        $sourceLine = $billing->lines->first();
+        $custody = $sourceLine?->penalty?->custody ?: $sourceLine?->incident?->custody;
+
+        $html = view('documents.accountability.billing-statement', [
+            'billing' => $billing,
+            'documentTitle' => 'Late Return Billing Statement',
+            'logoDataUri' => 'data:image/png;base64,',
+            'issuedDate' => $billing->issued_at?->format('d F Y') ?: '—',
+            'effectiveDate' => $billing->issued_at?->format('d F Y') ?: '—',
+            'documentRevision' => 'Rev. 1',
+            'dueDate' => '23 November 2026',
+            'officeUnit' => (string) ($billing->borrower?->organizationalUnit?->unit_name ?? ''),
+            'requestNo' => (string) ($custody?->request?->request_no ?? ''),
+            'custodyNo' => (string) ($custody?->custody_no ?? ''),
+            'incidentNo' => '',
+            'headName' => (string) ($billing->responsibleSpmuUser?->full_name ?: 'SPMU Head'),
+            'headDesignation' => 'SPMU Head',
+            'headDecisionDate' => $billing->issued_at?->format('d F Y') ?: '—',
+            'headSignatureHtml' => '',
+        ])->render();
+
+        $this->assertStringContainsString('Payment Details', $html);
+        $this->assertStringContainsString('For payment at the CSPC Cashier', $html);
+        $this->assertStringContainsString('Effective Date:', $html);
+        $this->assertStringContainsString('Rev. 1', $html);
+        $this->assertStringContainsString('Page 1 of 1', $html);
+        $this->assertStringNotContainsString('Assessment Basis', $html);
+        $this->assertStringNotContainsString('Accountability / Incident Ref.', $html);
+        $this->assertStringNotContainsString('Payment Due', $html);
+        $this->assertStringNotContainsString('Not specified', $html);
+        $this->assertStringNotContainsString('23 November 2026', $html);
+        $this->assertStringNotContainsString('<div class="section-title">Remarks</div>', $html);
+    }
+
+    public function test_late_return_billing_statement_can_be_reissued_when_its_controlled_layout_is_revised(): void
+    {
+        [, $billing] = $this->lateReturnBilling();
+        $billing->load('lines');
+
+        $original = GeneratedDocument::query()
+            ->where('subject_type', BillingStatement::class)
+            ->where('subject_id', $billing->id)
+            ->where('document_type', 'BILLING_STATEMENT')
+            ->where('status', 'FINAL')
+            ->firstOrFail();
+
+        $replacement = app(DocumentService::class)->reissueLateReturnBillingStatement($billing);
+
+        $this->assertSame('SUPERSEDED', $original->fresh()->status);
+        $this->assertSame('FINAL', $replacement->status);
+        $this->assertSame(2, (int) $replacement->version_no);
+        $this->assertSame($billing->id, (int) $replacement->subject_id);
+
+        $head = $this->spmuHead();
+        $this->withSession(['active_workspace' => 'SPMU'])
+            ->actingAs($head)
+            ->get(route('documents.preview', $original))
+            ->assertRedirect(route('documents.preview', $replacement));
     }
 
     public function test_property_billing_keeps_its_legacy_generic_billing_statement_label(): void

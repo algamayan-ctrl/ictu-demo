@@ -1306,7 +1306,7 @@ class AnalyticsDetailService
  {
  return match ($status) {
  'PREPARING_RELEASE' => 'Preparing Release',
- 'ACTIVE' => 'Released / On Custody',
+ 'ACTIVE' => 'On Custody',
  'RETURN_PROCESSING' => 'Return Processing',
  'PARTIALLY_RETURNED' => 'Return Processing',
  'OVERDUE' => 'Overdue',

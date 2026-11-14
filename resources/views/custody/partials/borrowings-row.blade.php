@@ -32,14 +32,14 @@
         <strong>{{ $custody->custody_no }}</strong>
         <span>Request {{ $custody->request?->request_no }}</span>
         <small>
-            Schedule {{ optional($scheduleDate)->format('d M Y') }}
-            · Return {{ optional($returnDate)->format('d M Y') }}
+            Use {{ optional($scheduleDate)->format('d M Y') }}
+            · Return by {{ optional($returnDate)->format('d M Y') }}
         </small>
     </span>
 
     <span class="operational-record-facts">
-        <span><small>Pickup</small><strong>{{ optional($custody->scheduled_release_at)->format('d M Y, g:i A') ?: 'Not scheduled' }}</strong></span>
-        <span><small>Issued</small><strong>{{ optional($custody->released_at)->format('d M Y, g:i A') ?: 'Not yet' }}</strong></span>
+        <span><small>Pickup schedule</small><strong>{{ optional($custody->scheduled_release_at)->format('d M Y, g:i A') ?: 'Not scheduled' }}</strong></span>
+        <span><small>Items released</small><strong>{{ optional($custody->released_at)->format('d M Y, g:i A') ?: 'Not released' }}</strong></span>
 
         @if($isCancelled)
             <span>
@@ -53,8 +53,8 @@
             </span>
         @else
             <span>
-                <small>{{ $custody->status === 'OVERDUE' ? 'Overdue' : 'On Custody' }}</small>
-                <strong>{{ $outstanding + 0 }}</strong>
+                <small>{{ $custody->status === 'OVERDUE' ? 'Items overdue' : 'Items on custody' }}</small>
+                <strong>{{ $outstanding + 0 }} {{ $outstanding == 1 ? 'item' : 'items' }}</strong>
             </span>
         @endif
     </span>
@@ -64,6 +64,6 @@
             :status="$operationalStatusKey"
             :label="$operationalLabel"
         />
-        <strong>View Record</strong>
+        <strong>View details</strong>
     </span>
 </a>

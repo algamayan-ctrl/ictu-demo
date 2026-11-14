@@ -79,10 +79,12 @@
 .sao-stock-card-table .stock-number { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sao-stock-card-table .stock-balance { font-weight: 750; }
 .sao-stock-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 20px; }
-.sao-stock-card-footer > p { margin: 0; }
+.sao-stock-card-pagination-meta, .sao-history-pagination-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.sao-stock-card-pagination-meta > p, .sao-history-pagination-meta > p { margin: 0; }
 .sao-stock-card-pagination, .sao-stock-card-pagination nav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.sao-stock-card-pagination select { width: auto; min-height: 40px; margin: 0; }
+.sao-stock-card-pagination-meta select { width: auto; min-height: 32px; margin: 0; padding: 4px 28px 4px 9px; font-size: 11px; }
 .sao-stock-card-pagination [aria-disabled="true"] { opacity: .5; cursor: default; }
+.sao-stock-card-pagination .app-pagination, .sao-history-pagination .app-pagination { margin: 0; }
 .sao-stock-card-warning { margin: 0 20px 16px; padding: 12px; border: 1px solid var(--warning); border-radius: 8px; color: var(--heading); font-size: 12px; }
 .is-action-officer .sao-borrowing-history { display: flex; flex-direction: column; flex: 1 0 auto; min-height: 320px; padding: 0; overflow: hidden; }
 .sao-history-heading, .sao-history-filters { flex: 0 0 auto; }
@@ -108,9 +110,8 @@
 .sao-history-status .inventory-history-accountability { margin-top: 5px; font-size: 10.5px; line-height: 1.35; }
 .sao-history-table .sao-history-view { min-height: 35px; padding: 8px 10px; font-size: 11px; line-height: 1.2; }
 .sao-history-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex: 0 0 auto; flex-wrap: wrap; margin-top: auto; padding: 16px 20px; border-top: 1px solid var(--border); }
-.sao-history-footer > p { margin: 0; }
 .sao-history-pagination, .sao-history-pagination nav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.sao-history-pagination select { width: auto; min-height: 40px; margin: 0; }
+.sao-history-pagination-meta select { width: auto; min-height: 32px; margin: 0; padding: 4px 28px 4px 9px; font-size: 11px; }
 .sao-history-pagination [aria-disabled="true"] { opacity: .5; cursor: default; }
 .sao-borrowing-history [aria-busy="true"] { opacity: .6; }
 @media (max-width: 1000px) {

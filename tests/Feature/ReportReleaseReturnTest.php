@@ -117,7 +117,7 @@ class ReportReleaseReturnTest extends TestCase
 
         $row = $this->release()->rows->first();
 
-        $this->assertSame('Released / On Custody', $row['status']);
+        $this->assertSame('On Custody', $row['status']);
         $this->assertNotSame('', $row['released_at']);
         $this->assertSame('40', $row['released_quantity']);
         $this->assertSame('40', $row['outstanding_quantity']);

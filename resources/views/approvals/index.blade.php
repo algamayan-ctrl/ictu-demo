@@ -116,7 +116,7 @@
 
             <div class="approval-queue-footer" id="approval-queue-footer">
                 <p id="approval-queue-summary" role="status" aria-live="polite">
-                    Showing {{ min(5, $requests->count()) }} of {{ $requests->count() }} requests
+                    Showing {{ min(7, $requests->count()) }} of {{ $requests->count() }} requests
                 </p>
 
                 <div

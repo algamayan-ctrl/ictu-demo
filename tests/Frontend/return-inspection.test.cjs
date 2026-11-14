@@ -204,10 +204,21 @@ test('operational closure is presented as a specific warning and keeps return re
     const form = fs.readFileSync(path.resolve(__dirname, '../../resources/views/custody/partials/return-inspection-form.blade.php'), 'utf8');
     const interactions = fs.readFileSync(path.resolve(__dirname, '../../resources/views/custody/partials/return-process-interactions.blade.php'), 'utf8');
 
-    assert.match(workspace, /notice warning return-operational-notice/);
-    assert.match(workspace, /Return processing is unavailable right now\./);
+    assert.match(workspace, /notice return-operational-notice/);
+    assert.match(workspace, /Returns are unavailable right now\./);
     assert.match(workspace, /except\('operational_calendar'\)/);
     assert.match(form, /data-operational-closed="1"/);
     assert.match(interactions, /operationallyClosed/);
     assert.match(interactions, /activeRows\.length === 0 \|\| operationallyClosed/);
+});
+
+test('return history keeps only the operational details and hides an empty notes column', () => {
+    const workspace = fs.readFileSync(path.resolve(__dirname, '../../resources/views/custody/partials/return-workspace.blade.php'), 'utf8');
+
+    assert.match(workspace, /<th>Return No\.<\/th>/);
+    assert.match(workspace, /<th>Date Received<\/th>/);
+    assert.match(workspace, /<th>Return Status<\/th>/);
+    assert.match(workspace, /@if\(\$hasReturnNotes\)<th>Notes<\/th>@endif/);
+    assert.match(workspace, /View receipt/);
+    assert.doesNotMatch(workspace, /Physical Receipt \/ System Record|Recorded \{\{ \$return->created_at/);
 });

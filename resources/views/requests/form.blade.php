@@ -161,11 +161,43 @@
 
 <style>
     .returned-for-revision-panel {
-        display: block;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px 24px;
+        padding: 16px 18px;
+        background: var(--surface-elevated);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--warning);
+        box-shadow: none;
+    }
+
+    .returned-for-revision-panel .revision-notice-copy {
+        min-width: 0;
+    }
+
+    .returned-for-revision-panel h2,
+    .returned-for-revision-panel .revision-notice-copy p {
+        margin: 0;
+    }
+
+    .returned-for-revision-panel .revision-notice-copy p {
+        margin-top: 3px;
+        color: var(--text-secondary);
     }
 
     .returned-for-revision-panel .revision-remarks {
-        margin-top: 10px;
+        grid-column: 1 / -1;
+        margin: 0;
+        padding: 8px 10px;
+        background: var(--surface-elevated);
+        border: 1px solid color-mix(in srgb, var(--warning) 45%, var(--border));
+        border-left: 3px solid var(--warning);
+        border-radius: 6px;
+    }
+
+    .returned-for-revision-panel .revision-remarks .eyebrow {
+        margin: 0 0 2px;
+        color: var(--heading);
     }
 
     .returned-for-revision-panel .revision-remarks-copy {
@@ -177,10 +209,24 @@
     }
 
     .returned-for-revision-panel .revision-return-meta {
-        margin: 7px 0 0;
+        align-self: center;
+        margin: 0;
+        text-align: right;
         color: var(--text-muted);
         font-size: 12px;
         line-height: 1.45;
+    }
+
+    @media (max-width: 640px) {
+        .returned-for-revision-panel {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .returned-for-revision-panel .revision-return-meta {
+            grid-row: 3;
+            text-align: left;
+        }
     }
 
     .create-request-ui {
@@ -893,8 +939,9 @@
     .create-request-heading { margin-bottom: 12px; }
     .create-request-heading h1 { margin-bottom: 3px; font-size: clamp(21px, 1.65vw, 25px); line-height: 1.2; }
     .create-request-heading .heading-copy { font-size: 12.5px; line-height: 1.4; }
-    {{-- /* Match the existing 1120px request-form shell so the restriction notice,
+    {{-- /* Match the existing 1120px request-form shell so the notices,
        stepper, and form cards share the same left/right edges. */ --}}
+    .returned-for-revision-area,
     .create-request-restriction {
         width: 100%;
         max-width: 1120px;
@@ -1068,12 +1115,11 @@
 @endif
 
 @if($isReturned)
-<section class="content-area">
+<section class="content-area returned-for-revision-area">
     <div class="action-panel action-warning returned-for-revision-panel" role="status" aria-labelledby="returned-for-revision-heading">
-        <div>
-            <p class="eyebrow">Action required</p>
-            <h2 id="returned-for-revision-heading">Returned for Revision</h2>
-            <p>Please update the request based on the review remarks below.</p>
+        <div class="revision-notice-copy">
+            <h2 id="returned-for-revision-heading">Revision required</h2>
+            <p>Update the details noted in the review remarks.</p>
         </div>
 
         <section class="revision-remarks" aria-labelledby="review-remarks-heading">
@@ -1527,11 +1573,11 @@
                             <span class="document-required">Required</span>
                         </strong>
 
-                        <p>{{ $isReturned ? 'Upload the corrected signed borrowing request letter for the new version.' : 'Upload the signed borrowing request letter.' }}</p>
+                        <p>{{ $isReturned ? 'Upload a new corrected, signed borrowing request letter to submit this revision.' : 'Upload the signed borrowing request letter.' }}</p>
 
-                        @if($requestLetter)
+                        @if($requestLetter && ! $isReturned)
                             <p class="document-current">
-                                {{ $isReturned ? 'Previous version:' : 'Current file:' }}
+                                Current file:
                                 <a href="{{ route('files.preview', $requestLetter->file) }}">
                                     Preview
                                 </a>
@@ -1567,11 +1613,11 @@
                             <span class="document-required">Required</span>
                         </strong>
 
-                        <p>{{ $isReturned ? 'Upload the corrected signed Permission to Conduct Letter for the new version.' : 'Upload the signed Permission to Conduct Letter.' }}</p>
+                        <p>{{ $isReturned ? 'Upload a new corrected, signed Permission to Conduct Letter to submit this revision.' : 'Upload the signed Permission to Conduct Letter.' }}</p>
 
-                        @if($ptc)
+                        @if($ptc && ! $isReturned)
                             <p class="document-current">
-                                {{ $isReturned ? 'Previous version:' : 'Current file:' }}
+                                Current file:
                                 <a href="{{ route('files.preview', $ptc->file) }}">
                                     Preview
                                 </a>
@@ -1614,7 +1660,6 @@
                     value="1"
                     @checked(old('borrower_acknowledgement'))
                     @disabled(!$hasCurrentESignature)
-                    required
                 >
                 <input
                     id="e-signature-confirmation"

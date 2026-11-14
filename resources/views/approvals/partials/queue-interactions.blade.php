@@ -15,7 +15,7 @@
         const footer = document.getElementById('approval-queue-footer');
         const summary = document.getElementById('approval-queue-summary');
         const pagination = document.getElementById('approval-queue-pagination');
-        const perPage = 5;
+        const perPage = 7;
 
         let currentPage = 1;
 

@@ -368,11 +368,17 @@
     <div class="empty-state top-gap" data-record-empty hidden><strong>No matching request records.</strong><span>Try another search term or status.</span></div>
     @if($isActionOfficer)
         <div class="sao-record-pagination" data-sao-record-pagination hidden>
-            <span class="meta" data-sao-record-range aria-live="polite"></span>
-            <nav aria-label="Request Records pages">
-                <button class="button secondary small link-button" type="button" data-sao-record-previous>Previous</button>
-                <span class="meta" data-sao-record-page></span>
-                <button class="button secondary small link-button" type="button" data-sao-record-next>Next</button>
+            <div class="sao-record-pagination-meta">
+                <span class="meta" data-sao-record-range aria-live="polite"></span>
+                <label class="sr-only" for="sao-record-page-size">Request records per page</label>
+                <select id="sao-record-page-size" data-sao-record-page-size aria-label="Request records per page">
+                    @foreach([7, 15, 30, 50] as $size)<option value="{{ $size }}" @selected($size === 7)>{{ $size }} items per page</option>@endforeach
+                </select>
+            </div>
+            <nav class="app-pagination" aria-label="Request Records pages">
+                <button class="app-pagination-link" type="button" data-sao-record-previous aria-label="Previous page"><x-icon name="arrow-left" size="14" /></button>
+                <span data-sao-record-pages></span>
+                <button class="app-pagination-link" type="button" data-sao-record-next aria-label="Next page"><x-icon name="arrow-right" size="14" /></button>
             </nav>
         </div>
         </div>
@@ -387,7 +393,8 @@
 .record-browser-toolbar label{display:grid;gap:6px;font-size:12px;font-weight:800;color:var(--text-muted)}
 .record-browser-toolbar input,.record-browser-toolbar select{width:100%;min-height:42px}
 @media(max-width:760px){.record-browser-toolbar{grid-template-columns:1fr}}
-.sao-record-pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:16px}
+.sao-record-pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:16px}.sao-record-pagination .app-pagination{margin:0}
+.sao-record-pagination-meta{display:flex;align-items:center;flex-wrap:wrap;gap:10px}.sao-record-pagination-meta select{min-height:32px;padding:4px 28px 4px 9px;font-size:11px}
 .sao-record-pagination nav{display:flex;align-items:center;gap:12px}
 .sao-record-pagination[hidden]{display:none}
 .sao-records-workspace{display:flex;flex-direction:column;gap:14px;min-width:0}

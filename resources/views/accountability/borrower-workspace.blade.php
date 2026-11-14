@@ -1182,7 +1182,7 @@
                                         $currentRoleOwnsAction = ($isOfficer && ($isStillOverdue || $isAwaitingPayment)) || ($isHead && $isHeadReview);
                                         $roleMessage = match (true) {
                                             $isStillOverdue => 'Borrower must return the outstanding item(s). The Action Officer records the return and inspection when presented.',
-                                            $isHeadReview => 'SPMU Head/Admin must review the finalized late-return assessment and record the billing outcome.',
+                                            $isHeadReview => 'SPMU Head/Admin must review the late return and decide whether to issue a billing statement.',
                                             $isAwaitingPayment => 'Borrower must pay through the CSPC Cashier and present the official receipt. The Action Officer records the receipt when presented.',
                                             default => 'Continue the applicable late-return process.',
                                         };
@@ -1231,7 +1231,7 @@
                                             @elseif($currentRoleOwnsAction && $isHeadReview && ! $shouldAutoOpenFocusedAction)
                                                 <a class="button secondary small accountability-action-button"
                                                    href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'focus' => 'overdue-'.$record->id, 'queue' => 'work']) }}#overdue-{{ $record->id }}">
-                                                    Review Assessment
+                                                    Review Case
                                                 </a>
                                             @elseif($currentRoleOwnsAction && $isAwaitingPayment && $linkedBilling && ! $shouldAutoOpenFocusedAction)
                                                 <a class="button secondary small accountability-action-button"
@@ -1248,35 +1248,35 @@
                                         <section class="accountability-action-panel" id="{{ $dialogId }}">
                                             <header class="accountability-action-panel__header">
                                                 <div>
-                                                    <h3>{{ ($assessment['rate'] === null || (float) $assessment['amount'] <= 0) ? 'Resolve Late Return' : 'Review Late Return Assessment' }}</h3>
+                                                    <h3>{{ ($assessment['rate'] === null || (float) $assessment['amount'] <= 0) ? 'Resolve Late Return' : 'Review Late Return' }}</h3>
                                                 </div>
                                             </header>
                                             <div class="accountability-action-panel__body">
                                                 @if($assessment['rate'] === null || (float) $assessment['amount'] <= 0)
                                                     <form method="post" action="{{ route('overdue.resolve-without-charge', $record) }}">
                                                         @csrf
-                                                        <p class="accountability-dialog-note">No billable late-return rate is available for this finalized case. Record the Head/Admin resolution remarks to close it without a charge.</p>
-                                                        <label>Resolution Remarks
-                                                            <textarea name="resolution_remarks" required maxlength="2000" placeholder="State the basis for resolving this late-return case without a charge."></textarea>
+                                                        <p class="accountability-dialog-note">No late-return fee is set for this case. Add a note to close it without a billing statement.</p>
+                                                        <label>Decision notes
+                                                            <textarea name="resolution_remarks" required maxlength="2000" placeholder="Explain why this case will be closed without a billing statement."></textarea>
                                                         </label>
                                                         <div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
-                                                            <button class="button primary small">Resolve Without Charge</button>
+                                                            <button class="button primary small">Close Without Charge</button>
                                                         </div>
                                                     </form>
                                                 @else
                                                     <form method="post" action="{{ route('overdue.bill', $record) }}" class="accountability-late-billing-form">
                                                         @csrf
-                                                        <p class="accountability-dialog-note">Final assessment: {{ (int) $assessment['late_days'] }} late day(s) · PHP {{ number_format((float) $assessment['amount'], 2) }}</p>
+                                                        <p class="accountability-dialog-note">Late return: {{ (int) $assessment['late_days'] }} day(s) · Amount to bill: PHP {{ number_format((float) $assessment['amount'], 2) }}</p>
                                                         <label>
-                                                            <span class="accountability-field-heading">Assessment Basis <span aria-hidden="true">*</span></span>
-                                                            <textarea name="basis" required maxlength="2000" rows="3" placeholder="Enter the basis for the late-return assessment."></textarea>
+                                                            <span class="accountability-field-heading">Decision notes <span aria-hidden="true">*</span></span>
+                                                            <textarea name="basis" required maxlength="2000" rows="3" placeholder="Explain why a billing statement should be issued."></textarea>
                                                         </label>
-                                                        <label>
-                                                            <span class="accountability-field-heading">Payment Due Date <span class="muted">(Optional)</span></span>
-                                                            <input type="date" name="due_at" min="{{ now()->toDateString() }}">
-                                                            <span class="accountability-field-help">Leave blank if no payment deadline is specified.</span>
+                                                        <label class="accountability-resolution-confirmation">
+                                                            <input type="checkbox" name="confirm_e_signature" value="1">
+                                                            <span>Attach my registered e-signature to this Billing Statement.</span>
                                                         </label>
+                                                        <p class="meta">Leave unchecked to issue the statement without a signature.</p>
                                                         <div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
                                                             <button class="button primary small">Issue Billing Statement</button>
@@ -1482,6 +1482,10 @@
                                                         </label>
                                                         <label>Decision Remarks
                                                             <textarea name="resolution_remarks" required maxlength="2000" placeholder="State the basis for the decision."></textarea>
+                                                        </label>
+                                                        <label class="accountability-resolution-confirmation">
+                                                            <input type="checkbox" name="confirm_e_signature" value="1">
+                                                            <span>Attach my registered e-signature to this accountability decision.</span>
                                                         </label>
                                                         <div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>

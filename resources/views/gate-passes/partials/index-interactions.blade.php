@@ -16,7 +16,7 @@
     const numbers = root.querySelector('[data-gate-pass-page-numbers]');
     const previous = root.querySelector('[data-gate-pass-page="previous"]');
     const next = root.querySelector('[data-gate-pass-page="next"]');
-    const pageSize = Math.max(1, Number.parseInt(root.dataset.pageSize, 10) || 10);
+    const pageSize = Math.max(1, Number.parseInt(root.dataset.pageSize, 10) || 7);
     const actionMenus = [...root.querySelectorAll('.gate-pass-more')];
     let page = 1;
     let pageCount = 1;

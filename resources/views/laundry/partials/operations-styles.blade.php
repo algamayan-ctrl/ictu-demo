@@ -1,4 +1,7 @@
 <style>
+/* Keep the original Laundry page width; only reduce the space beneath
+   the vertically stretched records panel and its pagination footer. */
+.app-main:has(> .laundry-operations) { padding-bottom: 18px; }
 .laundry-operations {
     --laundry-blue: var(--interactive, #0863db);
     display: flex;
@@ -6,7 +9,7 @@
     flex: 1 1 auto;
     width: 100%;
     min-width: 0;
-    min-height: 0;
+    min-height: max(0px, calc(100dvh - var(--topbar-height, 64px) - 150px));
     color: var(--text);
     font: inherit;
 }
@@ -105,12 +108,20 @@
     padding: 0;
     overflow: hidden;
 }
-.laundry-operations .laundry-cases-card:not(.is-empty) { flex: 0 0 auto; }
+.laundry-operations .laundry-cases-card:not(.is-empty) {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: max(330px, calc(100dvh - 410px));
+}
+.laundry-operations .laundry-cases-card:not(.is-empty) > .laundry-pagination {
+    margin-top: auto;
+}
 .laundry-operations .laundry-cases-card.is-empty {
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
-    min-height: 300px;
+    min-height: max(300px, calc(100dvh - 410px));
 }
 .laundry-cases-heading { padding: 15px 16px 12px; }
 .laundry-cases-heading h2 {
@@ -201,5 +212,8 @@
     .laundry-operations .laundry-toolbar { grid-template-columns: minmax(0, 1fr); }
     .laundry-tabs { gap: 7px; }
     .laundry-inline-empty { padding: 30px 16px; }
+    .laundry-operations { min-height: 0; }
+    .laundry-operations .laundry-cases-card:not(.is-empty),
+    .laundry-operations .laundry-cases-card.is-empty { min-height: 300px; }
 }
 </style>

@@ -1399,7 +1399,7 @@ HTML;
 
             'REQUEST_CANCELLED' =>
                 $isBorrower
-                    ? 'Your borrowing request has been cancelled. No further pickup action is required. If you need the items for another date, submit a new borrowing request.'
+                    ? 'Your borrowing request has been cancelled. No further action is required. If you still need the items, please submit a new borrowing request.'
                     : 'The borrowing request has been cancelled. No further pickup or release action is required.',
 
             /*
@@ -1410,12 +1410,12 @@ HTML;
 
             'PICKUP_SCHEDULED' =>
                 $isBorrower
-                    ? 'Your pickup schedule has been updated. Please pick up your approved items during the schedule shown below and bring your printed Borrower Slip and any other required form shown in your request.'
+                    ? 'Your pickup schedule has been updated. Please check your borrowing record for the schedule and required documents.'
                     : 'The pickup schedule has been updated. Prepare the approved items for the new schedule shown below.',
 
             'PICKUP_EXPIRED' =>
                 $isBorrower
-                    ? 'Your scheduled pickup was missed. SPMU will review whether the approved borrowing can proceed or must be cancelled. Please await its decision.'
+                    ? 'Your pickup schedule was not completed. SPMU will review your request and notify you of the next step. No action is required from you at this time.'
                     : 'The scheduled pickup was not completed. Review whether the approved release can still continue within the Items Needed From boundary or cancel the borrowing through the authorized SPMU action.',
 
             'PICKUP_HELD_PREPARATION_ISSUE' =>
@@ -1449,10 +1449,10 @@ HTML;
                     : 'The listed items have been released to the borrower.',
 
             'RETURN_DUE_TOMORROW' =>
-                'Reminder: your borrowed items are due for return tomorrow. Please return them to SPMU on or before the Expected Return Date shown below.',
+                'Your borrowed items are due for return tomorrow. Please return them to SPMU on or before the return date in your borrowing record.',
 
             'RETURN_DUE_TODAY' =>
-                'Reminder: your borrowed items are due for return today. Please return them to SPMU within the allowed return hours.',
+                'Your borrowed items are due for return today. Please return them to SPMU during the designated return hours.',
 
             'RETURN_SCHEDULE_ADJUSTED' =>
                 $isBorrower

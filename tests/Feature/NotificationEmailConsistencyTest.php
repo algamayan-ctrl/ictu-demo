@@ -70,7 +70,7 @@ class NotificationEmailConsistencyTest extends TestCase
         $command = (string) file_get_contents(app_path('Console/Commands/ProcessOperationalDeadlines.php'));
         $notifications = (string) file_get_contents(app_path('Services/NotificationService.php'));
 
-        $this->assertStringContainsString('Reminder: the borrowed items under', $command);
+        $this->assertStringContainsString('Your borrowed items under', $command);
         $this->assertStringContainsString("'RETURN_DUE_TODAY' => 'Return Due Today'", $notifications);
         $this->assertStringContainsString("'RETURN_DUE_TOMORROW' => 'Return Due Tomorrow'", $notifications);
         $this->assertStringNotContainsString('effective SPMU operational return date', $command);

@@ -75,6 +75,8 @@
         && $pickupWindowPassed;
     $pickupMissed = ! $pickupHeldForPreparationIssue
         && ! $custody->released_at
+        && strtoupper((string) $custody->status) !== 'CANCELLED'
+        && $custody->request?->status !== \App\Enums\RequestStatus::Cancelled
         && (bool) $custody->pickup_scheduled_at
         && ((bool) $custody->pickup_expired_at || $pickupWindowPassed);
     $hasPickupSchedule = (bool) $pickupWindowStartsAt
@@ -142,6 +144,9 @@
     $operationalLabel = $workflowStatus['label'];
     $transactionFullyComplete = $operationalStatusKey === 'COMPLETED';
     $transactionCancelled = $operationalStatusKey === 'CANCELLED';
+    $cancellationReason = $transactionCancelled
+        ? trim((string) ($custody->request?->latestCancellation?->reason ?? ''))
+        : '';
 
     if ($isBorrower && $gatePassOnlyPending) {
         $operationalStatusKey = 'GATE_PASS_PROCESSING';
@@ -156,7 +161,7 @@
         ],
         $transactionCancelled => [
             'Borrowing cancelled',
-            'This borrowing was cancelled before completion. No pickup or release action is required.',
+            'This borrowing was cancelled before the items were released. No further pickup action is required.',
             'neutral',
         ],
         $operationalStatusKey === 'COMPLETED' => [
@@ -217,18 +222,18 @@
             'danger',
         ],
         (bool) $custody->released_at && $hasOutstandingLinen && $hasOutstandingNonLinen => [
-            'Items are currently on your custody',
-            'On or before the expected return date, return all non-linen items to SPMU and all linen items, with the same printed Laundry Form, to the Laundry Area.',
+            'Return your items',
+            'Bring non-linen items to SPMU. Bring linen items with the printed Laundry Form to the Laundry Area by the return date.',
             'info',
         ],
         (bool) $custody->released_at && $hasOutstandingLinen => [
-            'Linen is currently on your custody',
-            'On or before the expected return date, return the linen and the same printed Laundry Form to the Laundry Area.',
+            'Return the linen',
+            'Bring the linen and the printed Laundry Form to the Laundry Area by the return date.',
             'info',
         ],
         (bool) $custody->released_at => [
-            'Items are currently on your custody',
-            'Return all outstanding non-linen items to SPMU on or before the expected return date.',
+            'Return your items',
+            'Bring the remaining items to SPMU by the return date.',
             'info',
         ],
         $pickupMissed => [
@@ -290,12 +295,20 @@
             @endif
         </p>
     </div>
-    <x-status-badge
-        :status="$operationalStatusKey"
-        :label="$isBorrower && $pickupMissed
-            ? 'Pickup Missed'
-            : $operationalLabel"
-    />
+    <div class="borrower-custody-heading-actions">
+        <x-status-badge
+            :status="$operationalStatusKey"
+            :label="$isBorrower && $pickupMissed
+                ? 'Pickup Missed'
+                : $operationalLabel"
+        />
+
+        @if($isBorrower && $transactionCancelled)
+            <a class="button secondary small ui-pressable" href="{{ route('requests.show', $custody->request) }}">
+                View request
+            </a>
+        @endif
+    </div>
 </section>
 @endif
 
@@ -304,6 +317,43 @@
         $borrowerItemCount = $custody->lines->count();
         $borrowerCustodyLabel = $custody->status === 'OVERDUE' ? 'Overdue' : 'On Custody';
         $borrowerReleased = (bool) $custody->released_at;
+
+        /*
+         * Accountability is a separate record from the item quantities. Show
+         * it only when an actual incident, late-return case, billing, or other
+         * borrower-facing obligation exists — never for ordinary custody or
+         * internal Gate Pass processing.
+         */
+        $borrowerAccountabilityIndicator = $custody->activeAccountabilityIndicator();
+        $borrowerAccountabilitySummary = $borrowerAccountabilityIndicator
+            ? ($obligationSummary ?? $borrowerAccountabilityIndicator)
+            : null;
+        $borrowerAccountabilityIncident = $borrowerAccountabilityIndicator
+            ? ($custody->incidents ?? collect())
+                ->reject(fn ($incident) => in_array((string) $incident->status, ['RESOLVED', 'CLOSED', 'VOID_CORRECTION'], true))
+                ->sortByDesc(fn ($incident) => $incident->reported_at?->timestamp ?? $incident->id)
+                ->first()
+            : null;
+        $borrowerAccountabilityType = strtoupper((string) ($borrowerAccountabilityIncident?->incident_type ?? ''));
+        $borrowerAccountabilityIssue = match ($borrowerAccountabilityType) {
+            'DAMAGED', 'DAMAGE' => 'Damaged item',
+            'MISSING' => 'Missing item',
+            'LOST', 'LOSS' => 'Lost item',
+            'STOLEN' => 'Stolen item',
+            'DESTROYED' => 'Destroyed item',
+            default => $borrowerAccountabilitySummary['title'] ?? 'Accountability record',
+        };
+        $borrowerAccountabilityItems = $borrowerAccountabilityIncident
+            ? $borrowerAccountabilityIncident->lines
+                ->map(function ($incidentLine): string {
+                    $description = $incidentLine->custodyLine?->requestItem?->description_snapshot ?: 'Item';
+                    $quantity = (float) $incidentLine->quantity;
+
+                    return $description.' × '.($quantity + 0);
+                })
+                ->filter()
+                ->implode(', ')
+            : null;
 
         $borrowerLaundryComplete = $hasLaundryItem
             && $laundryJob
@@ -340,7 +390,7 @@
             $custody->status === 'OVERDUE' && $returnDate
                 => ['Was due', $returnDate->format('d M Y')],
             $borrowerReleased && $returnDate
-                => [$returnDateAdjusted ? 'Effective return' : 'Expected return', $returnDate->format('d M Y')],
+                => [$returnDateAdjusted ? 'New return date' : 'Return by', $returnDate->format('d M Y')],
             $pickupWindowOpen && $pickupWindowEndsAt
                 => ['Pickup window closes', $pickupWindowEndsAt->format('d M Y, g:i A')],
             $pickupWindowUpcoming && $pickupWindowStartsAt
@@ -371,7 +421,7 @@
         }
 
         $borrowerFacts[] = [
-            $returnDateAdjusted ? 'Effective Return' : 'Expected Return',
+            $returnDateAdjusted ? 'New Return Date' : 'Return By',
             ($returnDateAdjusted ? $returnDate : $originalReturnDate)?->format('d M Y') ?: 'Not available',
             $borrowerReturnNote,
         ];
@@ -384,7 +434,7 @@
             $borrowerFacts[] = [
                 $borrowerCustodyLabel,
                 $outstandingTotal + 0,
-                $outstandingTotal > 0 ? 'Still to be returned' : null,
+                $outstandingTotal > 0 ? 'Items remaining' : null,
             ];
         }
 
@@ -404,6 +454,14 @@
             $borrowerFacts[] = [
                 $transactionCancelled ? 'Cancelled' : 'Closed',
                 $custody->closed_at->format('d M Y, g:i A'),
+                null,
+            ];
+        }
+
+        if ($transactionCancelled && $cancellationReason !== '') {
+            $borrowerFacts[] = [
+                'Cancellation reason',
+                $cancellationReason,
                 null,
             ];
         }
@@ -447,9 +505,9 @@
          */
 
         $addBorrowerTimelineEvent(
-            'Borrowing record opened',
+            'Borrowing approved',
             $custody->created_at,
-            'Custody '.$custody->custody_no.' was created for the approved request.',
+            'Your request was approved and is now being prepared for pickup.',
             10
         );
 
@@ -461,8 +519,8 @@
 
         if ($custody->pickup_scheduled_at) {
             $pickupDetail = $custody->scheduled_release_at
-                ? 'Pickup scheduled for '.$custody->scheduled_release_at->format('d M Y, g:i A').'.'
-                : 'The pickup schedule was recorded by SPMU.';
+                ? 'Pick up your items on '.$custody->scheduled_release_at->format('d M Y, g:i A').'.'
+                : 'SPMU set a pickup schedule for this borrowing.';
 
             $addBorrowerTimelineEvent(
                 'Pickup scheduled',
@@ -478,9 +536,9 @@
          */
         if ($custody->pickup_expired_at && ! $custody->released_at) {
             $addBorrowerTimelineEvent(
-                'Pickup window expired',
+                'Pickup not completed',
                 $custody->pickup_expired_at,
-                'The scheduled pickup window ended before the items were released.',
+                'The pickup schedule ended before the items were released.',
                 25
             );
         }
@@ -492,16 +550,18 @@
          */
 
         $addBorrowerTimelineEvent(
-            'Items prepared',
+            'Items ready for pickup',
             $custody->prepared_at,
-            'The approved items were prepared for physical release.',
+            'Your approved items were prepared for pickup.',
             30
         );
 
         $addBorrowerTimelineEvent(
-            'Items released',
+            'Items received',
             $custody->released_at,
-            'The issued property was handed over and placed under your custody.',
+            $returnDate
+                ? 'You received the items. Please return them by '.$returnDate->format('d M Y').'.'
+                : 'You received the items. Please return them to SPMU when your borrowing ends.',
             40
         );
 
@@ -513,9 +573,9 @@
 
         if ($custody->gatePass?->guard_signed_at) {
             $addBorrowerTimelineEvent(
-                'Gate Pass recorded',
+                'Gate Pass completed',
                 $custody->gatePass->guard_signed_at,
-                'The applicable off-campus exit was recorded on the Gate Pass.',
+                'Your off-campus Gate Pass was recorded.',
                 45
             );
         }
@@ -537,7 +597,7 @@
             $addBorrowerTimelineEvent(
                 'Early return requested',
                 $earlyRequestedAt,
-                'A request to return the borrowed items before the expected return schedule was recorded.',
+                'You requested to return the items before the expected return date.',
                 50
             );
 
@@ -551,7 +611,7 @@
                 $addBorrowerTimelineEvent(
                     'Early return confirmed',
                     $earlyConfirmedAt,
-                    'SPMU confirmed that the return may proceed before the original expected return schedule.',
+                    'SPMU confirmed that you may return the items early.',
                     51
                 );
             }
@@ -566,7 +626,7 @@
                 $addBorrowerTimelineEvent(
                     'Early return request declined',
                     $earlyDeclinedAt,
-                    'The original expected return schedule remained applicable.',
+                    'Use the original return date for this borrowing.',
                     51
                 );
             }
@@ -605,29 +665,19 @@
                 $totalReleasedQuantity > 0
                 && $cumulativeReturnedQuantity < $totalReleasedQuantity
             ) {
-                $returnTitle = 'Partial return received';
+                $returnTitle = 'Some items returned';
 
                 $returnDetail =
-                    ($returnTransaction->return_no
-                        ? 'Return '.$returnTransaction->return_no.' was recorded. '
-                        : '')
-                    .'Received quantity: '.($returnQuantity + 0)
-                    .'. Remaining under custody: '.($remainingQuantity + 0).'.';
+                    'You returned '.($returnQuantity + 0)
+                    .'. Still to return: '.($remainingQuantity + 0).'.';
             } elseif ($totalReleasedQuantity > 0) {
-                $returnTitle = 'All issued items returned';
+                $returnTitle = 'All items returned';
 
-                $returnDetail =
-                    ($returnTransaction->return_no
-                        ? 'Return '.$returnTransaction->return_no.' was recorded. '
-                        : '')
-                    .'The complete issued quantity has been physically returned.';
+                $returnDetail = 'All released items were returned to SPMU.';
             } else {
-                $returnTitle = 'Return received';
+                $returnTitle = 'Return recorded';
 
-                $returnDetail =
-                    $returnTransaction->return_no
-                        ? 'Return '.$returnTransaction->return_no.' was recorded.'
-                        : 'The physical return was recorded.';
+                $returnDetail = 'Your returned items were received by SPMU.';
             }
 
             $addBorrowerTimelineEvent(
@@ -648,27 +698,27 @@
 
         if ($overdueCase?->overdue_started_at) {
             $addBorrowerTimelineEvent(
-                'Return became overdue',
+                'Return overdue',
                 $overdueCase->overdue_started_at,
-                'The borrowing passed its expected return schedule and entered overdue monitoring.',
+                'The return date has passed. Please coordinate with SPMU.',
                 70
             );
         }
 
         if ($overdueCase?->ao_confirmed_at) {
             $addBorrowerTimelineEvent(
-                'Late-return assessment confirmed',
+                'Late return reviewed',
                 $overdueCase->ao_confirmed_at,
-                'The SPMU Action Officer confirmed the recorded late-return assessment.',
+                'SPMU reviewed the late return for this borrowing.',
                 71
             );
         }
 
         if ($overdueCase?->resolved_at) {
             $addBorrowerTimelineEvent(
-                'Overdue obligation resolved',
+                'Late return resolved',
                 $overdueCase->resolved_at,
-                'The overdue-return obligation linked to this borrowing was resolved.',
+                'The late-return requirement for this borrowing was resolved.',
                 79
             );
         }
@@ -838,18 +888,18 @@
         if ($custody->closed_at) {
             if ($transactionCancelled) {
                 $addBorrowerTimelineEvent(
-                    'Borrowing cancelled',
+                    'Request cancelled',
                     $custody->closed_at,
                     $custody->released_at
-                        ? 'The borrowing transaction was closed after its recorded custody activity.'
-                        : 'The borrowing transaction was closed without physical release.',
+                        ? 'This borrowing was cancelled after the recorded activity.'
+                        : 'This request was cancelled before any items were released.',
                     1000
                 );
             } else {
                 $addBorrowerTimelineEvent(
                     'Borrowing completed',
                     $custody->closed_at,
-                    'All applicable return, document, and accountability requirements were reconciled and the borrowing was closed.',
+                    'All items were returned and this borrowing is complete.',
                     1000
                 );
             }
@@ -901,7 +951,9 @@
     <section class="content-area">
         <div class="borrower-custody-stack">
 
-            {{-- Current state --}}
+            {{-- Current state: cancelled records show their concise details in
+                 the summary below instead of repeating a large status card. --}}
+            @if(! $transactionCancelled)
             <div class="borrower-custody-status is-{{ $borrowerStateTone }}">
                 <span class="borrower-custody-status-icon" aria-hidden="true">
                     <x-icon name="information" size="24" />
@@ -940,6 +992,7 @@
                     @endif
                 </div>
             </div>
+            @endif
 
             {{-- Transaction facts --}}
             <article class="card">
@@ -968,7 +1021,7 @@
                 <div class="card-header">
                     <div>
                         <p class="eyebrow">Borrowed items</p>
-                        <h2>{{ $borrowerReleased ? 'Issued and returned quantities' : ($transactionCancelled ? 'Approved items — cancelled' : 'Approved items for pickup') }}</h2>
+                        <h2>{{ $borrowerReleased ? 'Your borrowed items' : ($transactionCancelled ? 'Approved items — cancelled' : 'Approved items for pickup') }}</h2>
                     </div>
                     <span class="borrower-section-note">
                         {{ $borrowerItemCount }} {{ $borrowerItemCount === 1 ? 'item' : 'items' }}
@@ -976,14 +1029,12 @@
                 </div>
 
                 <div class="table-wrap">
-                    <table class="borrower-items-table">
+                    <table class="borrower-items-table {{ $borrowerReleased ? 'is-custody-summary' : '' }}">
                         <thead>
                             @if($borrowerReleased)
                                 <tr>
                                     <th>Item</th>
-                                    <th>Issued</th>
-                                    <th>Returned</th>
-                                    <th>{{ $borrowerCustodyLabel }}</th>
+                                    <th>Quantity summary</th>
                                 </tr>
                             @else
                                 <tr>
@@ -1007,9 +1058,22 @@
                                         <small>{{ $line->requestItem->unit_snapshot }}</small>
                                     </td>
                                     @if($borrowerReleased)
-                                        <td>{{ $line->actual_released_quantity + 0 }}</td>
-                                        <td>{{ $line->returned_quantity + 0 }}</td>
-                                        <td class="is-quantity"><strong>{{ $lineOnCustody + 0 }}</strong></td>
+                                        <td class="borrower-item-quantities">
+                                            <div class="borrower-item-quantity-grid" aria-label="Item quantity summary">
+                                                <span>
+                                                    <small>Released</small>
+                                                    <strong>{{ $line->actual_released_quantity + 0 }}</strong>
+                                                </span>
+                                                <span>
+                                                    <small>Returned</small>
+                                                    <strong>{{ $line->returned_quantity + 0 }}</strong>
+                                                </span>
+                                                <span>
+                                                    <small>{{ $borrowerCustodyLabel }}</small>
+                                                    <strong>{{ $lineOnCustody + 0 }}</strong>
+                                                </span>
+                                            </div>
+                                        </td>
                                     @else
                                         <td>{{ $line->approved_quantity + 0 }}</td>
                                         <td class="is-muted">{{ $transactionCancelled ? 'Not issued — cancelled' : 'Not issued yet' }}</td>
@@ -1021,29 +1085,58 @@
                 </div>
             </article>
 
+            {{-- Shown only when the borrower has an actual related case or obligation. --}}
+            @if($borrowerAccountabilitySummary)
+                <article class="card borrower-accountability-card">
+                    <div class="borrower-accountability-card-header">
+                        <div>
+                            <p class="eyebrow">Accountability</p>
+                            <h2>{{ $borrowerAccountabilitySummary['title'] ?? 'Accountability record' }}</h2>
+                        </div>
+
+                        <x-status-badge
+                            :status="$borrowerAccountabilitySummary['key'] ?? 'ACCOUNTABILITY_REVIEW'"
+                            :label="$borrowerAccountabilitySummary['label'] ?? 'For review'"
+                        />
+                    </div>
+
+                    <div class="borrower-accountability-card-body">
+                        <div class="borrower-accountability-detail">
+                            <small>Recorded issue</small>
+                            <strong>{{ $borrowerAccountabilityIssue }}</strong>
+                            @if($borrowerAccountabilityItems)
+                                <span>{{ $borrowerAccountabilityItems }}</span>
+                            @endif
+                        </div>
+
+                        <div class="borrower-accountability-detail">
+                            <small>Current update</small>
+                            <span>{{ $borrowerAccountabilitySummary['copy'] ?? 'Review the recorded accountability details.' }}</span>
+                        </div>
+
+                        <a class="button secondary small ui-pressable" href="{{ route('accountability.index') }}">
+                            View My Obligations
+                        </a>
+                    </div>
+                </article>
+            @endif
+
 
 {{-- Processing that continues outside the borrower's hands --}}
             @if($borrowerSlipDocument || $hasLaundryItem || $hasOffCampusItem)
                 <article class="card borrower-document-card">
-                    <div class="card-header" style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
-    <div class="borrower-document-heading"
-         style="display:inline-flex; align-items:center; justify-content:flex-start; gap:10px; min-width:0; text-align:left;">
+                    <div class="card-header borrower-document-header">
+                        <div class="borrower-document-heading">
+                            <span class="borrower-card-icon" aria-hidden="true">
+                                <x-icon name="requests" size="19" />
+                            </span>
 
-        <span class="borrower-card-icon"
-              aria-hidden="true"
-              style="display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; margin:0;">
-            <x-icon name="requests" size="21" />
-        </span>
-
-        <span class="borrower-document-left-title"
-              style="display:inline-block; position:static; margin:0; font-size:20px; font-weight:700; line-height:1.25; text-align:left;">
-            Transaction Documents
-        </span>
-    </div>
-                        <div>
-                            <p class="eyebrow">Document processing</p>
-                            <h2>Applicable records</h2>
+                            <h2>Borrowing Documents</h2>
                         </div>
+
+                        <p class="borrower-document-caption">
+                            Forms and records for this borrowing
+                        </p>
                     </div>
 
                     {{-- BORROWER SLIP DOCUMENT ROW START --}}
@@ -1148,17 +1241,16 @@
                 >
                     <summary
                         class="card-header borrower-activity-summary"
-                        aria-label="Transaction timeline, {{ $borrowerTimeline->count() }} {{ $borrowerTimeline->count() === 1 ? 'event' : 'events' }}"
+                        aria-label="Borrowing timeline, {{ $borrowerTimeline->count() }} {{ $borrowerTimeline->count() === 1 ? 'update' : 'updates' }}"
                     >
                         <div class="borrower-activity-summary-copy">
-                            <p class="eyebrow">Borrowing activity</p>
-                            <h2>Transaction timeline</h2>
+                            <h2>Borrowing timeline</h2>
                         </div>
 
                         <div class="borrower-activity-summary-side">
                             <span class="borrower-section-note">
                                 {{ $borrowerTimeline->count() }}
-                                {{ $borrowerTimeline->count() === 1 ? 'event' : 'events' }}
+                                {{ $borrowerTimeline->count() === 1 ? 'update' : 'updates' }}
                             </span>
 
                             <span

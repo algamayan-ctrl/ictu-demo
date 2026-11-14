@@ -11,6 +11,7 @@ use App\Models\GeneratedDocument;
 use App\Models\Incident;
 use App\Models\LaundryJob;
 use App\Models\NotificationDelivery;
+use App\Models\RequestCancellation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -19,14 +20,40 @@ class NotificationController extends Controller
 {
     public function index(Request $request): View
     {
+        $perPage = (int) $request->query('per_page', 15);
+        $perPage = in_array($perPage, [7, 15, 30, 50], true) ? $perPage : 15;
+
         $notifications = NotificationDelivery::with('event')
             ->where('recipient_user_id', $request->user()->id)
             ->where('channel', 'SYSTEM')
             ->latest('attempted_at')
-            ->paginate(30);
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $cancelledRequestIds = $notifications->getCollection()
+            ->filter(fn (NotificationDelivery $delivery): bool =>
+                strtoupper((string) $delivery->event?->event_code) === 'REQUEST_CANCELLED'
+                && $delivery->event?->source_type === BorrowingRequest::class
+            )
+            ->pluck('event.source_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        $cancellationReasons = RequestCancellation::query()
+            ->whereIn('request_id', $cancelledRequestIds)
+            ->orderByDesc('cancelled_at')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('request_id')
+            ->mapWithKeys(fn (RequestCancellation $cancellation): array => [
+                $cancellation->request_id => trim((string) $cancellation->reason),
+            ]);
 
         return view('notifications.index', [
             'notifications' => $notifications,
+            'cancellationReasons' => $cancellationReasons,
 
             /*
              * Only notifications whose record still resolves are rendered as

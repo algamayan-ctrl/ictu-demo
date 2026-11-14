@@ -146,29 +146,27 @@
 
             addPageButton(Math.max(1, currentPage - 1), {
                 disabled: currentPage <= 1,
-                html: `${chevron(true)}<span>Previous</span>`,
+                html: chevron(true),
                 ariaLabel: 'Previous page',
             });
 
-            if (browser.dataset.paginationMode !== 'simple') {
-                pageNumbers(totalPages, currentPage).forEach((entry) => {
-                    if (entry === '…') {
-                        const gap = document.createElement('span');
-                        gap.className = 'spmu-inventory-page-ellipsis';
-                        gap.setAttribute('aria-hidden', 'true');
-                        gap.textContent = '…';
-                        pagination.appendChild(gap);
+            pageNumbers(totalPages, currentPage).forEach((entry) => {
+                if (entry === '…') {
+                    const gap = document.createElement('span');
+                    gap.className = 'spmu-inventory-page-ellipsis';
+                    gap.setAttribute('aria-hidden', 'true');
+                    gap.textContent = '…';
+                    pagination.appendChild(gap);
 
-                        return;
-                    }
+                    return;
+                }
 
-                    addPageButton(entry, { active: entry === currentPage });
-                });
-            }
+                addPageButton(entry, { active: entry === currentPage });
+            });
 
             addPageButton(Math.min(totalPages, currentPage + 1), {
                 disabled: currentPage >= totalPages,
-                html: `<span>Next</span>${chevron(false)}`,
+                html: chevron(false),
                 ariaLabel: 'Next page',
             });
         };

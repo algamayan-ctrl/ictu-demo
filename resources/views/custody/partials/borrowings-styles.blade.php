@@ -48,7 +48,7 @@
     flex-direction: column;
 }
 
-/* Record range + page links, matching the My Requests footer. */
+/* My Borrowings pagination: same compact summary, dropdown, and blue page links as My Requests. */
 .borrowings-footer {
     display: flex;
     align-items: center;
@@ -56,9 +56,13 @@
     flex-wrap: wrap;
     gap: 10px 16px;
     margin: 14px 2px 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
 }
-.borrowings-footer > p { margin: 0; color: var(--text-muted); font-size: 11px; }
-.borrowings-footer .app-pagination { margin-top: 0; margin-left: auto; }
+.borrowings-page-summary { margin: 0 auto 0 0; color: var(--text-muted); font-size: 12px; }
+.borrowings-pagination-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-left: auto; }
+.borrowings-pagination-controls select { min-height: 34px; width: auto; padding: 4px 28px 4px 10px; font-size: 12px; }
+.borrowings-pagination-controls .app-pagination { display: flex; align-items: center; gap: 5px; margin: 0; }
 
 {{-- /* Empty state */ --}}
 .my-borrowings-card > .borrowings-empty { flex: 1 1 auto; }
@@ -84,7 +88,7 @@ html[data-theme="dark"] .borrowings-empty-sparkles { fill: #2f4a68; }
 @media (max-width: 760px) {
     .borrowings-toolbar { grid-template-columns: 1fr; }
     .borrowings-footer { align-items: flex-start; }
-    .borrowings-footer .app-pagination { margin-left: 0; }
+    .borrowings-pagination-controls { justify-content: flex-end; margin-left: auto; }
 }
 @media (max-width: 620px) {
     .borrowings-toolbar { padding: 12px; }

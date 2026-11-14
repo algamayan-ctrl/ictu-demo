@@ -66,11 +66,16 @@
     border-top: 1px solid var(--border);
 }
 
-.mr-footer > p {
+.mr-pagination-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+
+.mr-pagination-meta > p {
     margin: 0;
     color: var(--text-muted);
     font-size: 11px;
 }
+
+.mr-pagination-meta form { margin: 0; }
+.mr-pagination-meta select { min-height: 32px; padding: 4px 28px 4px 9px; font-size: 11px; }
 
 .mr-footer .app-pagination {
     margin-top: 0;
@@ -123,6 +128,7 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
 
 @media (max-width: 760px) {
     .mr-footer { align-items: flex-start; }
+    .mr-pagination-meta { align-items: flex-start; }
     .mr-footer .app-pagination { margin-left: 0; }
 }
 </style>

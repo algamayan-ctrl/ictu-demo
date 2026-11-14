@@ -13,7 +13,7 @@
 
 @include('gate-passes.partials.index-styles')
 
-<div class="gate-pass-browser" data-gate-pass-browser data-page-size="10">
+<div class="gate-pass-browser" data-gate-pass-browser data-page-size="7">
     <section class="page-heading gate-pass-heading">
         <div>
             <p class="eyebrow">SPMU Action Officer</p>
@@ -49,7 +49,7 @@
         <section class="card gate-pass-records-card" aria-labelledby="gate-pass-records-title">
             <div class="gate-pass-records-heading">
                 <h2 id="gate-pass-records-title">Recorded Gate Passes</h2>
-                <p data-gate-pass-count role="status" aria-live="polite">Showing 1 to {{ min(10, $gatePasses->count()) }} of {{ $gatePasses->count() }} records</p>
+                <p data-gate-pass-count role="status" aria-live="polite">Showing 1 to {{ min(7, $gatePasses->count()) }} of {{ $gatePasses->count() }} records</p>
             </div>
             <div class="gate-pass-table-wrap">
                 <table class="gate-pass-table" aria-labelledby="gate-pass-records-title">

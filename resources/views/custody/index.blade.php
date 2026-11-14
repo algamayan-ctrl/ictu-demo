@@ -21,7 +21,7 @@
             : ($mode === 'return' ? 'Return' : 'Release'));
 
     $pageCopy = match (true) {
-        $isBorrower => 'Track your pickup, issued items, returns, and completed borrowings.',
+        $isBorrower => 'Check your pickup schedule, items on custody, and completed borrowings.',
         $mode === 'release' => 'Confirm item preparation, print the required documents, and record the handover.',
         $mode === 'return' => 'Inspect physically returned items, record full-quantity accounting, monitor linen/laundry return, and complete reconciliation.',
         $isHead => 'Monitor item release, active custody, returns, and overdue transactions.',
@@ -45,8 +45,9 @@
 
 
     // My Borrowings search/status/sort run on the server (see CustodyController::index).
-    $borrowerFilters = $borrowerFilters ?? ['search' => '', 'status' => 'all', 'sort' => 'newest', 'active' => false];
+    $borrowerFilters = $borrowerFilters ?? ['search' => '', 'status' => 'all', 'sort' => 'newest', 'per_page' => 7, 'active' => false];
     $borrowerStatusFilters = $borrowerStatusFilters ?? [];
+    $borrowerPerPageOptions = $borrowerPerPageOptions ?? [7, 15, 30, 50];
 
     $oversightTabs = [
         'all' => 'All',
@@ -135,7 +136,7 @@
 <section class="page-heading">
     <div>
         <p class="eyebrow">
-            {{ $mode === 'return' ? 'Physical return and reconciliation' : ($mode === 'release' ? 'Pickup and physical issuance' : 'Pickup, issuance and return') }}
+            {{ $mode === 'return' ? 'Physical return and reconciliation' : ($mode === 'release' ? 'Pickup and physical issuance' : ($isBorrower ? 'Borrowing status' : 'Pickup, issuance and return')) }}
         </p>
 
         <h1>{{ $pageTitle }}</h1>
@@ -237,7 +238,7 @@
                         type="search"
                         value="{{ $borrowerFilters['search'] }}"
                         maxlength="100"
-                        placeholder="Search custody no., request no., event, or item..."
+                        placeholder="Search request no., purpose, or item..."
                         autocomplete="off"
                     >
                 </span>
@@ -285,7 +286,7 @@
         @else
             <div class="borrowings-results-head">
                 <strong id="borrowings-result-summary" role="status" aria-live="polite">
-                    {{ $custodies->total() }} {{ $custodies->total() === 1 ? 'borrowing' : 'borrowings' }}
+                    {{ $custodies->total() }} {{ $custodies->total() === 1 ? 'borrowing record' : 'borrowing records' }}
                 </strong>
             </div>
 
@@ -309,11 +310,20 @@
             @endif
 
             <div class="borrowings-footer">
-                <p role="status">Showing {{ $custodies->firstItem() ?? 0 }} to {{ $custodies->lastItem() ?? 0 }} of {{ $custodies->total() }} {{ $custodies->total() === 1 ? 'borrowing' : 'borrowings' }}</p>
-
-                @if($custodies->hasPages())
+                <p class="borrowings-page-summary" role="status">Showing {{ $custodies->firstItem() ?? 0 }} to {{ $custodies->lastItem() ?? 0 }} of {{ $custodies->total() }} {{ $custodies->total() === 1 ? 'borrowing' : 'borrowings' }}</p>
+                <div class="borrowings-pagination-controls">
+                    <select
+                        id="borrowings-per-page"
+                        name="per_page"
+                        form="borrowings-filters"
+                        aria-label="Borrowings per page"
+                    >
+                        @foreach($borrowerPerPageOptions as $size)
+                            <option value="{{ $size }}" @selected($borrowerFilters['per_page'] === $size)>{{ $size }} items per page</option>
+                        @endforeach
+                    </select>
                     {{ $custodies->onEachSide(1)->links('custody.partials.borrowings-pagination') }}
-                @endif
+                </div>
             </div>
         @endif
     </div>
@@ -321,8 +331,121 @@
     @include('custody.partials.borrowings-interactions')
 @elseif($mode === 'release' && auth()->user()?->access_classification?->value === 'SPMU_OFFICER')
     @include('custody.partials.sao-release-list')
+@elseif($mode === 'return')
+    {{-- Return uses the existing Release list presentation and pagination components. --}}
+    <section class="content-area sao-release-browser" data-sao-release-browser>
+        <div class="sao-release-toolbar">
+            <label>Search
+                <span class="search-input-shell">
+                    <span class="search-input-icon" aria-hidden="true"><x-icon name="search" size="17" /></span>
+                    <input type="search" id="operational-search" aria-label="Search return records" placeholder="Search borrower, request no., custody no., or event…" autocomplete="off">
+                </span>
+            </label>
+            <label>Status
+                <select id="operational-status" aria-label="Return status">
+                    <option value="all">All statuses</option>
+                    @foreach($returnFilterStatuses as $filterStatus)
+                        <option value="{{ $filterStatus['key'] }}">{{ $filterStatus['label'] }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <label>Sort
+                <select id="operational-sort" aria-label="Sort return records">
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                </select>
+            </label>
+        </div>
+        <article class="card sao-release-records">
+            <div class="table-wrap sao-release-table-wrap" data-release-table-wrap @if($custodies->isEmpty()) hidden @endif>
+                <table class="sao-release-table">
+                    <colgroup><col style="width:27%"><col style="width:19%"><col style="width:17%"><col style="width:11%"><col style="width:14%"><col style="width:12%"></colgroup>
+                    <thead>
+                        <tr>
+                            <th scope="col">Borrower / Request</th>
+                            <th scope="col">Borrowing Dates</th>
+                            <th scope="col">Issued</th>
+                            <th scope="col">On Custody</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="operational-filter-list">
+                        @foreach($custodies as $custody)
+                            @php
+                                $version = $custody->request?->currentVersion;
+                                $scheduleDate = $version?->schedule_date ?: $version?->needed_from;
+                                $originalReturnDate = $custody->original_due_at
+                                    ?: $version?->return_date
+                                    ?: $version?->return_due_at
+                                    ?: $custody->due_at;
+                                $returnDate = $custody->due_at ?: $originalReturnDate;
+                                $returnDateAdjusted = $originalReturnDate && $returnDate
+                                    && ! $originalReturnDate->isSameDay($returnDate);
+                                $outstanding = $custody->lines->sum(
+                                    fn ($line) => max(0, (float) $line->actual_released_quantity - (float) $line->returned_quantity)
+                                );
+                                $physicalReturnStatus = $returnOperationalStatusForCustody($custody);
+                                $linenQueueLabel = App\Services\LateReturnService::linenStateLabel(
+                                    app(App\Services\LateReturnService::class)->linenReturnState($custody)
+                                );
+                            @endphp
+                            <tr data-operational-record
+                                data-status="{{ $physicalReturnStatus['key'] }}"
+                                data-created="{{ $custody->updated_at?->timestamp ?? 0 }}"
+                                data-id="{{ $custody->id }}"
+                                data-search="{{ trim(($custody->borrower?->full_name ?? '').' '.($custody->request?->request_no ?? '').' '.($custody->custody_no ?? '').' '.($version?->purpose_event ?? '')) }}">
+                                <td>
+                                    <strong>{{ $custody->borrower?->full_name ?: 'Not recorded' }}</strong>
+                                    <small>{{ $custody->request?->request_no ?: $custody->custody_no }}</small>
+                                </td>
+                                <td>
+                                    <span>{{ $scheduleDate?->format('d M Y') ?: '—' }}</span>
+                                    <small>{{ $returnDateAdjusted ? 'Effective Return' : 'Return' }}: {{ $returnDate?->format('d M Y') ?: '—' }}</small>
+                                    @if($returnDateAdjusted)
+                                        <small>Adjusted from {{ $originalReturnDate->format('d M Y') }}</small>
+                                    @endif
+                                    @if($linenQueueLabel)
+                                        <small data-linen-return-state><span class="status-badge status-warning">{{ $linenQueueLabel }}</span></small>
+                                    @endif
+                                </td>
+                                <td>{{ $custody->released_at?->format('d M Y, g:i A') ?: '—' }}</td>
+                                <td>{{ $outstanding + 0 }}</td>
+                                <td><x-status-badge :status="$physicalReturnStatus['key']" :label="$physicalReturnStatus['label']" /></td>
+                                <td><a class="button secondary small ui-pressable" href="{{ route('custody.return.show', $custody) }}">View Record</a></td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="sao-release-empty" id="operational-filter-empty" @if($custodies->isNotEmpty()) hidden @endif>
+                <span class="sao-release-empty-icon" aria-hidden="true"><x-icon name="custody" size="30" /></span>
+                <h2 data-release-empty-title>{{ $custodies->isEmpty() ? 'No released transactions to return.' : 'No matching return records.' }}</h2>
+                <p data-release-empty-copy>{{ $custodies->isEmpty() ? 'After physical release, the transaction moves here for return tracking and reconciliation.' : 'Try another search term or status.' }}</p>
+            </div>
+            <footer class="sao-release-footer" data-release-pagination @if($custodies->isEmpty()) hidden @endif>
+                <div class="sao-release-pagination-meta">
+                    <p class="meta" data-release-range role="status" aria-live="polite">{{ $custodies->count() }} {{ \Illuminate\Support\Str::plural('record', $custodies->count()) }}</p>
+                    <select data-release-page-size aria-label="Return records per page">
+                        @foreach([7, 15, 30, 50] as $size)
+                            <option value="{{ $size }}">{{ $size }} items per page</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="sao-release-pagination">
+                    <nav class="app-pagination" aria-label="Return record pages">
+                        <button type="button" class="app-pagination-link" data-release-previous aria-label="Previous page" disabled><x-icon name="arrow-left" size="14" /></button>
+                        <span data-release-pages></span>
+                        <button type="button" class="app-pagination-link" data-release-next aria-label="Next page" disabled><x-icon name="arrow-right" size="14" /></button>
+                    </nav>
+                </div>
+            </footer>
+        </article>
+    </section>
+    @include('custody.partials.sao-release-list-styles')
+    @include('custody.partials.sao-release-list-interactions')
 @else
-    <section class="content-area operational-content-area">
+    <section class="content-area operational-content-area {{ $mode === 'return' ? 'operational-content-area--return' : '' }}">
         @if(in_array($mode, ['release','return'], true))
         <div class="operational-browser-toolbar">
             <label>Search
@@ -471,6 +594,28 @@
         @if(in_array($mode, ['release','return'], true))
             <div class="empty-state top-gap" id="operational-filter-empty" hidden><strong>No matching records.</strong><span>Try another search term or status.</span></div>
         @endif
+        @if($mode === 'return' && $custodies->isNotEmpty())
+            <footer class="operational-pagination" data-operational-pagination>
+                <div class="operational-pagination-meta">
+                    <p class="meta" data-operational-range role="status" aria-live="polite"></p>
+                    <label>
+                        <span class="sr-only">Return records per page</span>
+                        <select data-operational-page-size aria-label="Return records per page">
+                            @foreach([7, 15, 30, 50] as $size)
+                                <option value="{{ $size }}">{{ $size }} items per page</option>
+                            @endforeach
+                        </select>
+                    </label>
+                </div>
+                <div class="operational-pagination-controls">
+                    <nav class="app-pagination" aria-label="Return record pages">
+                        <button type="button" class="app-pagination-link" data-operational-previous aria-label="Previous page" disabled><x-icon name="arrow-left" size="14" /></button>
+                        <span data-operational-pages></span>
+                        <button type="button" class="app-pagination-link" data-operational-next aria-label="Next page" disabled><x-icon name="arrow-right" size="14" /></button>
+                    </nav>
+                </div>
+            </footer>
+        @endif
     </section>
     @if(in_array($mode, ['release','return'], true))
     <style>
@@ -484,6 +629,14 @@
        text never stretches awkwardly across the wide card. */ --}}
     .operational-content-area{display:flex;flex-direction:column;width:100%;min-width:0}
     .operational-content-area > .operational-record-list{flex:1 1 auto;display:flex;flex-direction:column;width:100%;min-width:0;min-height:0}
+    .operational-content-area--return > .operational-record-list{flex:0 0 auto}
+    .operational-pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-top:14px;padding:16px 20px;background:var(--surface-elevated);border:1px solid var(--border);border-radius:var(--radius)}
+    .operational-content-area--return .operational-pagination{margin-top:12px}
+    .operational-pagination p{margin:0}
+    .operational-pagination-meta{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+    .operational-pagination-controls,.operational-pagination nav{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+    .operational-pagination .app-pagination{margin:0}
+    .operational-pagination select{width:auto;min-height:32px;margin:0;padding:4px 28px 4px 9px;font-size:11px}
     .operational-record-list > .operational-empty-card{flex:1 1 auto;width:100%}
     .operational-empty-card{--operational-empty-accent:#0865df;display:flex;min-height:300px;align-items:center;justify-content:center;padding:40px 22px;background:var(--surface-elevated);border:1px solid var(--border);border-radius:9px;text-align:center}
     .operational-empty-card-content{display:flex;flex-direction:column;align-items:center;max-width:400px}
@@ -491,10 +644,112 @@
     .operational-empty-card h2{margin:0 0 8px;font-size:16px;font-weight:750;line-height:1.4}
     .operational-empty-card p{margin:0;color:var(--text-secondary);font-size:13px;line-height:1.65}
     html[data-theme="dark"] .operational-empty-card{--operational-empty-accent:#72b7f4}
-    @media(max-width:760px){.operational-browser-toolbar{grid-template-columns:1fr}.operational-empty-card{min-height:260px;padding:30px 16px}}
+    @media(max-width:760px){.operational-browser-toolbar{grid-template-columns:1fr}.operational-empty-card{min-height:260px;padding:30px 16px}.operational-pagination{padding:14px}}
     </style>
     <script>
-    (()=>{const list=document.getElementById('operational-filter-list');const rows=[...document.querySelectorAll('[data-operational-record]')];const search=document.getElementById('operational-search');const status=document.getElementById('operational-status');const sort=document.getElementById('operational-sort');const empty=document.getElementById('operational-filter-empty');if(!list||!rows.length||!search||!status||!sort)return;const render=()=>{const q=search.value.trim().toLowerCase();const st=status.value;const ordered=[...rows].sort((a,b)=>{const priority=Number(b.dataset.priority||0)-Number(a.dataset.priority||0);if(priority!==0)return priority;return(Number(b.dataset.created)-Number(a.dataset.created))*(sort.value==='newest'?1:-1)});ordered.forEach(r=>list.appendChild(r));let n=0;rows.forEach(r=>{const show=(!q||r.dataset.search.includes(q))&&(st==='all'||r.dataset.status===st);r.hidden=!show;if(show)n++});if(empty)empty.hidden=n>0};search.addEventListener('input',render);status.addEventListener('change',render);sort.addEventListener('change',render);render()})();
+    (() => {
+        const list = document.getElementById('operational-filter-list');
+        const rows = [...document.querySelectorAll('[data-operational-record]')];
+        const search = document.getElementById('operational-search');
+        const status = document.getElementById('operational-status');
+        const sort = document.getElementById('operational-sort');
+        const empty = document.getElementById('operational-filter-empty');
+        const footer = document.querySelector('[data-operational-pagination]');
+        const pageSize = document.querySelector('[data-operational-page-size]');
+        const previous = document.querySelector('[data-operational-previous]');
+        const next = document.querySelector('[data-operational-next]');
+        const range = document.querySelector('[data-operational-range]');
+        const pages = document.querySelector('[data-operational-pages]');
+
+        if (!list || !rows.length || !search || !status || !sort) return;
+
+        let currentPage = 1;
+        const pageNumbers = (totalPages) => {
+            const candidates = [1, currentPage - 1, currentPage, currentPage + 1, totalPages]
+                .filter((page) => page >= 1 && page <= totalPages)
+                .sort((left, right) => left - right);
+            const result = [];
+            candidates.forEach((page) => {
+                if (result.length && page - result[result.length - 1] > 1) result.push('…');
+                if (!result.includes(page)) result.push(page);
+            });
+            return result;
+        };
+        const renderPageNumbers = (totalPages) => {
+            if (!pages) return;
+            pages.replaceChildren();
+            pageNumbers(totalPages).forEach((page) => {
+                if (page === '…') {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.className = 'app-pagination-ellipsis';
+                    ellipsis.setAttribute('aria-hidden', 'true');
+                    ellipsis.textContent = '…';
+                    pages.appendChild(ellipsis);
+                    return;
+                }
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'app-pagination-link';
+                button.textContent = String(page);
+                button.setAttribute('aria-label', `Page ${page}`);
+                if (page === currentPage) {
+                    button.classList.add('is-active');
+                    button.setAttribute('aria-current', 'page');
+                }
+                button.addEventListener('click', () => { currentPage = page; render(); });
+                pages.appendChild(button);
+            });
+        };
+        const perPage = () => [7, 15, 30, 50].includes(Number(pageSize?.value))
+            ? Number(pageSize.value)
+            : Number.MAX_SAFE_INTEGER;
+
+        const render = () => {
+            const query = search.value.trim().toLowerCase();
+            const selectedStatus = status.value;
+            const ordered = [...rows].sort((left, right) => {
+                const priority = Number(right.dataset.priority || 0) - Number(left.dataset.priority || 0);
+                if (priority !== 0) return priority;
+
+                const difference = Number(right.dataset.created) - Number(left.dataset.created);
+                return sort.value === 'newest' ? difference : -difference;
+            });
+
+            const matches = ordered.filter((row) => (
+                (!query || row.dataset.search.includes(query))
+                && (selectedStatus === 'all' || row.dataset.status === selectedStatus)
+            ));
+
+            const totalPages = Math.max(1, Math.ceil(matches.length / perPage()));
+            currentPage = Math.min(Math.max(1, currentPage), totalPages);
+            const firstIndex = (currentPage - 1) * perPage();
+            const lastIndex = Math.min(firstIndex + perPage(), matches.length);
+
+            rows.forEach((row) => { row.hidden = true; });
+            matches.forEach((row, index) => {
+                list.appendChild(row);
+                row.hidden = index < firstIndex || index >= lastIndex;
+            });
+
+            if (empty) empty.hidden = matches.length > 0;
+            if (footer) footer.hidden = matches.length === 0;
+
+            if (range && matches.length) {
+                range.textContent = `Showing ${firstIndex + 1}–${lastIndex} of ${matches.length} ${matches.length === 1 ? 'record' : 'records'}`;
+            }
+            renderPageNumbers(totalPages);
+            if (previous) previous.disabled = currentPage === 1;
+            if (next) next.disabled = currentPage === totalPages;
+        };
+
+        search.addEventListener('input', () => { currentPage = 1; render(); });
+        status.addEventListener('change', () => { currentPage = 1; render(); });
+        sort.addEventListener('change', () => { currentPage = 1; render(); });
+        pageSize?.addEventListener('change', () => { currentPage = 1; render(); });
+        previous?.addEventListener('click', () => { if (currentPage > 1) { currentPage--; render(); } });
+        next?.addEventListener('click', () => { currentPage++; render(); });
+        render();
+    })();
     </script>
     @endif
 @endif

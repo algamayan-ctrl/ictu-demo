@@ -123,7 +123,7 @@
                     <span class="meta">No form on file</span>
                 @endif
                 @if($job->status === 'FOR_LAUNDRY')
-                    <a class="button primary small ui-pressable" href="{{ route('custody.return.show', $job->custody) }}{{ $formArchived ? '#return-primary' : '#return-documents' }}">{{ $formArchived ? 'Record Return' : 'Record Laundry Form' }}</a>
+                    <a class="button primary small ui-pressable" href="{{ route('custody.return.show', $job->custody) }}{{ $formArchived ? '#return-primary' : '#return-documents' }}">{{ $formArchived ? 'Record Return' : 'Upload Signed Form' }}</a>
                 @endif
             </div>
         </div>

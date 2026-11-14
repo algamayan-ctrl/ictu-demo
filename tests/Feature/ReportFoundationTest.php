@@ -308,7 +308,7 @@ class ReportFoundationTest extends TestCase
         $dataset = app(ReportService::class)->generate($this->filters('borrowing'));
 
         $this->assertSame(1, $dataset->count());
-        $this->assertSame('Released / On Custody', $dataset->rows->first()['status']);
+        $this->assertSame('On Custody', $dataset->rows->first()['status']);
     }
 
     public function test_borrowing_activity_excludes_requests_outside_the_period(): void
@@ -408,7 +408,7 @@ class ReportFoundationTest extends TestCase
         $dataset = app(ReportService::class)->generate($this->filters('custody'));
 
         $this->assertSame(1, $dataset->count());
-        $this->assertSame('Released / On Custody', $dataset->rows->first()['status']);
+        $this->assertSame('On Custody', $dataset->rows->first()['status']);
     }
 
     public function test_custody_report_filters_by_custody_status(): void

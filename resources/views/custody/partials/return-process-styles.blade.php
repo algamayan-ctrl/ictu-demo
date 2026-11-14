@@ -17,6 +17,15 @@
 .return-flow-page .eyebrow { margin: 0 0 4px; color: var(--text-secondary); font-size: 11px; font-weight: 750; line-height: 1.5; letter-spacing: .04em; }
 .return-flow-page h2 { margin: 0; color: var(--heading); font-size: 17px; font-weight: 650; line-height: 1.4; }
 .return-flow-page .notice { margin: 0; padding: 10px 14px; align-items: center; }
+.return-flow-page .return-operational-notice {
+    color: var(--text-secondary);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--warning);
+}
+.return-flow-page .return-operational-notice > .ui-icon { color: var(--warning); }
+.return-flow-page .return-operational-notice strong { color: var(--heading); }
+.return-flow-page .return-operational-notice p { margin: 2px 0 0; color: var(--text-secondary); }
 .return-flow-page .return-flash { gap: 12px; }
 .return-flow-page .return-flash > div { flex: 1; min-width: 0; }
 .return-flow-page .return-flash-dismiss { flex: 0 0 26px; width: 26px; height: 26px; padding: 0; }

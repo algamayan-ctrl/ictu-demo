@@ -197,7 +197,7 @@ class ReleaseCustodyReport implements ReportBuilder
     {
         return match ($status) {
             'PREPARING_RELEASE' => 'Preparing Release',
-            'ACTIVE' => 'Released / On Custody',
+            'ACTIVE' => 'On Custody',
             'RETURN_PROCESSING' => 'Return Processing',
             'OVERDUE' => 'Overdue',
             'INCIDENT_OPEN' => 'Incident Open',

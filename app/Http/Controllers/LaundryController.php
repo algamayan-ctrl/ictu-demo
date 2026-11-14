@@ -26,6 +26,9 @@ class LaundryController extends Controller
     {
         $this->authorizeSpmuActionOfficer($request);
 
+        $activePerPage = $this->pageSize($request, 'active_per_page');
+        $completedPerPage = $this->pageSize($request, 'completed_per_page');
+
         $activeJobs = LaundryJob::query()
             ->with([
                 'custody.borrower',
@@ -42,7 +45,8 @@ class LaundryController extends Controller
                 END"
             )
             ->latest('updated_at')
-            ->paginate(20, ['*'], 'active_page');
+            ->paginate($activePerPage, ['*'], 'active_page')
+            ->withQueryString();
 
         $completedJobs = LaundryJob::query()
             ->with([
@@ -54,18 +58,23 @@ class LaundryController extends Controller
             ])
             ->where('status', 'LAUNDRY_COMPLETED')
             ->latest('completed_at')
-            ->paginate(20, ['*'], 'completed_page')
+            ->paginate($completedPerPage, ['*'], 'completed_page')
+            ->withQueryString()
             ->fragment('completed-laundry-cases');
 
         return view('laundry.index', [
             'jobs' => $activeJobs,
             'completedJobs' => $completedJobs,
+            'activePerPage' => $activePerPage,
+            'completedPerPage' => $completedPerPage,
         ]);
     }
 
     public function completed(Request $request): View
     {
         $this->authorizeSpmuActionOfficer($request);
+
+        $perPage = $this->pageSize($request, 'per_page');
 
         return view('laundry.completed', [
             'jobs' => LaundryJob::query()
@@ -78,8 +87,17 @@ class LaundryController extends Controller
                 ])
                 ->where('status', 'LAUNDRY_COMPLETED')
                 ->latest('completed_at')
-                ->paginate(20),
+                ->paginate($perPage)
+                ->withQueryString(),
+            'perPage' => $perPage,
         ]);
+    }
+
+    private function pageSize(Request $request, string $key): int
+    {
+        $size = (int) $request->query($key, 7);
+
+        return in_array($size, [7, 15, 30, 50], true) ? $size : 7;
     }
 
     /**

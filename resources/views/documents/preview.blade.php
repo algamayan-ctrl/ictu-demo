@@ -11,6 +11,7 @@
     ];
 
     $documentLabel = $documentLabels[$document->document_type] ?? str($document->document_type)->replace('_', ' ')->title()->toString();
+    $documentPurpose = null;
     if ($originalCopy ?? false) {
         $documentLabel .= ' (Original pickup copy)';
     }
@@ -19,7 +20,17 @@
         && $document->subject instanceof \App\Models\BillingStatement
         && $document->subject->isLateReturnBilling()) {
         $documentLabel = 'Late Return Billing Statement';
+        $documentPurpose = 'Cashier payment copy';
+    } elseif ($document->document_type === 'LATE_RETURN_NOTICE') {
+        $documentPurpose = 'Late-return record — this is not the cashier billing copy.';
     }
+
+    // A revision-specific URL makes the browser load the current controlled
+    // PDF after a statement is reissued, instead of reusing an earlier viewer
+    // session for the same in-system preview.
+    $documentFileUrl = route(($showSystemRecord ?? false) ? 'documents.record' : 'documents.view', $document, false)
+        .'?revision='.rawurlencode((string) max(1, (int) $document->version_no))
+        .'&file='.rawurlencode((string) $document->stored_file_id);
 @endphp
 
 <section class="page-heading document-preview-heading">
@@ -31,6 +42,10 @@
                 <span>Document no.</span>
                 <strong>{{ $document->document_no }}</strong>
             </p>
+        @endif
+
+        @if($documentPurpose)
+            <p class="document-preview-purpose">{{ $documentPurpose }}</p>
         @endif
     </div>
 
@@ -45,10 +60,10 @@
         :title="$documentLabel"
         :eyebrow="null"
         empty-text="This document has no readable file on record."
-        :preview-url="route(($showSystemRecord ?? false) ? 'documents.record' : 'documents.view', $document, false)"
+        :preview-url="$documentFileUrl"
         :expanded="true"
         :compact-header="true"
-        :fullscreen="session('active_workspace') === 'BORROWER'"
+        :fullscreen="true"
     />
 </section>
 
@@ -89,6 +104,13 @@
         font-size: 12px;
         font-weight: 700;
         overflow-wrap: anywhere;
+    }
+
+    .document-preview-purpose {
+        margin: 4px 0 0;
+        color: var(--text-muted);
+        font-size: 12px;
+        line-height: 1.45;
     }
 
     .document-preview-area {

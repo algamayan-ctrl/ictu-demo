@@ -1741,7 +1741,7 @@ class RequestWorkflowService
             $this->notifications->send(
                 $notificationEventCode,
                 collect([$request->borrower]),
-                $notificationMessage ?: "Request {$request->request_no} was cancelled. {$reason}",
+                $notificationMessage ?: "Your borrowing request {$request->request_no} has been cancelled. Reason for cancellation: {$reason}",
                 $request
             );
 

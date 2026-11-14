@@ -151,10 +151,10 @@ test('return workspace keeps the linen instructions concise', () => {
      * the inline upload form, its one-line date helper, and the recorded/
      * awaiting status text are the whole instruction set now.
      */
-    assert.match(returnWorkspace, /Enter the actual RECEIVED BY date on the signed form\./);
-    assert.match(returnWorkspace, /The physical receipt date, not the SPMU recording date, determines return timing\./);
-    assert.match(returnWorkspace, />Record Laundry Form</);
-    assert.match(returnWorkspace, /Accomplished form recorded\./);
+    assert.match(returnWorkspace, /Use the date written under RECEIVED BY on the signed form\./);
+    assert.match(returnWorkspace, /This date is used to check whether the return was on time\./);
+    assert.match(returnWorkspace, />Save Laundry Form</);
+    assert.match(returnWorkspace, /Signed form saved\./);
     assert.match(returnWorkspace, /Awaiting accomplished copy\./);
     assert.doesNotMatch(returnWorkspace, /I confirm this is the accomplished Laundry Form signed by Laundry Personnel\.|Open (?:Internal )?Laundry Processing/);
 });

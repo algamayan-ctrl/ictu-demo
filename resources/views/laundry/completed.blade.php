@@ -73,11 +73,18 @@
                 </div>
             </div>
 
-            @if($jobs->hasPages())
-                <div class="completed-laundry-footer">
-                    {{ $jobs->onEachSide(1)->links('laundry.partials.completed-pagination') }}
+            <div class="completed-laundry-footer completed-laundry-footer-universal">
+                <div class="completed-laundry-pagination-meta">
+                    <span>Showing {{ $jobs->firstItem() ?? 0 }} to {{ $jobs->lastItem() ?? 0 }} of {{ $jobs->total() }} completed cases</span>
+                    <form method="get" action="{{ route('laundry.completed') }}">
+                        <label class="sr-only" for="completed-laundry-archive-per-page">Completed laundry cases per page</label>
+                        <select id="completed-laundry-archive-per-page" name="per_page" onchange="this.form.submit()">
+                            @foreach([7, 15, 30, 50] as $size)<option value="{{ $size }}" @selected($perPage === $size)>{{ $size }} items per page</option>@endforeach
+                        </select>
+                    </form>
                 </div>
-            @endif
+                @if($jobs->hasPages()){{ $jobs->onEachSide(1)->links('laundry.partials.completed-pagination') }}@endif
+            </div>
         </section>
     @endif
 
@@ -85,4 +92,10 @@
 </div>
 
 @include('laundry.partials.completed-interactions')
+<style>
+.completed-laundry-footer-universal { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:14px 0 4px; }
+.completed-laundry-pagination-meta { display:inline-flex; align-items:center; flex-wrap:wrap; gap:10px; color:var(--text-muted); font-size:11px; }
+.completed-laundry-pagination-meta form { margin:0; }
+.completed-laundry-pagination-meta select { min-height:32px; padding:4px 28px 4px 9px; font-size:11px; }
+</style>
 @endsection

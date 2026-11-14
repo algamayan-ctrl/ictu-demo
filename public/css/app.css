@@ -1140,11 +1140,11 @@ nav[role="navigation"] svg { width: 18px; height: 18px; }
 .app-pagination { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
 .app-pagination-link {
     display: inline-flex;
-    min-width: 36px;
-    height: 36px;
+    min-width: 32px;
+    height: 32px;
     align-items: center;
     justify-content: center;
-    padding: 4px 10px;
+    padding: 4px 8px;
     color: var(--text-secondary);
     background: var(--surface-elevated);
     border: 1px solid var(--border);
@@ -1156,7 +1156,7 @@ nav[role="navigation"] svg { width: 18px; height: 18px; }
 }
 a.app-pagination-link:hover { color: var(--heading); border-color: var(--border-strong); background: var(--surface-hover); }
 .app-pagination-link.is-active { color: #fff; background: var(--primary-action); border-color: var(--primary-action); }
-.app-pagination-link[aria-disabled="true"] { color: var(--text-soft); background: var(--surface-subtle); cursor: not-allowed; }
+.app-pagination-link[aria-disabled="true"], .app-pagination-link:disabled { color: var(--text-soft); background: var(--surface-subtle); cursor: not-allowed; }
 .app-pagination-ellipsis { padding: 0 2px; color: var(--text-muted); }
 
 
@@ -4097,6 +4097,38 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
     color: var(--danger);
 }
 
+.request-tracker__cancellation-summary {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 6px 12px;
+    align-items: baseline;
+    margin-top: 10px;
+    padding: 11px 2px 0;
+    border-top: 1px solid var(--row-border);
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.request-tracker__cancellation-summary > strong {
+    color: var(--danger);
+    font-size: 12px;
+}
+
+.request-tracker__cancellation-meta {
+    color: var(--text-muted);
+}
+
+.request-tracker__cancellation-label {
+    color: var(--heading);
+    font-weight: 700;
+}
+
+.request-tracker__cancellation-reason {
+    margin: 0;
+    min-width: 0;
+}
+
 .request-tracker__step.is-pending .request-tracker__copy {
     opacity: .72;
 }
@@ -4447,4 +4479,352 @@ html[data-theme="dark"] .login-page .login-alt-divider::after {
         flex: 1 1 105px;
         min-width: 105px;
     }
+}
+
+/* ================================================================
+   Pagination-only UI standard (all SPMU-ACPMP modules).
+   All other toolbars, tables, screens and behaviors are unchanged.
+   34px controls, compact spacing, accessible labels, and theme-aware
+   primary-blue selection.  Never override hidden pagination states.
+   ================================================================ */
+
+/* Unified footer arrangement: result count at left; dropdown directly
+   beside page numbers and arrows at right.  Existing markup and forms
+   still own all pagination behavior. */
+:is(.mr-footer, .notification-pagination, .laundry-pagination-universal,
+    .completed-laundry-footer-universal, .registration-pagination,
+    .borrowings-footer, .sao-record-pagination, .sao-stock-card-footer,
+    .sao-history-footer, .sao-release-footer, .operational-pagination,
+    .report-records-footer, .borrower-inventory-footer, .spmu-inventory-footer,
+    .approval-queue-footer, .custody-oversight-footer,
+    .accountability-table-browser-footer) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    gap: 8px 10px !important;
+}
+:is(.mr-footer, .notification-pagination, .laundry-pagination-universal,
+    .completed-laundry-footer-universal, .registration-pagination,
+    .borrowings-footer, .sao-record-pagination, .sao-stock-card-footer,
+    .sao-history-footer, .sao-release-footer, .operational-pagination)
+> :is(.mr-pagination-meta, .notification-pagination-meta, .laundry-pagination-meta,
+      .completed-laundry-pagination-meta, .registration-pagination-meta,
+      .borrowings-pagination-meta, .sao-record-pagination-meta,
+      .sao-stock-card-pagination-meta, .sao-history-pagination-meta,
+      .sao-release-pagination-meta, .operational-pagination-meta) {
+    display: contents !important;
+}
+/* In display:contents meta wrappers, the summary becomes a separate
+   flex item so it doesn't push the dropdown away from the page buttons. */
+:is(.mr-footer, .notification-pagination, .laundry-pagination-universal,
+    .completed-laundry-footer-universal, .registration-pagination,
+    .borrowings-footer, .sao-record-pagination, .sao-stock-card-footer,
+    .sao-history-footer, .sao-release-footer, .operational-pagination)
+> :is(.mr-pagination-meta, .notification-pagination-meta, .laundry-pagination-meta,
+      .completed-laundry-pagination-meta, .registration-pagination-meta,
+      .borrowings-pagination-meta, .sao-record-pagination-meta,
+      .sao-stock-card-pagination-meta, .sao-history-pagination-meta,
+      .sao-release-pagination-meta, .operational-pagination-meta)
+> :is(p, span:not(.sr-only):not(.visually-hidden)) {
+    margin: 0 auto 0 0 !important;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 450;
+}
+:is(.mr-footer, .notification-pagination, .laundry-pagination-universal,
+    .completed-laundry-footer-universal, .registration-pagination,
+    .borrowings-footer, .sao-record-pagination, .sao-stock-card-footer,
+    .sao-history-footer, .sao-release-footer, .operational-pagination)
+> :is(.mr-pagination-meta, .notification-pagination-meta, .laundry-pagination-meta,
+      .completed-laundry-pagination-meta, .registration-pagination-meta,
+      .borrowings-pagination-meta, .sao-record-pagination-meta,
+      .sao-stock-card-pagination-meta, .sao-history-pagination-meta,
+      .sao-release-pagination-meta, .operational-pagination-meta)
+> :is(form, select, label:not(.sr-only):not(.visually-hidden)) {
+    margin: 0 0 0 auto !important;
+}
+/* Footer variants with a dedicated summary and controls group. */
+:is(.report-records-footer, .borrower-inventory-footer, .spmu-inventory-footer,
+    .approval-queue-footer) > :is(p, .report-records-summary) {
+    margin: 0 auto 0 0 !important;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+:is(.report-records-controls, .borrower-inventory-pagination-group,
+    .spmu-inventory-pagination-group, .accountability-pagination,
+    .custody-oversight-pagination, .gate-pass-pagination,
+    .approval-queue-pagination, .operational-pagination-controls,
+    .sao-history-pagination, .sao-stock-card-pagination,
+    .sao-release-pagination, .borrowings-pagination-controls) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+:is(.report-records-controls, .borrower-inventory-pagination-group,
+    .spmu-inventory-pagination-group, .accountability-pagination,
+    .custody-oversight-pagination, .gate-pass-pagination,
+    .approval-queue-pagination, .operational-pagination-controls,
+    .sao-history-pagination, .sao-stock-card-pagination,
+    .sao-release-pagination, .borrowings-pagination-controls) {
+    margin-left: auto !important;
+}
+:is(.mr-footer, .notification-pagination, .laundry-pagination-universal,
+    .completed-laundry-footer-universal, .registration-pagination,
+    .borrowings-footer, .sao-record-pagination, .sao-stock-card-footer,
+    .sao-history-footer, .sao-release-footer, .operational-pagination)
+> :is(nav, .app-pagination, .completed-laundry-pagination,
+      .borrowings-pagination-controls, .sao-history-pagination,
+      .sao-stock-card-pagination, .sao-release-pagination,
+      .operational-pagination-controls) {
+    margin: 0 !important;
+}
+:is(.accountability-table-browser-footer, .custody-oversight-footer)
+> :is(.accountability-page-size-control, .custody-oversight-page-size) {
+    margin: 0 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+:is(.accountability-table-browser-footer, .custody-oversight-footer)
+> :is(.accountability-pagination, .custody-oversight-pagination) {
+    margin-left: 0 !important;
+}
+/* Keep accessible field names without displaying labels above the menu. */
+:is(.mr-footer, .notification-pagination, .laundry-pagination-universal,
+    .completed-laundry-footer-universal, .registration-pagination,
+    .borrowings-footer, .sao-record-pagination, .sao-stock-card-footer,
+    .sao-history-footer, .sao-release-footer, .operational-pagination,
+    .ictu-users-pagination-meta, .ictu-audit-pagination,
+    .notification-delivery-pagination, .borrower-inventory-page-size,
+    .spmu-inventory-page-size) :is(.sr-only, .visually-hidden) {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+/* Match the pagination dropdown to page buttons, not to big form inputs. */
+:is(.mr-footer, .notification-pagination, .laundry-pagination-universal,
+    .completed-laundry-footer-universal, .registration-pagination,
+    .borrowings-footer, .sao-record-pagination, .sao-stock-card-footer,
+    .sao-history-footer, .sao-release-footer, .operational-pagination,
+    .accountability-table-browser-footer, .custody-oversight-footer,
+    .report-records-controls, .borrower-inventory-page-size,
+    .spmu-inventory-page-size, .ictu-users-pagination-meta,
+    .ictu-audit-pagination, .notification-delivery-pagination)
+select:is([name="per_page"], [name$="_per_page"], [aria-label*="per page"],
+          [data-operational-page-size], [data-release-page-size],
+          [data-sao-record-page-size]) {
+    box-sizing: border-box !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 190px !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    margin: 0 !important;
+    padding: 4px 28px 4px 10px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    background-color: var(--surface-elevated) !important;
+    color: var(--heading) !important;
+    font-size: 12px !important;
+    font-weight: 550 !important;
+    line-height: 1.2 !important;
+    box-shadow: none !important;
+}
+/* Select controls whose aria labels are on the wrapper, and report pages. */
+html body :is(.report-records-controls .report-per-page-control,
+             .accountability-page-size-control,
+             .custody-oversight-page-size,
+             .ictu-users-pagination-meta,
+             .ictu-audit-pagination,
+             .notification-delivery-pagination,
+             .borrower-inventory-page-size,
+             .spmu-inventory-page-size) select {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 190px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 4px 28px 4px 10px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    color: var(--heading) !important;
+    background-color: var(--surface-elevated) !important;
+    font-size: 12px !important;
+    font-weight: 550 !important;
+}
+:is(.mr-footer, .notification-pagination, .laundry-pagination-universal,
+    .completed-laundry-footer-universal, .report-records-controls)
+form { margin-top: 0 !important; margin-bottom: 0 !important; }
+/* Align the server-rendered and JS-generated page numbers. */
+:is(.app-pagination, .report-pagination, .completed-laundry-pagination,
+    .gate-pass-page-numbers, .ictu-users-pagination-buttons,
+    .ictu-audit-page-buttons, .notification-delivery-page-buttons,
+    .sao-record-pagination nav, .sao-release-pagination nav,
+    .operational-pagination nav, [data-sao-record-pages],
+    [data-release-pages], [data-operational-pages]) {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 5px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+/* Shared compact pagination button geometry, including custom list pages. */
+html body :is(.app-pagination-link, .report-page-link, .completed-page-link,
+    .approval-queue-page, .custody-oversight-page,
+    .borrower-inventory-page, .spmu-inventory-page, .gate-pass-page,
+    .accountability-page-button, .ictu-users-page-button,
+    .ictu-audit-page-button, .notification-delivery-page-button) {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 34px !important;
+    max-width: 100% !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    margin: 0 !important;
+    padding: 4px 9px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    background: var(--surface-elevated) !important;
+    color: var(--text-secondary) !important;
+    box-shadow: none !important;
+    font-family: inherit !important;
+    font-size: 12px !important;
+    font-weight: 650 !important;
+    line-height: 1 !important;
+    text-decoration: none !important;
+}
+/* The 'first' and 'last' arrow links in reports must not be 96px wide. */
+html body .report-records-controls .report-pagination .report-page-link:first-child,
+html body .report-records-controls .report-pagination .report-page-link:last-child {
+    width: auto !important;
+    min-width: 34px !important;
+    padding: 4px 9px !important;
+}
+html body :is(.app-pagination-link, .report-page-link, .completed-page-link,
+    .approval-queue-page, .custody-oversight-page,
+    .borrower-inventory-page, .spmu-inventory-page, .gate-pass-page,
+    .accountability-page-button, .ictu-users-page-button,
+    .ictu-audit-page-button, .notification-delivery-page-button):is(.is-active, .is-current, [aria-current="page"]) {
+    background: var(--primary-action) !important;
+    border-color: var(--primary-action) !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    font-weight: 750 !important;
+}
+html body :is(a.app-pagination-link, a.report-page-link, a.completed-page-link,
+    button.app-pagination-link, button.approval-queue-page,
+    button.custody-oversight-page, button.borrower-inventory-page,
+    button.spmu-inventory-page, button.gate-pass-page,
+    button.accountability-page-button, button.ictu-users-page-button,
+    button.ictu-audit-page-button, button.notification-delivery-page-button):hover:not(:disabled):not([aria-disabled="true"]):not(.is-active):not(.is-current):not([aria-current="page"]) {
+    border-color: var(--primary-action) !important;
+    background: var(--primary-action) !important;
+    color: #fff !important;
+}
+html body :is(.app-pagination-link, .report-page-link, .completed-page-link,
+    .approval-queue-page, .custody-oversight-page,
+    .borrower-inventory-page, .spmu-inventory-page, .gate-pass-page,
+    .accountability-page-button, .ictu-users-page-button,
+    .ictu-audit-page-button, .notification-delivery-page-button)
+:is(:disabled, [aria-disabled="true"]) {
+    color: var(--text-soft) !important;
+    background: var(--surface-subtle) !important;
+    border-color: var(--border) !important;
+    cursor: not-allowed !important;
+    opacity: .8 !important;
+}
+html body :is(.app-pagination-link, .report-page-link, .completed-page-link,
+    .approval-queue-page, .custody-oversight-page,
+    .borrower-inventory-page, .spmu-inventory-page, .gate-pass-page,
+    .accountability-page-button, .ictu-users-page-button,
+    .ictu-audit-page-button, .notification-delivery-page-button)
+:is(:disabled, [aria-disabled="true"]) .ui-icon { color: var(--text-soft) !important; }
+/* Keep the blue active page readable in both themes. */
+html[data-theme="dark"] body :is(.app-pagination-link, .report-page-link,
+    .completed-page-link, .approval-queue-page, .custody-oversight-page,
+    .borrower-inventory-page, .spmu-inventory-page, .gate-pass-page,
+    .accountability-page-button, .ictu-users-page-button,
+    .ictu-audit-page-button, .notification-delivery-page-button):is(.is-active, .is-current, [aria-current="page"]) { color: #fff !important; }
+/* No extra spacing inside page-number or arrow groups. */
+:is(.ictu-users-pagination-meta, .ictu-audit-pagination,
+    .notification-delivery-pagination) {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 7px !important;
+    font-size: 12px !important;
+}
+:is(.ictu-users-pagination-divider, .ictu-audit-page-divider,
+    .notification-delivery-page-divider) { display: none !important; }
+:is(#ictu-user-page-indicator, #audit-page-indicator, #delivery-page-indicator) {
+    order: -1;
+    font-size: 12px !important;
+    color: var(--text-muted) !important;
+}
+:is(.ictu-users-pagination-meta, .ictu-audit-pagination,
+    .notification-delivery-pagination) > select { margin: 0 !important; }
+/* Footer labels and navigation must never overtake the table content. */
+:is(.mr-footer, .notification-pagination, .laundry-pagination-universal,
+    .completed-laundry-footer-universal, .registration-pagination,
+    .borrowings-footer, .sao-record-pagination, .sao-stock-card-footer,
+    .sao-history-footer, .sao-release-footer, .operational-pagination,
+    .report-records-footer) {
+    font-size: 12px !important;
+}
+:is(.registration-pagination-meta .pagination-result-summary,
+    .notification-pagination-meta > span,
+    .completed-laundry-pagination-meta > span,
+    .laundry-pagination-meta > span) { margin-right: auto !important; }
+/* Registration's form has hidden inputs only; don't reserve layout width. */
+.registration-pagination-meta > #registration-page-size-form { display: none !important; }
+/* Some pagers are initially hidden while JS evaluates the active filters. */
+:is(.sao-record-pagination, .sao-release-footer, .operational-pagination,
+    .gate-pass-pagination, .custody-oversight-pagination,
+    .approval-queue-pagination)[hidden] { display: none !important; }
+@media (max-width: 600px) {
+    :is(.mr-footer, .notification-pagination, .laundry-pagination-universal,
+        .completed-laundry-footer-universal, .registration-pagination,
+        .borrowings-footer, .sao-record-pagination, .sao-stock-card-footer,
+        .sao-history-footer, .sao-release-footer, .operational-pagination,
+        .report-records-footer, .borrower-inventory-footer,
+        .spmu-inventory-footer) { row-gap: 10px !important; }
+    :is(.report-records-controls, .borrower-inventory-pagination-group,
+        .spmu-inventory-pagination-group) { justify-content: flex-end !important; }
+}
+
+/* Pagination states only: keep current page and hovered enabled controls blue. */
+html body :is(.app-pagination-link, .report-page-link, .completed-page-link,
+    .approval-queue-page, .custody-oversight-page, .borrower-inventory-page,
+    .spmu-inventory-page, .gate-pass-page, .accountability-page-button,
+    .ictu-users-page-button, .ictu-audit-page-button,
+    .notification-delivery-page-button):is(.is-active, .is-current, [aria-current="page"]) {
+    background: var(--primary-action) !important;
+    border-color: var(--primary-action) !important;
+    color: #fff !important;
+}
+html body :is(a.app-pagination-link, a.report-page-link, a.completed-page-link,
+    button.app-pagination-link, button.approval-queue-page,
+    button.custody-oversight-page, button.borrower-inventory-page,
+    button.spmu-inventory-page, button.gate-pass-page,
+    button.accountability-page-button, button.ictu-users-page-button,
+    button.ictu-audit-page-button, button.notification-delivery-page-button):hover:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--primary-action) !important;
+    border-color: var(--primary-action) !important;
+    color: #fff !important;
 }

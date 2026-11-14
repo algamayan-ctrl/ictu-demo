@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\AccessClassification;
 use App\Enums\RequestStatus;
 use App\Models\BillingStatement;
+use App\Models\AuditEvent;
 use App\Models\BorrowerRestriction;
 use App\Models\BorrowingRequest;
 use App\Models\CustodyTransaction;
@@ -1394,8 +1395,14 @@ CSS;
         return $this->saveHtml('OFFICIAL_FORM_PACKET', '<!doctype html><html><head>'.$this->officialCss().'</head><body>'.implode('<div class="page-break"></div>', $htmlPages).'</body></html>', $custody->request->currentVersion, $custody::class, $custody->id, 'FINAL', $custody->custody_no.'-OFFICIAL-PACKET.pdf');
     }
 
-    public function billingStatement(BillingStatement $billing, ?SignatureSnapshot $authorizationSignature = null): GeneratedDocument
+    public function billingStatement(
+        BillingStatement $billing,
+        ?SignatureSnapshot $authorizationSignature = null,
+        int $documentRevision = 1
+    ): GeneratedDocument
     {
+        $documentRevision = max(1, $documentRevision);
+
         $billing->loadMissing([
             'borrower.organizationalUnit',
             'responsibleSpmuUser',
@@ -1405,7 +1412,7 @@ CSS;
         ]);
 
         if ($customTemplate = $this->activeUploadedTemplate('BILLING_STATEMENT')) {
-            return $this->saveRenderedTemplate(
+            $document = $this->saveRenderedTemplate(
                 $customTemplate,
                 'BILLING_STATEMENT',
                 $this->renderCustomTemplate($customTemplate, $this->billingStatementRenderData($billing, $authorizationSignature)),
@@ -1415,17 +1422,76 @@ CSS;
                 'FINAL',
                 $billing->billing_no.'.pdf',
             );
+
+            if ((int) $document->version_no !== $documentRevision) {
+                $document->update(['version_no' => $documentRevision]);
+            }
+
+            return $document;
         }
 
-        return $this->saveHtml(
+        $document = $this->saveHtml(
             'BILLING_STATEMENT',
-            $this->billingStatementHtml($billing, $authorizationSignature),
+            $this->billingStatementHtml($billing, $authorizationSignature, $documentRevision),
             null,
             $billing::class,
             $billing->id,
             'FINAL',
             $billing->billing_no.'.pdf',
         );
+
+        if ((int) $document->version_no !== $documentRevision) {
+            $document->update(['version_no' => $documentRevision]);
+        }
+
+        return $document;
+    }
+
+    /**
+     * Reissue a Late Return Billing Statement when its controlled layout is
+     * revised. The billing amount and issued date stay untouched; only the
+     * print copy changes. The former generated PDF remains on record as a
+     * superseded copy for audit purposes.
+     */
+    public function reissueLateReturnBillingStatement(BillingStatement $billing): GeneratedDocument
+    {
+        $billing->loadMissing('lines');
+
+        if (! $billing->isLateReturnBilling()) {
+            throw new \InvalidArgumentException('Only Late Return Billing Statements can be reissued through this format refresh.');
+        }
+
+        $documents = GeneratedDocument::query()
+            ->where('subject_type', $billing::class)
+            ->where('subject_id', $billing->id)
+            ->where('document_type', 'BILLING_STATEMENT')
+            ->orderBy('id')
+            ->get();
+
+        $nextRevision = max(1, ((int) $documents->max('version_no')) + 1);
+
+        $documents
+            ->where('status', 'FINAL')
+            ->each(fn (GeneratedDocument $document) => $document->update([
+                'status' => 'SUPERSEDED',
+                'invalidated_at' => now(),
+                'invalidation_reason' => 'Replaced by a revised Late Return Billing Statement layout.',
+            ]));
+
+        $billingAudit = AuditEvent::query()
+            ->where('action_code', 'LATE_RETURN_FEE_BILLED')
+            ->where('record_type', $billing::class)
+            ->where('record_id', $billing->id)
+            ->latest('id')
+            ->first(['after_json']);
+
+        $approvalSnapshotId = data_get($billingAudit?->after_json, 'head_signature_snapshot_id');
+
+        $approvalSignature = $approvalSnapshotId
+            ? SignatureSnapshot::query()->find($approvalSnapshotId)
+            : null;
+
+        return $this->billingStatement($billing, $approvalSignature, $nextRevision);
     }
 
     public function lateReturnNotice(
@@ -1712,7 +1778,11 @@ CSS;
         );
     }
 
-    private function billingStatementHtml(BillingStatement $billing, ?SignatureSnapshot $authorizationSignature = null): string
+    private function billingStatementHtml(
+        BillingStatement $billing,
+        ?SignatureSnapshot $authorizationSignature = null,
+        int $documentRevision = 1
+    ): string
     {
         $sourceLine = $billing->lines->first();
         $incident = $sourceLine?->incident ?: $sourceLine?->penalty?->incident;
@@ -1728,6 +1798,8 @@ CSS;
             'documentTitle' => $billing->isLateReturnBilling() ? 'Late Return Billing Statement' : 'Billing Statement / Assessment Notice',
             'logoDataUri' => $logoDataUri,
             'issuedDate' => $billing->issued_at?->copy()->timezone('Asia/Manila')->format('d F Y') ?: '—',
+            'effectiveDate' => $billing->issued_at?->copy()->timezone('Asia/Manila')->format('d F Y') ?: '—',
+            'documentRevision' => 'Rev. '.max(1, $documentRevision),
             'dueDate' => $billing->due_at?->copy()->timezone('Asia/Manila')->format('d F Y'),
             'officeUnit' => (string) ($billing->borrower?->organizationalUnit?->unit_name
                 ?? $billing->borrower?->organizationalUnit?->name

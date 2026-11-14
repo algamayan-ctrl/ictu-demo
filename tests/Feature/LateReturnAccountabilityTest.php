@@ -1178,8 +1178,8 @@ class LateReturnAccountabilityTest extends TestCase
             ->actingAs($officer)
             ->get(route('custody.return.show', $custody))
             ->assertOk()
-            ->assertSee('Laundry Received Date')
-            ->assertSee('Enter the actual RECEIVED BY date on the signed form.');
+            ->assertSee('Date received by Laundry')
+            ->assertSee('Use the date written under RECEIVED BY on the signed form.');
     }
 
     public function test_linen_with_worker_received_date_but_no_accomplished_form_still_requires_form_upload(): void
@@ -1191,9 +1191,9 @@ class LateReturnAccountabilityTest extends TestCase
             ->actingAs($this->officer())
             ->get(route('custody.return.show', $custody))
             ->assertOk()
-            ->assertSee('Record Form')
-            ->assertSee('Laundry Received Date')
-            ->assertSee('Enter the actual RECEIVED BY date on the signed form.')
+            ->assertSee('Upload Form')
+            ->assertSee('Date received by Laundry')
+            ->assertSee('Use the date written under RECEIVED BY on the signed form.')
             ->assertSee('name="laundry_received_on"', false)
             ->assertDontSee('03 Sep 2026');
     }

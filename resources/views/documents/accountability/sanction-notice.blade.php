@@ -6,15 +6,17 @@
 </head>
 <body>
 <section class="official-document">
-    <table class="document-header" role="presentation">
+    <table class="accountability-form-header" role="presentation">
         <tr>
-            <td class="document-logo-cell"><img class="document-logo" src="{{ $logoDataUri }}" alt="CSPC logo"></td>
-            <td class="document-header-copy">
+            <td class="accountability-form-logo-cell"><img class="accountability-form-logo" src="{{ $logoDataUri }}" alt="CSPC logo"></td>
+            <td class="accountability-form-identity">
+                <span>Republic of the Philippines</span>
                 <strong>CAMARINES SUR POLYTECHNIC COLLEGES</strong>
-                <span>Supply and Property Management Unit · Nabua, Camarines Sur</span>
+                <span>Nabua, Camarines Sur</span>
             </td>
         </tr>
     </table>
+    <div class="accountability-form-rule"><span>CSPC-F-SPMU-26</span></div>
 
     <div class="document-title">
         <h1>{{ $hasBorrowingSuspension ? 'Suspension Notice' : 'Administrative Sanction Notice' }}</h1>

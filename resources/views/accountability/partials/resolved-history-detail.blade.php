@@ -22,6 +22,9 @@
         $headDecisionReason = $headDisposition ? $incident->headDecisionReason() : null;
         $relatedSanction = $row['related_sanction'] ?? null;
     @endphp
+    @if($isBorrower ?? false)
+        <h4 class="ob-history-section-heading">Accountability Finding</h4>
+    @endif
     <dl class="resolved-history-facts" data-resolved-incident-facts>
         <div>
             <dt>Incident</dt>
@@ -84,6 +87,9 @@
 @endif
 
 @if($case)
+    @if($isBorrower ?? false)
+        <h4 class="ob-history-section-heading">Return and Fee Summary</h4>
+    @endif
     <dl class="resolved-history-facts">
         <div>
             <dt>Expected Return</dt>
@@ -108,7 +114,10 @@
     </dl>
 @endif
 
-<div class="resolved-history-detail">
+@if($isBorrower ?? false)
+    <h4 class="ob-history-section-heading">Approval, Payment and Resolution</h4>
+@endif
+<div class="resolved-history-detail {{ ($isBorrower ?? false) ? 'ob-history-stages' : '' }}">
     @if($case?->ao_confirmed_at)
         <section>
             <h4>AO Confirmation</h4>
@@ -171,26 +180,33 @@
     </section>
 </div>
 
-@if($lateReturnNotice || $billing || $payment?->evidence_file_id)
-    <div class="resolved-history-links">
+@php
+    $historyBillingDocuments = ($billing?->documents ?? collect())
+        ->whereNotIn('status', ['SUPERSEDED', 'INVALIDATED', 'EXPIRED']);
+@endphp
+@if($lateReturnNotice || $historyBillingDocuments->isNotEmpty() || $payment?->evidence_file_id)
+    @if($isBorrower ?? false)
+        <h4 class="ob-history-section-heading">Related Documents</h4>
+    @endif
+    <div class="resolved-history-links {{ ($isBorrower ?? false) ? 'ob-history-documents' : '' }}">
         @if($lateReturnNotice)
             <a href="{{ route('documents.preview', $lateReturnNotice) }}">
                 <x-icon name="external-link" size="15" />
-                Preview
+                {{ ($isBorrower ?? false) ? 'View Late Return Notice' : 'Preview' }}
             </a>
         @endif
 
-        @foreach(($billing?->documents ?? collect())->whereNotIn('status', ['SUPERSEDED', 'INVALIDATED', 'EXPIRED']) as $document)
+        @foreach($historyBillingDocuments as $document)
             <a href="{{ route('documents.preview', $document) }}">
                 <x-icon name="external-link" size="15" />
-                Preview
+                {{ ($isBorrower ?? false) ? 'View '.str($document->document_type)->replace('_', ' ')->title() : 'Preview' }}
             </a>
         @endforeach
 
         @if($payment?->evidence_file_id)
             <a href="{{ route('files.preview', $payment->evidence_file_id, false) }}">
                 <x-icon name="external-link" size="15" />
-                Preview
+                {{ ($isBorrower ?? false) ? 'View Payment Evidence' : 'Preview' }}
             </a>
         @endif
     </div>

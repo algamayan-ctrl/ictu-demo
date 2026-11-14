@@ -99,6 +99,13 @@
 
 .borrower-custody-status-copy { flex: 1 1 auto; }
 
+.borrower-custody-heading-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
 .borrower-custody-status-fact {
     flex: 0 0 auto;
     min-width: 0;
@@ -261,15 +268,111 @@
     white-space: nowrap;
 }
 
-.borrower-items-table td.is-quantity strong {
-    color: var(--interactive);
-    font-size: 13.5px;
-    font-weight: 750;
+.borrower-items-table.is-custody-summary th:not(:first-child),
+.borrower-items-table.is-custody-summary td:not(:first-child) {
+    width: 38%;
+}
+
+.borrower-items-table.is-custody-summary td.borrower-item-quantities {
+    text-align: left;
+    white-space: normal;
+}
+
+.borrower-item-quantity-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.borrower-item-quantity-grid > span { min-width: 0; }
+
+.borrower-item-quantity-grid small {
+    display: block;
+    margin: 0 0 3px;
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.borrower-item-quantity-grid strong {
+    display: block;
+    color: var(--heading);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
 }
 
 .borrower-items-table td.is-muted { color: var(--text-muted); }
 
-{{-- /* 5. Processing ----------------------------------------------------------- */ --}}
+{{-- /* 5. Accountability ------------------------------------------------------- */ --}}
+
+.borrower-accountability-card {
+    overflow: hidden;
+    border-left: 3px solid var(--warning);
+}
+
+.borrower-accountability-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.borrower-accountability-card-header .eyebrow {
+    margin: 0 0 2px;
+    font-size: 11px;
+    letter-spacing: .05em;
+}
+
+.borrower-accountability-card-header h2 {
+    margin: 0;
+    color: var(--heading);
+    font-size: 16px;
+    line-height: 1.3;
+}
+
+.borrower-accountability-card-body {
+    display: grid;
+    grid-template-columns: minmax(180px, .85fr) minmax(0, 1.6fr) auto;
+    gap: 18px;
+    align-items: center;
+    padding: 14px 20px;
+}
+
+.borrower-accountability-detail { min-width: 0; }
+
+.borrower-accountability-detail small {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text-muted);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.borrower-accountability-detail strong,
+.borrower-accountability-detail span {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.borrower-accountability-detail strong {
+    color: var(--heading);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.borrower-accountability-detail span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+{{-- /* 6. Processing ----------------------------------------------------------- */ --}}
 
 .borrower-processing-row {
     display: grid;
@@ -503,6 +606,11 @@
         flex-wrap: wrap;
     }
 
+    .borrower-custody-heading-actions {
+        align-items: flex-end;
+        flex-direction: column;
+    }
+
     .borrower-summary-grid { grid-template-columns: 1fr; }
     .borrower-summary-fact,
     .borrower-summary-fact:nth-child(3n + 1):last-child { grid-column: auto; }
@@ -513,8 +621,15 @@
         gap: 9px;
     }
 
+    .borrower-accountability-card-body {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
     .borrower-items-table th,
     .borrower-items-table td { padding: 10px 14px; }
+
+    .borrower-item-quantity-grid { gap: 10px; }
 }
 
 {{-- /* ==========================================================
@@ -683,39 +798,46 @@
    BORROWER TRANSACTION DOCUMENT HEADER START
    ========================================================== */ --}}
 
-.borrower-document-card .card-header {
+.borrower-document-card .borrower-document-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    gap: 16px;
 }
 
-.borrower-document-card .card-header > svg,
-.borrower-document-card .card-header > .icon {
-    flex: 0 0 auto;
+.borrower-document-heading {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
 }
 
-.borrower-document-left-title {
-    flex: 0 1 auto;
-    margin-right: auto;
-    font-size: 17px;
+.borrower-document-heading h2 {
+    margin: 0;
+    color: var(--heading);
+    font-size: 16px;
     font-weight: 700;
-    line-height: 1.25;
-    color: var(--text);
+    line-height: 1.3;
 }
 
-.borrower-document-card .card-header > :last-child {
-    margin-left: auto;
+.borrower-document-caption {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: right;
 }
 
 @media (max-width: 680px) {
 
-    .borrower-document-card .card-header {
-        flex-wrap: wrap;
+    .borrower-document-card .borrower-document-header {
         align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
     }
 
-    .borrower-document-left-title {
-        flex: 1 1 auto;
+    .borrower-document-caption {
+        text-align: left;
     }
 }
 

@@ -1386,7 +1386,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                     <img
                         class="sidebar-brand-logo-image"
                         src="{{ \App\Support\StaticAsset::url('images/spmu-acpmp-logo.png') }}"
-                        alt="SPMU-ACPMP Ã¢â‚¬â€ Supply and Property Management Unit, Asset Custody Monitoring Program"
+                        alt="SPMU-ACPMP — Supply and Property Management Unit, Asset Custody Monitoring Program"
                     >
                 </a>
                 <button class="icon-button sidebar-close" type="button" aria-label="Close main menu" title="Close main menu" data-sidebar-close><x-icon name="close" /></button>
@@ -1479,19 +1479,19 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                             <a
                                 class="interactive {{ request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'work' ? 'active' : '' }}"
                                 href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace"
-                                data-sidebar-tooltip="{{ $classification === App\Enums\AccessClassification::SpmuHead ? 'Needs My Decision' : 'For Follow-Up' }}"
+                                data-sidebar-tooltip="{{ $classification === App\Enums\AccessClassification::SpmuHead ? 'Needs My Decision' : 'Needs Your Action' }}"
                                 @if(request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'work') aria-current="page" @endif
                             >
-                                {{ $classification === App\Enums\AccessClassification::SpmuHead ? 'Needs My Decision' : 'For Follow-Up' }}
+                                {{ $classification === App\Enums\AccessClassification::SpmuHead ? 'Needs My Decision' : 'Needs Your Action' }}
                             </a>
 
                             <a
                                 class="interactive {{ request()->routeIs('accountability.borrower') || (request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'all') ? 'active' : '' }}"
                                 href="{{ route('accountability.index', ['queue' => 'all']) }}#accountability-workspace"
-                                data-sidebar-tooltip="All Active Cases"
+                                data-sidebar-tooltip="{{ $classification === App\Enums\AccessClassification::SpmuHead ? 'All Active Cases' : 'Open Cases' }}"
                                 @if(request()->routeIs('accountability.borrower') || (request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'all')) aria-current="page" @endif
                             >
-                                All Active Cases
+                                {{ $classification === App\Enums\AccessClassification::SpmuHead ? 'All Active Cases' : 'Open Cases' }}
                             </a>
 
                             @if($classification === App\Enums\AccessClassification::SpmuHead)
@@ -1508,10 +1508,10 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                             <a
                                 class="interactive {{ request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'history' ? 'active' : '' }}"
                                 href="{{ route('accountability.index', ['queue' => 'history']) }}#accountability-workspace"
-                                data-sidebar-tooltip="History"
+                                data-sidebar-tooltip="{{ $classification === App\Enums\AccessClassification::SpmuHead ? 'History' : 'Resolved Cases' }}"
                                 @if(request()->routeIs('accountability.index') && $accountabilitySidebarQueue === 'history') aria-current="page" @endif
                             >
-                                History
+                                {{ $classification === App\Enums\AccessClassification::SpmuHead ? 'History' : 'Resolved Cases' }}
                             </a>
                         </div>
 
@@ -1643,7 +1643,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
             <img
                 class="brand-logo-image"
                 src="{{ \App\Support\StaticAsset::url('images/spmu-acpmp-logo.png') }}"
-                alt="SPMU-ACPMP Ã¢â‚¬â€ Supply and Property Management Unit, Asset Custody Monitoring Program"
+                        alt="SPMU-ACPMP — Supply and Property Management Unit, Asset Custody Monitoring Program"
             >
         </a>
                 @unless(request()->routeIs('home', 'login'))

@@ -22,3 +22,33 @@ test('pre-confirmation submit still opts out of the global duplicate-submit lock
     assert.match(view, /form\.dataset\.allowRepeatedSubmit = 'true';/);
     assert.match(view, /delete form\.dataset\.allowRepeatedSubmit;/);
 });
+
+test('acknowledgement is required only for final submission, not for saving a draft', () => {
+    const acknowledgement = view.match(
+        /id="final-confirmation"[\s\S]*?>/
+    );
+
+    assert.ok(acknowledgement, 'acknowledgement checkbox should exist');
+    assert.doesNotMatch(acknowledgement[0], /\srequired(?:\s|>)/);
+    assert.match(view, /if \(!finalConfirmation\?\.checked\) \{/);
+    assert.match(view, /if \(intent !== 'submit'\) \{\s*return;/);
+});
+
+test('a returned request requires fresh signed documents and does not preview the old version', () => {
+    assert.match(
+        view,
+        /Upload a new corrected, signed borrowing request letter to submit this revision\./
+    );
+    assert.match(
+        view,
+        /@if\(\$requestLetter && ! \$isReturned\)/
+    );
+    assert.match(
+        view,
+        /@if\(\$ptc && ! \$isReturned\)/
+    );
+    assert.match(
+        view,
+        /\$requestLetterForSubmission = \$isReturned \? null : \$requestLetter;/
+    );
+});

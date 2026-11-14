@@ -271,7 +271,7 @@ class DashboardController extends Controller
                 ->all();
 
             $recentBorrowerActivityQuery = BorrowingRequest::query()
-                ->with(['currentVersion', 'custody'])
+                ->with(['currentVersion', 'custody', 'latestCancellation'])
                 ->where('borrower_user_id', $user->id);
 
             if ($excludedRecentRequestIds !== []) {

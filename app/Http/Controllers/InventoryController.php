@@ -946,10 +946,10 @@ class InventoryController extends Controller
     private function borrowingHistoryPage(Request $request, InventoryItem $item, $rows): array
     {
         $filters = $request->validate([
-            'history_per_page' => ['nullable', 'integer', Rule::in([10, 30, 50, 100])],
+            'history_per_page' => ['nullable', 'integer', Rule::in([7, 15, 30, 50])],
             'history_page' => ['nullable', 'integer', 'min:1', 'max:100000'],
         ]);
-        $perPage = (int) ($filters['history_per_page'] ?? 10);
+        $perPage = (int) ($filters['history_per_page'] ?? 7);
         $page = min((int) ($filters['history_page'] ?? 1), max(1, (int) ceil($rows->count() / $perPage)));
 
         return [
@@ -979,7 +979,7 @@ class InventoryController extends Controller
         $filters = $request->validate([
             'stock_q' => ['nullable', 'string', 'max:200'],
             'stock_movement' => ['nullable', Rule::in(['ALL', 'RECEIPT', 'ISSUE'])],
-            'stock_per_page' => ['nullable', 'integer', Rule::in([10, 30, 50, 100])],
+            'stock_per_page' => ['nullable', 'integer', Rule::in([7, 15, 30, 50])],
             'stock_page' => ['nullable', 'integer', 'min:1', 'max:100000'],
         ]);
         $card = app(InventoryStockCardService::class)->forItem($item, $balance);
@@ -992,7 +992,7 @@ class InventoryController extends Controller
             return ($movement === 'ALL' || $row['kind'] === $movement)
                 && ($search === '' || mb_stripos($text, $search) !== false);
         })->values();
-        $perPage = (int) ($filters['stock_per_page'] ?? 10);
+        $perPage = (int) ($filters['stock_per_page'] ?? 7);
         $page = min((int) ($filters['stock_page'] ?? 1), max(1, (int) ceil($rows->count() / $perPage)));
 
         return array_merge($card, [

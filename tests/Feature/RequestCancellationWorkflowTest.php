@@ -114,10 +114,44 @@ class RequestCancellationWorkflowTest extends TestCase
                 ->exists()
         );
 
+        // The borrower must be able to see the recorded reason everywhere a
+        // cancelled request can be opened, not only in the email notification.
+        foreach ([
+            route('requests.show', $request->fresh()),
+            route('custody.show', $custody->fresh()),
+            route('notifications.index'),
+            route('dashboard'),
+        ] as $url) {
+            $this->actingAs($borrower)
+                ->withSession(['active_workspace' => 'BORROWER'])
+                ->get($url)
+                ->assertOk()
+                ->assertSeeText('Cancellation reason')
+                ->assertSeeText('No longer needed for the activity.');
+        }
+
+        $this->actingAs($borrower)
+            ->withSession(['active_workspace' => 'BORROWER'])
+            ->get(route('requests.show', $request->fresh()))
+            ->assertOk()
+            ->assertSeeInOrder(['Submitted', 'SPMU Head Review', 'Cancelled'])
+            ->assertSeeText('Cancelled')
+            ->assertDontSeeText('Pickup Missed')
+            ->assertDontSeeText('Release Processing')
+            ->assertDontSeeText('Return Processing');
+
         // A borrower-initiated cancellation notifies Action Officers that no
         // further release action is required (RequestWorkflowService::
         // finalizeCancellation()).
         $officer = User::where('access_classification', AccessClassification::SpmuOfficer->value)->firstOrFail();
+        $this->actingAs($officer)
+            ->withSession(['active_workspace' => 'SPMU'])
+            ->get(route('requests.show', $request->fresh()))
+            ->assertOk()
+            ->assertSeeText('Cancelled')
+            ->assertSeeText('Cancellation reason')
+            ->assertSeeText('No longer needed for the activity.');
+
         $officerNotified = NotificationEvent::query()
             ->where('event_code', 'REQUEST_CANCELLED')
             ->where('source_type', $request->getMorphClass())

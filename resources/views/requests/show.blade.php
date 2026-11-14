@@ -24,6 +24,11 @@
     $actionOfficerVerified = $actionOfficerStep?->decision === 'VERIFIED';
     $rejectionStep = $v->approvalSteps->first(fn ($step) => $step->stage_code === App\Enums\ApprovalStage::Spmu
         && $step->sequence_no === 2 && $step->decision === 'REJECTED');
+    $revisionStep = $v->approvalSteps
+        ->filter(fn ($step) => $step->decision === 'RETURNED_FOR_REVISION')
+        ->sortByDesc(fn ($step) => $step->decided_at?->timestamp ?? $step->id)
+        ->first();
+    $revisionRemarks = trim((string) ($revisionStep?->remarks ?? ''));
     $actionOfficerDocumentsVerified = $actionOfficerVerified
         && $currentDocs->isNotEmpty()
         && $currentDocs->every(
@@ -123,6 +128,27 @@
 
     $pickupMissedForBorrower = $isBorrower
         && ($custodyWorkflowStatus['key'] ?? null) === 'PICKUP_EXPIRED';
+
+    // Borrowers need one short instruction that reflects the current request
+    // state. Staff have their own operational context elsewhere on this page.
+    $borrowerHeadingHelper = match (true) {
+        $requestIsCancelled => 'This request was cancelled. View the record for the cancellation details.',
+        $borrowingRequest->status === App\Enums\RequestStatus::Rejected => 'This request was not approved. Review the reason below.',
+        $requiresNewRevisionVersion => 'Update the request based on the review remarks.',
+        $isBorrowerDraftWorkflow => 'Complete the request details and submit it to SPMU when ready.',
+        // On Custody already has a visible status badge and a View Borrowing
+        // action. A second helper sentence here only repeats that information.
+        $detailStatus === 'BORROWED' => null,
+        $detailStatus === 'OVERDUE' => 'Your borrowed items are overdue. View your borrowing to see what needs to be returned.',
+        $detailStatus === 'RETURN_PROCESSING' => 'Your return is being recorded. View your borrowing for details.',
+        in_array($detailStatus, ['COMPLETED', 'BORROWER_CLEARED'], true) => 'This borrowing is complete. View the record for details.',
+        $detailStatus === 'PICKUP_EXPIRED' => 'Your pickup schedule was missed. SPMU will notify you of the next step.',
+        $detailStatus === 'READY_FOR_RELEASE' => 'Your items are ready for pickup. View your borrowing for pickup details.',
+        in_array($detailStatus, ['PICKUP_SCHEDULING', 'ITEM_PREPARATION', 'PREPARING_RELEASE', 'PICKUP_SCHEDULED'], true) => 'Your pickup is being arranged. You will be notified when it is ready.',
+        in_array($borrowingRequest->status, [App\Enums\RequestStatus::Submitted, App\Enums\RequestStatus::UnderSpmu], true) => 'Your request is under review. You will be notified once there is an update.',
+        $borrowingRequest->status === App\Enums\RequestStatus::ApprovedReadyForRelease => 'Your request has been approved. Pickup details will be shared once they are ready.',
+        default => 'Check your request status and submitted documents.',
+    };
 @endphp
 
 @if($isOperationalRequestLayout)
@@ -132,12 +158,25 @@
 @else
 <section class="page-heading">
     <div>
-        <p class="eyebrow">{{ $isBorrower ? 'My request' : ($v->off_campus ? 'Off-Campus Borrowing Request' : 'Borrowing Request') }}</p>
+        @unless($isBorrower)
+            <p class="eyebrow">{{ $v->off_campus ? 'Off-Campus Borrowing Request' : 'Borrowing Request' }}</p>
+        @endunless
+
         <h1>{{ $borrowingRequest->request_no }}</h1>
-        <p>{{ $v->purpose_event }}</p>
+
         @if($isBorrower)
-            <p class="meta">Review the request, documents, and current progress.</p>
+            <div class="borrower-request-heading-purpose">
+                <span>Purpose of borrowing:</span>
+                <strong>{{ $v->purpose_event }}</strong>
+            </div>
+
+            @if($borrowerHeadingHelper)
+                <p class="meta borrower-request-heading-helper">{{ $borrowerHeadingHelper }}</p>
+            @endif
+
         @else
+            <p>{{ $v->purpose_event }}</p>
+
             {{-- Identity line: who filed it and when, so the reviewer does not
                  have to scroll to Request Details to place the record. --}}
             <p class="meta request-heading-meta">
@@ -176,24 +215,75 @@
 @endif
 
 @if($borrowingRequest->status === App\Enums\RequestStatus::Rejected && filled($rejectionStep?->remarks))
-<section class="content-area">
-    <div class="callout danger">
+<section class="content-area request-rejection-area">
+    <div class="request-rejection-note" role="note">
         <strong>Rejection reason</strong>
         <p>{{ $rejectionStep->remarks }}</p>
     </div>
 </section>
 @endif
 
-@if($isBorrowerDraftWorkflow)
+<style>
+{{-- /* A rejection is already clear from the status badge and tracker. Keep the
+     reason readable without presenting it as a bright information alert. */ --}}
+.request-rejection-area {
+    margin-bottom: 18px;
+}
+
+.request-rejection-note {
+    display: grid;
+    gap: 4px;
+    padding: 12px 14px;
+    color: var(--text-secondary);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--danger);
+    border-radius: 10px;
+}
+
+.request-rejection-note strong {
+    color: var(--heading);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.request-rejection-note p {
+    margin: 0;
+    line-height: 1.5;
+}
+</style>
+
+@if($requiresNewRevisionVersion)
+<section class="content-area borrower-current-action-area" id="borrower-next-action">
+    <div class="action-panel action-warning borrower-revision-panel">
+        <div class="borrower-revision-copy">
+            <h2>Revision required</h2>
+
+            @if($revisionRemarks !== '')
+                <div class="borrower-revision-reason">
+                    <span>Required corrections</span>
+                    <p>{{ $revisionRemarks }}</p>
+                </div>
+            @endif
+
+            <p>Update the request, then E-sign and submit it again.</p>
+        </div>
+
+        <a
+            class="button primary ui-pressable"
+            href="{{ route('requests.edit', $borrowingRequest) }}"
+        >
+            <span>Revise Request</span>
+        </a>
+    </div>
+</section>
+@elseif($isBorrowerDraftWorkflow)
 <section class="content-area borrower-current-action-area" id="borrower-next-action">
     <div class="action-panel action-neutral">
         <div>
             <p class="eyebrow">Current action</p>
 
-            @if($requiresNewRevisionVersion)
-                <h2>Create the corrected request version</h2>
-                <p>Open the returned request, apply the required corrections, and save a new version before E-signing and resubmitting. The prior signed version remains unchanged.</p>
-            @elseif(!$submissionReady)
+            @if(!$submissionReady)
                 <h2>Upload the required documents</h2>
                 <p class="borrower-current-action-copy">
                     Upload the approved, fully signed Borrowing Request Letter
@@ -211,10 +301,10 @@
                     class="button secondary ui-pressable"
                     href="{{ route('requests.edit', $borrowingRequest) }}"
                 >
-                    <span>{{ $requiresNewRevisionVersion ? 'Create Corrected Version' : ($submissionReady ? 'Review / Edit Draft' : 'Edit Draft & Upload Documents') }}</span>
+                    <span>{{ $submissionReady ? 'Review / Edit Draft' : 'Edit Draft & Upload Documents' }}</span>
                 </a>
 
-                @if($submissionReady && !$requiresNewRevisionVersion)
+                @if($submissionReady)
                     <form method="post" action="{{ route('requests.submit', $borrowingRequest) }}" class="form-grid">
                         @csrf
                         @if($hasCurrentESignature)
@@ -268,6 +358,58 @@
     margin-bottom: 0;
 }
 
+.borrower-revision-panel {
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 14px 16px;
+    background: var(--surface-elevated);
+    border-left-color: var(--warning);
+}
+
+.borrower-revision-copy {
+    display: grid;
+    flex: 1 1 auto;
+    gap: 6px;
+    min-width: 0;
+}
+
+.borrower-revision-copy h2,
+.borrower-revision-copy p {
+    margin: 0;
+}
+
+.borrower-revision-reason {
+    width: 100%;
+    max-width: none;
+    padding: 8px 10px;
+    color: var(--text-secondary);
+    background: var(--surface-elevated);
+    border: 1px solid color-mix(in srgb, var(--warning) 45%, var(--border));
+    border-left: 3px solid var(--warning);
+    border-radius: 6px;
+}
+
+.borrower-revision-reason span {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--heading);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.borrower-revision-reason p {
+    color: var(--text-secondary);
+}
+
+.borrower-revision-panel > .button {
+    flex: 0 0 auto;
+    align-self: center;
+    margin: 0;
+}
+
 .request-tracker-card {
     margin-top: 14px;
 }
@@ -298,7 +440,7 @@
 .request-tracker-card .request-tracker__rail {
     width: 100%;
     min-width: 0;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--request-tracker-step-count, 7), minmax(0, 1fr));
 }
 
 .request-tracker-card .request-tracker__step {
@@ -839,9 +981,11 @@
                 $awaitingItemDecision = $v->items->every(
                     fn ($item) => $item->approved_quantity === null
                 );
-                $itemDecisionNote = $borrowingRequest->status === App\Enums\RequestStatus::Rejected
-                    ? 'Request rejected'
-                    : ($awaitingItemDecision ? 'Awaiting SPMU review' : 'Approved quantities');
+                $itemDecisionNote = match ($borrowingRequest->status) {
+                    App\Enums\RequestStatus::Rejected => 'Request rejected',
+                    App\Enums\RequestStatus::ReturnedForRevision => 'Update requested',
+                    default => $awaitingItemDecision ? 'Awaiting SPMU review' : 'Approved quantities',
+                };
             @endphp
 
             <h2 class="borrower-card-title">
@@ -3239,6 +3383,26 @@
     justify-content: flex-end;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+.borrower-request-heading-purpose {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px;
+    margin-top: 5px;
+    color: var(--text-muted);
+    font-size: 12.5px;
+    line-height: 1.4;
+}
+
+.borrower-request-heading-purpose strong {
+    color: var(--heading);
+    font-weight: 700;
+}
+
+.borrower-request-heading-helper {
+    margin-top: 3px !important;
 }
 
 .borrower-request-workspace {

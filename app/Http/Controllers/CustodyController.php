@@ -42,33 +42,22 @@ class CustodyController extends Controller
      */
     private const HEAD_KPI_FILTERS = ['active_custodies'];
 
-    /** Records per page on the borrower's My Borrowings list (same as My Requests). */
-    private const BORROWER_PER_PAGE = 10;
+    /** Default records per page on the borrower's My Borrowings list. */
+    private const BORROWER_PER_PAGE = 7;
+
+    /** Page-size choices shown in the My Borrowings footer. */
+    private const BORROWER_PER_PAGE_OPTIONS = [7, 15, 30, 50];
 
     /** Longest search term accepted from the My Borrowings search box. */
     private const BORROWER_SEARCH_MAX_LENGTH = 100;
 
     /**
-     * Status filter options on My Borrowings, in lifecycle order. Each value
-     * matches the badge key that CustodyTransaction::borrowerListStatus()
-     * shows on the row, except ACCOUNTABILITY, which groups every
-     * accountability/obligation badge into one option.
+     * Keep My Borrowings focused on the few outcomes a borrower needs to
+     * find. More detailed operational states remain visible in each record.
      */
     public const BORROWER_STATUS_FILTERS = [
-        'PICKUP_SCHEDULING' => 'For Pickup Scheduling',
-        'ITEM_PREPARATION' => 'For Item Preparation',
-        'PICKUP_SCHEDULED' => 'Pickup Scheduled',
-        'READY_FOR_RELEASE' => 'Ready for Release',
         'PICKUP_EXPIRED' => 'Pickup Missed',
-        'BORROWED' => 'Items Released / On Custody',
-        'RETURN_PROCESSING' => 'Return Processing',
-        'OVERDUE' => 'Overdue',
-        'GATE_PASS_PROCESSING' => 'Gate Pass Processing',
-        'LINEN_PENDING' => 'Linen Pending',
-        // Deliberately not "Accountability Pending": that is a specific badge
-        // text, and this option groups every accountability badge.
-        'ACCOUNTABILITY' => 'Open Accountability',
-        'BORROWER_CLEARED' => 'Borrower Cleared',
+        'BORROWED' => 'On Custody',
         'COMPLETED' => 'Completed',
         'CANCELLED' => 'Cancelled',
     ];
@@ -144,11 +133,12 @@ class CustodyController extends Controller
                 ->orderBy('custody_transactions.id', self::BORROWER_SORTS[$filters['sort']]);
 
             return view('custody.index', [
-                'custodies' => $query->paginate(self::BORROWER_PER_PAGE)->withQueryString(),
+                'custodies' => $query->paginate($filters['per_page'])->withQueryString(),
                 'borrowerKpiFilter' => $borrowerKpiFilter,
                 'headKpiFilter' => $headKpiFilter,
                 'borrowerFilters' => $filters,
                 'borrowerStatusFilters' => self::BORROWER_STATUS_FILTERS,
+                'borrowerPerPageOptions' => self::BORROWER_PER_PAGE_OPTIONS,
             ]);
         }
 
@@ -164,7 +154,7 @@ class CustodyController extends Controller
      * in the allowed lists falls back to the default instead of erroring, so
      * an old bookmark or a hand-edited URL still opens the page.
      *
-     * @return array{search:string,status:string,sort:string,active:bool}
+     * @return array{search:string,status:string,sort:string,per_page:int,active:bool}
      */
     private function borrowerListFilters(Request $request): array
     {
@@ -185,10 +175,16 @@ class CustodyController extends Controller
         $sort = $stringQuery('sort', 'newest');
         $sort = array_key_exists($sort, self::BORROWER_SORTS) ? $sort : 'newest';
 
+        $perPage = (int) $stringQuery('per_page', (string) self::BORROWER_PER_PAGE);
+        $perPage = in_array($perPage, self::BORROWER_PER_PAGE_OPTIONS, true)
+            ? $perPage
+            : self::BORROWER_PER_PAGE;
+
         return [
             'search' => $search,
             'status' => $status,
             'sort' => $sort,
+            'per_page' => $perPage,
             'active' => $search !== '' || $status !== 'all',
         ];
     }
@@ -391,10 +387,11 @@ class CustodyController extends Controller
             'borrower',
             'request.currentVersion.approvalSteps',
             'request.statusHistory',
+            'request.latestCancellation.requestedBy',
             'lines.allocation',
             'lines.requestItem.inventoryItem.unit',
             'returns.lines.laundryRecord',
-            'incidents',
+            'incidents.lines.custodyLine.requestItem',
             'overdueCase',
             'gatePass.accomplishedFile',
         ];
@@ -895,7 +892,7 @@ class CustodyController extends Controller
             ->route('custody.return.show', $custody)
             ->with(
                 'status',
-                'Physical handover recorded. Custody is now Released / On Custody and the transaction is under Return tracking.'
+                'Physical handover recorded. The items are now on custody and ready for return tracking.'
             );
     }
 

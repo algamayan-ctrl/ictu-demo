@@ -135,12 +135,17 @@
     <article class="card accountability-cases-card {{ $embeddedInBorrowerWorkspace ? 'accountability-history-embedded' : '' }}">
         @unless($embeddedInBorrowerWorkspace)
             <div class="accountability-cases-head">
-                <h2>
-                    Resolved Accountability
-                    @if($resolvedHistory->isNotEmpty())
-                        <span class="accountability-count-chip" id="resolved-history-count">{{ $resolvedHistory->count() }}</span>
+                <div>
+                    <h2>
+                        Resolved Accountability
+                        @if($resolvedHistory->isNotEmpty())
+                            <span class="accountability-count-chip" id="resolved-history-count">{{ $resolvedHistory->count() }}</span>
+                        @endif
+                    </h2>
+                    @if($isOfficer ?? false)
+                        <p class="sao-resolved-intro">Completed cases are read-only. Open a record for its assessment, approval, payment verification, and supporting documents.</p>
                     @endif
-                </h2>
+                </div>
             </div>
         @endunless
 
@@ -261,7 +266,11 @@
                             </tr>
                             <tr class="accountability-case-detail-row" hidden>
                                 <td colspan="6">
-                                    @include('accountability.partials.resolved-history-detail')
+                                    @if(($isOfficer ?? false) && ! ($isBorrower ?? false))
+                                        @include('accountability.partials.sao-resolved-detail')
+                                    @else
+                                        @include('accountability.partials.resolved-history-detail')
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach
@@ -285,15 +294,12 @@
                 id="resolved-history-pager"
             >
                 <label class="accountability-page-size-control">
-                    <span>Show</span>
-
-                    <select id="resolved-history-page-size">
-                        <option value="10" selected>10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
+                    <select id="resolved-history-page-size" aria-label="Accountability cases per page">
+                        <option value="7" selected>7 items per page</option>
+                        <option value="10">10 items per page</option>
+                        <option value="25">25 items per page</option>
+                        <option value="50">50 items per page</option>
                     </select>
-
-                    <span>per page</span>
                 </label>
 
                 <nav
@@ -556,4 +562,108 @@
 }
 
 .resolved-history-links a:hover { text-decoration: underline; }
+
+/* Borrower Obligation History: readable, read-only sections; staff table unaffected. */
+.ob-workspace .ob-history-section-heading {
+    margin: 13px 0 7px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .035em;
+}
+.ob-workspace .accountability-case-details > .ob-history-section-heading:first-of-type {
+    margin-top: 12px;
+}
+.ob-workspace .ob-history-stages {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    align-items: start;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.ob-workspace .ob-history-stages > section {
+    min-width: 0;
+    height: 100%;
+    padding: 12px 14px;
+    background: var(--surface-subtle);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+}
+.ob-workspace .ob-history-stages > section h4 {
+    margin: 0 0 8px;
+    color: var(--heading);
+    font-size: 12px;
+    font-weight: 750;
+    letter-spacing: 0;
+    text-transform: none;
+}
+.ob-workspace .ob-history-stages > section p {
+    margin: 0 0 6px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.ob-workspace .ob-history-stages .resolved-history-payment {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+    gap: 9px 12px;
+}
+.ob-workspace .ob-history-stages .resolved-history-payment dt {
+    font-size: 11px;
+}
+.ob-workspace .ob-history-stages .resolved-history-payment dd {
+    font-size: 12px;
+}
+.ob-workspace .ob-history-documents {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 0;
+    padding: 0;
+    border-top: 0;
+}
+.ob-workspace .ob-history-documents a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--interactive);
+    font-size: 11.5px;
+    line-height: 1.35;
+    font-weight: 750;
+    text-decoration: none;
+}
+.ob-workspace .ob-history-documents a:hover,
+.ob-workspace .ob-history-documents a:focus-visible {
+    background: var(--info-bg);
+    border-color: var(--interactive);
+    text-decoration: none;
+}
+@media (max-width: 720px) {
+    .ob-workspace .ob-history-stages { grid-template-columns: minmax(0, 1fr); }
+    .ob-workspace .ob-history-documents a { width: 100%; }
+}
+
+/* SAO resolved history: summary values stay in the table, details contain only supporting facts. */
+.sao-resolved-intro { margin: 5px 0 0; font-size: 12px; line-height: 1.5; color: var(--text-muted); font-weight: 400; }
+.sao-resolved-detail { display: grid; gap: 10px; padding: 2px 2px 4px; }
+.sao-resolved-detail__section { min-width: 0; }
+.sao-resolved-detail__section + .sao-resolved-detail__section { padding-top: 10px; border-top: 1px solid var(--row-border); }
+.sao-resolved-detail__section h3 { margin: 0 0 8px; color: var(--heading); font-size: 12px; font-weight: 800; letter-spacing: .015em; text-transform: none; }
+.sao-resolved-detail__facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 18px; margin: 0; }
+.sao-resolved-detail__facts--approval-payment { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sao-resolved-detail__facts > div { min-width: 0; }
+.sao-resolved-detail__facts dt { margin: 0 0 3px; color: var(--text-muted); font-size: 10px; font-weight: 750; line-height: 1.4; }
+.sao-resolved-detail__facts dd { margin: 0; color: var(--heading); font-size: 12px; font-weight: 650; line-height: 1.5; overflow-wrap: anywhere; }
+.sao-resolved-detail__facts dd small { display: block; margin-top: 2px; color: var(--text-secondary); font-size: 11px; font-weight: 400; }
+.sao-resolved-detail__documents { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sao-resolved-detail__documents a { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; min-height: 34px; padding: 7px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--interactive); font-size: 11.5px; font-weight: 700; text-decoration: none; }
+.sao-resolved-detail__documents a:hover, .sao-resolved-detail__documents a:focus-visible { background: var(--info-bg); border-color: var(--interactive); text-decoration: none; }
+@media (max-width: 800px) { .sao-resolved-detail__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .sao-resolved-detail__facts { grid-template-columns: minmax(0, 1fr); } .sao-resolved-detail__documents a { width: 100%; } }
 </style>

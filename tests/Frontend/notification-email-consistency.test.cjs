@@ -51,7 +51,7 @@ test('items released stays as an in-system confirmation instead of another email
 });
 
 test('return reminders avoid operational-calendar terminology', () => {
-  assert.match(deadlines, /Reminder: the borrowed items under/);
+  assert.match(deadlines, /Your borrowed items under/);
   assert.match(notificationService, /'RETURN_DUE_TODAY' => 'Return Due Today'/);
   assert.match(notificationService, /'RETURN_DUE_TOMORROW' => 'Return Due Tomorrow'/);
   assert.doesNotMatch(deadlines, /effective SPMU operational return date/);
@@ -121,7 +121,7 @@ test('transaction email copy uses friendly titles and avoids internal workflow l
 });
 
 test('current borrower transaction emails state only the useful summary and next action', () => {
-  assert.match(notificationService, /Your scheduled pickup was missed\. SPMU will review whether the approved borrowing can proceed or must be cancelled\./);
+  assert.match(notificationService, /Your pickup schedule was not completed\. SPMU will review your request and notify you of the next step\./);
   assert.match(notificationService, /Your return date was adjusted because SPMU is unavailable on the original return date\./);
   assert.match(notificationService, /A Billing Statement has been issued for this case\./);
   assert.match(notificationService, /Your linen items have been released\. On return, bring the linen and the same Laundry Form to the Laundry Area first\./);

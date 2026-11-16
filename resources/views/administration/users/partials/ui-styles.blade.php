@@ -137,24 +137,27 @@
     font-size: 12px;
 }
 .ictu-users-pagination-divider { height: 23px; width: 1px; background: var(--border); }
-.ictu-users-pagination-buttons { display: inline-flex; gap: 2px; }
+.ictu-users-pagination-buttons { display: inline-flex; align-items: center; gap: 4px; }
+.ictu-users-page-numbers { display: inline-flex; align-items: center; gap: 4px; }
 .ictu-users-page-button {
     display: inline-grid;
     place-items: center;
     flex: none;
-    width: 24px;
-    height: 24px;
+    min-width: 30px;
+    height: 30px;
     padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+    background: var(--surface-elevated);
     box-shadow: none;
     color: var(--text-secondary);
     cursor: pointer;
 }
 .ictu-users-page-button:not(:disabled) .ui-icon { color: var(--interactive); }
-.ictu-users-page-button:hover:not(:disabled) { color: var(--interactive); background: transparent; }
-.ictu-users-page-button:disabled { opacity: 1; cursor: not-allowed; }
+.ictu-users-page-button.is-active { border-color: var(--interactive); background: var(--interactive); color: #fff; }
+.ictu-users-page-button:hover:not(:disabled) { color: var(--interactive); border-color: var(--interactive); background: var(--interactive-soft); }
+.ictu-users-page-button.is-active:hover:not(:disabled) { color: #fff; background: var(--interactive); }
+.ictu-users-page-button:disabled { opacity: .5; cursor: not-allowed; }
 .ictu-users-page-button:disabled .ui-icon { color: var(--text-soft); }
 .ictu-users-page-button .is-rotated { transform: rotate(180deg); }
 .ictu-users-table-scroll { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }

@@ -5,6 +5,7 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '../..');
 const appCss = fs.readFileSync(path.join(root, 'public/css/app.css'), 'utf8');
+const layout = fs.readFileSync(path.join(root, 'resources/views/layouts/app.blade.php'), 'utf8');
 const index = fs.readFileSync(path.join(root, 'resources/views/accountability/index.blade.php'), 'utf8');
 const obligations = fs.readFileSync(path.join(root, 'resources/views/accountability/partials/obligations-workspace.blade.php'), 'utf8');
 const obligationStyles = fs.readFileSync(path.join(root, 'resources/views/accountability/partials/obligations-styles.blade.php'), 'utf8');
@@ -37,6 +38,26 @@ test('staff resolved history appears only in the History workspace', () => {
   assert.match(index, /\$requestedStaffTab = 'history'/);
   assert.match(index, /@if\(\$activeStaffTab === 'history' \|\| \$resolvedHistoryRequested\)[\s\S]*?@include\('accountability\.partials\.resolved-history'/);
   assert.match(index, /greaterThanOrEqualTo\(\$resolvedPeriodStart\)/);
+});
+
+test('Action Officer accountability navigation uses task-oriented labels', () => {
+  assert.match(layout, /'Needs My Decision' : 'Needs Your Action'/);
+  assert.match(layout, /'All Active Cases' : 'Open Cases'/);
+  assert.match(layout, /'History' : 'Resolved Cases'/);
+  assert.match(index, /'label' => 'Needs Your Action'/);
+  assert.match(index, /'label' => 'Open Cases'/);
+  assert.match(index, /Use Open Cases for all ongoing borrower cases, or Resolved Cases for completed records\./);
+});
+
+test('Head accountability uses one focused case-review path without Action Officer-only return links', () => {
+  const workQueue = fs.readFileSync(path.join(root, 'app/Services/AccountabilityWorkQueueService.php'), 'utf8');
+
+  assert.doesNotMatch(index, /Review full Return Inspection and transaction history/);
+  assert.doesNotMatch(index, /Confirm Late-Return Offense/);
+  assert.doesNotMatch(index, /<h2>Administrative Review<\/h2>/);
+  assert.doesNotMatch(index, /\$pendingViolations/);
+  assert.match(workQueue, /'stage' => 'Late Return Review'/);
+  assert.match(workQueue, /'action_label' => \$isHead \? 'Review Case' : 'View Case'/);
 });
 
 // A disclosure must use the same compact, pressable blue-outline contract as

@@ -15,9 +15,7 @@
         const footer = document.getElementById('approval-queue-footer');
         const summary = document.getElementById('approval-queue-summary');
         const pagination = document.getElementById('approval-queue-pagination');
-        const size = document.getElementById('approval-queue-size');
-        const from = document.getElementById('approval-queue-from');
-        const to = document.getElementById('approval-queue-to');
+        const perPage = 7;
 
         let currentPage = 1;
 
@@ -131,7 +129,6 @@
         };
 
         const render = () => {
-            const perPage = Number(size?.value || 5);
             const query = (search?.value || '').trim().toLowerCase();
             const selectedStatus = status?.value || '';
             const ordered = sortRecords();
@@ -146,11 +143,7 @@
                     !selectedStatus ||
                     record.dataset.status === selectedStatus;
 
-                const matchesDate = (!(from?.value || to?.value) || Boolean(record.dataset.submittedDate))
-                    && (!from?.value || (record.dataset.submittedDate || '') >= from.value)
-                    && (!to?.value || (record.dataset.submittedDate || '') <= to.value);
-
-                if (matchesSearch && matchesStatus && matchesDate) {
+                if (matchesSearch && matchesStatus) {
                     matched.push(record);
                 } else {
                     record.hidden = true;
@@ -179,7 +172,7 @@
             renderPagination(totalPages);
 
             if (summary) {
-                summary.textContent = `Showing ${matched.length ? firstIndex + 1 : 0} to ${lastIndex} of ${matched.length} request${matched.length === 1 ? '' : 's'}`;
+                summary.textContent = `Showing ${firstIndex + 1} to ${lastIndex} of ${matched.length} request${matched.length === 1 ? '' : 's'}`;
             }
         };
 
@@ -198,14 +191,6 @@
             render();
         });
 
-        [size, from, to].filter(Boolean).forEach(control => control.addEventListener('change', () => { currentPage = 1; render(); }));
-        document.getElementById('approval-queue-clear')?.addEventListener('click', () => {
-            if (search) search.value = '';
-            if (status) status.value = '';
-            if (from) from.value = '';
-            if (to) to.value = '';
-            currentPage = 1; render(); search?.focus();
-        });
         render();
     };
 

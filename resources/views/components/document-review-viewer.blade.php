@@ -6,15 +6,26 @@
     'previewUrl' => null,
     'expanded' => false,
     'compactHeader' => false,
-    // This is the optional Full Screen control, disabled by default.
+    // Opt-in Full screen control. Off by default so existing pages are unchanged.
     'fullscreen' => false,
 ])
 
 @php
-    // This is the preview URL on the current authenticated host, unless the caller supplies its authorized preview route.
+    /*
+     * Relative URL is intentional.
+     * It keeps the iframe on the same host/port/session
+     * currently used by the authenticated SPMU user.
+     *
+     * previewUrl lets a caller point the embedded viewer at a route with its
+     * own authorization (for example documents.view for a GeneratedDocument)
+     * instead of the default files.show lookup. The embedded PDF viewer keeps
+     * its native Print/Download controls, so no duplicate outer action is
+     * rendered here.
+     */
     $previewUrl ??= $file
         ? route('files.show', $file, false)
         : null;
+
 
     $mimeType =
         strtolower((string) ($file?->mime_type ?? ''));
@@ -33,13 +44,22 @@
             $originalName
         );
 
-    // This is the PDF geometry check based on the physical file, with a neutral fallback for unreadable pages.
+    /*
+     * Standalone preview geometry is derived from the physical file itself,
+     * never from a document type/name. This keeps current and future forms
+     * dynamic: portrait stays portrait, landscape stays landscape, while an
+     * unreadable/unsupported page dictionary simply falls back to neutral.
+     */
     $previewGeometry = $isPdf
         ? app(\App\Services\DocumentPreviewGeometryService::class)->inspect($file)
         : ['orientation' => 'unknown', 'ratio' => null];
     $previewOrientation = $previewGeometry['orientation'] ?? 'unknown';
     $previewRatio = $previewGeometry['ratio'] ?? null;
-    $canExpandDocument = auth()->check() && $file && ($isPdf || $isImage);
+    // Action Officers retain their review control; borrower pages opt in with
+    // the fullscreen prop without exposing the control elsewhere by default.
+    $canExpandDocument = ($fullscreen
+        || auth()->user()?->access_classification === \App\Enums\AccessClassification::SpmuOfficer)
+        && $file && ($isPdf || $isImage);
 @endphp
 
 <article
@@ -70,8 +90,17 @@
     @endif
 
     @if($canExpandDocument)
-        <div class="document-viewer-actions">
-            <button class="button secondary small link-button" type="button" data-document-fullscreen-toggle aria-expanded="false">Full Screen</button>
+        <div class="scanned-document-actions">
+            <button
+                type="button"
+                class="button secondary ui-pressable scanned-document-fullscreen-toggle"
+                data-document-fullscreen-toggle
+                aria-pressed="false"
+            >
+                <svg class="scanned-document-fullscreen-enter" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
+                <svg class="scanned-document-fullscreen-exit" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></svg>
+                <span data-document-fullscreen-label>Full screen</span>
+            </button>
         </div>
     @endif
 
@@ -151,16 +180,19 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        padding: 16px 16px;
+        gap: 16px;
+        padding: 18px 20px;
         border-bottom: 1px solid var(--border, #d7dee8);
     }
+
+
+
 
     .scanned-document-reference {
         display: flex;
         align-items: baseline;
         gap: 10px;
-        padding: 12px 16px;
+        padding: 12px 20px;
         border-bottom: 1px solid var(--border, #d7dee8);
         color: #64748b;
         font-size: .82rem;
@@ -221,7 +253,7 @@
         height: clamp(460px, 56vh, 610px);
         min-height: 460px;
         overflow: hidden;
-        padding: 16px;
+        padding: 22px;
         background: #e7ecf1;
         display: grid;
         place-items: center;
@@ -242,7 +274,7 @@
         display: grid;
         place-items: center;
         min-height: 360px;
-        padding: 16px;
+        padding: 24px;
         color: #64748b;
         text-align: center;
     }
@@ -348,8 +380,13 @@
 </script>
 @endonce
 
+{{-- <!-- SPMU_COMPACT_REVIEW_OVERRIDE --> --}}
 <style>
-
+{{-- /*
+ * Compact approval document review.
+ * The native PDF/image stage keeps its own scrolling; the page no longer
+ * needs an oversized 680â€“900px preview.
+ */ --}}
 .formal-document-review-card,
 .scanned-document-card {
     min-height: 0 !important;
@@ -400,19 +437,23 @@
 }
 </style>
 
-@if($canExpandDocument)
-    @once
-        @include('components.document-viewer-fullscreen')
-    @endonce
-@endif
-
 <style>
-
+{{-- /*
+ * Universal standalone preview.
+ *
+ * The default is always FULL-PAGE FIT: the whole first page stays visible,
+ * while the available preview height changes from the physical page geometry.
+ * There are no document-name rules and no forced numerical zoom. Portrait,
+ * landscape, square, and future document types all use the same component.
+ */ --}}
 .scanned-document-card--expanded {
     width: 100%;
     margin-inline: auto;
 }
 
+{{-- /* A portrait sheet does not need a full desktop-wide card. Keeping the card
+ * moderately narrow plus a tall viewer makes the full page materially more
+ * readable without cropping it. */ --}}
 .scanned-document-card--expanded[data-preview-orientation="portrait"] {
     max-width: 920px;
 }
@@ -449,6 +490,7 @@
     max-height: 880px !important;
 }
 
+{{-- /* Image previews follow the same full-page-fit rule as PDFs. */ --}}
 .scanned-document-card--expanded .scanned-image-stage {
     overflow: hidden !important;
 }
@@ -480,7 +522,7 @@
         align-items: flex-start;
         flex-direction: column;
         gap: 3px;
-        padding: 10px 12px;
+        padding: 10px 14px;
     }
 
     .scanned-document-card--expanded[data-preview-orientation] .scanned-pdf-stage,
@@ -491,3 +533,164 @@
     }
 }
 </style>
+
+@if($canExpandDocument)
+@once
+<style>
+/*
+ * Opt-in Full screen control (fullscreen prop). Uses the browser Fullscreen
+ * API on the whole viewer card, so the native PDF toolbar and the image zoom
+ * controls keep working. Where the API is unavailable (for example iPhone
+ * Safari) the card fills the window instead.
+ */
+.scanned-document-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border, #d7dee8);
+    background: var(--surface-elevated, #fff);
+}
+
+.scanned-document-fullscreen-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+}
+
+.scanned-document-fullscreen-exit { display: none; }
+.is-document-fullscreen .scanned-document-fullscreen-enter { display: none; }
+.is-document-fullscreen .scanned-document-fullscreen-exit { display: inline; }
+
+.scanned-document-card[data-document-preview-card].is-document-fullscreen {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: none !important;
+    height: 100%;
+    margin: 0;
+    border-radius: 0;
+    background: var(--surface, #fff);
+}
+
+.scanned-document-card[data-document-preview-card].is-pseudo-fullscreen {
+    position: fixed !important;
+    inset: 0;
+    z-index: 2147483000;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+}
+
+.scanned-document-card[data-document-preview-card].is-document-fullscreen .scanned-pdf-stage,
+.scanned-document-card[data-document-preview-card].is-document-fullscreen .scanned-image-viewer {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.scanned-document-card[data-document-preview-card].is-document-fullscreen .scanned-pdf-stage,
+.scanned-document-card[data-document-preview-card].is-document-fullscreen .scanned-image-stage {
+    flex: 1 1 auto;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+}
+
+html.document-fullscreen-open { overflow: hidden; }
+
+@media print {
+    .scanned-document-actions { display: none; }
+}
+</style>
+
+<script>
+(() => {
+    const root = document.documentElement;
+    const currentFullscreen = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+    const canUseNative = (card) => Boolean(
+        (document.fullscreenEnabled || document.webkitFullscreenEnabled)
+        && (card.requestFullscreen || card.webkitRequestFullscreen)
+    );
+    let overlayCard = null;
+
+    const setState = (card, active) => {
+        card.classList.toggle('is-document-fullscreen', active);
+
+        const toggle = card.querySelector('[data-document-fullscreen-toggle]');
+        if (!toggle) return;
+
+        toggle.setAttribute('aria-pressed', active ? 'true' : 'false');
+        const label = toggle.querySelector('[data-document-fullscreen-label]');
+        if (label) label.textContent = active ? 'Exit full screen' : 'Full screen';
+    };
+
+    const openOverlay = (card) => {
+        overlayCard = card;
+        card.classList.add('is-pseudo-fullscreen');
+        root.classList.add('document-fullscreen-open');
+        setState(card, true);
+    };
+
+    const closeOverlay = () => {
+        if (!overlayCard) return;
+
+        const card = overlayCard;
+        overlayCard = null;
+        card.classList.remove('is-pseudo-fullscreen');
+        root.classList.remove('document-fullscreen-open');
+        setState(card, false);
+        card.querySelector('[data-document-fullscreen-toggle]')?.focus();
+    };
+
+    // One page-wide listener, so every viewer on the page works.
+    document.addEventListener('click', (event) => {
+        const toggle = event.target.closest('[data-document-fullscreen-toggle]');
+        const card = toggle?.closest('[data-document-preview-card]');
+        if (!card) return;
+
+        if (card === overlayCard) {
+            closeOverlay();
+            return;
+        }
+
+        if (currentFullscreen() === card) {
+            (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+            return;
+        }
+
+        if (!canUseNative(card)) {
+            openOverlay(card);
+            return;
+        }
+
+        const result = (card.requestFullscreen || card.webkitRequestFullscreen).call(card);
+        if (result && typeof result.catch === 'function') {
+            result.catch(() => openOverlay(card));
+        }
+    });
+
+    const syncNative = () => {
+        const active = currentFullscreen();
+
+        document.querySelectorAll('[data-document-preview-card].is-document-fullscreen:not(.is-pseudo-fullscreen)')
+            .forEach((card) => { if (card !== active) setState(card, false); });
+
+        if (active && active.matches('[data-document-preview-card]')) {
+            setState(active, true);
+        }
+    };
+
+    document.addEventListener('fullscreenchange', syncNative);
+    document.addEventListener('webkitfullscreenchange', syncNative);
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && overlayCard) closeOverlay();
+    });
+})();
+</script>
+@endonce
+@endif

@@ -315,7 +315,7 @@ class SimpleLaundryWorkflowTest extends TestCase
             ->get(route('laundry.show', $job))
             ->assertOk()
             ->assertSeeText('Awaiting Laundry Form')
-            ->assertSeeText('Record Laundry Form')
+            ->assertSeeText('Upload Signed Form')
             ->assertSee(route('custody.return.show', $custody).'#return-documents', false)
             ->assertDontSeeText('Archive accomplished Laundry Form')
             ->assertDontSeeText('Finalize Linen Availability');
@@ -324,9 +324,9 @@ class SimpleLaundryWorkflowTest extends TestCase
             ->actingAs($officer)
             ->get(route('custody.return.show', $custody))
             ->assertOk()
-            ->assertSeeText('Record Form')
+            ->assertSeeText('Upload Form')
             ->assertDontSeeText('I confirm the signed form is complete.')
-            ->assertSeeText('Enter the actual RECEIVED BY date on the signed form.');
+            ->assertSeeText('Use the date written under RECEIVED BY on the signed form.');
     }
 
     private function recordReturn(

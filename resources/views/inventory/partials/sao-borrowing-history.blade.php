@@ -55,6 +55,7 @@
             </table>
         </div>
         <footer class="sao-history-footer">
+            <div class="sao-history-pagination-meta">
             <p class="meta" role="status">
                 @if($history['page']->total())
                     Showing {{ $history['page']->firstItem() }}–{{ $history['page']->lastItem() }} of {{ $history['page']->total() }} {{ \Illuminate\Support\Str::plural('record', $history['page']->total()) }}
@@ -62,14 +63,11 @@
                     No matching records
                 @endif
             </p>
+                <select name="history_per_page" aria-label="Borrowing records per page">@foreach([7, 15, 30, 50] as $size)<option value="{{ $size }}" @selected($history['per_page'] === $size)>{{ $size }} items per page</option>@endforeach</select>
+            </div>
             <div class="sao-history-pagination">
-                <select name="history_per_page" aria-label="Borrowing records per page">@foreach([10, 30, 50, 100] as $size)<option value="{{ $size }}" @selected($history['per_page'] === $size)>{{ $size }} records per page</option>@endforeach</select>
                 @if($history['page']->total())
-                    <nav aria-label="Borrowing history pages">
-                        @if($history['page']->onFirstPage())<span class="button secondary small" aria-disabled="true">Previous</span>@else<a class="button secondary small" href="{{ $history['page']->previousPageUrl() }}">Previous</a>@endif
-                        <span class="meta">Page {{ $history['page']->currentPage() }} of {{ $history['page']->lastPage() }}</span>
-                        @if($history['page']->hasMorePages())<a class="button secondary small" href="{{ $history['page']->nextPageUrl() }}">Next</a>@else<span class="button secondary small" aria-disabled="true">Next</span>@endif
-                    </nav>
+                    {{ $history['page']->onEachSide(1)->links('partials.pagination') }}
                 @endif
             </div>
         </footer>

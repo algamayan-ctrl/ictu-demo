@@ -32,7 +32,7 @@ final class OperationalStatus
             }
 
             return match ($custody->status) {
-                'ACTIVE' => ['ACTIVE', 'Released / On Custody'],
+                'ACTIVE' => ['ACTIVE', 'On Custody'],
 
                 'RETURN_PROCESSING',
                 'PARTIALLY_RETURNED' => ['RETURN_PROCESSING', 'Return Processing'],

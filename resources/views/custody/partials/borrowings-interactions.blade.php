@@ -16,6 +16,7 @@
         const search = form.querySelector('#borrowings-search');
         const status = form.querySelector('#borrowings-status');
         const sort = form.querySelector('#borrowings-sort');
+        const perPage = document.getElementById('borrowings-per-page');
         const initialSearch = search ? search.value : '';
 
         // Keep the URL tidy: leave out empty/default values.
@@ -25,12 +26,14 @@
             if ((data.get('search') || '').trim() === '') data.delete('search');
             if (data.get('status') === 'all') data.delete('status');
             if (data.get('sort') === 'newest') data.delete('sort');
+            if (data.get('per_page') === '7') data.delete('per_page');
         });
 
         const submit = () => form.requestSubmit ? form.requestSubmit() : form.submit();
 
         status?.addEventListener('change', submit);
         sort?.addEventListener('change', submit);
+        perPage?.addEventListener('change', submit);
 
         // The search field's clear (x) button fires "search" with an empty value.
         search?.addEventListener('search', () => {

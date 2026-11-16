@@ -630,7 +630,7 @@ class CustodyTransaction extends Model
         }
 
         if ($this->released_at) {
-            return ['key' => 'BORROWED', 'label' => 'Items Released / On Custody', 'group' => 'custody'];
+            return ['key' => 'BORROWED', 'label' => 'On Custody', 'group' => 'custody'];
         }
 
         if ((string) $this->status === 'PREPARING_RELEASE') {

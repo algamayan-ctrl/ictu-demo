@@ -1,17 +1,18 @@
 @extends('layouts.app', ['title' => 'Borrower registrations'])
 @section('content')
-{{-- This is the Borrower Registration Queue UI for SPMU Action Officer. --}}
 @include('administration.users.partials.ui-styles')
 <style>
 .registration-records .ictu-users-table { min-width: 850px; table-layout: auto; }
-.registration-records .ictu-users-table td { height: auto; padding: 9px 12px; }
+.registration-records .ictu-users-table td { height: auto; padding: 9px 15px; }
 .registration-records .registration-applicant strong, .registration-records .registration-applicant span, .registration-records .registration-affiliation span { display: block; }
 .registration-records .registration-applicant strong { color: var(--heading); font-size: 13px; }
 .registration-records .registration-applicant span, .registration-records .registration-affiliation span { margin-top: 3px; color: var(--text-muted); font-size: 12px; }
 .registration-records .registration-review-cell { width: 70px; text-align: center; }
-.registration-records .registration-pagination { padding: 12px 16px; }
-.registration-records .registration-pagination .pagination { margin: 0; }
-#registration-records-area { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.registration-records .registration-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 24px; }
+.registration-records .registration-pagination-meta { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.registration-records .registration-pagination-meta select { min-height: 32px; padding: 4px 28px 4px 9px; font-size: 11px; }
+.registration-records .registration-pagination .app-pagination { margin: 0; }
+#registration-records-area { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 #registration-records-area > .ictu-users-filter-card { flex: 0 0 auto; }
 #registration-results { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 320px; }
 #registration-results > .ictu-users-list-toolbar { flex: 0 0 auto; }
@@ -38,13 +39,6 @@
     <div class="ictu-users-list-card" id="registration-results" aria-live="polite" aria-busy="false">
         <div class="ictu-users-list-toolbar">
             <div class="ictu-users-list-title"><x-icon name="users" size="22" /><h2>Registration records</h2><span class="ictu-users-total-pill">{{ $registrations->total() }}</span></div>
-            <span class="ictu-users-pagination-meta">
-                @if($registrations->count())
-                    {{ $registrations->firstItem() }}–{{ $registrations->lastItem() }} of {{ $registrations->total() }}
-                @else
-                    No records
-                @endif
-            </span>
         </div>
         <div class="ictu-users-table-scroll" role="region" aria-label="Registration records table" tabindex="0">
             <table class="ictu-users-table"><thead><tr><th scope="col">Applicant</th><th scope="col">Account type</th><th scope="col">Affiliation</th><th scope="col">Submitted</th><th scope="col">Status</th><th scope="col">Review</th></tr></thead><tbody>
@@ -63,9 +57,26 @@
             @endforelse
             </tbody></table>
         </div>
-        @if($registrations->hasPages())
-            <div class="registration-pagination">{{ $registrations->links('pagination::bootstrap-5') }}</div>
-        @endif
+            <div class="registration-pagination">
+                <span class="ictu-users-pagination-meta registration-pagination-meta">
+                    <span class="pagination-result-summary">{{ $registrations->firstItem() ?? 0 }}–{{ $registrations->lastItem() ?? 0 }} of {{ $registrations->total() }} registrations</span>
+                    <select name="per_page" form="registration-page-size-form" aria-label="Registrations per page">
+                        @foreach([7, 15, 30, 50] as $size)
+                            <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 7) === $size)>{{ $size }} items per page</option>
+                        @endforeach
+                    </select>
+                    <form id="registration-page-size-form" method="get" action="{{ route('registrations.index') }}">
+                        @foreach(request()->except(['page', 'per_page']) as $name => $value)
+                            @if(is_scalar($value))
+                                <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                            @endif
+                        @endforeach
+                    </form>
+                </span>
+                @if($registrations->hasPages())
+                {{ $registrations->onEachSide(1)->links('partials.pagination') }}
+                @endif
+            </div>
     </div>
 </section>
 @include('registrations.partials.filter-interactions')

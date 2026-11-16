@@ -96,7 +96,7 @@ final class ReportCatalogue
                     'RETURNED_FOR_REVISION' => 'Returned for Revision',
                     'APPROVED_READY_FOR_RELEASE' => 'Approved / Ready for Release',
                     'PREPARING_RELEASE' => 'Preparing Release',
-                    'ACTIVE' => 'Released / On Custody',
+                    'ACTIVE' => 'On Custody',
                     'RETURN_PROCESSING' => 'Return Processing',
                     'OVERDUE' => 'Overdue',
                     'INCIDENT_OPEN' => 'Incident Open',
@@ -138,7 +138,7 @@ final class ReportCatalogue
                 'placeholder' => 'All custody states',
                 'options' => fn (): array => [
                     'PREPARING_RELEASE' => 'Preparing Release',
-                    'ACTIVE' => 'Released / On Custody',
+                    'ACTIVE' => 'On Custody',
                     'RETURN_PROCESSING' => 'Return Processing',
                     /*
                      * Not a custody status. PARTIALLY_RETURNED was retired by

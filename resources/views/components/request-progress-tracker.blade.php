@@ -71,6 +71,14 @@
             ->first()?->changed_at;
     };
 
+    $isCancelled = $statusValue === 'CANCELLED' || $custodyStatus === 'CANCELLED';
+    $cancellation = $isCancelled ? $request->latestCancellation : null;
+    $cancellationAt = $cancellation?->cancelled_at
+        ?: $historyAt(['CANCELLED'])
+        ?: $custody?->closed_at;
+    $cancellationReason = trim((string) ($cancellation?->reason ?? ''));
+    $cancellationActorName = $cancellation?->requestedBy?->full_name;
+
     $formatDateTime = static fn ($value) =>
         $value
             ? $value->format($compact ? 'd M, g:i A' : 'd M Y, g:i A')
@@ -110,7 +118,7 @@
         ?: $laundry?->worker_received_at;
 
     // A cancellation closes custody without certifying a completed return.
-    $completedAt = $custodyStatus === 'CLOSED' && $statusValue !== 'CANCELLED'
+    $completedAt = $custodyStatus === 'CLOSED' && ! $isCancelled
         ? $custody?->closed_at
         : null;
 
@@ -155,7 +163,7 @@
     );
 
     $isClosed =
-        $custodyStatus === 'CLOSED' && $statusValue !== 'CANCELLED';
+        $custodyStatus === 'CLOSED' && ! $isCancelled;
 
     /*
      * Accountability is a post-return branch, not another name for physical
@@ -187,15 +195,11 @@
     $pickupExpired =
         (bool) $custody?->pickup_expired_at
         && ! $releasedAt
-        && $statusValue !== 'CANCELLED';
+        && ! $isCancelled;
 
-    $terminal = in_array(
+    $terminal = $isCancelled || in_array(
         $statusValue,
-        [
-            'REJECTED',
-            'CANCELLED',
-            'EXPIRED',
-        ],
+        ['REJECTED', 'EXPIRED'],
         true
     );
 
@@ -267,14 +271,6 @@
 
     if ($pickupExpired) {
         $currentIndex = $pickupStepIndex;
-    }
-
-    if (
-        $terminal
-        && $statusValue === 'CANCELLED'
-        && $currentIndex === 1
-    ) {
-        $currentIndex = 2;
     }
 
     /*
@@ -452,6 +448,16 @@
         },
     ];
 
+    if ($returnedForRevision && $headDecisionStep?->decision === 'RETURNED_FOR_REVISION') {
+        $steps[$headReviewStepIndex]['label'] = 'Revision Required';
+    }
+
+    if ($returnedForRevision
+        && $requiresActionOfficerVerification
+        && $verificationStep?->decision === 'RETURNED_FOR_REVISION') {
+        $steps[$actionOfficerStepIndex]['label'] = 'Revision Required';
+    }
+
     $steps[$pickupStepIndex] = [
         'label' => 'Pickup Scheduled',
         'icon' => 'calendar',
@@ -548,12 +554,69 @@
         'icon' => 'success',
         'time' => $completedAt,
         'description' =>
-            $statusValue === 'CANCELLED'
+            $isCancelled
                 ? 'The request was cancelled before completion.'
                 : ($isClosed
                     ? 'Transaction completed.'
                     : 'The transaction will be completed after all return requirements are met.'),
     ];
+
+    /*
+     * A cancellation is an outcome, not a replacement for the last completed
+     * milestone. Keep the actual history visible, then end the rail with one
+     * red Cancelled step. Future stages are intentionally omitted because
+     * they never happened.
+     */
+    if ($isCancelled) {
+        $lastReachedIndex = match (true) {
+            $isReleased && $returnStartedAt => $returnStepIndex,
+            $isReleased => $releaseStepIndex,
+            (bool) $pickupScheduledAt => $pickupStepIndex,
+            $isApproved => $headReviewStepIndex,
+            $requiresActionOfficerVerification
+                && $verificationStep?->decision === 'VERIFIED' => $actionOfficerStepIndex,
+            default => 2,
+        };
+
+        $steps = array_filter(
+            $steps,
+            static fn (array $_step, int $index): bool => $index <= $lastReachedIndex,
+            ARRAY_FILTER_USE_BOTH
+        );
+
+        $cancelledStepIndex = $lastReachedIndex + 1;
+        $cancellationDescription = $cancellationActorName
+            ? 'Cancelled by '.$cancellationActorName.'. '
+            : 'This borrowing was cancelled. ';
+        $cancellationDescription .= $cancellationReason !== ''
+            ? 'Reason: '.$cancellationReason
+            : 'No cancellation reason was recorded.';
+
+        $steps[$cancelledStepIndex] = [
+            'label' => 'Cancelled',
+            'icon' => 'error',
+            'time' => $cancellationAt,
+            'description' => $cancellationDescription,
+        ];
+
+        $currentIndex = $cancelledStepIndex;
+    }
+
+    /*
+     * Rejection is terminal at the review stage. Like cancellation, retain
+     * only the genuine history rather than displaying later stages that can
+     * no longer happen.
+     */
+    if ($statusValue === 'REJECTED') {
+        $steps = array_filter(
+            $steps,
+            static fn (array $_step, int $index): bool => $index <= $reviewStepIndex,
+            ARRAY_FILTER_USE_BOTH
+        );
+        $steps[$reviewStepIndex]['label'] = 'Rejected';
+        $steps[$reviewStepIndex]['icon'] = 'error';
+        $currentIndex = $reviewStepIndex;
+    }
 
     ksort($steps);
 
@@ -581,11 +644,15 @@
     };
 
     $trackerIntro =
-        $isClosed
+        $isCancelled
+            ? 'The tracker ends at the point where this borrowing was cancelled.'
+            : ($returnedForRevision
+                ? 'The request was reviewed and returned for correction.'
+                : ($isClosed
             ? 'View the completed stages of this borrowing transaction.'
             : ((bool) $custody
                 ? 'View the progress of item pickup and return.'
-                : 'Track the review and approval of this request.');
+                : 'Track the review and approval of this request.')));
 
     /*
     |--------------------------------------------------------------------------
@@ -598,7 +665,7 @@
         $statusValue === 'REJECTED'
             => 'Request Rejected',
 
-        $statusValue === 'CANCELLED'
+        $isCancelled
             => 'Request Cancelled',
 
         $statusValue === 'EXPIRED'
@@ -681,11 +748,16 @@
     };
 @endphp
 
+
 <section
     class="content-area request-tracker-card"
     aria-labelledby="request-progress-title"
 >
     <article class="card request-tracker">
+
+        {{-- ================================================================
+             HEADER
+        ================================================================= --}}
 
         <div class="request-tracker__header {{ $compact ? 'visually-hidden' : '' }}">
 
@@ -704,6 +776,7 @@
                 </p>
 
             </div>
+
 
             @if($showCurrentStatus)
 
@@ -736,20 +809,17 @@
 
         </div>
 
-       @if($terminal && $statusValue !== 'CANCELLED')
+
+        {{-- ================================================================
+             TERMINAL / ATTENTION MESSAGES
+        ================================================================= --}}
+
+       @if($terminal && ! $isCancelled && $statusValue !== 'REJECTED')
             <div class="request-tracker__terminal-note" role="status">
                 <x-icon name="information" size="18" />
                 <span>
                     This request is {{ strtolower(str_replace('_', ' ', $statusValue)) }}.
                     The tracker shows the furthest workflow point reached before it was closed.
-                </span>
-            </div>
-        @elseif($returnedForRevision)
-            <div class="request-tracker__attention-note" role="status">
-                <x-icon name="information" size="18" />
-                <span>
-                    SPMU returned this request for revision.
-                    Update the required details/documents and submit it again to continue.
                 </span>
             </div>
         @elseif($pickupExpired)
@@ -762,6 +832,11 @@
             </div>
         @endif
 
+
+        {{-- ================================================================
+             TRACKER RAIL
+        ================================================================= --}}
+
         <div
             class="request-tracker__scroll"
             tabindex="0"
@@ -772,7 +847,7 @@
 
                 @foreach($steps as $index => $step)
 
-@php
+                    @php
 
                         $stepState = 'is-pending';
 
@@ -828,6 +903,7 @@
 
                     @endphp
 
+
                     <li
                         class="
                             request-tracker__step
@@ -848,6 +924,8 @@
                             aria-current="step"
                         @endif
                     >
+
+                        {{-- Marker --}}
 
                         <div
                             class="request-tracker__marker"
@@ -890,6 +968,9 @@
 
                         </div>
 
+
+                        {{-- Text --}}
+
                         <div
                             class="request-tracker__copy workflow-tracker__interactive"
                             data-workflow-step
@@ -903,6 +984,7 @@
                             <strong>
                                 {{ $step['label'] }}
                             </strong>
+
 
                             @if($step['time'])
 
@@ -943,6 +1025,23 @@
 
         </div>
 
+        @if($isCancelled)
+            <div class="request-tracker__cancellation-summary" role="status">
+                <strong>Cancelled</strong>
+                <span class="request-tracker__cancellation-meta">{{ $cancellationAt ? 'Cancelled on '.$formatDateTime($cancellationAt) : 'Cancellation time not recorded' }}</span>
+
+                @if($cancellationReason !== '')
+                    <span class="request-tracker__cancellation-label">Cancellation reason</span>
+                    <p class="request-tracker__cancellation-reason">{{ $cancellationReason }}</p>
+                @endif
+            </div>
+        @endif
+
+
+        {{-- ================================================================
+             FOOTER / INFO
+        ================================================================= --}}
+
         @unless($compact)
         <p class="request-tracker__hint">
 
@@ -953,7 +1052,11 @@
 
             <span>
 
-                @if($isClosed)
+                @if($isCancelled)
+
+                    This borrowing was cancelled. The completed history is retained for reference.
+
+                @elseif($isClosed)
 
                     This history is retained for reference.
 

@@ -80,8 +80,8 @@
 }
 .request-operational-page .request-tracker__scroll { padding: 8px 2px 6px; }
 .request-operational-page .request-tracker__rail {
-    min-width: 900px;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    min-width: 0;
+    grid-template-columns: repeat(var(--request-tracker-step-count, 7), minmax(0, 1fr));
 }
 .request-operational-page .request-tracker__step { padding: 0 5px; }
 .request-operational-page .request-tracker__step::after {

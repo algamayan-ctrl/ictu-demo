@@ -97,6 +97,7 @@
                     <button type="button" class="ictu-users-page-button icon-button" id="ictu-user-prev" aria-label="Previous page" disabled>
                         <x-icon name="chevron-right" size="17" class="is-rotated" />
                     </button>
+                    <span id="ictu-user-page-numbers" class="ictu-users-page-numbers" aria-label="User account pages"></span>
                     <button type="button" class="ictu-users-page-button icon-button" id="ictu-user-next" aria-label="Next page">
                         <x-icon name="chevron-right" size="17" />
                     </button>
@@ -226,12 +227,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const pageSizeControl = document.getElementById('ictu-user-page-size');
     const prevPage = document.getElementById('ictu-user-prev');
     const nextPage = document.getElementById('ictu-user-next');
+    const pageNumbers = document.getElementById('ictu-user-page-numbers');
     const noResults = document.getElementById('ictu-user-no-results');
     const tableScroll = document.querySelector('.ictu-users-table-scroll');
     const rows = Array.from(document.querySelectorAll('[data-ictu-user-row]'));
     let pageSize = Number(pageSizeControl?.value || 7);
     let currentPage = 1;
     let filteredRows = [...rows];
+
+    const renderPageNumbers = (totalPages) => {
+        if (!pageNumbers) return;
+
+        pageNumbers.replaceChildren();
+        const candidates = [1, currentPage - 1, currentPage, currentPage + 1, totalPages]
+            .filter(page => page >= 1 && page <= totalPages)
+            .sort((left, right) => left - right);
+        const visiblePages = [...new Set(candidates)];
+        let previousPage = 0;
+
+        visiblePages.forEach(page => {
+            if (previousPage && page - previousPage > 1) {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'app-pagination-ellipsis';
+                ellipsis.textContent = '…';
+                ellipsis.setAttribute('aria-hidden', 'true');
+                pageNumbers.appendChild(ellipsis);
+            }
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `ictu-users-page-button${page === currentPage ? ' is-active' : ''}`;
+            button.textContent = String(page);
+            button.setAttribute('aria-label', `Page ${page}`);
+            if (page === currentPage) button.setAttribute('aria-current', 'page');
+            button.addEventListener('click', () => { currentPage = page; renderPage(); });
+            pageNumbers.appendChild(button);
+            previousPage = page;
+        });
+    };
 
     const renderPage = () => {
         const total = filteredRows.length;
@@ -245,6 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pageIndicator) pageIndicator.textContent = total ? `${start + 1}–${end} of ${total}` : '0–0 of 0';
         if (prevPage) prevPage.disabled = currentPage <= 1 || total === 0;
         if (nextPage) nextPage.disabled = currentPage >= totalPages || total === 0;
+        renderPageNumbers(totalPages);
         if (noResults) noResults.hidden = total !== 0 || rows.length === 0;
         tableScroll?.scrollTo({ top: 0, behavior: 'auto' });
     };

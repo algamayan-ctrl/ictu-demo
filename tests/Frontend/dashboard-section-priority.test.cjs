@@ -34,3 +34,17 @@ test('AO and Head operational transaction rows stay top-aligned inside tall pair
   assert.match(dashboard, /align-content:start;/);
   assert.match(dashboard, /grid-auto-rows:max-content;/);
 });
+
+test('borrower next actions use concise, direct instructions', () => {
+  assert.match(dashboard, /'taskTitle' => 'Next actions'/);
+  assert.match(dashboard, />Requests or obligations that need your action now\.<\/p>/);
+  assert.match(dashboard, />Ongoing requests to track; no action is needed right now\.<\/p>/);
+  assert.match(dashboard, />Recent History<\/h2>/);
+  assert.match(dashboard, />Past requests that are no longer active\.<\/p>/);
+  assert.match(dashboard, />View history<\/a>/);
+  assert.match(dashboard, /'Complete and submit this request\.'/);
+  assert.match(dashboard, /'Update and resubmit this request\.'/);
+  assert.match(dashboard, /'Pick up the approved items as scheduled\.'/);
+  assert.match(dashboard, />Open My Obligations to continue\.<\/small>/);
+  assert.doesNotMatch(dashboard, /Any late-return assessment will continue in My Obligations/);
+});

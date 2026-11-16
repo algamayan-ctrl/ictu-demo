@@ -7,13 +7,15 @@
     const search = form.elements.namedItem('search');
     const type = form.elements.namedItem('type');
     const status = form.elements.namedItem('status');
+    const perPage = document.querySelector('[name="per_page"][form="registration-page-size-form"]');
     let timer;
     let controller;
     let revision = 0;
 
     const filterUrl = () => {
         const url = new URL(form.action, window.location.href);
-        for (const field of [search, type, status]) {
+        for (const field of [search, type, status, perPage]) {
+            if (!field) continue;
             if (field.value.trim()) url.searchParams.set(field.name, field.value.trim());
         }
         return url;
@@ -58,6 +60,7 @@
 
     search.addEventListener('input', () => refresh(350));
     for (const field of [type, status]) field.addEventListener('change', () => refresh());
+    perPage?.addEventListener('change', () => perPage.form.submit());
     form.addEventListener('submit', event => {
         event.preventDefault();
         refresh();

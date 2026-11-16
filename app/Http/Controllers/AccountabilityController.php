@@ -38,7 +38,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
-// This is the controller for borrower obligations and SPMU accountability case processing.
 class AccountabilityController extends Controller
 {
     public function index(Request $request, PolicyService $policy, AccountabilityWorkQueueService $workQueues): View
@@ -375,10 +374,6 @@ class AccountabilityController extends Controller
         $data = $request->validate([
             'basis' => ['required', 'string', 'max:2000'],
             'due_at' => ['nullable', 'date', 'after_or_equal:today'],
-            'confirm_e_signature' => ['required', 'accepted'],
-        ], [
-            'confirm_e_signature.required' => 'Confirm use of your registered E-signature before issuing this Billing Statement.',
-            'confirm_e_signature.accepted' => 'Confirm use of your registered E-signature before issuing this Billing Statement.',
         ]);
 
         $overdue->loadMissing('custody.lines');
@@ -479,18 +474,25 @@ class AccountabilityController extends Controller
 
             $overdue->update(['status' => LateReturnService::STATUS_AWAITING_PAYMENT]);
 
-            $billingSignature = $signatures->snapshot(
-                $request->user(),
-                'LATE_RETURN_BILLING_STATEMENT',
-                'SPMU Head',
-                $billing,
-                [
-                    'custody_no' => $overdue->custody?->custody_no,
-                    'late_days' => (int) $overdue->late_days,
-                    'amount' => (float) $penalty->amount,
-                    'confirm_e_signature' => true,
-                ]
-            );
+            /*
+             * Generating the official statement and applying the Head's
+             * stored signature are separate choices.  A statement may be
+             * issued without a signature, but a signature snapshot is never
+             * attached unless its owner explicitly approves it in this action.
+             */
+            $billingSignature = $request->boolean('confirm_e_signature')
+                ? $signatures->snapshot(
+                    $request->user(),
+                    'LATE_RETURN_BILLING_STATEMENT',
+                    'SPMU Head',
+                    $billing,
+                    [
+                        'custody_no' => $overdue->custody?->custody_no,
+                        'late_days' => (int) $overdue->late_days,
+                        'amount' => (float) $penalty->amount,
+                    ]
+                )
+                : null;
 
             $billingDocument = $documents->billingStatement($billing, $billingSignature);
 
@@ -524,7 +526,7 @@ class AccountabilityController extends Controller
                     'amount' => $penalty->amount,
                     'rate' => $penalty->rate_snapshot,
                     'sanction_created' => false,
-                    'head_signature_snapshot_id' => $billingSignature->id,
+                    'head_signature_snapshot_id' => $billingSignature?->id,
                     'generated_document_id' => $billingDocument->id,
                     'late_return_notice_document_id' => $lateReturnNotice->id,
                 ]
@@ -1180,10 +1182,6 @@ class AccountabilityController extends Controller
         $data = $request->validate([
             'decision' => ['required', 'in:CONFIRM,CLEAR'],
             'resolution_remarks' => ['required', 'string', 'max:2000'],
-            'confirm_e_signature' => ['required', 'accepted'],
-        ], [
-            'confirm_e_signature.required' => 'Confirm use of your registered E-signature before recording this accountability decision.',
-            'confirm_e_signature.accepted' => 'Confirm use of your registered E-signature before recording this accountability decision.',
         ]);
 
         $offensePreview = $policy->incidentOffensePreview($incident);
@@ -1218,20 +1216,21 @@ class AccountabilityController extends Controller
             $previousStatus = $incident->status;
             $existingRemarks = trim((string) $incident->remarks);
 
-            $headSignature = $signatures->snapshot(
-                $request->user(),
-                'ACCOUNTABILITY_HEAD_DECISION',
-                'SPMU Head',
-                $incident,
-                [
-                    'incident_no' => $incident->incident_no,
-                    'decision' => $data['decision'],
-                    'confirm_e_signature' => true,
-                ]
-            );
+            $headSignature = $request->boolean('confirm_e_signature')
+                ? $signatures->snapshot(
+                    $request->user(),
+                    'ACCOUNTABILITY_HEAD_DECISION',
+                    'SPMU Head',
+                    $incident,
+                    [
+                        'incident_no' => $incident->incident_no,
+                        'decision' => $data['decision'],
+                    ]
+                )
+                : null;
 
             $incident->update([
-                'head_decision_signature_snapshot_id' => $headSignature->id,
+                'head_decision_signature_snapshot_id' => $headSignature?->id,
                 'head_decided_by_user_id' => $request->user()->id,
                 'head_decided_at' => now(),
                 'accountability_flow_version' => 'V3',
@@ -1283,7 +1282,7 @@ class AccountabilityController extends Controller
                     after: [
                         'status' => 'RESOLVED',
                         'resolution_outcome' => 'FINDING_CLEARED',
-                        'head_signature_snapshot_id' => $headSignature->id,
+                        'head_signature_snapshot_id' => $headSignature?->id,
                         'resolved_by_user_id' => $request->user()->id,
                         'pending_violations_dismissed' => $dismissedViolations,
                     ]
@@ -1314,7 +1313,7 @@ class AccountabilityController extends Controller
             }
 
             if ($recordedSanction) {
-                $recordedSanction->update(['signature_snapshot_id' => $headSignature->id]);
+                $recordedSanction->update(['signature_snapshot_id' => $headSignature?->id]);
 
                 if (strtoupper((string) $recordedSanction->sanction_code) === 'BORROWING_SUSPENSION') {
                     $issuedSanctionDocument = $documents->administrativeSanctionNotice(
@@ -1342,7 +1341,7 @@ class AccountabilityController extends Controller
                     'resolution_outcome' => 'ACCOUNTABILITY_CONFIRMED',
                     'administrative_offense_confirmed' => (bool) $recordedSanction,
                     'sanction_id' => $recordedSanction?->id,
-                    'head_signature_snapshot_id' => $headSignature->id,
+                    'head_signature_snapshot_id' => $headSignature?->id,
                     'sanction_notice_document_id' => $issuedSanctionDocument?->id,
                 ]
             );
@@ -1422,10 +1421,7 @@ class AccountabilityController extends Controller
             'resolution_remarks' => ['required', 'string', 'max:2000'],
             'count_as_offense' => [$requiresOffenseDecision ? 'required' : 'nullable', 'boolean'],
             'requires_rslddp' => ['required_if:resolution_outcome,COMPLIANCE_REQUIRED', 'boolean'],
-            'confirm_e_signature' => ['required', 'accepted'],
         ], [
-            'confirm_e_signature.required' => 'Confirm use of your registered E-signature before recording this accountability decision.',
-            'confirm_e_signature.accepted' => 'Confirm use of your registered E-signature before recording this accountability decision.',
             'count_as_offense.required' => 'Choose whether this eligible incident should count as an administrative offense.',
             'requires_rslddp.required_if' => 'Choose whether this confirmed property accountability requires an RSLDDP.',
         ]);
@@ -1487,21 +1483,22 @@ class AccountabilityController extends Controller
             $previousStatus = $incident->status;
             $existingRemarks = trim((string) $incident->remarks);
 
-            $headSignature = $signatures->snapshot(
-                $request->user(),
-                'ACCOUNTABILITY_HEAD_DECISION',
-                'SPMU Head',
-                $incident,
-                [
-                    'incident_no' => $incident->incident_no,
-                    'resolution_outcome' => $data['resolution_outcome'],
-                    'compliance_action' => $complianceAction,
-                    'confirm_e_signature' => true,
-                ]
-            );
+            $headSignature = $request->boolean('confirm_e_signature')
+                ? $signatures->snapshot(
+                    $request->user(),
+                    'ACCOUNTABILITY_HEAD_DECISION',
+                    'SPMU Head',
+                    $incident,
+                    [
+                        'incident_no' => $incident->incident_no,
+                        'resolution_outcome' => $data['resolution_outcome'],
+                        'compliance_action' => $complianceAction,
+                    ]
+                )
+                : null;
 
             $incident->update([
-                'head_decision_signature_snapshot_id' => $headSignature->id,
+                'head_decision_signature_snapshot_id' => $headSignature?->id,
                 'head_decided_by_user_id' => $request->user()->id,
                 'head_decided_at' => now(),
             ]);
@@ -1517,7 +1514,7 @@ class AccountabilityController extends Controller
             }
 
             if ($recordedSanction) {
-                $recordedSanction->update(['signature_snapshot_id' => $headSignature->id]);
+                $recordedSanction->update(['signature_snapshot_id' => $headSignature?->id]);
 
                 /*
                  * Only a formal borrowing suspension gets a printed notice
@@ -1760,6 +1757,7 @@ class AccountabilityController extends Controller
             'Property compliance verified. The case is now awaiting final SPMU Head/Admin review; its linked restriction remains active until resolution.'
         );
     }
+
 
     /** @return list<string> */
     private function allowedComplianceActions(Incident $incident): array

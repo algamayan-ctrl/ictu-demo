@@ -163,7 +163,7 @@ class ProcessOperationalDeadlines extends Command
                     $notifications->send(
                         $eventCode,
                         collect([$custody->borrower]),
-                        "Reminder: the borrowed items under {$custody->custody_no} are due {$label}, {$custody->due_at->format('F j, Y')}. Please return them to SPMU within the allowed return hours.",
+                        "Your borrowed items under {$custody->custody_no} are due for return {$label}, {$custody->due_at->format('F j, Y')}. Please return them to SPMU during the designated return hours.",
                         $custody
                     );
                     $dueSoon++;

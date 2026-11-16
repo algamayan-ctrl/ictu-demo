@@ -1373,4 +1373,156 @@ body:has(.ob-workspace) #sanction-history { margin: 12px 0 0 !important; }
     --ob-to:#0758b8;
     --ob-shadow:rgba(23,119,220,.18);
 }
+
+{{-- /* Borrower My Obligations: one compact current-status panel instead of
+   oversized KPI cards; resolved history stays collapsed until selected. */ --}}
+.ob-workspace .ob-current-status {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    min-height: 88px;
+    padding: 16px 20px;
+    border: 1px solid var(--border);
+    border-left: 4px solid #12865f;
+    border-radius: 12px;
+    background: var(--surface-elevated);
+    box-shadow: 0 1px 2px rgba(7, 27, 53, .03);
+}
+.ob-workspace .ob-current-status.is-attention { border-left-color: #df9419; }
+.ob-workspace .ob-current-status-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border: 1px solid color-mix(in srgb, #12865f 22%, var(--border));
+    border-radius: 50%;
+    color: #12865f;
+    background: color-mix(in srgb, #12865f 10%, var(--surface-elevated));
+}
+.ob-workspace .ob-current-status.is-attention .ob-current-status-icon {
+    color: #9a650c;
+    border-color: color-mix(in srgb, #df9419 28%, var(--border));
+    background: color-mix(in srgb, #df9419 13%, var(--surface-elevated));
+}
+.ob-workspace .ob-current-status-copy { flex: 1 1 auto; min-width: 0; }
+.ob-workspace .ob-current-status-copy > strong {
+    display: block;
+    color: var(--heading);
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.35;
+}
+.ob-workspace .ob-current-status-copy > p {
+    margin: 3px 0 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+.ob-workspace .ob-current-status-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 16px;
+    margin-top: 5px;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+}
+.ob-workspace .ob-current-status-facts strong { color: var(--heading); }
+.ob-workspace .ob-current-status-badge {
+    flex: 0 0 auto;
+    padding: 5px 10px;
+    border: 1px solid color-mix(in srgb, #df9419 30%, var(--border));
+    border-radius: 999px;
+    color: var(--heading);
+    background: color-mix(in srgb, #df9419 11%, var(--surface-elevated));
+    font-size: 11px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+@media (max-width: 660px) {
+    .ob-workspace .ob-current-status { align-items: flex-start; flex-wrap: wrap; padding: 14px; gap: 10px; }
+    .ob-workspace .ob-current-status-icon { flex-basis: 36px; width: 36px; height: 36px; }
+    .ob-workspace .ob-current-status-badge { margin-left: 46px; }
+}
+
+{{-- /* Compact borrower-only indicators: retain the useful billing and borrowing
+   status at a glance without the original oversized dashboard KPI tiles. */ --}}
+.ob-workspace .ob-overview-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+.ob-workspace .ob-metric-card {
+    --metric-start: #3698ed;
+    --metric-end: #1262c5;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
+    min-height: 106px;
+    padding: 16px 54px 16px 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 12px;
+    background: linear-gradient(112deg, var(--metric-start), var(--metric-end));
+    color: #fff;
+    text-decoration: none;
+    box-shadow: 0 5px 14px rgba(16, 51, 92, .10);
+    transition: box-shadow .16s ease, transform .16s ease;
+}
+.ob-workspace .ob-metric-card.is-green {
+    --metric-start: #20c49f;
+    --metric-end: #09947e;
+}
+.ob-workspace .ob-metric-card.is-unsettled {
+    --metric-start: #ea9636;
+    --metric-end: #c8711b;
+}
+.ob-workspace .ob-metric-card.is-restricted {
+    --metric-start: #e68a30;
+    --metric-end: #c36a1b;
+}
+.ob-workspace .ob-metric-card:hover,
+.ob-workspace .ob-metric-card:focus-visible {
+    transform: translateY(-1px);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(16, 51, 92, .18);
+}
+.ob-workspace .ob-metric-card:focus-visible {
+    outline: 2px solid var(--interactive);
+    outline-offset: 3px;
+}
+.ob-workspace .ob-metric-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, .5);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .12);
+}
+.ob-workspace .ob-metric-content { display: grid; min-width: 0; gap: 3px; }
+.ob-workspace .ob-metric-label { font-size: 12px; font-weight: 750; line-height: 1.35; }
+.ob-workspace .ob-metric-value { font-size: clamp(20px, 2vw, 27px); font-weight: 850; line-height: 1.16; overflow-wrap: anywhere; }
+.ob-workspace .ob-metric-note { font-size: 11px; font-weight: 600; line-height: 1.4; opacity: .94; }
+.ob-workspace .ob-metric-arrow {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: 14px;
+    right: 15px;
+    width: 29px;
+    height: 29px;
+    border: 1px solid rgba(255, 255, 255, .3);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .10);
+}
+@media (max-width: 700px) {
+    .ob-workspace .ob-overview-metrics { grid-template-columns: 1fr; }
+    .ob-workspace .ob-metric-card { min-height: 96px; padding: 14px 52px 14px 14px; }
+}
+
 </style>

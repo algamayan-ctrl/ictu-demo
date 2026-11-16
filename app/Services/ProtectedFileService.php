@@ -141,6 +141,40 @@ class ProtectedFileService
             $this->cleanup($disk, $path);
             throw new ProtectedFileStorageException("The file could not be written to the [{$disk}] disk.");
         }
+
+        $this->makeLocalFileReadableByTheApplication($disk, $path);
+    }
+
+    /**
+     * Commands may run as root while the web application runs as www-data.
+     *
+     * The private storage directory remains outside the public web root and
+     * is traversable only by the application group. Local protected files
+     * therefore need read permission for the web process after command-based
+     * generation, otherwise a perfectly valid document becomes unavailable
+     * through its authorized preview route.
+     */
+    private function makeLocalFileReadableByTheApplication(string $disk, string $path): void
+    {
+        $config = config('filesystems.disks.'.$disk);
+        if (! is_array($config) || ($config['driver'] ?? null) !== 'local') {
+            return;
+        }
+
+        try {
+            $absolutePath = Storage::disk($disk)->path($path);
+            if (! is_file($absolutePath) || ! @chmod($absolutePath, 0644)) {
+                throw new RuntimeException('The local protected file permissions could not be updated.');
+            }
+        } catch (Throwable $exception) {
+            $this->cleanup($disk, $path);
+            Log::error('Protected local file could not be prepared for application access.', [
+                'disk' => $disk,
+                'storage_path' => $path,
+            ] + $this->failureSummary($exception));
+
+            throw new ProtectedFileStorageException("The file could not be prepared on the [{$disk}] disk.");
+        }
     }
 
     /** Only a fresh UUID allocated by this write may be cleaned up. */

@@ -20,7 +20,10 @@ test('role-owned Accountability actions preserve focused processing and explicit
   assert.match(workspace, /accountability-action-button/);
   assert.match(workspace, /\$shouldAutoOpenFocusedAction/);
   assert.match(workspace, /class="accountability-action-panel"/);
-  assert.match(workspace, /Review Assessment/);
+  assert.match(workspace, /Review Case/);
+  assert.match(workspace, /Review Late Return/);
+  assert.match(workspace, /Decision notes/);
+  assert.doesNotMatch(workspace, /Assessment Basis/);
   assert.match(workspace, /Review Finding/);
   assert.match(workspace, /Record Verification/);
   assert.match(workspace, /Record Receipt/);

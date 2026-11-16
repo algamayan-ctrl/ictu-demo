@@ -21,6 +21,7 @@ class BorrowerRegistrationReviewController extends Controller
             'search' => ['nullable', 'string', 'max:255'],
             'type' => ['nullable', 'in:EMPLOYEE,EXTERNAL'],
             'status' => ['nullable', 'in:PENDING,APPROVED,REJECTED'],
+            'per_page' => ['nullable', 'integer', 'in:7,15,30,50'],
         ]);
         $query = BorrowerRegistration::query()->where(function ($query): void {
             $query->where('status', '!=', RegistrationStatus::Pending->value)
@@ -47,7 +48,7 @@ class BorrowerRegistrationReviewController extends Controller
         return view('registrations.index', [
             'registrations' => $query
                 ->orderByRaw("CASE WHEN status = 'PENDING' THEN 0 ELSE 1 END")
-                ->orderBy('created_at')->orderBy('id')->paginate(10)->withQueryString(),
+                ->orderBy('created_at')->orderBy('id')->paginate((int) ($filters['per_page'] ?? 7))->withQueryString(),
             'filters' => $filters,
         ]);
     }

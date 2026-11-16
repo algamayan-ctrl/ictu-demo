@@ -1,6 +1,5 @@
 @extends('layouts.app', ['title' => session('active_workspace') === 'BORROWER' ? 'My Obligations' : (auth()->user()?->access_classification?->value === 'SPMU_HEAD' ? 'Accountability Oversight' : 'Accountability Processing')])
 @section('content')
-{{-- This is the My Obligations UI for Borrower and the Accountability UI for authorized SPMU users. --}}
 @php
     $workspace = session('active_workspace');
     $isBorrower = $workspace === 'BORROWER';
@@ -72,22 +71,6 @@
     ]);
     $openIncidents = $incidents->whereNotIn('status', ['RESOLVED', 'CLOSED', 'VOID_CORRECTION']);
     $openBillings = $billings->whereNotIn('status', ['SETTLED', 'WAIVED', 'VOID']);
-    $propertyCustodyIds = $openIncidents
-        ->pluck('custody_transaction_id')
-        ->filter()
-        ->map(fn ($id) => (int) $id)
-        ->unique();
-    $pendingViolations = $isHead
-        ? $violations->where('status', 'PENDING_REVIEW')->reject(
-            fn ($violation) => $propertyCustodyIds->contains((int) $violation->custody_transaction_id) && $violation->violation_source !== 'LATE_RETURN'
-        )
-        : collect();
-    $headReviewIncidents = $isHead
-        ? $openIncidents->whereNotIn('status', ['BILLING_PENDING', 'FOR_BILLING', 'COMPLIANCE_REQUIRED'])
-        : collect();
-    $headReviewCount = $pendingViolations->count()
-        + $headReviewIncidents->count()
-        + $headReviewOverdueCases->count();
     /*
      * The one canonical case tally, shared with the AO/Head dashboard KPI
      * cards via AccountabilityCaseTally: an Incident and an OverdueCase on
@@ -156,7 +139,7 @@
     color: var(--text-secondary);
 }
 .officer-accountability-note strong { color: var(--text-primary); }
-.head-control-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.head-control-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
 .head-control-heading > div { min-width:0; }
 .head-control-heading h2 { margin:2px 0 4px; }
 .head-control-heading p { margin:0; color:var(--text-muted); }
@@ -165,23 +148,23 @@
     display:grid;
     grid-template-columns: repeat(4, minmax(0,1fr));
     gap:1px;
-    margin:12px 0 0;
+    margin:14px 0 0;
     border:1px solid var(--border);
     border-radius:10px;
     overflow:hidden;
     background:var(--border);
 }
-.head-case-summary > div { padding:12px 12px; background:var(--surface); min-width:0; }
+.head-case-summary > div { padding:12px 14px; background:var(--surface); min-width:0; }
 .head-case-summary dt { margin:0 0 4px; color:var(--text-muted); font-size:10px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
 .head-case-summary dd { margin:0; color:var(--text-primary); font-weight:700; overflow-wrap:anywhere; }
-.head-case-lines { margin-top:12px; }
-.head-review-disclosure { margin-top:12px; border-top:1px solid var(--border); padding-top:14px; }
+.head-case-lines { margin-top:14px; }
+.head-review-disclosure { margin-top:14px; border-top:1px solid var(--border); padding-top:14px; }
 .head-review-disclosure > summary {
     display:inline-flex;
     align-items:center;
     justify-content:center;
     min-height:40px;
-    padding:0 12px;
+    padding:0 16px;
     border:1px solid #1d6fb8;
     border-radius:9px;
     color:#155d9d;
@@ -192,13 +175,13 @@
 }
 .head-review-disclosure > summary::-webkit-details-marker { display:none; }
 .head-review-disclosure[open] > summary { background:#eef6fd; }
-.head-decision-panel { margin-top:12px; padding:12px; border:1px solid #c9dff2; border-radius:10px; background:#f8fbfe; }
+.head-decision-panel { margin-top:14px; padding:16px; border:1px solid #c9dff2; border-radius:10px; background:#f8fbfe; }
 .head-decision-panel h4 { margin:0 0 5px; }
-.head-decision-panel > p { margin:0 0 12px; color:var(--text-secondary); }
+.head-decision-panel > p { margin:0 0 14px; color:var(--text-secondary); }
 .head-decision-hint { display:grid; gap:5px; margin-top:12px; padding:11px 12px; border-left:4px solid #d08a16; background:#fffaf0; border-radius:7px; color:var(--text-secondary); font-size:11px; }
 .head-status-note { margin-top:12px; padding:11px 12px; border:1px solid var(--border); border-radius:8px; background:var(--surface-subtle); }
 .head-status-note strong { display:block; margin-bottom:3px; }
-.head-offense-panel { display:grid; gap:11px; margin-top:12px; padding:12px; border:1px solid #d6e1ec; border-radius:10px; background:#fff; }
+.head-offense-panel { display:grid; gap:11px; margin-top:14px; padding:14px; border:1px solid #d6e1ec; border-radius:10px; background:#fff; }
 .head-offense-panel__heading { display:grid; gap:3px; }
 .head-offense-panel__heading span { color:var(--text-muted); font-size:10px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
 .head-offense-review { display:grid; gap:10px; padding:12px; border:1px solid #cfe0ef; border-radius:10px; background:#fff; }
@@ -223,10 +206,10 @@
 .head-offense-state { padding:11px 12px; border-left:4px solid #1d6fb8; border-radius:8px; background:#f5f9fd; }
 .head-offense-state strong { display:block; margin-bottom:3px; }
 
-.accountability-case-workflow { display:grid; gap:12px; }
-.accountability-case-identity { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.accountability-case-workflow { display:grid; gap:14px; }
+.accountability-case-identity { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
 .accountability-case-identity h3 { margin:2px 0 2px; }
-.accountability-case-ref { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:7px; color:var(--text-muted); font-size:10px; }
+.accountability-case-ref { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:7px; color:var(--text-muted); font-size:10px; }
 .accountability-case-ref strong { color:var(--text-secondary); }
 .accountability-stepper {
     display:grid;
@@ -268,7 +251,7 @@
 .accountability-current-step {
     display:grid;
     gap:10px;
-    padding:13px 12px;
+    padding:13px 14px;
     border:1px solid #c9dff2;
     border-radius:10px;
     background:#f8fbfe;
@@ -285,7 +268,7 @@
     justify-content:center;
     gap:7px;
     min-height:38px;
-    padding:0 12px;
+    padding:0 14px;
     border:1px solid #1d6fb8;
     border-radius:8px;
     color:#155d9d;
@@ -307,7 +290,7 @@
 .accountability-compact-offense strong { color:var(--text-secondary); }
 .accountability-case-details { border-top:1px solid var(--border); padding-top:11px; }
 .accountability-case-details .head-case-summary { margin-top:10px; }
-.accountability-billing-brief { display:flex; flex-wrap:wrap; gap:6px 12px; color:var(--text-secondary); font-size:10px; }
+.accountability-billing-brief { display:flex; flex-wrap:wrap; gap:6px 16px; color:var(--text-secondary); font-size:10px; }
 .accountability-billing-brief strong { color:var(--text-primary); }
 .accountability-decision-summary {
     display:grid;
@@ -362,6 +345,46 @@
 @media (max-width: 900px) { .head-case-summary, .head-offense-preview, .head-offense-choices { grid-template-columns:1fr 1fr; } }
 @media (max-width: 560px) { .head-case-summary, .head-offense-preview, .head-offense-choices { grid-template-columns:1fr; } }
 
+
+{{-- SAO Accountability: retain the original page width and let the
+     record panel use the available screen height, including empty states. --}}
+@media (min-width: 761px) {
+    .app-main:has(> .accountability-heading--sao) > .content-area {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+    .app-main:has(> .accountability-heading--sao) > .content-area > .accountability-work-queue-card,
+    .app-main:has(> .accountability-heading--sao) > .content-area > .accountability-cases-card {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 330px;
+    }
+    .app-main:has(> .accountability-heading--sao) > #resolved-history > .accountability-cases-card {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 330px;
+    }
+    .app-main:has(> .accountability-heading--sao) .accountability-workspace-empty {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex: 1 1 auto;
+    }
+    .app-main:has(> .accountability-heading--sao) .accountability-table-browser-footer {
+        margin-top: auto;
+    }
+}
+
+{{-- /* ACCOUNTABILITY THREE KPI CARDS START */ --}}
+
+{{-- /*
+ * Head/Admin overview:
+ * three primary cards fill the complete available row.
+ */ --}}
 .accountability-overview {
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -374,23 +397,41 @@
     max-width: none !important;
 }
 
+{{-- /* Tablet */ --}}
 @media (max-width: 1050px) {
     .accountability-overview {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 }
 
+{{-- /* Mobile */ --}}
 @media (max-width: 640px) {
     .accountability-overview {
         grid-template-columns: 1fr !important;
     }
 }
 
+{{-- /* ACCOUNTABILITY THREE KPI CARDS END */ --}}
+
+{{-- /* ==========================================================
+   ACCOUNTABILITY ROLE-BASED CARD COLORS START
+   ========================================================== */ --}}
+
+{{-- /*
+|--------------------------------------------------------------------------
+| KPI colors should depend on card role / label,
+| not on visual position.
+|--------------------------------------------------------------------------
+*/ --}}
+
 [data-accountability-card-label] {
     position: relative;
     overflow: hidden;
 }
 
+{{-- /* -------------------------
+   Needs My Decision = BLUE
+   ------------------------- */ --}}
 [data-accountability-card-label="Needs My Decision"] {
     background: linear-gradient(135deg, #2f5fe3 0%, #39a9f3 100%) !important;
     color: #ffffff !important;
@@ -407,6 +448,9 @@
     border-color: rgba(255,255,255,.22) !important;
 }
 
+{{-- /* --------------------------------------------
+   Ready for Closure / For Final Resolution = GREEN
+   -------------------------------------------- */ --}}
 [data-accountability-card-label="Ready for Closure"],
 [data-accountability-card-label="For Final Resolution"] {
     background: linear-gradient(135deg, #129a74 0%, #1dbf8a 100%) !important;
@@ -428,6 +472,9 @@
     border-color: rgba(255,255,255,.22) !important;
 }
 
+{{-- /* ------------------------------------------------
+   Pending Physical Verification = AMBER / ORANGE
+   ------------------------------------------------ */ --}}
 [data-accountability-card-label="Pending Physical Verification"] {
     background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%) !important;
     color: #ffffff !important;
@@ -444,22 +491,33 @@
     border-color: rgba(255,255,255,.22) !important;
 }
 
-[data-accountability-card-label="Open Accountability Cases"] {
+{{-- /* ------------------------------------
+   Open Accountability Cases = RED
+   ------------------------------------ */ --}}
+[data-accountability-card-label="Open Accountability Cases"],
+[data-accountability-card-label="Open Cases"] {
     background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%) !important;
     color: #ffffff !important;
 }
 
-[data-accountability-card-label="Open Accountability Cases"] * {
+[data-accountability-card-label="Open Accountability Cases"] *,
+[data-accountability-card-label="Open Cases"] * {
     color: inherit !important;
 }
 
 [data-accountability-card-label="Open Accountability Cases"] .accountability-overview-icon,
 [data-accountability-card-label="Open Accountability Cases"] .overview-card-icon,
-[data-accountability-card-label="Open Accountability Cases"] [class*="overview-icon"] {
+[data-accountability-card-label="Open Accountability Cases"] [class*="overview-icon"],
+[data-accountability-card-label="Open Cases"] .accountability-overview-icon,
+[data-accountability-card-label="Open Cases"] .overview-card-icon,
+[data-accountability-card-label="Open Cases"] [class*="overview-icon"] {
     background: rgba(255,255,255,.14) !important;
     border-color: rgba(255,255,255,.22) !important;
 }
 
+{{-- /* -----------------------------
+   Unsettled Accountability Charges = AMBER
+   ----------------------------- */ --}}
 [data-accountability-card-label="Unsettled Accountability Charges"] {
     background: linear-gradient(135deg, #dd8b00 0%, #f2a300 100%) !important;
     color: #ffffff !important;
@@ -476,20 +534,25 @@
     border-color: rgba(255,255,255,.22) !important;
 }
 
+{{-- /* Keep subtle decorative bubble visible on colored cards */ --}}
 [data-accountability-card-label]::before,
 [data-accountability-card-label]::after {
     opacity: 1 !important;
 }
 
+{{-- /* ==========================================================
+   ACCOUNTABILITY ROLE-BASED CARD COLORS END
+   ========================================================== */ --}}
 </style>
 @include('accountability.partials.oversight-styles')
 <style>
-
+{{-- /* Accountability KPI cards use the same full-color visual family as Analytics.
+   Meaning remains role-specific; only the visual component is unified. */ --}}
 .accountability-overview {
     display:grid;
     grid-template-columns:repeat(4,minmax(0,1fr));
     gap:12px;
-    margin-bottom:12px;
+    margin-bottom:16px;
 }
 .accountability-overview-card {
     --tone-from:#1d4ed8;
@@ -503,7 +566,7 @@
     column-gap:12px;
     row-gap:2px;
     min-height:122px;
-    padding:12px 16px;
+    padding:16px 18px;
     overflow:hidden;
     border:0;
     border-radius:12px;
@@ -611,6 +674,7 @@ html[data-theme="dark"] .accountability-overview-card.tone-balance { --tone-from
 :root[data-theme="dark"] .accountability-overview-card.tone-resolved,
 html[data-theme="dark"] .accountability-overview-card.tone-resolved { --tone-from:#115e59; --tone-to:#059669; --tone-glow:rgba(0,0,0,.42); }
 
+{{-- /* Case identity: make borrower/reference/status scannable instead of one bold line. */ --}}
 .accountability-case-ref {
     align-items:center;
     gap:5px 0;
@@ -637,6 +701,7 @@ html[data-theme="dark"] .accountability-overview-card.tone-resolved { --tone-fro
 }
 .accountability-case-ref > .accountability-case-ref__restriction::after { content:none; }
 
+{{-- /* Concise flag on the collapsed row - full reason/dates live in the expanded Borrowing Restriction panel instead. */ --}}
 .accountability-restriction-flag {
     display:block;
     margin-top:2px;
@@ -660,6 +725,8 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     background:var(--surface-subtle);
 }
 
+{{-- /* A current action exposes one true CTA. The billing form does not need a
+   second disclosure button repeating the same action name. */ --}}
 .accountability-action-body--direct {
     margin-top:10px;
     padding-top:12px;
@@ -680,6 +747,14 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     .accountability-overview { grid-template-columns:1fr; }
 }
 
+{{-- /*
+ | The heading action sits at the upper right of this heading only. The global
+ | .page-heading is already a space-between flex row, so the button needs no
+ | float or absolute positioning - only the cross-axis start alignment that
+ | levels it with the title block instead of the subtitle baseline. Below
+ | 768px app.css turns .page-heading into a column, so it wraps under the
+ | heading on its own; flex-shrink keeps the label on one line above that.
+ */ --}}
 .accountability-heading { align-items: flex-start; }
 .accountability-heading > .accountability-heading-action { flex-shrink: 0; }
 
@@ -687,7 +762,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
-    margin: 12px 0 12px;
+    margin: 16px 0 14px;
 }
 .accountability-staff-tabs.is-head { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .accountability-staff-tab {
@@ -761,7 +836,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     box-shadow: var(--shadow-sm);
     transform: translateY(-1px);
 }
-.accountability-workspace-empty { padding: 20px 16px; }
+.accountability-workspace-empty { padding: 26px 20px; }
 
 @media (max-width: 980px) {
     .accountability-staff-tabs,
@@ -784,7 +859,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 </style>
 @endonce
 
-<section class="page-heading accountability-heading">
+<section class="page-heading accountability-heading{{ $isOfficer ? ' accountability-heading--sao' : '' }}">
     <div>
         @unless($isBorrower)<p class="eyebrow">Financial and property accountability</p>@endunless
         <h1>{{ $pageTitle }}</h1>
@@ -901,42 +976,45 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             ],
         ];
     } else {
-        $pendingAoVerification = $staffWorkQueue->where('stage', 'Physical Compliance Verification')->count();
-
+        // Match the Action Officer sidebar: action queue, open cases, and resolved cases.
         $summaryCards = [
             [
                 'tone' => 'open',
                 'icon' => 'requests',
-                'label' => 'Cases for Follow-Up',
+                'label' => 'Needs Your Action',
                 'value' => $staffWorkQueue->count(),
-                'note' => 'Cases to monitor or process when ready',
+                'note' => 'Cases with a next step for you',
                 'href' => route('accountability.index', ['queue' => 'work']).'#accountability-workspace',
             ],
             [
                 'tone' => 'overdue',
-                'icon' => 'approval',
-                'label' => 'Pending Physical Verification',
-                'value' => $pendingAoVerification,
-                'note' => 'Items awaiting physical compliance inspection',
-                'href' => route('accountability.index', ['queue' => 'work', 'metric' => 'verification']).'#accountability-workspace',
-            ],
-            [
-                'tone' => 'balance',
                 'icon' => 'accountability',
-                'label' => 'Open Accountability Cases',
+                'label' => 'Open Cases',
                 'value' => $openAccountabilities,
                 'note' => 'All unresolved accountability matters',
                 'href' => route('accountability.index', ['queue' => 'all']).'#accountability-workspace',
             ],
-
+            [
+                'tone' => 'resolved',
+                'icon' => 'check-circle',
+                'label' => 'Resolved Cases',
+                'value' => $resolvedHistory->count(),
+                'note' => 'Completed accountability records',
+                'href' => route('accountability.index', ['queue' => 'history']).'#accountability-workspace',
+            ],
         ];
     }
 @endphp
 
 <style>
+{{-- /* ACCOUNTABILITY UNIVERSAL KPI DASHBOARD START */ --}}
+
+{{-- /* Accountability KPI cards intentionally reuse the established white-card design above. */ --}}
 
 </style>
 
+{{-- On the SAO Resolved Cases tab, show the history directly; current-work KPIs belong in the active queues. --}}
+@if(! ($isOfficer && $activeStaffTab === 'history'))
 <section class="accountability-overview" aria-label="Accountability summary">
     @foreach($summaryCards as $card)
         <a
@@ -951,11 +1029,12 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         </a>
     @endforeach
 </section>
+@endif
 
 <span id="accountability-workspace" class="accountability-workspace-anchor" aria-hidden="true"></span>
 
 @if($activeStaffTab === 'work')
-@php
+    @php
         $visibleQueue = match ($selectedMetric) {
             'resolution' => $finalResolutionCases,
             'verification' => $staffWorkQueue->where('stage', 'Physical Compliance Verification')->values(),
@@ -968,7 +1047,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             'resolution' => 'For Final Resolution',
             'verification' => 'Pending Physical Verification',
             'receipts' => 'Cashier Receipt Follow-Up',
-            default => $isHead ? 'Cases Requiring My Decision' : 'Cases for Follow-Up',
+            default => $isHead ? 'Cases Requiring My Decision' : 'Needs Your Action',
         };
         $queueIntro = match ($selectedMetric) {
             'resolution' => 'Head/Admin cases with a final resolution action available.',
@@ -976,7 +1055,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             'receipts' => 'Cases awaiting Cashier receipt recording by the Action Officer.',
             default => $isHead
                 ? 'Cases are listed by the decision or official action currently assigned to the SPMU Head/Admin.'
-                : 'Check the next required step for each case. Waiting On shows who must act before processing can continue.',
+                : 'Check the next step for each case. “Waiting On” shows who needs to act next.',
         };
     @endphp
     <section class="content-area">
@@ -992,8 +1071,8 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                 <div class="accountability-workspace-empty">
                     <x-empty-state
                         icon="accountability"
-                         :title="$selectedMetric !== '' ? 'No '.$queueTitle.' cases.' : 'No accountability work is assigned here right now.'"
-                        :message="$selectedMetric !== '' ? 'There are currently no cases matching this card.' : 'Use All Active Cases for complete borrower records and History for resolved matters.'"
+                         :title="$selectedMetric !== '' ? 'No '.$queueTitle.' cases.' : 'No cases need your action right now.'"
+                        :message="$selectedMetric !== '' ? 'There are currently no cases matching this card.' : 'Use Open Cases for all ongoing borrower cases, or Resolved Cases for completed records.'"
                     />
                 </div>
             @else
@@ -1032,7 +1111,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                     <td><span class="accountability-waiting-on">{{ $item['waiting_on'] ?? 'SPMU Processing' }}</span></td>
                                     <td><span class="accountability-next-step-copy">{{ $item['next_step'] ?? 'Continue the applicable accountability process.' }}</span></td>
                                     <td>
-@php
+                                        @php
                                                 $queueActionUrl = $item['action_url'] ?? null;
 
                                                 if (
@@ -1074,69 +1153,6 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 
 @if($isBorrower)
 @include('accountability.partials.obligations-workspace')
-@endif
-
-@if($isHead && $activeStaffTab === 'work' && $pendingViolations->isNotEmpty())
-<section class="content-area">
-    <div class="section-heading">
-        <div>
-            <p class="eyebrow">Administrative accountability</p>
-            <h2>Administrative Review</h2>
-            <p>Review only violations that require an SPMU Head decision. Property return findings and financial follow-up stay in their own sections below.</p>
-        </div>
-    </div>
-
-    @foreach($pendingViolations as $violation)
-@php
-            $violationDetails = is_array($violation->details_json) ? $violation->details_json : [];
-            $violationReasons = collect($violationDetails['reasons'] ?? [])->map(fn ($reason) => strtoupper((string) $reason));
-            $isLateReturnViolation = $violationReasons->contains('LATE_RETURN');
-            $offensePreview = $violationOffensePreviews[$violation->id] ?? null;
-            $effectiveReturnDate = data_get($violationDetails, 'effective_return_date');
-            $actualReturnDate = data_get($violationDetails, 'actual_return_date');
-            $lateDays = data_get($violationDetails, 'late_days');
-            if ($lateDays === null && $violation->custody?->overdueCase) {
-                $lateDays = (int) $violation->custody->overdueCase->late_days;
-            }
-            if ($lateDays === null && $effectiveReturnDate && $actualReturnDate) {
-                $lateDays = app(\App\Services\OperationalCalendarService::class)->countOpenTransactionDays(
-                    \App\Services\OperationalCalendarService::RETURN,
-                    $effectiveReturnDate,
-                    $actualReturnDate
-                );
-            }
-        @endphp
-
-                {{-- Late-return offenses require Head confirmation. They are NEVER auto-sanctioned by AO encoding. --}}
-        @if($isLateReturnViolation && $violation->violation_source === 'LATE_RETURN')
-            <article class="card" style="padding:14px;margin:12px 0;">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-                    <div>
-                        <strong>Late Return — Pending Head Review</strong>
-                        <p class="meta">{{ $violation->borrower?->full_name }} · {{ $violation->custody?->custody_no }}</p>
-                    </div>
-                    <span class="status-badge status-warning">Pending Decision</span>
-                </div>
-                <p class="meta">Due: {{ $effectiveReturnDate ?: '—' }} · Recorded physical return: {{ $actualReturnDate ?: '—' }} · Late days: {{ $lateDays ?? '—' }}</p>
-                @if(data_get($violationDetails, 'physical_return_evidence_file_id'))
-                    <p class="meta"><a href="{{ route('files.preview', data_get($violationDetails, 'physical_return_evidence_file_id')) }}">Review signed physical return evidence</a></p>
-                @endif
-                <p class="meta"><a href="{{ route('custody.return.show', $violation->custody) }}">Review full Return Inspection and transaction history</a> before deciding.</p>
-                <form method="post" action="{{ route('accountability.violations.review', $violation) }}" style="display:grid;gap:8px;margin-top:10px;">
-                    @csrf
-                    <label>Head decision notes (required when dismissing)
-<textarea name="remarks" rows="2" maxlength="2000" placeholder="Record the evidence and reason for the decision."></textarea>
-                    </label>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <button class="button primary ui-pressable" type="submit" name="decision" value="CONFIRMED">Confirm Late-Return Offense</button>
-                        <button class="button secondary ui-pressable" type="submit" name="decision" value="DISMISSED">Dismiss — No Offense</button>
-                    </div>
-                </form>
-            </article>
-        @endif
-
-    @endforeach
-</section>
 @endif
 
 @php
@@ -1397,7 +1413,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                 </thead>
                 <tbody id="accountability-cases-body">
                     @foreach($visibleOverdueCases as $overdue)
-@php
+                        @php
                             /*
                              * Overdue and Returned Late are different states. Only a case with
                              * a recorded physical return date carries a final assessment; an
@@ -1508,7 +1524,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                     </a>
                                 @elseif($headCanDecide)
                                     <button type="button" class="button secondary small ui-pressable disclosure-trigger" data-case-toggle aria-expanded="false">
-                                        <span>Review Assessment</span>
+                                        <span>Review Case</span>
                                         <x-icon name="chevron-down" size="13" class="disclosure-trigger__chevron" />
                                     </button>
                                 @elseif($isOfficer && $hasBilling && $overdueBillingPayable)
@@ -1581,7 +1597,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                             <div><dt>Late Days</dt><dd>{{ $assessment['late_days'] ?? '—' }}</dd></div>
                                             <div><dt>{{ $assessment['is_estimate'] ? 'Estimated Fee' : 'Late Return Fee' }}</dt><dd>{{ $assessment['rate'] === null ? 'Not determined' : 'PHP '.number_format($assessment['amount'], 2) }}</dd></div>
                                         </dl>
-@php
+                                        @php
                                             /* Evidence behind a linen date: the signed form and how its date stands on the receiving calendars. */
                                             $lateLaundryJob = $overdue->custody?->laundryJob;
                                             $lateLaundryReceivedOn = $lateLaundryJob?->worker_received_at;
@@ -1606,14 +1622,14 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                             <div class="accountability-document-list">
                                                 @if($lateReturnNotice)
                                                     <div class="accountability-document-item">
-                                                        <span>Late Return Notice</span>
-                                                        <a class="table-action" href="{{ route('documents.preview', $lateReturnNotice) }}">Preview</a>
+                                                        <span>Late Return Notice <small class="meta">Return record</small></span>
+                                                        <a class="table-action" href="{{ route('documents.preview', $lateReturnNotice) }}">View Notice</a>
                                                     </div>
                                                 @endif
                                                 @if($lateReturnBillingDocument)
                                                     <div class="accountability-document-item">
-                                                        <span>Late Return Billing Statement</span>
-                                                        <a class="table-action" href="{{ route('documents.preview', $lateReturnBillingDocument) }}">Preview</a>
+                                                        <span>Late Return Billing Statement <small class="meta">Cashier payment copy</small></span>
+                                                        <a class="table-action" href="{{ route('documents.preview', $lateReturnBillingDocument) }}">View Cashier Copy</a>
                                                     </div>
                                                 @endif
                                             </div>
@@ -1630,18 +1646,17 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                     @endif
                                 @if($headCanDecide)
                                     <div class="accountability-action-body accountability-action-body--direct">
-                                        <form method="post" action="{{ route('overdue.bill', $overdue) }}" class="form-grid" data-accountability-signature="billing" data-signature-case="{{ $overdue->custody?->custody_no ?: 'Late-return case #'.$overdue->id }}" data-signature-amount="PHP {{ number_format((float) $assessment['amount'], 2) }}">
+                                        <form method="post" action="{{ route('overdue.bill', $overdue) }}" class="form-grid">
                                             @csrf
-                                            <input type="hidden" name="confirm_e_signature" value="">
                                             <label>
                                                 Approval Basis
-<textarea name="basis" required placeholder="State the applicable late-return fee basis."></textarea>
+                                                <textarea name="basis" required placeholder="State the applicable late-return fee basis."></textarea>
                                             </label>
-                                            <label>
-                                                Payment Due Date <span class="muted">(optional)</span>
-                                                <input type="date" name="due_at">
-                                                 <span class="meta">Leave blank if no deadline is specified. The bill remains outstanding until settled.</span>
+                                            <label class="accountability-resolution-confirmation">
+                                                <input type="checkbox" name="confirm_e_signature" value="1">
+                                                <span>Attach my registered e-signature to this Billing Statement.</span>
                                             </label>
+                                            <p class="meta">Leave unchecked to issue the statement without a signature.</p>
                                             <button class="button primary ui-pressable accountability-primary-action">Approve Late Return Assessment</button>
                                         </form>
                                     </div>
@@ -1652,7 +1667,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                                 @csrf
                                                 <label>
                                                     Resolution Remarks
-<textarea name="resolution_remarks" required placeholder="State why this case is resolved without a charge."></textarea>
+                                                    <textarea name="resolution_remarks" required placeholder="State why this case is resolved without a charge."></textarea>
                                                 </label>
                                                 <button class="button secondary ui-pressable">Resolve Without Charge</button>
                                             </form>
@@ -1682,7 +1697,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                     @endforeach
 
                     @foreach($displayIncidents as $incident)
-@php
+        @php
             $incidentBillingLine = Illuminate\Support\Facades\DB::table('billing_lines')
                 ->where('incident_id', $incident->id)
                 ->latest('id')
@@ -1866,7 +1881,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                 @endif
             </td>
             <td>
-@php
+                @php
                     $incidentNext = match(true) {
                         $isHead && $isAwaitingDecision => ['action', 'Review & Decide'],
                         $isOfficer && $statusKey === 'OPEN' => ['waiting', 'Waiting for Head'],
@@ -2004,9 +2019,8 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                     <details class="accountability-action-disclosure">
                         <summary><span>Confirm or Clear</span><x-icon name="chevron-down" size="15" class="accountability-disclosure-chevron" /></summary>
                         <div class="accountability-action-body">
-                            <form method="post" action="{{ route('incidents.resolve', $incident) }}" class="form-grid" data-accountability-signature="decision" data-signature-case="{{ $incident->incident_no }}">
+                            <form method="post" action="{{ route('incidents.resolve', $incident) }}" class="form-grid">
                                 @csrf
-                                <input type="hidden" name="confirm_e_signature" value="">
                                 <div class="head-offense-choices" role="radiogroup" aria-label="Accountability decision">
                                     <label class="head-offense-choice">
                                         <input type="radio" name="decision" value="CONFIRM" required>
@@ -2025,7 +2039,11 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                 </div>
                                 <label>
                                     Remarks
-<textarea name="resolution_remarks" rows="3" maxlength="2000" required placeholder="State the basis for this decision."></textarea>
+                                    <textarea name="resolution_remarks" rows="3" maxlength="2000" required placeholder="State the basis for this decision."></textarea>
+                                </label>
+                                <label class="accountability-resolution-confirmation">
+                                    <input type="checkbox" name="confirm_e_signature" value="1">
+                                    <span>Attach my registered e-signature to this accountability decision.</span>
                                 </label>
                                 <button class="button primary">Confirm Decision</button>
                             </form>
@@ -2186,7 +2204,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                     <input type="file" name="rslddp_attachment" accept=".pdf,.png,.jpg,.jpeg,.webp" required>
                                 </label>
                                 <label>Resolution Remarks
-<textarea name="resolution_remarks" required maxlength="2000" rows="3" placeholder="State the basis for resolving this accountability case."></textarea>
+                                    <textarea name="resolution_remarks" required maxlength="2000" rows="3" placeholder="State the basis for resolving this accountability case."></textarea>
                                 </label>
                                 <label class="check-row">
                                     <input type="checkbox" name="f2f_processing_completed" value="1" required>
@@ -2433,7 +2451,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                         <thead><tr><th>Item</th><th>Qty</th><th>Finding</th><th>Physical Disposition</th></tr></thead>
                         <tbody>
                             @foreach($incident->lines as $line)
-@php
+                                @php
                                     $custodyLine = $incident->custody?->lines?->firstWhere('id', $line->custody_line_id);
                                     $itemDescription = $custodyLine?->requestItem?->description_snapshot ?: 'Inventory item';
                                     $dispositionLabel = match (strtoupper((string) $line->disposition_state)) {
@@ -2520,7 +2538,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             <td colspan="6">
 <article class="card">
 <div class="billing-lines">@foreach($billing->lines as $line)<p><strong>{{ str($line->line_type)->replace('_',' ')->title() }}</strong><span>{{ $line->description }}</span><small>PHP {{ number_format((float)$line->amount,2) }}</small></p>@endforeach</div>
-<div class="accountability-document-list">@foreach($billing->documents->whereNotIn('status',['SUPERSEDED','INVALIDATED','EXPIRED']) as $document)<div class="accountability-document-item"><span>{{ $billing->isLateReturnBilling() ? 'Late Return Billing Statement' : 'Billing Statement' }}</span><a class="table-action" href="{{ route('documents.preview',$document) }}">Preview</a></div>@endforeach</div>
+<div class="accountability-document-list">@foreach($billing->documents->whereNotIn('status',['SUPERSEDED','INVALIDATED','EXPIRED']) as $document)<div class="accountability-document-item"><span>{{ $billing->isLateReturnBilling() ? 'Late Return Billing Statement' : 'Billing Statement' }}@if($billing->isLateReturnBilling()) <small class="meta">Cashier payment copy</small>@endif</span><a class="table-action" href="{{ route('documents.preview',$document) }}">{{ $billing->isLateReturnBilling() ? 'View Cashier Copy' : 'View Statement' }}</a></div>@endforeach</div>
 <p class="meta">The borrower pays at the CSPC Cashier and presents the official receipt to the Action Officer. Confirm the payment only after checking the receipt.</p>
 @if($isOfficer && !in_array($billing->status,['SETTLED','WAIVED','VOID'],true))
 <form method="post" action="{{ route('payments.store',$billing) }}" enctype="multipart/form-data" class="form-grid top-gap">@csrf<div class="card-header"><div><h4>Record Cashier Payment</h4><small>Check the official receipt, encode it once, then confirm.</small></div></div><div class="form-columns"><label>Cashier Receipt No.<input name="official_receipt_no" required></label><label>Receipt Date<input type="date" name="receipt_date" required></label><label>Amount Paid<input type="number" step="0.01" min="0.01" name="amount" required></label><label>Scanned Paid Receipt<input type="file" name="evidence" accept="application/pdf,image/png,image/jpeg,image/webp" required></label></div><label>Remarks <small>(Optional)</small><textarea name="remarks"></textarea></label><button class="button primary">Record & Confirm Payment</button></form>
@@ -2542,7 +2560,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         its own row here instead of a separate page-wide Restrictions module.
     --}}
     @foreach($standaloneActiveRestrictions as $restriction)
-@php
+        @php
             $restrictionTypeLabel = str($restriction->restriction_type)->replace('_', ' ')->title();
         @endphp
         <tr
@@ -2624,7 +2642,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                     : 'There are no active borrower accountability cases to display.'"
             />
         @else
-
+            {{-- ALL ACTIVE CASES FILTERS START --}}
             <div class="accountability-browser-toolbar" aria-label="Search and filter borrowers with active accountability">
                 <label class="accountability-browser-search">
                     <span>Search</span>
@@ -2650,6 +2668,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                     </select>
                 </label>
             </div>
+            {{-- ALL ACTIVE CASES FILTERS END --}}
 
             <div class="table-wrap accountability-cases-table">
                 <table>
@@ -2707,15 +2726,12 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                 id="accountability-borrower-pager"
             >
                 <label class="accountability-page-size-control">
-                    <span>Show</span>
-
-                    <select id="accountability-borrower-page-size">
-                        <option value="10" selected>10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
+                    <select id="accountability-borrower-page-size" aria-label="Accountability cases per page">
+                        <option value="7" selected>7 items per page</option>
+                        <option value="10">10 items per page</option>
+                        <option value="25">25 items per page</option>
+                        <option value="50">50 items per page</option>
                     </select>
-
-                    <span>per page</span>
                 </label>
 
                 <nav
@@ -2741,13 +2757,16 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         ])
     @endif
     @include('accountability.partials.cases-interactions')
-    @if($isHead)
-        @include('accountability.partials.signature-confirmation')
-    @endif
 @endunless
+{{-- ACCOUNTABILITY TABLE BROWSER + PAGINATION START --}}
 
 <style>
+{{-- /* ACCOUNTABILITY FILTER ALIGNMENT START */ --}}
 
+{{-- /*
+ * Compact filter layout.
+ * Search stays wider while dropdown filters remain beside it.
+ */ --}}
 .accountability-browser-toolbar:has(#accountability-borrower-search) {
     display: grid !important;
     grid-template-columns:
@@ -2779,6 +2798,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     gap: 12px !important;
 }
 
+{{-- /* Remove inherited width limits inside these compact toolbars. */ --}}
 .accountability-browser-toolbar:has(#accountability-borrower-search)
 :is(.accountability-browser-search, .accountability-browser-filter),
 .accountability-browser-toolbar:has(#resolved-history-search)
@@ -2817,6 +2837,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     box-sizing: border-box !important;
 }
 
+{{-- /* Uniform label spacing. */ --}}
 .accountability-browser-toolbar:has(#accountability-borrower-search)
 :is(.accountability-browser-search, .accountability-browser-filter) > span:first-child,
 .accountability-browser-toolbar:has(#resolved-history-search)
@@ -2828,6 +2849,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     margin-bottom: 6px;
 }
 
+{{-- /* Tablet */ --}}
 @media (max-width: 980px) {
     .accountability-browser-toolbar:has(#accountability-borrower-search),
     .accountability-sanctions-toolbar {
@@ -2843,6 +2865,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     }
 }
 
+{{-- /* Mobile */ --}}
 @media (max-width: 760px) {
     .accountability-browser-toolbar:has(#accountability-borrower-search),
     .accountability-browser-toolbar:has(#resolved-history-search),
@@ -2851,14 +2874,15 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     }
 }
 
+{{-- /* ACCOUNTABILITY FILTER ALIGNMENT END */ --}}
 </style>
 <style>
 .accountability-table-browser-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    padding: 12px 16px;
+    gap: 18px;
+    padding: 16px 18px;
     border-top: 1px solid var(--border);
     background: var(--surface-subtle);
 }
@@ -2876,7 +2900,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     width: 72px;
     min-width: 72px;
     height: 42px;
-    padding: 0 20px 0 12px;
+    padding: 0 28px 0 12px;
     color: var(--heading);
     background: var(--surface);
     border: 1px solid var(--border-strong);
@@ -2953,7 +2977,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 
 .accountability-cases-none {
     margin: 0;
-    padding: 16px;
+    padding: 20px;
     color: var(--text-muted);
     text-align: center;
     border-top: 1px solid var(--border);
@@ -3068,6 +3092,11 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         );
     }
 
+
+
+
+
+
     const borrowerBody =
         document.getElementById('accountability-borrower-body');
 
@@ -3104,7 +3133,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                 status?.value || 'all';
 
             const size =
-                Number(pageSize?.value || 10);
+                Number(pageSize?.value || 7);
 
             const matched = rows.filter(row => {
                 const matchesSearch =
@@ -3173,6 +3202,11 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         renderBorrowers();
     }
 
+
+
+
+
+
     const history =
         document.getElementById('resolved-history');
 
@@ -3215,7 +3249,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                 outcome?.value || 'all';
 
             const size =
-                Number(pageSize?.value || 10);
+                Number(pageSize?.value || 7);
 
             const matched = rows.filter(row => {
                 const matchesSearch =
@@ -3291,6 +3325,11 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
             );
         };
 
+
+
+
+
+
         search?.addEventListener('input', () => {
             currentPage = 1;
             queueMicrotask(renderHistory);
@@ -3344,6 +3383,10 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     const statusColumn = headers.findIndex(
         header => header.textContent.trim().toLocaleLowerCase() === 'status'
     );
+
+
+
+
 
     const renderedStatuses = new Map();
 
@@ -3432,6 +3475,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 })();
 
 </script>
+{{-- ACCOUNTABILITY TABLE BROWSER + PAGINATION END --}}
 
 @if(($isHead && $activeStaffTab === 'sanctions') || ($workspace === 'BORROWER' && $sanctions->isNotEmpty()))
 @if($isBorrower)
@@ -3457,7 +3501,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
         @else
 
         @unless($isBorrower)
-
+        {{-- SANCTIONS FILTERS START --}}
         <div
             class="accountability-browser-toolbar accountability-sanctions-toolbar"
             aria-label="Search and filter sanction records"
@@ -3487,7 +3531,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                 </select>
             </label>
         </div>
-
+        {{-- SANCTIONS FILTERS END --}}
         @endunless
 
         <div class="table-wrap accountability-cases-table accountability-sanctions-table">
@@ -3530,7 +3574,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                     <span data-sanction-recorded-on>Recorded on {{ optional($sanction->confirmed_at ?: $sanction->effective_from)->format('d M Y') ?: '—' }}</span>
                                 @endif
                             </td>
-@php
+                            @php
                                 $sanctionStatusLabel = match (true) {
                                     $sanction->status !== 'ACTIVE'
                                         => str($sanction->status)->replace('_', ' ')->title()->toString(),
@@ -3547,7 +3591,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                             @endphp
                             <td><x-status-badge :status="$sanctionStatusTone" :label="$sanctionStatusLabel" /></td>
                             <td>
-@php
+                                @php
                                     $sanctionNotice = $sanction->documents
                                         ->where('document_type', 'ADMINISTRATIVE_SANCTION_NOTICE')
                                         ->whereNotIn('status', ['SUPERSEDED', 'INVALIDATED', 'EXPIRED'])
@@ -3582,7 +3626,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 .ob-workspace .ob-summary.is-three { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
 @media(max-width: 900px) { .ob-workspace .ob-summary.is-three { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
 @media(max-width: 600px) { .ob-workspace .ob-summary.is-three { grid-template-columns: 1fr !important; } }
-.ob-brief-empty { padding: 12px 12px; gap: 10px; }
+.ob-brief-empty { padding: 12px 16px; gap: 10px; }
 .ob-brief-empty strong { font-size: 13px; font-weight: 600; }
 .ob-sanctions-history { margin-top: 0; }
 .ob-sanctions-history > .accountability-sanctions-section { margin: 0; padding: 0; }
@@ -3590,6 +3634,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 .ob-sanctions-history .accountability-cases-table { margin: 0; }
 </style>
 
+{{-- BORROWER_ACCOUNTABILITY_CLEAN_FILTER_LAYOUT --}}
 <style>
 @media (min-width: 901px) {
     .borrower-accountability-toolbar {
@@ -3621,6 +3666,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
 .head-decision-inline-help{display:block;margin-top:6px;color:var(--text-muted);font-size:11.5px;font-weight:500;line-height:1.45}
 </style>
 
+
 <style>
 .head-status-note-compact {
     gap: 3px;
@@ -3629,6 +3675,12 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     line-height: 1.4;
 }
 
+{{-- /* ACCOUNTABILITY SECONDARY BUTTON HOVER CONSISTENCY */ --}}
+{{-- /*
+ * Preserve the normal appearance of secondary controls.
+ * On hover/focus, white/plain Accountability actions use the standard
+ * interactive blue feedback. Active and disabled controls are excluded.
+ */ --}}
 .button.secondary:not(:disabled):not([aria-disabled="true"]):not(.is-active):hover,
 .button.secondary:not(:disabled):not([aria-disabled="true"]):not(.is-active):focus-visible {
     color: #fff !important;
@@ -3638,6 +3690,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
     transform: translateY(-1px);
 }
 </style>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {

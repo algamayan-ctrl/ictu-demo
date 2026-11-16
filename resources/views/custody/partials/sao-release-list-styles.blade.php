@@ -16,8 +16,10 @@
 .sao-release-table td .button { padding: 8px 10px; font-size: 12px; white-space: nowrap; text-align: center; }
 .sao-release-footer { display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; flex-wrap: wrap; gap: 12px; margin-top: auto; padding: 12px 16px; border-top: 1px solid var(--border); }
 .sao-release-footer p { margin: 0; }
-.sao-release-pagination, .sao-release-pagination nav { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
-.sao-release-pagination select { width: auto; min-height: 40px; margin: 0; }
+.sao-release-pagination-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.sao-release-pagination, .sao-release-pagination nav { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.sao-release-pagination .app-pagination { margin: 0; }
+.sao-release-pagination-meta select { width: auto; min-height: 32px; margin: 0; padding: 4px 28px 4px 9px; font-size: 11px; }
 .sao-release-pagination .button:disabled { opacity: .5; cursor: default; }
 .sao-release-empty { display: flex; flex: 1 1 auto; flex-direction: column; align-items: center; justify-content: center; min-height: 280px; padding: 36px 16px; text-align: center; }
 .sao-release-empty-icon { display: grid; place-items: center; width: 72px; height: 72px; margin-bottom: 12px; border-radius: 50%; background: var(--info-bg); color: var(--interactive); }

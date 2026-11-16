@@ -102,10 +102,10 @@ class AccountabilityWorkQueueService
 
             if (in_array($status, [LateReturnService::STATUS_FOR_AO_CONFIRMATION, LateReturnService::STATUS_FOR_HEAD_APPROVAL], true)) {
                 $item = $base + [
-                    'stage' => 'Late-Return Assessment Review',
+                    'stage' => 'Late Return Review',
                     'waiting_on' => 'SPMU Head/Admin',
-                    'next_step' => 'Review the finalized late-return assessment and determine the applicable billing outcome.',
-                    'action_label' => $isHead ? 'Review Assessment' : 'View Case',
+                    'next_step' => 'Review the late return and decide whether to issue a billing statement.',
+                    'action_label' => $isHead ? 'Review Case' : 'View Case',
                     'action_url' => $isHead
                         ? $focusedCaseUrl($borrower, 'overdue-'.$overdue->id)
                         : $base['url'],

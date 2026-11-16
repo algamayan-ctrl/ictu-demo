@@ -1,12 +1,13 @@
 @extends('layouts.app', ['title' => 'Borrower Accountability'])
 @section('content')
-{{-- This is the Borrower Accountability workspace for authorized SPMU users. --}}
 
 @include('accountability.partials.obligations-styles')
 
 <style>
-
-    .borrower-accountability-workspace .page-heading { margin-bottom: 12px; }
+    {{-- /* Borrower accountability uses the same compact scale as the rest of the
+       SPMU workspace. Case cards stay readable, but status/action copy never
+       becomes a second oversized dashboard. */ --}}
+    .borrower-accountability-workspace .page-heading { margin-bottom: 14px; }
     .borrower-accountability-workspace .page-heading h1 {
         font-size: clamp(24px, 1.9vw, 29px);
         margin: 4px 0 5px;
@@ -27,7 +28,10 @@
     }
     .accountability-back-link:hover { text-decoration: underline; }
 
-    .borrower-accountability-workspace.is-focused-case-view .page-heading { margin-bottom: 12px; }
+    {{-- /* Exact case opened from a staff queue is a single-record workspace, not
+       another borrower overview. Keep borrower identity + the actual record,
+       while removing dashboard chrome and nested card framing. */ --}}
+    .borrower-accountability-workspace.is-focused-case-view .page-heading { margin-bottom: 16px; }
     .borrower-accountability-workspace.is-focused-case-view .accountability-custody-group__header {
         margin: 0 0 8px;
         padding: 0;
@@ -44,7 +48,7 @@
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 12px;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
     }
     .accountability-summary-card {
         --summary-from: #1d4ed8;
@@ -59,7 +63,7 @@
         row-gap: 2px;
         min-width: 0;
         min-height: 122px;
-        padding: 12px 16px;
+        padding: 16px 18px;
         border: 0;
         border-radius: 12px;
         overflow: hidden;
@@ -142,7 +146,7 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
-        margin: 0 0 12px;
+        margin: 0 0 16px;
     }
     .accountability-workspace-tab {
         appearance: none;
@@ -170,12 +174,14 @@
         box-shadow: inset 0 2px 0 var(--interactive);
     }
 
+    {{-- /* KPI drill-down: keep the title and return action in one compact row,
+       aligned with the case card that follows. No new card styling. */ --}}
     .borrower-accountability-workspace .accountability-scoped-heading {
         display: flex;
         align-items: center;
         justify-content: space-between;
         flex-wrap: wrap;
-        gap: 10px 12px;
+        gap: 10px 16px;
         margin: 0 0 12px;
         padding: 0;
     }
@@ -191,6 +197,9 @@
         flex-shrink: 0;
     }
 
+    {{-- /* Documents are grouped by their accountability matter so staff can scan
+       the case first, then its RSLDDP/Billing/Notice records. This intentionally
+       reuses the same restrained card/border language as Active Cases. */ --}}
     .accountability-document-panel { padding: 0; overflow: hidden; }
     .accountability-document-groups { display: grid; gap: 12px; }
     .accountability-document-group { padding: 0; overflow: hidden; }
@@ -198,8 +207,8 @@
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 12px;
-        padding: 13px 12px 12px;
+        gap: 14px;
+        padding: 13px 14px 12px;
         border-bottom: 1px solid var(--border);
         background: var(--surface-subtle);
     }
@@ -252,7 +261,7 @@
         align-items: center;
         gap: 12px;
         min-width: 0;
-        padding: 11px 12px;
+        padding: 11px 14px;
         border-bottom: 1px solid var(--row-border);
         text-align: left;
     }
@@ -301,7 +310,7 @@
     }
 
     .accountability-custody-groups { display: grid; gap: 12px; }
-    .accountability-custody-group { padding: 12px; }
+    .accountability-custody-group { padding: 14px; }
     .accountability-custody-group__header {
         display: flex;
         align-items: center;
@@ -327,12 +336,13 @@
 
         position: relative;
         overflow: hidden;
-        padding: 13px 12px;
+        padding: 13px 14px;
         border: 1px solid var(--border);
         background: var(--surface-elevated);
         box-shadow: 0 6px 16px rgba(15, 23, 42, .04);
     }
-
+    {{-- /* Operational case surfaces stay neutral. Tone remains only on icons,
+       badges, and the slim role/action accent. */ --}}
     .accountability-custody-case::before,
     .accountability-custody-case::after {
         content: none;
@@ -392,7 +402,7 @@
     .accountability-case-summary {
         display: flex;
         flex-wrap: wrap;
-        gap: 5px 12px;
+        gap: 5px 14px;
         margin: 8px 0 0 44px;
         color: var(--text-secondary);
         font-size: 11.5px;
@@ -405,7 +415,7 @@
         display: grid;
         grid-template-columns: minmax(135px, .75fr) minmax(0, 1.5fr) auto;
         align-items: center;
-        gap: 8px 12px;
+        gap: 8px 14px;
         margin: 10px 0 0 44px;
         padding: 9px 10px;
         border: 1px solid var(--border);
@@ -481,11 +491,17 @@
         background: color-mix(in srgb, var(--interactive) 8%, transparent);
         border-radius: 7px;
     }
-
+    {{-- /* Standalone billing/restriction matters are already self-contained case
+       cards. Avoid wrapping them in a second card/header, and keep the
+       disclosure trigger anchored in the same right-hand grid cell when open. */ --}}
     .accountability-standalone-groups { margin-top: 0; gap: 10px; }
     .accountability-standalone-case { border: 1px solid var(--border); }
     .accountability-standalone-toggle { justify-self: end; min-width: 118px; }
 
+    {{-- /* ALWAYS VISIBLE STANDALONE DETAILS START
+       Simple standalone accountability records are operational summaries.
+       Their essential details remain visible without an extra disclosure click.
+       Complex case documents/evidence keep their existing disclosure behavior. */ --}}
     .borrower-accountability-workspace .accountability-standalone-toggle {
         display: none !important;
     }
@@ -493,7 +509,7 @@
     .borrower-accountability-workspace .accountability-standalone-detail-body {
         display: grid !important;
     }
-
+    {{-- /* ALWAYS VISIBLE STANDALONE DETAILS END */ --}}
     .accountability-standalone-detail-body {
         display: grid;
         gap: 8px;
@@ -607,8 +623,8 @@
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 12px;
-        padding: 12px 12px 8px;
+        gap: 14px;
+        padding: 14px 16px 8px;
         border-bottom: 0;
     }
     .accountability-action-panel__header > div { min-width: 0; }
@@ -634,7 +650,7 @@
     .borrower-accountability-workspace.is-focused-case-view .borrower-workspace-header {
         display: grid;
         gap: 4px;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
     }
     .borrower-accountability-workspace.is-focused-case-view .borrower-workspace-header .eyebrow {
         margin: 0;
@@ -672,7 +688,7 @@
     .accountability-action-panel__body {
         max-height: none;
         overflow: visible;
-        padding: 0 12px 12px;
+        padding: 0 16px 16px;
     }
     .accountability-action-panel__body form {
         display: grid;
@@ -693,7 +709,7 @@
         font-size: 10.5px;
     }
     .accountability-action-panel__body textarea { min-height: 88px; resize: vertical; }
-
+    {{-- /* Focused Late Return billing form: compact, legible and consistent with staff forms. */ --}}
     .accountability-action-panel__body .accountability-late-billing-form { gap: 12px; }
     .accountability-action-panel__body .accountability-late-billing-form .accountability-dialog-note {
         font-weight: 400;
@@ -843,6 +859,12 @@
         .accountability-action-panel__body .form-grid.two { grid-template-columns: 1fr; }
     }
 
+    {{-- /* ACCOUNTABILITY WHITE ACTION HOVER CONSISTENCY */ --}}
+    {{-- /*
+     * Keep every button's normal/default appearance unchanged.
+     * Only give action buttons inside the focused action forms the same
+     * blue interaction feedback already used by other Accountability controls.
+     */ --}}
     .borrower-accountability-workspace .accountability-dialog-actions
     :is(a.button, button.button):not(:disabled):is(:hover, :focus-visible) {
         color: #fff !important;
@@ -852,6 +874,12 @@
         transform: translateY(-1px);
     }
 
+{{-- /* BORROWER ACCOUNTABILITY SECONDARY HOVER CONSISTENCY */ --}}
+{{-- /*
+ * Keep secondary controls white in their normal state.
+ * Give enabled secondary actions consistent blue hover/focus feedback
+ * throughout the Borrower Accountability workspace.
+ */ --}}
 .borrower-accountability-workspace
 .button.secondary:not(:disabled):not([aria-disabled="true"]):not(.is-active):hover,
 .borrower-accountability-workspace
@@ -862,6 +890,14 @@
     box-shadow: var(--shadow-sm);
     transform: translateY(-1px);
 }
+
+    {{-- /* ACTIVE CASE CARD SPACING TUNE START */ --}}
+
+    {{-- /*
+     * Active Cases monitoring view:
+     * keep related cards visually separated and use a compact,
+     * consistent internal rhythm without changing focused action forms.
+     */ --}}
 
     .borrower-accountability-workspace:not(.is-focused-case-view)
     .accountability-custody-groups {
@@ -888,7 +924,7 @@
     .accountability-custody-case,
     .borrower-accountability-workspace:not(.is-focused-case-view)
     .accountability-standalone-case {
-        padding: 12px 12px;
+        padding: 12px 14px;
     }
 
     .borrower-accountability-workspace:not(.is-focused-case-view)
@@ -902,6 +938,10 @@
         padding: 8px 10px;
     }
 
+    {{-- /*
+     * Custody/property cards and standalone restriction/billing cards are
+     * rendered in separate groups. Add the missing vertical separation.
+     */ --}}
     .borrower-accountability-workspace:not(.is-focused-case-view)
     .accountability-custody-groups ~ .accountability-standalone-groups {
         margin-top: 12px;
@@ -912,6 +952,7 @@
         gap: 12px;
     }
 
+    {{-- /* ACTIVE CASE CARD SPACING TUNE END */ --}}
 </style>
 
 @php
@@ -1035,7 +1076,7 @@
                 <a class="button secondary small" href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'queue' => $queueContext]) }}#accountability-active-cases">View All Cases →</a>
             </div>
         @endif
-@php
+        @php
             $allObligationRows = collect($rows)->keyBy(fn ($row) => (string) ($row['key'] ?? ''));
             $activeCaseRecords = collect()
                 ->concat($openIncidents)
@@ -1103,7 +1144,7 @@
             @if($custodyGroups->isNotEmpty())
             <div class="accountability-custody-groups">
                 @foreach($custodyGroups as $groupRecords)
-@php $groupCustody = $groupRecords->first()->custody; @endphp
+                    @php $groupCustody = $groupRecords->first()->custody; @endphp
                     <article class="card accountability-custody-group">
                         <header class="accountability-custody-group__header">
                             <x-icon name="inventory" size="15" />
@@ -1112,10 +1153,10 @@
 
                         <div class="ob-case-list">
                             @foreach($groupRecords as $record)
-@php $isOverdueCase = $record instanceof \App\Models\OverdueCase; @endphp
+                                @php $isOverdueCase = $record instanceof \App\Models\OverdueCase; @endphp
 
                                 @if($isOverdueCase)
-@php
+                                    @php
                                         $lateReturnService = app(\App\Services\LateReturnService::class);
                                         $assessment = $lateReturnService->assessment($record);
                                         $isStillOverdue = $record->status === \App\Services\LateReturnService::STATUS_OVERDUE;
@@ -1141,7 +1182,7 @@
                                         $currentRoleOwnsAction = ($isOfficer && ($isStillOverdue || $isAwaitingPayment)) || ($isHead && $isHeadReview);
                                         $roleMessage = match (true) {
                                             $isStillOverdue => 'Borrower must return the outstanding item(s). The Action Officer records the return and inspection when presented.',
-                                            $isHeadReview => 'SPMU Head/Admin must review the finalized late-return assessment and record the billing outcome.',
+                                            $isHeadReview => 'SPMU Head/Admin must review the late return and decide whether to issue a billing statement.',
                                             $isAwaitingPayment => 'Borrower must pay through the CSPC Cashier and present the official receipt. The Action Officer records the receipt when presented.',
                                             default => 'Continue the applicable late-return process.',
                                         };
@@ -1190,7 +1231,7 @@
                                             @elseif($currentRoleOwnsAction && $isHeadReview && ! $shouldAutoOpenFocusedAction)
                                                 <a class="button secondary small accountability-action-button"
                                                    href="{{ route('accountability.borrower', [$borrower, 'tab' => 'cases', 'focus' => 'overdue-'.$record->id, 'queue' => 'work']) }}#overdue-{{ $record->id }}">
-                                                    Review Assessment
+                                                    Review Case
                                                 </a>
                                             @elseif($currentRoleOwnsAction && $isAwaitingPayment && $linkedBilling && ! $shouldAutoOpenFocusedAction)
                                                 <a class="button secondary small accountability-action-button"
@@ -1207,36 +1248,35 @@
                                         <section class="accountability-action-panel" id="{{ $dialogId }}">
                                             <header class="accountability-action-panel__header">
                                                 <div>
-                                                    <h3>{{ ($assessment['rate'] === null || (float) $assessment['amount'] <= 0) ? 'Resolve Late Return' : 'Review Late Return Assessment' }}</h3>
+                                                    <h3>{{ ($assessment['rate'] === null || (float) $assessment['amount'] <= 0) ? 'Resolve Late Return' : 'Review Late Return' }}</h3>
                                                 </div>
                                             </header>
                                             <div class="accountability-action-panel__body">
                                                 @if($assessment['rate'] === null || (float) $assessment['amount'] <= 0)
                                                     <form method="post" action="{{ route('overdue.resolve-without-charge', $record) }}">
                                                         @csrf
-                                                        <p class="accountability-dialog-note">No billable late-return rate is available for this finalized case. Record the Head/Admin resolution remarks to close it without a charge.</p>
-                                                        <label>Resolution Remarks
-<textarea name="resolution_remarks" required maxlength="2000" placeholder="State the basis for resolving this late-return case without a charge."></textarea>
+                                                        <p class="accountability-dialog-note">No late-return fee is set for this case. Add a note to close it without a billing statement.</p>
+                                                        <label>Decision notes
+                                                            <textarea name="resolution_remarks" required maxlength="2000" placeholder="Explain why this case will be closed without a billing statement."></textarea>
                                                         </label>
                                                         <div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
-                                                            <button class="button primary small">Resolve Without Charge</button>
+                                                            <button class="button primary small">Close Without Charge</button>
                                                         </div>
                                                     </form>
                                                 @else
-                                                    <form method="post" action="{{ route('overdue.bill', $record) }}" class="accountability-late-billing-form" data-accountability-signature="billing" data-signature-case="{{ $record->custody?->custody_no ?: 'Late-return case #'.$record->id }}" data-signature-amount="PHP {{ number_format((float) $assessment['amount'], 2) }}">
+                                                    <form method="post" action="{{ route('overdue.bill', $record) }}" class="accountability-late-billing-form">
                                                         @csrf
-                                                        <input type="hidden" name="confirm_e_signature" value="">
-                                                        <p class="accountability-dialog-note">Final assessment: {{ (int) $assessment['late_days'] }} late day(s) · PHP {{ number_format((float) $assessment['amount'], 2) }}</p>
+                                                        <p class="accountability-dialog-note">Late return: {{ (int) $assessment['late_days'] }} day(s) · Amount to bill: PHP {{ number_format((float) $assessment['amount'], 2) }}</p>
                                                         <label>
-                                                            <span class="accountability-field-heading">Assessment Basis <span aria-hidden="true">*</span></span>
-<textarea name="basis" required maxlength="2000" rows="3" placeholder="Enter the basis for the late-return assessment."></textarea>
+                                                            <span class="accountability-field-heading">Decision notes <span aria-hidden="true">*</span></span>
+                                                            <textarea name="basis" required maxlength="2000" rows="3" placeholder="Explain why a billing statement should be issued."></textarea>
                                                         </label>
-                                                        <label>
-                                                            <span class="accountability-field-heading">Payment Due Date <span class="muted">(Optional)</span></span>
-                                                            <input type="date" name="due_at" min="{{ now()->toDateString() }}">
-                                                            <span class="accountability-field-help">Leave blank if no payment deadline is specified.</span>
+                                                        <label class="accountability-resolution-confirmation">
+                                                            <input type="checkbox" name="confirm_e_signature" value="1">
+                                                            <span>Attach my registered e-signature to this Billing Statement.</span>
                                                         </label>
+                                                        <p class="meta">Leave unchecked to issue the statement without a signature.</p>
                                                         <div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
                                                             <button class="button primary small">Issue Billing Statement</button>
@@ -1271,7 +1311,7 @@
                                                         <input type="file" name="evidence" accept=".pdf,.png,.jpg,.jpeg,.webp" required>
                                                     </label>
                                                     <label>Remarks <span class="muted">(optional)</span>
-<textarea name="remarks" maxlength="1000"></textarea>
+                                                        <textarea name="remarks" maxlength="1000"></textarea>
                                                     </label>
                                                     <div class="accountability-dialog-actions">
                                                         <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
@@ -1282,7 +1322,7 @@
                                         </section>
                                     @endif
                                 @else
-@php
+                                    @php
                                         $incident = $record;
                                         $statusKey = strtoupper((string) $incident->status);
                                         $isDirectF2fResolution = ($statusKey === 'F2F_PROCESSING' && $incident->accountability_flow_version === 'V3')
@@ -1430,9 +1470,8 @@
                                             </header>
                                             <div class="accountability-action-panel__body">
                                                 @if($statusKey === 'OPEN')
-                                                    <form method="post" action="{{ route('incidents.resolve', $incident) }}" data-accountability-signature="decision" data-signature-case="{{ $incident->incident_no }}">
+                                                    <form method="post" action="{{ route('incidents.resolve', $incident) }}">
                                                         @csrf
-                                                        <input type="hidden" name="confirm_e_signature" value="">
                                                         <p class="accountability-dialog-note">Confirm when the recorded finding establishes borrower accountability. Clear the finding when accountability is not established.</p>
                                                         <label>Decision
                                                             <select name="decision" required>
@@ -1442,7 +1481,11 @@
                                                             </select>
                                                         </label>
                                                         <label>Decision Remarks
-<textarea name="resolution_remarks" required maxlength="2000" placeholder="State the basis for the decision."></textarea>
+                                                            <textarea name="resolution_remarks" required maxlength="2000" placeholder="State the basis for the decision."></textarea>
+                                                        </label>
+                                                        <label class="accountability-resolution-confirmation">
+                                                            <input type="checkbox" name="confirm_e_signature" value="1">
+                                                            <span>Attach my registered e-signature to this accountability decision.</span>
                                                         </label>
                                                         <div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
@@ -1457,7 +1500,7 @@
                                                             <input type="file" name="rslddp_attachment" accept=".pdf,.png,.jpg,.jpeg,.webp" required>
                                                         </label>
                                                         <label>Resolution Remarks
-<textarea name="resolution_remarks" required maxlength="2000" placeholder="State the basis for resolving this accountability case."></textarea>
+                                                            <textarea name="resolution_remarks" required maxlength="2000" placeholder="State the basis for resolving this accountability case."></textarea>
                                                         </label>
                                                         <label class="accountability-resolution-confirmation">
                                                             <input type="checkbox" name="f2f_processing_completed" value="1" required>
@@ -1490,7 +1533,7 @@
                                                             </select>
                                                         </label>
                                                         <label>Remarks <span class="muted">(required if not accepted)</span>
-<textarea name="remarks" maxlength="2000"></textarea>
+                                                            <textarea name="remarks" maxlength="2000"></textarea>
                                                         </label>
                                                         <div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
@@ -1517,7 +1560,7 @@
                                                                 <input type="file" name="evidence" accept=".pdf,.png,.jpg,.jpeg,.webp" required>
                                                             </label>
                                                             <label>Remarks <span class="muted">(optional)</span>
-<textarea name="remarks" maxlength="1000"></textarea>
+                                                                <textarea name="remarks" maxlength="1000"></textarea>
                                                             </label>
                                                             <div class="accountability-dialog-actions">
                                                                 <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
@@ -1570,7 +1613,7 @@
                                                         </label>
                                                         @endif
                                                         <label>Resolution Remarks
-<textarea name="resolution_remarks" required maxlength="2000" placeholder="State the basis for resolving this accountability case."></textarea>
+                                                            <textarea name="resolution_remarks" required maxlength="2000" placeholder="State the basis for resolving this accountability case."></textarea>
                                                         </label>
                                                         <div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
@@ -1585,7 +1628,7 @@
                                                             <input type="number" name="amount" min="0.01" step="0.01" required>
                                                         </label>
                                                         <label>Billing Basis
-<textarea name="basis" required maxlength="2000"></textarea>
+                                                            <textarea name="basis" required maxlength="2000"></textarea>
                                                         </label>
                                                         <label>Payment Due Date <span class="muted">(optional)</span>
                                                             <input type="date" name="due_at" min="{{ now()->toDateString() }}">
@@ -1611,7 +1654,7 @@
             @if($standaloneRows->isNotEmpty())
                 <div class="accountability-custody-groups accountability-standalone-groups">
                     @foreach($standaloneRows as $row)
-@php
+                        @php
                             $rowRestriction = $row['restriction'] ?? null;
                             $rowActions = collect($row['actions'] ?? []);
                             $standaloneDetailId = 'accountability-standalone-detail-'.$loop->index;
@@ -1684,7 +1727,7 @@
                                     @if($rowActions->isNotEmpty())
                                         <div class="ob-detail-actions">
                                             @foreach($rowActions as $action)
-@php [$label, $url, $newTab, $buttonTone] = $action; @endphp
+                                                @php [$label, $url, $newTab, $buttonTone] = $action; @endphp
                                                 <a class="button secondary small ui-pressable" href="{{ $url }}" @if($newTab) target="_blank" rel="noopener" @endif>{{ $label }}</a>
                                             @endforeach
                                         </div>
@@ -1709,9 +1752,6 @@
 </div>
 
 @include('accountability.partials.cases-interactions')
-@if($isHead)
-    @include('accountability.partials.signature-confirmation')
-@endif
 
 <script>
 document.addEventListener('click', (event) => {
@@ -1750,6 +1790,9 @@ document.addEventListener('click', (event) => {
 
 </script>
 
+
+
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     document
@@ -1761,3 +1804,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 @endsection
+
+
+

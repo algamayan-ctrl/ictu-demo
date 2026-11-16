@@ -138,6 +138,25 @@ class ExternalBorrowingRevisionTest extends TestCase
         $this->assertNoAllocation();
     }
 
+    public function test_borrower_request_detail_shows_required_corrections_in_one_compact_revision_action(): void
+    {
+        $request = $this->submitted();
+        $this->returnBySao($request);
+
+        $this->as($request->borrower, 'BORROWER')
+            ->get(route('requests.show', $request))
+            ->assertOk()
+            ->assertSeeText('Revision required')
+            ->assertSeeText('Required corrections')
+            ->assertSeeText('Correct the venue and attach the corrected approved evidence.')
+            ->assertSeeText('Revise Request')
+            ->assertSeeText('Update requested')
+            ->assertSeeText('Pickup Scheduled')
+            ->assertSeeText('Release Processing')
+            ->assertSeeText('Return Processing')
+            ->assertDontSeeText('Update the required details/documents and submit it again to continue.');
+    }
+
     #[DataProvider('activityCases')]
     public function test_returned_form_keeps_old_previews_but_requires_fresh_uploads_for_the_new_version(bool $activity): void
     {

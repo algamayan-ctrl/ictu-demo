@@ -1092,10 +1092,10 @@ a.dashboard-kpi-card:focus-visible {
         'BORROWER' => [
             'eyebrow' => 'Borrower Dashboard',
             'title' => 'Welcome, '.$firstName,
-            'subtitle' => 'Track your requests, pickup and return schedules, and any pending actions.',
-            'taskEyebrow' => 'Required Actions',
-            'taskTitle' => 'Actions Requiring Your Attention',
-            'taskDescription' => 'Only transactions requiring a direct borrower response are listed in this section.',
+            'subtitle' => 'Check what needs your attention, track your pickup and return dates, and view recent borrowing updates.',
+            'taskEyebrow' => 'Your next step',
+            'taskTitle' => 'Next actions',
+            'taskDescription' => 'Records that need your response.',
         ],
         'SPMU_OFFICER' => [
             'eyebrow' => 'SPMU Action Officer Dashboard',
@@ -1142,10 +1142,10 @@ a.dashboard-kpi-card:focus-visible {
      */
     $statMeta = match($dashboardMode) {
         'BORROWER' => [
-            'Active Borrowings' => ['custody', 'info', route('custody.index', ['kpi' => 'active_borrowings']), 'Released property currently on custody'],
-            'Upcoming Pickup' => ['calendar', 'info', route('custody.index', ['kpi' => 'upcoming_pickup']), 'Approved transactions scheduled for pickup'],
-            'Returns Due' => ['calendar-clock', 'warning', route('custody.index', ['kpi' => 'returns_due']), 'Borrowings due for return'],
-            'Active Obligations' => ['accountability', 'warning', route('accountability.index'), 'Unresolved obligations'],
+            'Active Borrowings' => ['custody', 'info', route('custody.index', ['kpi' => 'active_borrowings']), 'Items currently on your custody'],
+            'Upcoming Pickup' => ['calendar', 'info', route('custody.index', ['kpi' => 'upcoming_pickup']), 'Items scheduled for pickup'],
+            'Returns Due' => ['calendar-clock', 'warning', route('custody.index', ['kpi' => 'returns_due']), 'Items due for return today or tomorrow'],
+            'Active Obligations' => ['accountability', 'warning', route('accountability.index'), 'Items or payments that need follow-up'],
         ],
         'SPMU_OFFICER' => [
             'For Verification' => ['clipboard-check', 'info', route('verifications.index'), 'Awaiting verification'],
@@ -1267,6 +1267,7 @@ a.dashboard-kpi-card:focus-visible {
             <div>
                 @if($dashboardMode === 'BORROWER')
                     <h2>{{ $copy['taskTitle'] }}</h2>
+                    <p class="meta dashboard-role-section-note">Requests or obligations that need your action now.</p>
                 @else
                     <p class="eyebrow">{{ $copy['taskEyebrow'] }}</p>
                     <h2>{{ $copy['taskTitle'] }}</h2>
@@ -1275,7 +1276,7 @@ a.dashboard-kpi-card:focus-visible {
             </div>
 
             @if($dashboardMode === 'BORROWER')
-                <a class="dashboard-view-all" href="{{ route('requests.index') }}">View all </a>
+                <a class="dashboard-view-all" href="{{ route('requests.index') }}">View my requests</a>
             @elseif($dashboardMode === 'SPMU_OFFICER')
                 <a class="dashboard-view-all" href="{{ route('verifications.index') }}">View all </a>
             @elseif($dashboardMode === 'SPMU_HEAD')
@@ -1302,23 +1303,19 @@ a.dashboard-kpi-card:focus-visible {
                         $hasAccountabilityMatter = $custody?->activeAccountabilityIndicator() !== null;
 
                         $nextAction = match(true) {
-                            $record->status === App\Enums\RequestStatus::Draft => 'Complete the draft and submit the required signed documents to SPMU.',
-                            $record->status === App\Enums\RequestStatus::ReturnedForRevision => 'Review the SPMU remarks, correct the request, and resubmit.',
-                            $record->status === App\Enums\RequestStatus::UnderSpmu => 'No borrower action is required while the request remains under SPMU review.',
-                            $custody?->status === 'CLOSED' && $laundry?->status === 'TURNED_OVER_TO_LAUNDRY' => 'No further borrower action is required. Linen turnover has been recorded and subsequent laundry processing is handled internally.',
-                            $custody?->status === 'CLOSED' => 'Completed. No further borrower action is required.',
-                            $custody?->status === 'OVERDUE' && $hasOutstandingLinen && $hasOutstandingNonLinen => 'Return all outstanding non-linen property to SPMU and the overdue linen to the Laundry Area immediately. Any late-return assessment will continue in My Obligations after the physical returns are recorded.',
-                            $custody?->status === 'OVERDUE' && $hasOutstandingLinen => 'Return the overdue linen and the same printed Laundry Form to the Laundry Area immediately. Laundry RECEIVED BY is the physical return date used for timeliness.',
-                            $custody?->status === 'OVERDUE' && $hasOutstandingProperty => 'Return all outstanding property to SPMU immediately. Any late-return assessment will continue in My Obligations after the physical return is recorded.',
-                            $laundry?->status === 'FOR_LAUNDRY' && $laundry->hasVerifiedAccomplishedForm() => 'No further borrower action is required for the linen. SPMU is verifying the accomplished Laundry Form received from the Laundry Area.',
-                            $laundry?->status === 'FOR_LAUNDRY' => 'Return the linen and the same printed Laundry Form to the Laundry Area. Laundry Personnel will record the receipt and later deliver the accomplished form directly to SPMU; you are not responsible for that document handoff.',
-                            $laundry?->status === 'TURNED_OVER_TO_LAUNDRY' => 'Linen turnover has been completed. Any remaining non-linen accountability matter continues under the applicable SPMU process.',
-                            in_array($laundry?->status, ['IN_PROCESS', 'READY_FOR_SPMU_RETURN', 'AWAITING_FINAL_FORM_UPLOAD', 'FORM_REPLACEMENT_REQUIRED'], true) => 'No borrower action is required while SPMU completes the applicable laundry record processing.',
-                            $hasAccountabilityMatter && $hasOutstandingProperty => 'Return any still-outstanding property and review My Obligations for the linked accountability requirement.',
-                            $hasAccountabilityMatter => 'Review My Obligations and complete the required accountability, payment, repair, replacement, or compliance step shown there.',
-                            $custody?->scheduled_release_at && ! $custody?->released_at => 'Claim the approved items within the confirmed pickup schedule.',
-                            $custody?->released_at && $custody?->status !== 'CLOSED' => 'Return the issued property to SPMU on or before the recorded due date.',
-                            default => 'Await the next official SPMU status update.',
+                            $record->status === App\Enums\RequestStatus::Draft => 'Complete and submit this request.',
+                            $record->status === App\Enums\RequestStatus::ReturnedForRevision => 'Update and resubmit this request.',
+                            $record->status === App\Enums\RequestStatus::UnderSpmu => 'Wait for the SPMU review.',
+                            $custody?->status === 'CLOSED' => 'No action is required.',
+                            $custody?->status === 'OVERDUE' && $hasOutstandingLinen && $hasOutstandingNonLinen => 'Return all outstanding items today.',
+                            $custody?->status === 'OVERDUE' && $hasOutstandingLinen => 'Return the linen with the Laundry Form.',
+                            $custody?->status === 'OVERDUE' && $hasOutstandingProperty => 'Return the outstanding items to SPMU.',
+                            $laundry?->status === 'FOR_LAUNDRY' => 'Return the linen with the Laundry Form.',
+                            $hasAccountabilityMatter && $hasOutstandingProperty => 'Return the item and review My Obligations.',
+                            $hasAccountabilityMatter => 'Open My Obligations to complete the required action.',
+                            $custody?->scheduled_release_at && ! $custody?->released_at => 'Pick up the approved items as scheduled.',
+                            $custody?->released_at && $custody?->status !== 'CLOSED' => 'Return the items by the due date.',
+                            default => 'Open the request to view the next step.',
                         };
 
                         $actionLabel = match (true) {
@@ -1364,9 +1361,7 @@ a.dashboard-kpi-card:focus-visible {
                         <div class="borrower-next-copy">
                             <strong>{{ $record->request_no }}</strong>
                             <span>{{ $record->currentVersion?->purpose_event ?: 'Borrowing request' }}</span>
-                            @if(!in_array($record->status, [\App\Enums\RequestStatus::Draft, \App\Enums\RequestStatus::ReturnedForRevision], true))
-                                <small>{{ $nextAction }}</small>
-                            @endif
+                            <small>{{ $nextAction }}</small>
                         </div>
 
                         @if($actionWhen)
@@ -1459,7 +1454,7 @@ a.dashboard-kpi-card:focus-visible {
                         <div class="borrower-next-copy">
                             <strong>{{ $obligationRow['type'] }}</strong>
                             <span>{{ $obligationRow['summary'] }}</span>
-                            <small>{{ $obligationRow['next_action'] }}</small>
+                            <small>Open My Obligations to continue.</small>
                         </div>
 
                         <span class="borrower-next-when">{{ $obligationRow['badge'] }}</span>
@@ -1528,9 +1523,10 @@ a.dashboard-kpi-card:focus-visible {
     <article class="borrower-dash-card borrower-current-requests" aria-labelledby="active-requests-title" data-dashboard-section="borrower-current">
         <div class="card-header">
             <div>
-                <h2 id="active-requests-title">Current Borrowing Requests</h2>
+                <h2 id="active-requests-title">Current Requests</h2>
+                <p class="meta dashboard-role-section-note">Ongoing requests to track; no action is needed right now.</p>
             </div>
-            <a class="dashboard-view-all" href="{{ route('requests.index') }}">View all </a>
+            <a class="dashboard-view-all" href="{{ route('requests.index') }}">View my requests</a>
         </div>
 
         @if($activeRequestBars->isEmpty())
@@ -1540,10 +1536,10 @@ a.dashboard-kpi-card:focus-visible {
                 <table class="borrower-active-table">
                     <thead>
                         <tr>
-                            <th scope="col">Request ID</th>
-                            <th scope="col">Event / Charter</th>
+                            <th scope="col">Request</th>
+                            <th scope="col">Purpose</th>
                             <th scope="col">Status</th>
-                            <th scope="col">Schedule / Due Date</th>
+                            <th scope="col">Pickup / return</th>
                             <th scope="col">Action</th>
                         </tr>
                     </thead>
@@ -1569,7 +1565,7 @@ a.dashboard-kpi-card:focus-visible {
                             [$activeStateKey, $activeStateLabel] = ['GATE_PASS_PROCESSING', 'Gate Pass Processing'];
                         } elseif ($activeWorkflow) {
                             [$activeStateKey, $activeStateLabel] = match ($activeWorkflow['key']) {
-                                'BORROWED' => ['BORROWED', 'Released / On Custody'],
+                                'BORROWED' => ['BORROWED', 'On Custody'],
                                 'RETURN_PROCESSING' => ['RETURN_PROCESSING', 'Return Processing'],
                                 'OVERDUE' => ['OVERDUE', 'Overdue'],
                                 'INCIDENT_OPEN' => ['ACCOUNTABILITY_PENDING', 'Accountability Pending'],
@@ -1624,7 +1620,7 @@ a.dashboard-kpi-card:focus-visible {
 
                         $activeActionLabel = in_array($activeRequest->status, [App\Enums\RequestStatus::Draft, App\Enums\RequestStatus::ReturnedForRevision], true)
                             ? 'Continue'
-                            : 'View';
+                            : 'View request';
                     @endphp
                     <tr>
                         <td class="borrower-active-cell-id">
@@ -1674,13 +1670,14 @@ a.dashboard-kpi-card:focus-visible {
     <article class="borrower-dash-card dashboard-recent-card" aria-labelledby="recent-borrowing-title">
         <div class="card-header">
             <div>
-                <h2 id="recent-borrowing-title">Recent Borrowing Activity</h2>
+                <h2 id="recent-borrowing-title">Recent History</h2>
+                <p class="meta dashboard-role-section-note">Past requests that are no longer active.</p>
             </div>
-            <a class="dashboard-view-all" href="{{ route('requests.index') }}">View all </a>
+                <a class="dashboard-view-all" href="{{ route('requests.index') }}">View history</a>
         </div>
 
         @if($recentBorrowerActivity->isEmpty())
-            <x-empty-state icon="clock" title="No recent borrowing activity" message="Completed or closed borrowing activity will appear here." />
+            <x-empty-state icon="clock" title="No recent history" message="Completed, cancelled, rejected, or other closed requests will appear here." />
         @else
             <div class="dashboard-recent-list">
                 @foreach($recentBorrowerActivity->take(3) as $recentRequest)
@@ -1689,18 +1686,25 @@ a.dashboard-kpi-card:focus-visible {
                         $recentGatePassOnlyPending = $recentRequest->custody?->isGatePassOnlyPending() ?? false;
                         $recentStatusKey = $recentGatePassOnlyPending ? 'GATE_PASS_PROCESSING' : ($recentWorkflow['key'] ?? $recentRequest->status->value);
                         $recentStatusLabel = $recentGatePassOnlyPending ? 'Gate Pass Processing' : ($recentWorkflow['label'] ?? $recentRequest->status->label());
+                        $recentCancellationReason = $recentStatusKey === 'CANCELLED'
+                            ? trim((string) ($recentRequest->latestCancellation?->reason ?? ''))
+                            : '';
                     @endphp
                     <div class="dashboard-recent-row">
                         <span class="dashboard-activity-icon" aria-hidden="true"><x-icon name="requests" size="17" /></span>
                         <div class="dashboard-recent-copy">
                             <strong>{{ $recentRequest->request_no }}</strong>
                             <span>{{ $recentRequest->currentVersion?->purpose_event ?: 'Borrowing request' }}</span>
-                            <small>Updated {{ $recentRequest->updated_at->format('d M Y, g:i A') }}</small>
+                            @if($recentCancellationReason !== '')
+                                <small>Cancellation reason: {{ $recentCancellationReason }}</small>
+                            @else
+                                <small>Updated {{ $recentRequest->updated_at->format('d M Y, g:i A') }}</small>
+                            @endif
                         </div>
                         <div class="dashboard-recent-status">
                             <x-status-badge :status="$recentStatusKey" :label="$recentStatusLabel" />
                         </div>
-                        <a class="button secondary small ui-pressable borrower-active-action" href="{{ route('requests.show', $recentRequest) }}"><span>View</span></a>
+                        <a class="button secondary small ui-pressable borrower-active-action" href="{{ route('requests.show', $recentRequest) }}"><span>{{ $recentCancellationReason !== '' ? 'View reason' : 'View details' }}</span></a>
                     </div>
                 @endforeach
             </div>

@@ -108,10 +108,10 @@
         @endphp
 
         @if($calendarNotice)
-            <div class="notice warning return-operational-notice" role="status" data-return-operational-notice>
+            <div class="notice return-operational-notice" role="status" data-return-operational-notice>
                 <x-icon name="calendar" size="22" />
                 <div>
-                    <strong>Return processing is unavailable right now.</strong>
+                    <strong>Returns are unavailable right now.</strong>
                     <p>{{ $calendarNotice }}</p>
                 </div>
             </div>
@@ -212,7 +212,7 @@
             <article class="card return-documents-card return-documents-card--compact">
                 <div class="card-header">
                     <div>
-                        <h2>Return Documents</h2>
+                        <h2>Return Forms</h2>
                     </div>
                 </div>
 
@@ -235,10 +235,10 @@
                                     <x-icon name="linen" size="22" />
                                     <div>
                                         <strong>Laundry Form</strong>
-                                        <small>Accomplished form recorded.</small>
+                                        <small>Signed form saved.</small>
                                         @if($laundryJob->worker_received_at)
                                             <small data-laundry-received-date>
-                                                Laundry Received (signed form): <strong>{{ $laundryJob->worker_received_at->format('d M Y, l') }}</strong>
+                                                Received by Laundry: <strong>{{ $laundryJob->worker_received_at->format('d M Y, l') }}</strong>
                                             </small>
                                         @endif
                                     </div>
@@ -261,12 +261,12 @@
                                         <x-icon name="linen" size="22" />
                                         <div>
                                             <strong>Laundry Form</strong>
-                                            <small>Signed Laundry Form not yet recorded.</small>
+                                            <small>Upload the signed form after Laundry receives the items.</small>
                                         </div>
                                     </div>
 
                                     <span class="button secondary small ui-pressable return-disclosure-trigger" aria-hidden="true">
-                                        <span>Record Form</span>
+                                        <span>Upload Form</span>
                                         <x-icon name="chevron-down" size="15" class="return-disclosure-chevron" />
                                     </span>
                                 </summary>
@@ -275,7 +275,7 @@
                                     @csrf
 
                                     <label>
-                                        Accomplished Laundry Form
+                                        Signed Laundry Form
                                         <input
                                             id="return-laundry-form-evidence"
                                             type="file"
@@ -287,7 +287,7 @@
                                     </label>
 
                                     <label>
-                                        Laundry Received Date
+                                        Date received by Laundry
                                         <input
                                             id="laundry-actual-return-date"
                                             type="date"
@@ -301,12 +301,12 @@
                                             aria-describedby="laundry-return-date-help laundry-return-date-status"
                                         >
                                         <span class="return-laundry-date-meta">
-                                            <small id="laundry-return-date-help">Enter the actual RECEIVED BY date on the signed form. The physical receipt date, not the SPMU recording date, determines return timing.</small>
+                                            <small id="laundry-return-date-help">Use the date written under RECEIVED BY on the signed form. This date is used to check whether the return was on time.</small>
                                             <small id="laundry-return-date-status" class="return-laundry-date-status" data-laundry-return-date-status aria-live="polite"></small>
                                         </span>
                                     </label>
 
-                                    <button class="button secondary small ui-pressable" type="submit">Record Laundry Form</button>
+                                    <button class="button secondary small ui-pressable" type="submit">Save Laundry Form</button>
                                 </form>
                             </details>
 
@@ -325,7 +325,7 @@
                                     <x-icon name="linen" size="22" />
                                     <div>
                                         <strong>Laundry Form</strong>
-                                        <small>Signed Laundry Form not yet recorded.</small>
+                                        <small>Laundry Form is not available yet.</small>
                                     </div>
                                 </div>
                                 <span class="status-badge status-warning">Form unavailable</span>
@@ -372,6 +372,11 @@
 </div>
 
 @if($custody->returns->isNotEmpty())
+    @php
+        $hasReturnNotes = $custody->returns->contains(
+            fn ($return) => filled($return->remarks)
+        );
+    @endphp
     <section class="content-area return-history-section">
         <article class="card">
             <div class="card-header">
@@ -384,11 +389,11 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Return</th>
-                            <th>Physical Receipt / System Record</th>
+                            <th>Return No.</th>
+                            <th>Date Received</th>
                             <th>Timing</th>
-                            <th>Status</th>
-                            <th>Remarks</th>
+                            <th>Return Status</th>
+                            @if($hasReturnNotes)<th>Notes</th>@endif
                         </tr>
                     </thead>
                     <tbody>
@@ -398,12 +403,11 @@
                                 <td>
                                     @if($return->physical_return_date)
                                         <strong>{{ $return->physical_return_date->format('d M Y') }}</strong>
-                                        <small style="display:block;">Recorded {{ $return->created_at?->format('d M Y, g:i A') }}</small>
                                         @if($return->physicalReturnEvidence)
-                                            <a href="{{ route('files.preview', $return->physicalReturnEvidence) }}">View signed receipt</a>
+                                            <a href="{{ route('files.preview', $return->physicalReturnEvidence) }}">View receipt</a>
                                         @endif
                                     @else
-                                        {{ optional($return->received_at)->format('d M Y, g:i A') ?: '—' }}
+                                        {{ optional($return->received_at)->format('d M Y') ?: '—' }}
                                     @endif
                                 </td>
 @php
@@ -415,7 +419,7 @@
                                 @endphp
                                 <td>{{ $returnTiming }}</td>
                                 <td><x-status-badge :status="$return->status" /></td>
-                                <td>{{ $return->remarks ?: '—' }}</td>
+                                @if($hasReturnNotes)<td>{{ $return->remarks ?: '—' }}</td>@endif
                             </tr>
                         @endforeach
                     </tbody>

@@ -16,9 +16,7 @@
     const numbers = root.querySelector('[data-gate-pass-page-numbers]');
     const previous = root.querySelector('[data-gate-pass-page="previous"]');
     const next = root.querySelector('[data-gate-pass-page="next"]');
-    const size = root.querySelector('[data-gate-pass-size]');
-    const from = root.querySelector('[data-gate-pass-from]');
-    const to = root.querySelector('[data-gate-pass-to]');
+    const pageSize = Math.max(1, Number.parseInt(root.dataset.pageSize, 10) || 7);
     const actionMenus = [...root.querySelectorAll('.gate-pass-more')];
     let page = 1;
     let pageCount = 1;
@@ -72,7 +70,6 @@
     window.addEventListener('scroll', () => closeActionMenus(), true);
 
     const render = () => {
-        const pageSize = Math.max(1, Number.parseInt(size?.value || root.dataset.pageSize, 10) || 10);
         const terms = search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
         const selectedStatus = status?.value || '';
         const oldestFirst = sort.value === 'oldest';
@@ -82,10 +79,7 @@
         }).filter(record => {
             const haystack = (record.dataset.search || '').toLocaleLowerCase();
             return terms.every(term => haystack.includes(term))
-                && (!selectedStatus || record.dataset.status === selectedStatus)
-                && (!(from?.value || to?.value) || Boolean(record.dataset.recordedDate))
-                && (!from?.value || (record.dataset.recordedDate || '') >= from.value)
-                && (!to?.value || (record.dataset.recordedDate || '') <= to.value);
+                && (!selectedStatus || record.dataset.status === selectedStatus);
         });
         pageCount = Math.max(1, Math.ceil(matches.length / pageSize));
         page = Math.min(page, pageCount);
@@ -133,7 +127,6 @@
     search.addEventListener('input', filter);
     status?.addEventListener('change', filter);
     sort.addEventListener('change', filter);
-    [size, from, to].filter(Boolean).forEach(control => control.addEventListener('change', filter));
     pagination.addEventListener('click', event => {
         const target = event.target.closest('[data-gate-pass-page]');
         if (!target || target.disabled) return;
@@ -144,17 +137,13 @@
         render();
         numbers.querySelector('[aria-current="page"]')?.focus();
     });
-    const reset = () => {
+    root.querySelector('[data-gate-pass-reset]')?.addEventListener('click', () => {
         search.value = '';
         if (status) status.value = '';
-        if (from) from.value = '';
-        if (to) to.value = '';
         sort.value = 'newest';
         filter();
         search.focus();
-    };
-    [root.querySelector('[data-gate-pass-reset]'), root.querySelector('[data-gate-pass-clear]')]
-        .filter(Boolean).forEach(button => button.addEventListener('click', reset));
+    });
     render();
 })();
 </script>

@@ -720,11 +720,11 @@ class BorrowerObligationService
             $actions = [];
 
             if ($lateReturnNotice) {
-                $actions[] = ['Preview', route('documents.preview', $lateReturnNotice), false, $linkedBilling ? 'secondary' : 'primary', 'document', 'Late Return Notice'];
+                $actions[] = ['View Notice', route('documents.preview', $lateReturnNotice), false, $linkedBilling ? 'secondary' : 'primary', 'document', 'Late Return Notice — return record'];
             }
 
             if ($document) {
-                $actions[] = ['Preview', route('documents.preview', $document), false, 'primary', 'document', 'Late Return Billing Statement'];
+                $actions[] = ['View Cashier Copy', route('documents.preview', $document), false, 'primary', 'document', 'Late Return Billing Statement — cashier payment copy'];
             }
 
             if ($custody) {

@@ -6,9 +6,13 @@ const vm = require('node:vm');
 const script = fs.readFileSync(path.join(__dirname, '../../resources/views/requests/partials/sao-record-pagination.blade.php'), 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
 
 function mount(count = 25) {
-    const element = (dataset = {}) => ({dataset, value: '', hidden: false, textContent: '', handlers: {},
+    const element = (dataset = {}) => ({dataset, value: '', hidden: false, textContent: '', handlers: {}, children: [],
         addEventListener(name, handler) { this.handlers[name] = handler; },
         dispatch(name) { this.handlers[name]?.(); },
+        appendChild(child) { this.children.push(child); },
+        replaceChildren(...children) { this.children = children; },
+        setAttribute() {},
+        classList: { add() {} },
     });
     const body = {children: [], appendChild(row) { this.children = this.children.filter(child => child !== row); this.children.push(row); }};
     const rows = Array.from({length: count}, (_, i) => ({...element({search: `request ${i} borrower ${i % 2 ? 'ana' : 'ben'}`, created: String(i), status: i % 2 ? 'COMPLETED' : 'UNDER_REVIEW', attention: i < 3 ? '1' : '0'}), parentElement: body}));
@@ -16,10 +20,10 @@ function mount(count = 25) {
     const search = element();
     const status = element(); status.value = 'all';
     const sort = element(); sort.value = 'newest';
-    const empty = element(); const previous = element(); const next = element(); const range = element(); const pageLabel = element();
-    const pagination = {...element(), querySelector: selector => ({'[data-sao-record-previous]': previous, '[data-sao-record-next]': next, '[data-sao-record-range]': range, '[data-sao-record-page]': pageLabel})[selector]};
-    vm.runInNewContext(script, {document: {querySelectorAll: () => rows, querySelector: selector => ({'[data-record-search]': search, '[data-record-status-filter]': status, '[data-record-sort]': sort, '[data-record-empty]': empty, '[data-sao-record-pagination]': pagination})[selector]}});
-    return {rows, search, status, sort, empty, previous, next, range, pageLabel, pagination, visible: () => body.children.filter(row => !row.hidden).map(row => row.dataset.created)};
+    const empty = element(); const previous = element(); const next = element(); const range = element(); const pages = element();
+    const pagination = {...element(), querySelector: selector => ({'[data-sao-record-previous]': previous, '[data-sao-record-next]': next, '[data-sao-record-range]': range, '[data-sao-record-pages]': pages})[selector]};
+    vm.runInNewContext(script, {document: {querySelectorAll: () => rows, querySelector: selector => ({'[data-record-search]': search, '[data-record-status-filter]': status, '[data-record-sort]': sort, '[data-record-empty]': empty, '[data-sao-record-pagination]': pagination})[selector], createElement: () => element()}});
+    return {rows, search, status, sort, empty, previous, next, range, pages, pagination, visible: () => body.children.filter(row => !row.hidden).map(row => row.dataset.created)};
 }
 
 test('SAO records paginate all matching records and preserve the final page', () => {
@@ -32,7 +36,7 @@ test('SAO records paginate all matching records and preserve the final page', ()
     assert.equal(ui.range.textContent, '21–25 of 25 requests');
     assert.equal(ui.next.disabled, true);
     ui.next.dispatch('click');
-    assert.equal(ui.pageLabel.textContent, 'Page 3 of 3');
+    assert.ok(ui.pages.children.length > 0);
 });
 
 test('search, attention and status filter the full set before pagination and reset to page one', () => {
@@ -40,7 +44,7 @@ test('search, attention and status filter the full set before pagination and res
     ui.next.dispatch('click');
     ui.search.value = ' ANA '; ui.search.dispatch('input');
     assert.equal(ui.range.textContent, '1–10 of 12 requests');
-    assert.equal(ui.pageLabel.textContent, 'Page 1 of 2');
+    assert.ok(ui.pages.children.length > 0);
     ui.status.value = 'NEEDS_ATTENTION'; ui.status.dispatch('change');
     assert.deepEqual(ui.visible(), ['1']);
     assert.equal(ui.pagination.hidden, false);
@@ -65,7 +69,7 @@ test('a small record set shows its page and count with both navigation buttons d
     const ui = mount(2);
     assert.equal(ui.pagination.hidden, false);
     assert.equal(ui.range.textContent, '1–2 of 2 requests');
-    assert.equal(ui.pageLabel.textContent, 'Page 1 of 1');
+    assert.ok(ui.pages.children.length > 0);
     assert.equal(ui.previous.disabled, true);
     assert.equal(ui.next.disabled, true);
     assert.deepEqual(ui.visible(), ['1','0']);

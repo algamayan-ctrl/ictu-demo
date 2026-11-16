@@ -1,6 +1,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // This is the filter form for Borrower Request Records; the server applies search, status, and sort.
+    /*
+     * Search, status, and sort are applied on the server across every page.
+     * This only submits the toolbar form: Status/Sort submit on change, Search
+     * submits on Enter or when the field is cleared. The form never sends
+     * "page", so any change starts again at page 1.
+     */
     const filterForm = document.getElementById('request-filters');
 
     if (filterForm) {
@@ -8,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const initialSearch = searchInput ? searchInput.value : '';
         const submitFilters = () => filterForm.requestSubmit ? filterForm.requestSubmit() : filterForm.submit();
 
-        // This is the cleanup of default filter values before the GET form is submitted.
+        // Keep the URL tidy: leave out empty/default values.
         filterForm.addEventListener('formdata', (event) => {
             const data = event.formData;
 
@@ -20,13 +25,14 @@ document.addEventListener('DOMContentLoaded', () => {
         filterForm.querySelector('#request-status-filter')?.addEventListener('change', submitFilters);
         filterForm.querySelector('#request-sort')?.addEventListener('change', submitFilters);
 
-        // This is the search reset action when a previously applied search is cleared.
+        // The search field's clear (x) button fires "search" with an empty value.
         searchInput?.addEventListener('search', () => {
             if (searchInput.value === '' && initialSearch !== '') {
                 submitFilters();
             }
         });
     }
+
 
     const closeMenus = (except = null) => {
         document.querySelectorAll('[data-request-menu]').forEach((menu) => {
@@ -82,3 +88,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
+

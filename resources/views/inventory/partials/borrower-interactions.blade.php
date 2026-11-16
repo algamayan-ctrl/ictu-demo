@@ -105,7 +105,7 @@
 
             addPageButton(Math.max(1, currentPage - 1), {
                 disabled: currentPage <= 1,
-                html: `${chevron(true)}<span>Previous</span>`,
+                html: chevron(true),
                 ariaLabel: 'Previous page',
             });
 
@@ -125,7 +125,7 @@
 
             addPageButton(Math.min(totalPages, currentPage + 1), {
                 disabled: currentPage >= totalPages,
-                html: `<span>Next</span>${chevron(false)}`,
+                html: chevron(false),
                 ariaLabel: 'Next page',
             });
         };

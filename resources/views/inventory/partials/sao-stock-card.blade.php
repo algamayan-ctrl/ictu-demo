@@ -20,6 +20,7 @@
             @include('inventory.partials.stock-card-table', ['rows' => $card['page']])
         </div>
         <div class="sao-stock-card-footer">
+            <div class="sao-stock-card-pagination-meta">
             <p class="meta" role="status">
                 @if($card['page']->total())
                     Showing {{ $card['page']->firstItem() }}–{{ $card['page']->lastItem() }} of {{ $card['page']->total() }} entries
@@ -27,14 +28,11 @@
                     {{ $card['filtered'] ? 'No matching entries' : 'No recorded entries' }}
                 @endif
             </p>
+                <select name="stock_per_page" aria-label="Stock card entries per page">@foreach([7, 15, 30, 50] as $size)<option value="{{ $size }}" @selected($card['per_page'] === $size)>{{ $size }} items per page</option>@endforeach</select>
+            </div>
             <div class="sao-stock-card-pagination">
-                <select name="stock_per_page" aria-label="Stock card entries per page">@foreach([10, 30, 50, 100] as $size)<option value="{{ $size }}" @selected($card['per_page'] === $size)>{{ $size }} entries per page</option>@endforeach</select>
                 @if($card['page']->total())
-                    <nav aria-label="Stock card pages">
-                        @if($card['page']->onFirstPage())<span class="button secondary small" aria-disabled="true">Previous</span>@else<a class="button secondary small" href="{{ $card['page']->previousPageUrl() }}">Previous</a>@endif
-                        <span class="meta">Page {{ $card['page']->currentPage() }} of {{ $card['page']->lastPage() }}</span>
-                        @if($card['page']->hasMorePages())<a class="button secondary small" href="{{ $card['page']->nextPageUrl() }}">Next</a>@else<span class="button secondary small" aria-disabled="true">Next</span>@endif
-                    </nav>
+                    {{ $card['page']->onEachSide(1)->links('partials.pagination') }}
                 @endif
             </div>
         </div>

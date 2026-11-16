@@ -24,8 +24,20 @@
     @endif
 
     <div class="mr-footer">
-        <p role="status">Showing {{ $requests->firstItem() ?? 0 }} to {{ $requests->lastItem() ?? 0 }} of {{ $requests->total() }} {{ $requests->total() === 1 ? 'request' : 'requests' }}</p>
-
+        <div class="mr-pagination-meta">
+            <p role="status">Showing {{ $requests->firstItem() ?? 0 }} to {{ $requests->lastItem() ?? 0 }} of {{ $requests->total() }} {{ $requests->total() === 1 ? 'request' : 'requests' }}</p>
+            <form method="get" action="{{ route('requests.index') }}">
+                @foreach(request()->except(['page', 'per_page']) as $name => $value)
+                    @if(is_scalar($value))<input type="hidden" name="{{ $name }}" value="{{ $value }}">@endif
+                @endforeach
+                <label class="sr-only" for="my-requests-per-page">Requests per page</label>
+                <select id="my-requests-per-page" name="per_page" aria-label="Requests per page" onchange="this.form.submit()">
+                    @foreach([7, 15, 30, 50] as $size)
+                        <option value="{{ $size }}" @selected($borrowerRequestFilters['per_page'] === $size)>{{ $size }} items per page</option>
+                    @endforeach
+                </select>
+            </form>
+        </div>
         {{ $requests->onEachSide(1)->links('requests.partials.my-requests-pagination') }}
     </div>
 </section>

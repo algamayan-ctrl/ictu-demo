@@ -336,7 +336,7 @@ class CustodyService
                         $this->notifications->send(
                             'PICKUP_EXPIRED',
                             collect([$locked->borrower]),
-                            "Your scheduled pickup for {$locked->custody_no} was not completed. SPMU is reviewing whether the items can still be released or whether the borrowing must be cancelled. No action is required from you at this time.",
+                            "Your pickup schedule for {$locked->custody_no} was not completed. SPMU will review your request and notify you of the next step. No action is required from you at this time.",
                             $locked,
                             ['SYSTEM', 'EMAIL'],
                             ['SYSTEM', 'EMAIL']
@@ -496,7 +496,7 @@ class CustodyService
                     return;
                 }
 
-                $message = "Your scheduled pickup for {$custody->custody_no} was not completed. SPMU is reviewing whether the items can still be released or whether the borrowing must be cancelled. No action is required from you at this time.";
+                $message = "Your pickup schedule for {$custody->custody_no} was not completed. SPMU will review your request and notify you of the next step. No action is required from you at this time.";
 
                 $this->notifications->send(
                     'PICKUP_EXPIRED',
@@ -835,7 +835,7 @@ class CustodyService
                     : 'the generated Borrower Slip';
 
                 if ($pickupConfirmed && $borrowerPresent) {
-                    $pickupMessage = "SPMU recorded your arrival for pickup of {$locked->custody_no}. Release processing will continue after item preparation and document checks.";
+                    $pickupMessage = "Your arrival for pickup of {$locked->custody_no} has been confirmed. SPMU will notify you once the approved items are ready for release.";
                 } elseif ($delayedApprovalReview && $pickupConfirmed) {
                     $pickupMessage = "Pickup and issuance for {$locked->custody_no} is scheduled for {$nextStart->format('F j, Y g:i A')} until {$nextEnd->format('g:i A')}. An SPMU officer confirmed this pickup schedule. Proceed to SPMU within this window and bring {$requiredDocuments}.";
                 } elseif ($delayedApprovalReview) {

@@ -41,7 +41,10 @@ class BorrowingRequestController extends Controller
     private const MAX_UPLOAD_MB = 64;
 
     /** Records per page on the borrower's My Requests list. */
-    private const BORROWER_REQUESTS_PER_PAGE = 10;
+    private const BORROWER_REQUESTS_PER_PAGE = 7;
+
+    /** Shared page-size choices used by borrower-facing record lists. */
+    private const BORROWER_REQUESTS_PER_PAGE_OPTIONS = [7, 15, 30, 50];
 
     /** Longest search term accepted from the My Requests search box. */
     private const BORROWER_REQUEST_SEARCH_MAX_LENGTH = 100;
@@ -55,7 +58,7 @@ class BorrowingRequestController extends Controller
         'FOR_REVIEW' => 'For Review',
         'NEEDS_REVISION' => 'Needs Revision',
         'PICKUP_SCHEDULED' => 'Pickup Scheduled',
-        'FOR_ISSUANCE' => 'For Issuance',
+        'FOR_ISSUANCE' => 'Preparing for Pickup',
         'READY_FOR_PICKUP' => 'Ready for Pickup',
         'MISSED_PICKUP' => 'Missed Pickup',
         'ON_CUSTODY' => 'On Custody',
@@ -318,7 +321,7 @@ class BorrowingRequestController extends Controller
 
             return view('requests.index', [
                 'activeCustodiesFilter' => $activeCustodiesFilter,
-                'requests' => $query->paginate(self::BORROWER_REQUESTS_PER_PAGE)->withQueryString(),
+                'requests' => $query->paginate($filters['per_page'])->withQueryString(),
                 'borrowerRequestFilters' => $filters,
                 'borrowerRequestStatusFilters' => self::BORROWER_REQUEST_STATUS_FILTERS,
             ]);
@@ -338,7 +341,7 @@ class BorrowingRequestController extends Controller
      * the allowed lists falls back to the default instead of erroring, so an
      * old bookmark or a hand-edited URL still opens the page.
      *
-     * @return array{search:string,status:string,sort:string,active:bool}
+     * @return array{search:string,status:string,sort:string,per_page:int,active:bool}
      */
     private function borrowerRequestFilters(Request $request): array
     {
@@ -359,10 +362,16 @@ class BorrowingRequestController extends Controller
         $sort = $stringQuery('sort', 'newest');
         $sort = array_key_exists($sort, self::BORROWER_REQUEST_SORTS) ? $sort : 'newest';
 
+        $perPage = (int) $stringQuery('per_page', (string) self::BORROWER_REQUESTS_PER_PAGE);
+        $perPage = in_array($perPage, self::BORROWER_REQUESTS_PER_PAGE_OPTIONS, true)
+            ? $perPage
+            : self::BORROWER_REQUESTS_PER_PAGE;
+
         return [
             'search' => $search,
             'status' => $status,
             'sort' => $sort,
+            'per_page' => $perPage,
             'active' => $search !== '' || $status !== 'all',
         ];
     }
@@ -815,6 +824,7 @@ class BorrowingRequestController extends Controller
             'currentVersion.supportingDocuments.uploader',
 
             'statusHistory.actor',
+            'latestCancellation.requestedBy',
 
             'custody.lines.requestItem.inventoryItem',
             'custody.incidents',

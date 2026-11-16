@@ -303,6 +303,78 @@
 
     .document-footer td:last-child { text-align: right; }
 
+    /* Match the official Borrower Slip header across all accountability forms. */
+    .accountability-form-header {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .accountability-form-header td {
+        border: 0;
+        padding: 0;
+        vertical-align: middle;
+    }
+
+    .accountability-form-logo-cell {
+        width: 48px;
+        padding-right: 7px !important;
+    }
+
+    .accountability-form-logo {
+        display: block;
+        width: 36px;
+        height: 36px;
+        object-fit: contain;
+    }
+
+    .accountability-form-identity {
+        color: #163d61;
+        font-size: 6.2px;
+        font-weight: 700;
+        line-height: 1.15;
+        text-align: left;
+    }
+
+    .accountability-form-identity span,
+    .accountability-form-identity strong {
+        display: block;
+    }
+
+    .accountability-form-identity strong {
+        color: #123b61;
+        font-family: Arial, DejaVu Sans, sans-serif;
+        font-size: 9.2px;
+        line-height: 1.1;
+        letter-spacing: .06px;
+    }
+
+    .accountability-form-rule {
+        position: relative;
+        height: 9px;
+        margin: 2px 0 10px;
+        border-top: 1px solid #8dc4e5;
+    }
+
+    .accountability-form-rule span {
+        position: absolute;
+        top: 3px;
+        right: 0;
+        color: #123b61;
+        font-size: 6.1px;
+        font-weight: 700;
+    }
+
+    .form-record-footer {
+        padding-top: 2px;
+        border-top: 0;
+        color: #444;
+        font-size: 6.3px;
+        line-height: 1.1;
+    }
+
+    .form-record-footer td:last-child { text-align: right; }
+
     .emphasis {
         color: #111;
         font-weight: 700;

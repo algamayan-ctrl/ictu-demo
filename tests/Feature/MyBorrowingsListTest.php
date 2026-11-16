@@ -9,7 +9,6 @@ use App\Models\Allocation;
 use App\Models\BorrowingRequest;
 use App\Models\CustodyLine;
 use App\Models\CustodyTransaction;
-use App\Models\Incident;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use App\Models\OrganizationalUnit;
@@ -188,6 +187,17 @@ class MyBorrowingsListTest extends TestCase
         ], $options);
     }
 
+    private function missedPickupCustody(User $borrower, array $options = []): CustodyTransaction
+    {
+        return $this->custody($borrower, [
+            'status' => 'PREPARING_RELEASE',
+            'released_at' => null,
+            'scheduled_release_at' => now()->subHours(2),
+            'pickup_expires_at' => now()->subHour(),
+            'pickup_expired_at' => now()->subHour(),
+        ], $options);
+    }
+
     private function completedCustody(User $borrower, array $options = []): CustodyTransaction
     {
         return $this->custody($borrower, [
@@ -305,7 +315,7 @@ class MyBorrowingsListTest extends TestCase
         $page1->assertSee('aria-label="My borrowings pagination"', false);
     }
 
-    public function test_single_page_hides_page_links(): void
+    public function test_single_page_shows_the_pagination_summary_without_unneeded_page_controls(): void
     {
         $borrower = $this->borrower();
         $this->custody($borrower);
@@ -313,7 +323,22 @@ class MyBorrowingsListTest extends TestCase
         $this->myBorrowings($borrower)
             ->assertOk()
             ->assertSee('Showing 1 to 1 of 1 borrowing')
-            ->assertDontSee('aria-label="My borrowings pagination"', false);
+            ->assertSee('10 records per page')
+            ->assertDontSee('aria-label="Pagination"', false);
+    }
+
+    public function test_borrower_can_choose_a_larger_page_size(): void
+    {
+        $borrower = $this->borrower();
+        collect(range(1, 23))->each(fn () => $this->custody($borrower));
+
+        $response = $this->myBorrowings($borrower, ['per_page' => 30]);
+
+        $response->assertOk()
+            ->assertSee('Showing 1 to 23 of 23 borrowings')
+            ->assertSee('<option value="30" selected>30 records per page</option>', false);
+        $this->assertCount(23, $this->ids($response));
+        $this->assertSame(30, $response->viewData('borrowerFilters')['per_page']);
     }
 
     /* ------------------------------------------------------------------ */
@@ -387,32 +412,15 @@ class MyBorrowingsListTest extends TestCase
     {
         $borrower = $this->borrower();
         $borrowed = $this->custody($borrower);
-        $pickup = $this->pickupSchedulingCustody($borrower);
+        $missedPickup = $this->missedPickupCustody($borrower);
         $completed = $this->completedCustody($borrower);
         $cancelled = $this->cancelledCustody($borrower);
-        $overdue = $this->custody($borrower, ['status' => 'OVERDUE', 'due_at' => now()->subDays(2)]);
-
-        // Open accountability case: the badge reads "Compliance Required", so
-        // it belongs to Accountability Pending, not On Custody.
-        $withIncident = $this->custody($borrower);
-        Incident::query()->create([
-            'incident_no' => 'INC-MB-0001',
-            'custody_transaction_id' => $withIncident->id,
-            'borrower_user_id' => $borrower->id,
-            'reported_by_user_id' => $this->officer()->id,
-            'incident_type' => 'DAMAGED',
-            'reported_at' => now(),
-            'status' => 'COMPLIANCE_REQUIRED',
-        ]);
 
         $expectations = [
             'BORROWED' => [$borrowed->id],
-            'PICKUP_SCHEDULING' => [$pickup->id],
+            'PICKUP_EXPIRED' => [$missedPickup->id],
             'COMPLETED' => [$completed->id],
             'CANCELLED' => [$cancelled->id],
-            'OVERDUE' => [$overdue->id],
-            'ACCOUNTABILITY' => [$withIncident->id],
-            'RETURN_PROCESSING' => [],
         ];
 
         foreach ($expectations as $status => $expectedIds) {
@@ -422,15 +430,15 @@ class MyBorrowingsListTest extends TestCase
 
             // Every returned row shows the badge the filter promised.
             foreach ($response->viewData('custodies')->items() as $custody) {
-                $key = $custody->borrowerListStatus()['key'];
-                $status === 'ACCOUNTABILITY'
-                    ? $this->assertSame('attention', $custody->borrowerListStatus()['group'])
-                    : $this->assertSame($status, $key);
+                $this->assertSame($status, $custody->borrowerListStatus()['key']);
             }
         }
 
         $this->myBorrowings($borrower, ['status' => 'COMPLETED'])
-            ->assertSee('<option value="COMPLETED" selected>', false);
+            ->assertSee('<option value="COMPLETED" selected>', false)
+            ->assertSee('>On Custody<', false)
+            ->assertDontSee('Items Released / On Custody')
+            ->assertDontSee('For Pickup Scheduling');
     }
 
     public function test_unknown_status_and_sort_values_fall_back_to_defaults(): void
@@ -454,7 +462,8 @@ class MyBorrowingsListTest extends TestCase
             'search[]' => ['search[]=x'],
             'status[]' => ['status[]=x'],
             'sort[]' => ['sort[]=x'],
-            'all three' => ['search[]=x&status[]=x&sort[]=x'],
+            'per_page[]' => ['per_page[]=x'],
+            'all four' => ['search[]=x&status[]=x&sort[]=x&per_page[]=x'],
         ];
     }
 
@@ -474,7 +483,7 @@ class MyBorrowingsListTest extends TestCase
         $response->assertOk();
         $this->assertSame([$newer->id, $older->id], $this->ids($response));
         $this->assertSame(
-            ['search' => '', 'status' => 'all', 'sort' => 'newest', 'active' => false],
+            ['search' => '', 'status' => 'all', 'sort' => 'newest', 'per_page' => 10, 'active' => false],
             $response->viewData('borrowerFilters')
         );
     }

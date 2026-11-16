@@ -69,42 +69,82 @@
         'action' => ['Needs My Action', 'No action required from you', 'No current obligation requires your response.'],
         'payment' => ['Payment Obligations', 'No payment currently due', 'There is no outstanding payment requirement on your account.'],
         'status' => ['Borrowing Restrictions', 'No active borrowing restriction', 'Your borrowing status is currently clear.'],
-        default => ['Current Obligations', 'No unresolved obligations', 'No active obligations.'],
+        default => ['Your Current Cases', 'No unresolved obligations', 'No active obligations.'],
     };
 
-    // A zero-action card repeats the empty state; show it only when a response is needed.
-    $summaryCards = [
-        ['info', 'accountability', (string) $obligationCount, 'Active Obligations', $obligationCount ? 'Unresolved matters' : 'None', route('accountability.index', ['focus' => 'active']).'#current-obligations', 'active'],
-    ];
-    if ($needsActionCount > 0) {
-        $summaryCards[] = ['warning', 'warning', (string) $needsActionCount, 'Needs My Action', 'Your response is required', route('accountability.index', ['focus' => 'action']).'#current-obligations', 'action'];
-    }
-    $summaryCards[] = [$outstandingBalance > 0 ? 'orange' : 'blue', 'coins', 'PHP '.number_format($outstandingBalance, 2), 'My Unsettled Charges', $outstandingBalance > 0 ? 'Unpaid billing balance' : 'No unsettled charges', route('accountability.index', ['focus' => 'payment']).'#current-obligations', 'payment'];
-    $summaryCards[] = [$borrowingBlocked ? 'warning' : 'success', $borrowingBlocked ? 'lock' : 'check-circle', $borrowingStatus, 'Borrowing Status', $borrowingStatusState['note'], route('accountability.index', ['focus' => $activeRestrictionCount > 0 || ! $borrowingBlocked ? 'status' : 'active']).'#current-obligations', 'status'];
+    // Keep the summary focused on the current borrower outcome; detailed
+    // obligations below still use the service-provided rows and actions.
+    $hasCurrentAccountability = $obligationCount > 0 || $outstandingBalance > 0 || $borrowingBlocked;
 @endphp
 
 @include('accountability.partials.obligations-styles')
 
 <section class="content-area ob-workspace" data-borrower-accountability-clean>
-    <div class="ob-summary {{ $needsActionCount === 0 ? 'is-three' : '' }}" aria-label="My obligations overview">
-        @foreach($summaryCards as [$tone, $icon, $value, $label, $note, $href, $cardFocus])
-            <a
-                class="ob-summary-card is-{{ $tone }} is-clickable {{ $focus === $cardFocus ? 'is-selected' : '' }}"
-                href="{{ $href }}"
-                @if($focus === $cardFocus) aria-current="true" @endif
-            >
-                <span class="ob-summary-icon" aria-hidden="true">
-                    <x-icon :name="$icon" size="20" />
-                </span>
-                <span class="ob-summary-label">{{ $label }}</span>
-                <strong class="ob-summary-value">{{ $value }}</strong>
-                <span class="ob-summary-note">{{ $note }}</span>
-            </a>
-        @endforeach
+    {{-- Keep the two account indicators visible without restoring the oversized KPI row.
+         Each link retains the original focused obligation/empty-state view. --}}
+    <div class="ob-overview-metrics" aria-label="Account balance and borrowing status">
+        <a class="ob-metric-card {{ $outstandingBalance > 0 ? 'is-unsettled' : 'is-blue' }}"
+            href="{{ route('accountability.index', ['focus' => 'payment']) }}#current-obligations">
+            <span class="ob-metric-icon" aria-hidden="true"><x-icon name="coins" size="21" /></span>
+            <span class="ob-metric-content">
+                <span class="ob-metric-label">My Unsettled Charges</span>
+                <strong class="ob-metric-value">PHP {{ number_format($outstandingBalance, 2) }}</strong>
+                <span class="ob-metric-note">{{ $outstandingBalance > 0 ? 'Unpaid billing balance' : 'No unsettled charges' }}</span>
+            </span>
+            <span class="ob-metric-arrow" aria-hidden="true"><x-icon name="arrow-right" size="15" /></span>
+        </a>
+        <a class="ob-metric-card {{ $borrowingBlocked ? 'is-restricted' : 'is-green' }}"
+            href="{{ route('accountability.index', ['focus' => $activeRestrictionCount > 0 || ! $borrowingBlocked ? 'status' : 'active']) }}#current-obligations">
+            <span class="ob-metric-icon" aria-hidden="true"><x-icon :name="$borrowingBlocked ? 'lock' : 'check-circle'" size="21" /></span>
+            <span class="ob-metric-content">
+                <span class="ob-metric-label">Borrowing Status</span>
+                <strong class="ob-metric-value">{{ $borrowingStatus }}</strong>
+                <span class="ob-metric-note">{{ $borrowingStatusState['note'] }}</span>
+            </span>
+            <span class="ob-metric-arrow" aria-hidden="true"><x-icon name="arrow-right" size="15" /></span>
+        </a>
     </div>
 
-    {{-- Do not reserve an empty grid row between the KPI cards and history when all obligations are resolved. --}}
-    @if($obligationCount > 0 || $resolvedCount === 0)
+    {{-- Compact current-accountability panel; original cases and actions remain intact. --}}
+    <div class="ob-current-status {{ $hasCurrentAccountability ? 'is-attention' : 'is-clear' }}"
+        aria-label="Current accountability status" role="status">
+        <span class="ob-current-status-icon" aria-hidden="true">
+            <x-icon :name="$hasCurrentAccountability ? 'warning' : 'check-circle'" size="21" />
+        </span>
+        <div class="ob-current-status-copy">
+            <strong>{{ $hasCurrentAccountability ? 'Current Accountability' : 'No Active Accountability' }}</strong>
+            @if($hasCurrentAccountability)
+                <p>
+                    @if($obligationCount > 0)
+                        {{ $obligationCount }} {{ \Illuminate\Support\Str::plural('unresolved obligation', $obligationCount) }}
+                    @else
+                        There is an outstanding account requirement.
+                    @endif
+                    @if($needsActionCount > 0)
+                        · {{ $needsActionCount }} {{ \Illuminate\Support\Str::plural('item', $needsActionCount) }} {{ $needsActionCount === 1 ? 'requires' : 'require' }} your action
+                    @endif
+                </p>
+                @if($outstandingBalance > 0 || $borrowingBlocked)
+                    <div class="ob-current-status-facts">
+                        @if($outstandingBalance > 0)
+                            <span><strong>Unsettled charges:</strong> PHP {{ number_format($outstandingBalance, 2) }}</span>
+                        @endif
+                        @if($borrowingBlocked)
+                            <span><strong>Borrowing status:</strong> {{ $borrowingStatus }}</span>
+                        @endif
+                    </div>
+                @endif
+            @else
+                <p>You have no unsettled obligations. Your borrowing status is clear.</p>
+            @endif
+        </div>
+        @if($hasCurrentAccountability)
+            <span class="ob-current-status-badge">{{ $needsActionCount > 0 ? 'Action Required' : 'In Progress' }}</span>
+        @endif
+    </div>
+
+    {{-- Keep initial clear state short; focused metric links can show an empty-state explanation. --}}
+    @if($hasCurrentAccountability || $focus !== 'active')
     <div id="current-obligations" class="ob-focused-results">
     @if($focusedRows->isNotEmpty())
         <div class="ob-current-header">
@@ -277,13 +317,22 @@
             No outstanding obligations match the search criteria.
         </div>
     @else
-        @if($obligationCount === 0)
-            @if($resolvedCount === 0)
-                <article class="ob-clear-card ob-brief-empty" id="obligations-empty">
-                    <span aria-hidden="true"><x-icon name="check-circle" size="20" /></span>
-                    <strong>No current obligations.</strong>
-                </article>
-            @endif
+        @if(! $hasCurrentAccountability)
+            <article class="ob-clear-card" id="obligations-empty">
+                <span aria-hidden="true"><x-icon name="check-circle" size="22" /></span>
+                <div>
+                    <strong>{{ $focusMeta[1] }}</strong>
+                    <p>{{ $focusMeta[2] }}</p>
+                </div>
+            </article>
+        @elseif($obligationCount === 0)
+            <article class="ob-clear-card" id="obligations-empty">
+                <span aria-hidden="true"><x-icon name="info" size="22" /></span>
+                <div>
+                    <strong>Account status requires review.</strong>
+                    <p>{{ $borrowingStatusState['note'] ?? 'Contact SPMU for your account details.' }}</p>
+                </div>
+            </article>
         @else
             <article class="ob-clear-card" id="obligations-empty">
                 <span aria-hidden="true"><x-icon name="check-circle" size="34" /></span>

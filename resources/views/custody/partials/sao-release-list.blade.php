@@ -52,13 +52,15 @@
         </div>
 
         <footer class="sao-release-footer" data-release-pagination @if($custodies->isEmpty()) hidden @endif>
-            <p class="meta" data-release-range role="status" aria-live="polite">{{ $custodies->count() }} {{ \Illuminate\Support\Str::plural('record', $custodies->count()) }}</p>
+            <div class="sao-release-pagination-meta">
+                <p class="meta" data-release-range role="status" aria-live="polite">{{ $custodies->count() }} {{ \Illuminate\Support\Str::plural('record', $custodies->count()) }}</p>
+                <select data-release-page-size aria-label="Release records per page">@foreach([7, 15, 30, 50] as $size)<option value="{{ $size }}">{{ $size }} items per page</option>@endforeach</select>
+            </div>
             <div class="sao-release-pagination">
-                <select data-release-page-size aria-label="Release records per page">@foreach([10, 30, 50, 100] as $size)<option value="{{ $size }}">{{ $size }} records per page</option>@endforeach</select>
-                <nav aria-label="Release record pages">
-                    <button type="button" class="button secondary small" data-release-previous disabled>Previous</button>
-                    <span class="meta" data-release-page>Page 1 of 1</span>
-                    <button type="button" class="button secondary small" data-release-next disabled>Next</button>
+                <nav class="app-pagination" aria-label="Release record pages">
+                    <button type="button" class="app-pagination-link" data-release-previous aria-label="Previous page" disabled><x-icon name="arrow-left" size="14" /></button>
+                    <span data-release-pages></span>
+                    <button type="button" class="app-pagination-link" data-release-next aria-label="Next page" disabled><x-icon name="arrow-right" size="14" /></button>
                 </nav>
             </div>
         </footer>

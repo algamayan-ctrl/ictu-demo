@@ -41,9 +41,8 @@ class EditRequestRevisionRemarksTest extends TestCase
         );
 
         $this->editResponse($borrower, $version->request)
-            ->assertSeeText('Action required')
-            ->assertSeeText('Returned for Revision')
-            ->assertSeeText('Please update the request based on the review remarks below.')
+            ->assertSeeText('Revision required')
+            ->assertSeeText('Update the details noted in the review remarks.')
             ->assertSeeText('Review remarks')
             ->assertSeeText('Please replace the unreadable approval letter.')
             ->assertSeeText('Returned by: SPMU Action Officer')

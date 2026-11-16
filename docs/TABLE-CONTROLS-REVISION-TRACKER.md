@@ -1,5 +1,7 @@
 # Pagination, Search and Filters revision tracker
 
+Reconciliation — 16 November 2026: complete-register Laundry search/filter/sort is restored after the incoming merge. Numbered pagination and visible 7/15/30/50 choices remain, with legacy Laundry page sizes accepted for historical links. Active/completed filters are independent and empty results retain controls. My Borrowings restores Overdue, Return Processing and Open Accountability. See MERGE-RECONCILIATION-20261116.md for current verification; the original milestone evidence below remains historical.
+
 Approved layout: search and applicable filters above the existing table, pagination below. Preserve columns, panel corners, authorization and row actions. Reference application: native PHP instance at http://127.0.0.1:8001.
 
 | Status | Milestone |

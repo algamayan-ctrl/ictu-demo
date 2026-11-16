@@ -22,82 +22,34 @@ use Illuminate\View\View;
 
 class LaundryController extends Controller
 {
+    // This is the complete Laundry register filtered before pagination.
     public function index(Request $request): View
     {
         $this->authorizeSpmuActionOfficer($request);
-
-        $activePerPage = $this->pageSize($request, 'active_per_page');
-        $completedPerPage = $this->pageSize($request, 'completed_per_page');
-
-        $activeJobs = LaundryJob::query()
-            ->with([
-                'custody.borrower',
-                'custody.request',
-                'latestEvidence.file',
-                'lines.custodyLine.requestItem.inventoryItem.unit',
-            ])
-            ->where('status', '!=', 'LAUNDRY_COMPLETED')
-            ->orderByRaw(
-                "CASE
-                    WHEN status = 'FOR_LAUNDRY' THEN 1
-                    WHEN status = 'TURNED_OVER_TO_LAUNDRY' THEN 2
-                    ELSE 3
-                END"
-            )
-            ->latest('updated_at')
-            ->paginate($activePerPage, ['*'], 'active_page')
-            ->withQueryString();
-
-        $completedJobs = LaundryJob::query()
-            ->with([
-                'custody.borrower.organizationalUnit',
-                'custody.request',
-                'latestEvidence.file',
-                'lines.custodyLine.requestItem.inventoryItem.unit',
-                'lines.custodyLine.returnLines',
-            ])
-            ->where('status', 'LAUNDRY_COMPLETED')
-            ->latest('completed_at')
-            ->paginate($completedPerPage, ['*'], 'completed_page')
-            ->withQueryString()
-            ->fragment('completed-laundry-cases');
+        $jobs = \App\Support\LaundryRecordTable::forRequest($request, false)->appends(['laundry_tab' => 'active']);
+        $completed = \App\Support\LaundryRecordTable::forRequest($request, true)
+            ->appends(['laundry_tab' => 'completed'])->fragment('completed-laundry-cases');
 
         return view('laundry.index', [
-            'jobs' => $activeJobs,
-            'completedJobs' => $completedJobs,
-            'activePerPage' => $activePerPage,
-            'completedPerPage' => $completedPerPage,
+            'jobs' => $jobs,
+            'completedJobs' => $completed,
+            'activePerPage' => $jobs->perPage(),
+            'completedPerPage' => $completed->perPage(),
         ]);
     }
 
     public function completed(Request $request): View
     {
         $this->authorizeSpmuActionOfficer($request);
+        // This is the compatibility mapping for the existing completed-record links.
+        foreach (['page' => 'completed_page', 'per_page' => 'completed_per_page'] as $legacy => $canonical) {
+            if ($request->has($legacy) && ! $request->has($canonical)) {
+                $request->merge([$canonical => $request->input($legacy)]);
+            }
+        }
+        $jobs = \App\Support\LaundryRecordTable::forRequest($request, true);
 
-        $perPage = $this->pageSize($request, 'per_page');
-
-        return view('laundry.completed', [
-            'jobs' => LaundryJob::query()
-                ->with([
-                    'custody.borrower',
-                    'custody.request',
-                    'latestEvidence.file',
-                    'lines.custodyLine.requestItem.inventoryItem.unit',
-                    'lines.custodyLine.returnLines',
-                ])
-                ->where('status', 'LAUNDRY_COMPLETED')
-                ->latest('completed_at')
-                ->paginate($perPage)
-                ->withQueryString(),
-            'perPage' => $perPage,
-        ]);
-    }
-
-    private function pageSize(Request $request, string $key): int
-    {
-        $size = (int) $request->query($key, 7);
-
-        return in_array($size, [7, 15, 30, 50], true) ? $size : 7;
+        return view('laundry.completed', ['jobs' => $jobs, 'perPage' => $jobs->perPage()]);
     }
 
     /**

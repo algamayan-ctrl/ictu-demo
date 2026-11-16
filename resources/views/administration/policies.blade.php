@@ -211,7 +211,7 @@
             </div>
 
             <label class="special-date-reason" for="special-date-reason">Reason
-                <input id="special-date-reason" type="text" name="reason" maxlength="500" required placeholder="e.g., Typhoon suspension, institutional holiday, special working Saturday">
+                <input id="special-date-reason" type="text" name="reason" maxlength="500" required placeholder="Enter closure reason…">
             </label>
 
             <button class="button secondary ui-pressable special-date-submit" type="submit">

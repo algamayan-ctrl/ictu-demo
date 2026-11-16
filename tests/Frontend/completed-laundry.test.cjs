@@ -9,7 +9,7 @@ const partial = (name) => read(`resources/views/laundry/partials/completed-${nam
 const page = read('resources/views/laundry/completed.blade.php');
 const row = partial('case-row');
 const back = partial('back-link');
-const pagination = read('resources/views/components/record-table-footer.blade.php');
+const pagination = partial('pagination');
 const filters = read('resources/views/laundry/partials/record-filters.blade.php');
 const styles = partial('styles');
 test('completed laundry has separate empty and populated states matching the reference', () => {
@@ -68,16 +68,17 @@ test('outcomes reflect recorded quantities, including mixed and unknown results'
 });
 
 test('numbered pagination preserves server links and disabled boundaries', () => {
-    assert.match(page, /<x-record-table-footer :records="\$jobs"/);
-    assert.match(pagination, /\$records->previousPageUrl\(\)/);
-    assert.match(pagination, /\$records->nextPageUrl\(\)/);
+    assert.match(page, /\$jobs->onEachSide\(1\)->links\('laundry\.partials\.completed-pagination'\)/);
+    assert.match(page, /name="per_page"/);
+    assert.match(pagination, /\$paginator->previousPageUrl\(\)/);
+    assert.match(pagination, /\$paginator->nextPageUrl\(\)/);
     assert.match(pagination, /aria-current="page"/);
     assert.match(pagination, /aria-disabled="true"/);
     assert.doesNotMatch(pagination, /<a[^>]+aria-disabled|href="#"/);
 });
 
 test('completed UI contains no processing forms or workflow mutations', () => {
-    assert.doesNotMatch(page + row + back + pagination, /<form|->(?:save|update|delete|create)\(|DB::|FOR_SPMU_FINAL_CHECK|AWAITING_FINAL_FORM_UPLOAD/);
+    assert.doesNotMatch(page + row + back + pagination, /<form[^>]*method="post"|->(?:save|update|delete|create)\(|DB::|FOR_SPMU_FINAL_CHECK|AWAITING_FINAL_FORM_UPLOAD/);
     assert.match(filters, /<form method="get"/);
     assert.doesNotMatch(filters, /method="post"|@csrf|@method/);
     assert.match(filters, />Clear<\/a>/);

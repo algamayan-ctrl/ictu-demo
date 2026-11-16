@@ -15,6 +15,8 @@
 .spmu-field-shell{position:relative;display:block;min-width:0;width:100%}
 .spmu-field-shell input{width:100%;padding-right:38px!important}.spmu-enhanced-field::-webkit-calendar-picker-indicator{opacity:0}
 .spmu-field-trigger{position:absolute;right:3px;top:50%;transform:translateY(-50%);width:32px;min-height:32px;padding:0;border:0;background:transparent;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1}
+.spmu-field-trigger.icon-button{height:32px;display:inline-grid;place-items:center}
+.spmu-field-trigger.icon-button>.ui-icon{width:20px;height:20px;pointer-events:none}
 .spmu-field-trigger:disabled{opacity:.4;cursor:default}.spmu-field-trigger:focus-visible{outline:2px solid var(--interactive)}
 .spmu-field-popup{position:fixed;z-index:21000;width:min(340px,calc(100vw - 16px));padding:12px;background:var(--surface-elevated,#fff);color:var(--text-primary,#17324d);border:1px solid var(--border,#d0d5dd);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.22);max-height:calc(100dvh - 16px);overflow:auto;font-size:13px}
 .spmu-field-popup button{font:inherit}.spmu-popup-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}

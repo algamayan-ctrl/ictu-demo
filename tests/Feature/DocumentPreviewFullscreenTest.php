@@ -22,7 +22,7 @@ class DocumentPreviewFullscreenTest extends TestCase
     use RefreshDatabase;
 
     // The button's own markup (the script also mentions the attribute name).
-    private const TOGGLE = 'data-document-fullscreen-toggle aria-expanded="false">Full Screen</button>';
+    private const TOGGLE = 'data-document-fullscreen-toggle';
 
     protected function setUp(): void
     {

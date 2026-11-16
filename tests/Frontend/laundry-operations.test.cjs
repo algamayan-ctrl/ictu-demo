@@ -81,8 +81,8 @@ test('the page keeps active and completed laundry records in one workspace', () 
     assert.match(page, /data-laundry-tabs/);
     assert.match(page, /data-laundry-panel="active"/);
     assert.match(page, /data-laundry-panel="completed"/);
-    assert.match(page, /record-filters', \['completed' => false, 'records' => \$jobs\]/);
-    assert.match(page, /record-filters', \['completed' => true, 'records' => \$completedJobs\]/);
+    assert.match(page, /record-filters', \['completed' => false, 'records' => \$jobs,/ );
+    assert.match(page, /record-filters', \['completed' => true, 'records' => \$completedJobs,/ );
     assert.ok(page.indexOf("@include('laundry.partials.record-filters'") < page.indexOf('@if($hasLaundryCases)'), 'filters remain available above empty and populated states');
     assert.match(page, /@else\s+<div class="laundry-inline-empty"/);
     assert.match(page, /No active laundry cases need action\./);
@@ -140,7 +140,9 @@ test('case tables preserve live data, current statuses and protected navigation'
     assert.match(page, /route\('laundry\.show', \$job\)/);
     assert.match(page, /@foreach\(\$completedJobs as \$job\)/);
     assert.match(page, /@foreach\(\$jobs as \$job\)/);
-    assert.match(page, /<x-record-table-footer :records="\$jobs"/);
+    assert.match(page, /\$jobs->onEachSide\(1\)->links\('partials\.pagination'\)/);
+    assert.match(page, /name="active_per_page"/);
+    assert.match(page, /name="completed_per_page"/);
     assert.match(page, /<x-status-badge :status="\$job->status" :label="\$statusText"/);
     for (const field of ['request_no', 'custody_no', 'full_name', 'unit_name', 'purpose_event', 'received_at', 'description_snapshot']) {
         assert.ok(page.includes(field), `Missing live field: ${field}`);
@@ -148,7 +150,7 @@ test('case tables preserve live data, current statuses and protected navigation'
     /* The hardcoded two-arm status match was replaced by the richer $laundryFilterStatus closure. */
     assert.match(page, /\$job->status === 'FOR_LAUNDRY' && \$job->hasVerifiedAccomplishedForm\(\)\s+=> \['key' => 'READY_FOR_SPMU_ENCODING', 'label' => 'For Return Recording'\]/);
     assert.match(page, /\$job->status === 'TURNED_OVER_TO_LAUNDRY'\s+=> \['key' => 'RECONCILIATION_PENDING', 'label' => 'Updating Record'\]/);
-    assert.match(page, /\$jobs->getCollection\(\)->contains\('status', 'TURNED_OVER_TO_LAUNDRY'\)/);
+    assert.match(filters, /RECONCILIATION_PENDING/);
     assert.match(page, /\$statusText = \$filterStatus\['label'\];/);
     assert.doesNotMatch(page, /FOR_SPMU_FINAL_CHECK|AWAITING_FINAL_FORM_UPLOAD|READY_FOR_SPMU_RETURN|For SPMU Acceptance/);
     assert.doesNotMatch(page, /Juan Dela Cruz|CSPC Foundation Day 2026|CUS-2026/);

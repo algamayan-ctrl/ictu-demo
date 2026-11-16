@@ -4,6 +4,8 @@ Reference workspace: `C:/Users/Admin/ictu-demo`, native PHP instance on port 800
 
 Implemented below means the function exists in code with selected automated checks. It does not mean final desktop/mobile visual acceptance is complete.
 
+Reconciliation update — 16 November 2026: after the incoming merge, the user approved selective repairs. Complete-register Laundry filtering and final signature-confirmation dialogs are restored; useful pagination/wording changes remain. Compact spacing was selectively restored, and incoming fullscreen controls now use tested focus/Escape/background handling. My Borrowings again offers Overdue, Return Processing and Open Accountability. Billing reissue preserves the previous valid PDF on rendering failure. See MERGE-RECONCILIATION-20261116.md for 278 selected backend checks, 35 passing frontend checks, two reproduced retained-layout failures and remaining visual acceptance. No live migration or reissue was performed.
+
 Update — 16 November 2026: the user confirmed that request submission is working and accepted full-screen document viewing as good enough. Full-screen viewing is therefore complete for this RSC review. This records user acceptance; it does not invent additional automated device/role checks. The upload and counter-table repairs are documented separately in REQUEST-UPLOAD-FIX-20261116.md and REQUEST-NUMBER-SCHEMA-REPAIR-20261116.md.
 
 ## Six panel comments

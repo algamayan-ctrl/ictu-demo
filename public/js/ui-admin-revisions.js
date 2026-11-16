@@ -90,6 +90,13 @@
         });
         trigger.dataset.fieldPopupTrigger = '1';
         trigger.className = 'spmu-field-trigger';
+        const clockIcon = field.hasAttribute('data-operational-time-picker')
+            ? field.closest('.txn-time-field')?.querySelector(':scope > .ui-icon')
+            : null;
+        if (clockIcon) {
+            trigger.classList.add('icon-button');
+            trigger.replaceChildren(clockIcon.cloneNode(true));
+        }
         shell.append(trigger);
         trigger.disabled = field.disabled;
         new MutationObserver(() => { trigger.disabled = field.disabled; }).observe(field, {attributes: true, attributeFilter: ['disabled']});

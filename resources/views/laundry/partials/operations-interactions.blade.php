@@ -24,6 +24,7 @@
         });
     });
     const url = new URL(window.location.href);
-    activate([...url.searchParams.keys()].some(key => key.startsWith('completed_')) || url.hash === '#completed-laundry-cases' ? 'completed' : 'active');
+    const selected = url.searchParams.get('laundry_tab');
+    activate(['active', 'completed'].includes(selected) ? selected : ([...url.searchParams.keys()].some(key => key.startsWith('completed_')) || url.hash === '#completed-laundry-cases' ? 'completed' : 'active'));
 })();
 </script>

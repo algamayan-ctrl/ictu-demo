@@ -1,6 +1,8 @@
 @php($prefix = $completed ? 'completed' : 'active')
-<form method="get" action="{{ $filterAction ?? route('laundry.index') }}{{ $completed && !isset($filterAction) ? '#completed-laundry-cases' : '' }}" class="card record-table-toolbar">
-    @foreach(request()->except([$prefix.'_q', $prefix.'_status', $prefix.'_outcome', $prefix.'_sort', $prefix.'_per_page', $prefix.'_page', 'page']) as $key => $value)
+{{-- This is the complete-register Laundry filter form. --}}
+<form method="get" action="{{ $filterAction ?? route('laundry.index') }}{{ $completed && !isset($filterAction) ? '#completed-laundry-cases' : '' }}" class="card record-table-toolbar {{ $toolbarClass ?? '' }}">
+    <input type="hidden" name="laundry_tab" value="{{ $prefix }}">
+    @foreach(request()->except([$prefix.'_q', $prefix.'_status', $prefix.'_outcome', $prefix.'_sort', $prefix.'_per_page', $prefix.'_page', 'page', 'per_page', 'laundry_tab']) as $key => $value)
         @if(is_scalar($value))<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endif
     @endforeach
     <label class="record-table-search">Search<input type="search" name="{{ $prefix }}_q" maxlength="200" value="{{ request($prefix.'_q') }}" placeholder="Borrower, request, custody, event or item…"></label>
@@ -18,6 +20,10 @@
         </select></label>
     @endif
     <label>Sort<select name="{{ $prefix }}_sort"><option value="newest" @selected(request($prefix.'_sort', 'newest') === 'newest')>Newest first</option><option value="oldest" @selected(request($prefix.'_sort') === 'oldest')>Oldest first</option></select></label>
-    <x-record-page-size :name="$prefix.'_per_page'" :value="$records->perPage()" :sizes="[10, 20, 50, 100]" />
-    <div class="record-table-actions"><button class="button primary" type="submit">Apply</button><a class="button secondary" href="{{ $filterAction ?? route('laundry.index') }}{{ $completed && !isset($filterAction) ? '#completed-laundry-cases' : '' }}">Clear</a></div>
+    @if($showPageSize ?? true)
+        <x-record-page-size :name="$prefix.'_per_page'" :value="$records->perPage()" :sizes="array_values(array_unique([7, 15, 30, 50, $records->perPage()]))" :entries-inside="true" />
+    @else
+        <input type="hidden" name="{{ $prefix }}_per_page" value="{{ $records->perPage() }}">
+    @endif
+    <div class="record-table-actions"><button class="button primary" type="submit">Apply</button><a class="button secondary" href="{{ route(isset($filterAction) ? 'laundry.completed' : 'laundry.index', array_merge(request()->except([$prefix.'_q', $prefix.'_status', $prefix.'_outcome', $prefix.'_sort', $prefix.'_per_page', $prefix.'_page', 'page', 'per_page', 'laundry_tab']), ['laundry_tab' => $prefix])) }}{{ $completed && !isset($filterAction) ? '#completed-laundry-cases' : '' }}">Clear</a></div>
 </form>

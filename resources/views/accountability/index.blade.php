@@ -1646,17 +1646,13 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                     @endif
                                 @if($headCanDecide)
                                     <div class="accountability-action-body accountability-action-body--direct">
-                                        <form method="post" action="{{ route('overdue.bill', $overdue) }}" class="form-grid">
+                                        <form method="post" action="{{ route('overdue.bill', $overdue) }}" class="form-grid" data-accountability-signature="billing" data-signature-case="{{ $overdue->custody?->custody_no ?: 'Late-return case #'.$overdue->id }}" data-signature-amount="PHP {{ number_format((float) $assessment['amount'], 2) }}">
                                             @csrf
                                             <label>
                                                 Approval Basis
                                                 <textarea name="basis" required placeholder="State the applicable late-return fee basis."></textarea>
                                             </label>
-                                            <label class="accountability-resolution-confirmation">
-                                                <input type="checkbox" name="confirm_e_signature" value="1">
-                                                <span>Attach my registered e-signature to this Billing Statement.</span>
-                                            </label>
-                                            <p class="meta">Leave unchecked to issue the statement without a signature.</p>
+                                            <input type="hidden" name="confirm_e_signature" value="">
                                             <button class="button primary ui-pressable accountability-primary-action">Approve Late Return Assessment</button>
                                         </form>
                                     </div>
@@ -2019,7 +2015,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                     <details class="accountability-action-disclosure">
                         <summary><span>Confirm or Clear</span><x-icon name="chevron-down" size="15" class="accountability-disclosure-chevron" /></summary>
                         <div class="accountability-action-body">
-                            <form method="post" action="{{ route('incidents.resolve', $incident) }}" class="form-grid">
+                            <form method="post" action="{{ route('incidents.resolve', $incident) }}" class="form-grid" data-accountability-signature="decision" data-signature-case="{{ $incident->incident_no }}">
                                 @csrf
                                 <div class="head-offense-choices" role="radiogroup" aria-label="Accountability decision">
                                     <label class="head-offense-choice">
@@ -2041,11 +2037,7 @@ html[data-theme="dark"] .accountability-case-ref__restriction {
                                     Remarks
                                     <textarea name="resolution_remarks" rows="3" maxlength="2000" required placeholder="State the basis for this decision."></textarea>
                                 </label>
-                                <label class="accountability-resolution-confirmation">
-                                    <input type="checkbox" name="confirm_e_signature" value="1">
-                                    <span>Attach my registered e-signature to this accountability decision.</span>
-                                </label>
-                                <button class="button primary">Confirm Decision</button>
+                                <input type="hidden" name="confirm_e_signature" value=""><button class="button primary">Confirm Decision</button>
                             </form>
                         </div>
                     </details>
@@ -3718,4 +3710,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+@if(auth()->user()?->access_classification === \App\Enums\AccessClassification::SpmuHead)
+    @include('accountability.partials.signature-confirmation')
+@endif
 @endsection

@@ -18,7 +18,7 @@ class LaundryRecordTable
             $prefix.'_status' => ['nullable', Rule::in(['ALL', 'LAUNDRY_FORM_PENDING', 'READY_FOR_SPMU_ENCODING', 'RECONCILIATION_PENDING'])],
             $prefix.'_outcome' => ['nullable', Rule::in(['ALL', 'available', 'accountability'])],
             $prefix.'_sort' => ['nullable', Rule::in(['newest', 'oldest'])],
-            $prefix.'_per_page' => ['nullable', 'integer', Rule::in([10, 20, 50, 100])],
+            $prefix.'_per_page' => ['nullable', 'integer', Rule::in([7, 10, 15, 20, 30, 50, 100])],
             $prefix.'_page' => ['nullable', 'integer', 'min:1', 'max:100000'],
         ]);
         $query = LaundryJob::query()->with([
@@ -60,6 +60,6 @@ class LaundryRecordTable
             return true;
         });
 
-        return RecordTable::paginate($rows, $request, $prefix, (int) ($filters[$prefix.'_per_page'] ?? 20));
+        return RecordTable::paginate($rows, $request, $prefix, (int) ($filters[$prefix.'_per_page'] ?? 7));
     }
 }

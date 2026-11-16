@@ -1265,18 +1265,14 @@
                                                         </div>
                                                     </form>
                                                 @else
-                                                    <form method="post" action="{{ route('overdue.bill', $record) }}" class="accountability-late-billing-form">
+                                                    <form method="post" action="{{ route('overdue.bill', $record) }}" class="accountability-late-billing-form" data-accountability-signature="billing" data-signature-case="{{ $record->custody?->custody_no ?: 'Late-return case #'.$record->id }}" data-signature-amount="PHP {{ number_format((float) $assessment['amount'], 2) }}">
                                                         @csrf
                                                         <p class="accountability-dialog-note">Late return: {{ (int) $assessment['late_days'] }} day(s) · Amount to bill: PHP {{ number_format((float) $assessment['amount'], 2) }}</p>
                                                         <label>
                                                             <span class="accountability-field-heading">Decision notes <span aria-hidden="true">*</span></span>
                                                             <textarea name="basis" required maxlength="2000" rows="3" placeholder="Explain why a billing statement should be issued."></textarea>
                                                         </label>
-                                                        <label class="accountability-resolution-confirmation">
-                                                            <input type="checkbox" name="confirm_e_signature" value="1">
-                                                            <span>Attach my registered e-signature to this Billing Statement.</span>
-                                                        </label>
-                                                        <p class="meta">Leave unchecked to issue the statement without a signature.</p>
+                                                        <input type="hidden" name="confirm_e_signature" value="">
                                                         <div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
                                                             <button class="button primary small">Issue Billing Statement</button>
@@ -1470,7 +1466,7 @@
                                             </header>
                                             <div class="accountability-action-panel__body">
                                                 @if($statusKey === 'OPEN')
-                                                    <form method="post" action="{{ route('incidents.resolve', $incident) }}">
+                                                    <form method="post" action="{{ route('incidents.resolve', $incident) }}" data-accountability-signature="decision" data-signature-case="{{ $incident->incident_no }}">
                                                         @csrf
                                                         <p class="accountability-dialog-note">Confirm when the recorded finding establishes borrower accountability. Clear the finding when accountability is not established.</p>
                                                         <label>Decision
@@ -1483,11 +1479,7 @@
                                                         <label>Decision Remarks
                                                             <textarea name="resolution_remarks" required maxlength="2000" placeholder="State the basis for the decision."></textarea>
                                                         </label>
-                                                        <label class="accountability-resolution-confirmation">
-                                                            <input type="checkbox" name="confirm_e_signature" value="1">
-                                                            <span>Attach my registered e-signature to this accountability decision.</span>
-                                                        </label>
-                                                        <div class="accountability-dialog-actions">
+                                                        <input type="hidden" name="confirm_e_signature" value=""><div class="accountability-dialog-actions">
                                                             <a class="button secondary small" href="{{ route('accountability.index', ['queue' => 'work']) }}#accountability-workspace">Cancel</a>
                                                             <button class="button primary small">Record Decision</button>
                                                         </div>
@@ -1803,6 +1795,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 });
 </script>
+@if(auth()->user()?->access_classification === \App\Enums\AccessClassification::SpmuHead)
+    @include('accountability.partials.signature-confirmation')
+@endif
 @endsection
 
 

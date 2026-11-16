@@ -6,6 +6,8 @@ const vm = require('node:vm');
 
 const source = fs.readFileSync(path.join(__dirname, '../../resources/views/components/document-viewer-fullscreen.blade.php'), 'utf8');
 const script = source.match(/<script>([\s\S]*?)<\/script>/)[1];
+let JSDOM;
+try { ({ JSDOM } = require('jsdom')); } catch {}
 
 function mount({ loading = false, rejectNative = false, native = false } = {}) {
     const events = new Map();
@@ -123,4 +125,54 @@ test('initialization waits for all document cards and does not register duplicat
     assert.equal(ui.handlerCount(), 1);
     ui.click();
     assert.equal(ui.classes.has('is-document-fullscreen'), true);
+});
+
+test('the rendered icon button retains its icons, isolates the background and restores focus', { skip: !JSDOM }, () => {
+    const dom = new JSDOM('<main><article data-document-preview-card><button data-document-fullscreen-toggle aria-expanded="false" aria-pressed="false"><svg></svg><span data-document-fullscreen-label>Full Screen</span></button><iframe></iframe></article><aside>Other controls</aside></main>', { runScripts: 'outside-only' });
+    const { document } = dom.window;
+    const toggle = document.querySelector('button');
+    const card = document.querySelector('article');
+    const label = toggle.querySelector('span');
+    const aside = document.querySelector('aside');
+    aside.inert = false;
+    dom.window.eval(script);
+    document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
+    toggle.click();
+    assert.equal(label.textContent, 'Exit Full Screen');
+    assert.equal(toggle.querySelectorAll('svg').length, 1);
+    assert.equal(toggle.getAttribute('aria-pressed'), 'true');
+    assert.equal(card.getAttribute('aria-modal'), 'true');
+    assert.equal(aside.inert, true);
+    document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    assert.equal(label.textContent, 'Full Screen');
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+    assert.equal(aside.inert, false);
+    assert.equal(document.activeElement, toggle);
+    dom.window.close();
+});
+
+test('WebKit native exit and synchronous native refusal both preserve a usable viewer', { skip: !JSDOM }, async () => {
+    for (const refused of [false, true]) {
+        const dom = new JSDOM('<article data-document-preview-card><button data-document-fullscreen-toggle>Full Screen</button></article>', { runScripts: 'outside-only' });
+        const { document } = dom.window;
+        const card = document.querySelector('article');
+        const toggle = document.querySelector('button');
+        card.webkitRequestFullscreen = () => {
+            if (refused) throw new Error('Native fullscreen refused');
+            document.webkitFullscreenElement = card;
+        };
+        dom.window.eval(script);
+        document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
+        toggle.click();
+        await Promise.resolve();
+        assert.equal(card.classList.contains('is-document-fullscreen'), true);
+        if (refused) toggle.click();
+        else {
+            document.webkitFullscreenElement = null;
+            document.dispatchEvent(new dom.window.Event('webkitfullscreenchange'));
+        }
+        assert.equal(card.classList.contains('is-document-fullscreen'), false);
+        assert.equal(document.activeElement, toggle);
+        dom.window.close();
+    }
 });

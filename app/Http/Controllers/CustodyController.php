@@ -59,6 +59,9 @@ class CustodyController extends Controller
     public const BORROWER_STATUS_FILTERS = [
         'PICKUP_EXPIRED' => 'Pickup Missed',
         'BORROWED' => 'On Custody',
+        'OVERDUE' => 'Overdue',
+        'RETURN_PROCESSING' => 'Return Processing',
+        'ACCOUNTABILITY' => 'Open Accountability',
         'COMPLETED' => 'Completed',
         'CANCELLED' => 'Cancelled',
     ];

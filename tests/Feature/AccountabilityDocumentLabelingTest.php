@@ -476,6 +476,28 @@ class AccountabilityDocumentLabelingTest extends TestCase
             ->assertRedirect(route('documents.preview', $replacement));
     }
 
+    public function test_failed_billing_reissue_preserves_the_original_valid_document(): void
+    {
+        [, $billing] = $this->lateReturnBilling();
+        $original = GeneratedDocument::query()->where('subject_type', BillingStatement::class)
+            ->where('subject_id', $billing->id)->where('status', 'FINAL')->firstOrFail();
+        $before = $billing->fresh()->getAttributes();
+        $count = GeneratedDocument::count();
+        $this->mock(\App\Services\SimplePdfService::class, function ($mock): void {
+            $mock->shouldReceive('html')->once()->andThrow(new \RuntimeException('PDF generation unavailable'));
+        });
+        try {
+            app(DocumentService::class)->reissueLateReturnBillingStatement($billing);
+            $this->fail('The rendering failure must be reported.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('PDF generation unavailable', $exception->getMessage());
+        }
+        $this->assertSame('FINAL', $original->fresh()->status);
+        $this->assertNull($original->fresh()->invalidated_at);
+        $this->assertSame($count, GeneratedDocument::count());
+        $this->assertSame($before, $billing->fresh()->getAttributes());
+    }
+
     public function test_property_billing_keeps_its_legacy_generic_billing_statement_label(): void
     {
         [, $billing] = $this->propertyBilling();

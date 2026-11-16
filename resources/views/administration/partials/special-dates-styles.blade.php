@@ -1,7 +1,7 @@
 <style>
 .special-dates-config { min-width: 0; }
 .special-dates-config [hidden] { display: none !important; }
-.special-dates-config .special-dates-card { padding: 16px 16px 16px; }
+.special-dates-config .special-dates-card { padding: 16px 16px 16px; container: special-date-card / inline-size; }
 
 .special-dates-config .special-dates-header { display: flex; align-items: flex-start; gap: 16px; margin: 0 0 16px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
 .special-dates-config .special-dates-header > div { min-width: 0; }
@@ -63,6 +63,25 @@ html[data-theme="dark"] .special-dates-config .special-date-check:hover { backgr
     .special-dates-config .special-date-fields { grid-template-columns: minmax(0, 1fr); }
     .special-dates-config .special-dates-search { width: 100%; }
     .special-dates-config .special-date-submit { width: 100%; }
+}
+
+/* This is the single-row Special Dates form when the panel has enough space. */
+@container special-date-card (min-width: 900px) {
+    .special-dates-config .special-date-form {
+        display: grid;
+        grid-template-columns: minmax(110px, 1fr) minmax(74px, .7fr) repeat(2, minmax(96px, .85fr)) max-content max-content minmax(110px, 1.7fr) max-content;
+        gap: 8px;
+        align-items: end;
+    }
+    .special-dates-config .special-date-fields,
+    .special-dates-config .special-date-capabilities { display: contents; }
+    .special-dates-config .special-date-form label { min-width: 0; }
+    .special-dates-config .special-date-form input:not([type="checkbox"]):not([type="hidden"]),
+    .special-dates-config .special-date-form select { min-width: 0; height: 44px; padding-inline: 8px; font-size: 12px; }
+    .special-dates-config .special-date-check { height: 44px; padding: 8px; gap: 6px; white-space: nowrap; }
+    .special-dates-config .special-date-check input[type="checkbox"] { min-height: 17px; }
+    .special-dates-config .special-date-form .special-date-reason { grid-column: auto; margin: 0; }
+    .special-dates-config .special-date-form > .special-date-submit { justify-self: stretch; height: 44px; margin: 0; padding-inline: 12px; gap: 7px; white-space: nowrap; }
 }
 
 @media (prefers-reduced-motion: reduce) {

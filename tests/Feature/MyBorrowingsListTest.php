@@ -286,33 +286,22 @@ class MyBorrowingsListTest extends TestCase
     /* Pagination                                                          */
     /* ------------------------------------------------------------------ */
 
-    public function test_records_are_split_into_pages_of_ten(): void
+    public function test_records_are_split_into_pages_of_seven(): void
     {
         $borrower = $this->borrower();
         $records = collect(range(1, 23))->map(fn () => $this->custody($borrower));
-
-        $page1 = $this->myBorrowings($borrower);
-        $page1->assertOk()->assertSee('Showing 1 to 10 of 23 borrowings')->assertSee('23 borrowings');
-        $paginator = $page1->viewData('custodies');
-        $this->assertSame(23, $paginator->total());
-        $this->assertSame(3, $paginator->lastPage());
-        $this->assertCount(10, $paginator->items());
-
-        $page2 = $this->myBorrowings($borrower, ['page' => 2]);
-        $page2->assertSee('Showing 11 to 20 of 23 borrowings');
-        $this->assertCount(10, $this->ids($page2));
-
-        $page3 = $this->myBorrowings($borrower, ['page' => 3]);
-        $page3->assertSee('Showing 21 to 23 of 23 borrowings');
-        $this->assertCount(3, $this->ids($page3));
-
-        // Every record appears exactly once across the pages.
-        $allIds = array_merge($this->ids($page1), $this->ids($page2), $this->ids($page3));
+        $allIds = [];
+        foreach ([[1, 1, 7], [2, 8, 14], [3, 15, 21], [4, 22, 23]] as [$number, $first, $last]) {
+            $response = $this->myBorrowings($borrower, ['page' => $number])->assertOk();
+            $response->assertSee('Showing '.$first.' to '.$last.' of 23 borrowings');
+            $this->assertSame(23, $response->viewData('custodies')->total());
+            $this->assertSame(4, $response->viewData('custodies')->lastPage());
+            $this->assertCount($last - $first + 1, $this->ids($response));
+            $allIds = array_merge($allIds, $this->ids($response));
+            if ($number === 1) $this->assertSame($records->last()->id, $this->ids($response)[0]);
+        }
         $this->assertEqualsCanonicalizing($records->pluck('id')->all(), $allIds);
-
-        // Newest first: page 1 starts with the most recently updated record.
-        $this->assertSame($records->last()->id, $this->ids($page1)[0]);
-        $page1->assertSee('aria-label="My borrowings pagination"', false);
+        $this->assertSame(count($allIds), count(array_unique($allIds)));
     }
 
     public function test_single_page_shows_the_pagination_summary_without_unneeded_page_controls(): void
@@ -323,7 +312,7 @@ class MyBorrowingsListTest extends TestCase
         $this->myBorrowings($borrower)
             ->assertOk()
             ->assertSee('Showing 1 to 1 of 1 borrowing')
-            ->assertSee('10 records per page')
+            ->assertSee('7 items per page')
             ->assertDontSee('aria-label="Pagination"', false);
     }
 
@@ -336,7 +325,7 @@ class MyBorrowingsListTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Showing 1 to 23 of 23 borrowings')
-            ->assertSee('<option value="30" selected>30 records per page</option>', false);
+            ->assertSee('<option value="30" selected>30 items per page</option>', false);
         $this->assertCount(23, $this->ids($response));
         $this->assertSame(30, $response->viewData('borrowerFilters')['per_page']);
     }
@@ -441,6 +430,19 @@ class MyBorrowingsListTest extends TestCase
             ->assertDontSee('For Pickup Scheduling');
     }
 
+    public function test_overdue_and_in_progress_returns_remain_searchable_status_choices(): void
+    {
+        $borrower = $this->borrower();
+        $overdue = $this->custody($borrower, ['status' => 'OVERDUE', 'due_at' => now()->subDay()]);
+        $returning = $this->custody($borrower, ['status' => 'RETURN_PROCESSING']);
+        foreach (['OVERDUE' => $overdue, 'RETURN_PROCESSING' => $returning] as $status => $record) {
+            $response = $this->myBorrowings($borrower, ['status' => $status])->assertOk();
+            $this->assertSame([$record->id], $this->ids($response));
+            $response->assertSee('value="OVERDUE"', false)->assertSee('value="RETURN_PROCESSING"', false)
+                ->assertSee('value="ACCOUNTABILITY"', false);
+        }
+    }
+
     public function test_unknown_status_and_sort_values_fall_back_to_defaults(): void
     {
         $borrower = $this->borrower();
@@ -483,7 +485,7 @@ class MyBorrowingsListTest extends TestCase
         $response->assertOk();
         $this->assertSame([$newer->id, $older->id], $this->ids($response));
         $this->assertSame(
-            ['search' => '', 'status' => 'all', 'sort' => 'newest', 'per_page' => 10, 'active' => false],
+            ['search' => '', 'status' => 'all', 'sort' => 'newest', 'per_page' => 7, 'active' => false],
             $response->viewData('borrowerFilters')
         );
     }
@@ -531,7 +533,7 @@ class MyBorrowingsListTest extends TestCase
         $query = ['search' => 'Event Tent', 'status' => 'BORROWED', 'sort' => 'oldest'];
 
         $page1 = $this->myBorrowings($borrower, $query);
-        $page1->assertOk()->assertSee('Showing 1 to 10 of 12 borrowings');
+        $page1->assertOk()->assertSee('Showing 1 to 7 of 12 borrowings');
 
         $nextUrl = $page1->viewData('custodies')->nextPageUrl();
         $this->assertStringContainsString('search=Event%20Tent', $nextUrl);
@@ -542,13 +544,13 @@ class MyBorrowingsListTest extends TestCase
 
         $page2 = $this->myBorrowings($borrower, $query + ['page' => 2]);
         $page2->assertOk()
-            ->assertSee('Showing 11 to 12 of 12 borrowings')
+            ->assertSee('Showing 8 to 12 of 12 borrowings')
             ->assertSee('value="Event Tent"', false)
             ->assertSee('<option value="BORROWED" selected>', false)
             ->assertSee('<option value="oldest" selected>', false);
 
-        // Oldest first: page 2 holds the two newest matching records.
-        $this->assertSame($matching->slice(10)->pluck('id')->values()->all(), $this->ids($page2));
+        // Oldest first: page 2 holds the five newest matching records.
+        $this->assertSame($matching->slice(7)->pluck('id')->values()->all(), $this->ids($page2));
     }
 
     public function test_filter_form_starts_again_at_page_one(): void

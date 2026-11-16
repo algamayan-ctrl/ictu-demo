@@ -146,7 +146,7 @@ class SimpleLaundryWorkflowTest extends TestCase
         $this->actingAs($officer);
         $all = $this->get(route('laundry.index'))->assertOk()->viewData('jobs');
         $this->assertSame(23, $all->total());
-        $this->assertCount(20, $all->items());
+        $this->assertCount(7, $all->items());
         $this->assertFalse($all->contains('id', $original->id));
         $matched = $this->get(route('laundry.index', ['active_q' => 'CUS-ARCHIVED-TARGET']))->assertOk()->viewData('jobs');
         $this->assertSame(1, $matched->total());
@@ -175,7 +175,7 @@ class SimpleLaundryWorkflowTest extends TestCase
         $this->assertSame(1, $legacy->total());
         $legacyPage = $this->get(route('laundry.completed', ['page' => 2]))->assertOk()->viewData('jobs');
         $this->assertSame(2, $legacyPage->currentPage());
-        $this->assertCount(3, $legacyPage->items());
+        $this->assertCount(7, $legacyPage->items());
         $this->assertDatabaseCount('laundry_jobs', 23);
     }
 

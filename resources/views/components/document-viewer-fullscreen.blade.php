@@ -40,6 +40,17 @@
         toggle.dataset.fullscreenReady = '1';
         const card = toggle.closest('[data-document-preview-card]');
         if (!card) return;
+        // This is the shared native/full-window viewer state with focus and background isolation.
+        const nativeElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+        const exitNative = () => {
+            const exit = document.exitFullscreen || document.webkitExitFullscreen;
+            try { Promise.resolve(exit?.call(document)).catch(() => {}); } catch {}
+        };
+        const setLabel = (text) => {
+            const label = toggle.querySelector?.('[data-document-fullscreen-label]');
+            if (label) label.textContent = text;
+            else toggle.textContent = text;
+        };
         let expanded = false;
         let previousOverflow = '';
         let previousRole = null;
@@ -51,7 +62,8 @@
             if (!expanded) return;
             expanded = false;
             card.classList.remove('is-document-fullscreen');
-            toggle.textContent = 'Full Screen';
+            setLabel('Full Screen');
+            toggle.setAttribute('aria-pressed', 'false');
             toggle.setAttribute('aria-expanded', 'false');
             for (const [name, value] of [['role', previousRole], ['aria-modal', previousModal], ['aria-label', previousLabel]]) {
                 if (value === null) card.removeAttribute(name);
@@ -60,7 +72,7 @@
             inertElements.forEach(([element, wasInert]) => { element.inert = wasInert; });
             inertElements = [];
             document.body.style.overflow = previousOverflow;
-            if (document.fullscreenElement === card) document.exitFullscreen?.().catch(() => {});
+            if (nativeElement() === card) exitNative();
             toggle.focus();
         };
 
@@ -81,18 +93,22 @@
             card.setAttribute('role', 'dialog');
             card.setAttribute('aria-modal', 'true');
             card.setAttribute('aria-label', 'Document full screen');
-            toggle.textContent = 'Exit Full Screen';
+            setLabel('Exit Full Screen');
+            toggle.setAttribute('aria-pressed', 'true');
             toggle.setAttribute('aria-expanded', 'true');
             document.body.style.overflow = 'hidden';
             toggle.focus();
-            card.requestFullscreen?.().then(() => {
-                if (!expanded && document.fullscreenElement === card) document.exitFullscreen?.().catch(() => {});
-            }).catch(() => {});
+            try {
+                const request = card.requestFullscreen || card.webkitRequestFullscreen;
+                Promise.resolve(request?.call(card)).then(() => {
+                    if (!expanded && nativeElement() === card) exitNative();
+                }).catch(() => {});
+            } catch {}
         });
 
-        document.addEventListener('fullscreenchange', () => {
-            if (expanded && !document.fullscreenElement) close();
-        });
+        const syncNative = () => { if (expanded && !nativeElement()) close(); };
+        document.addEventListener('fullscreenchange', syncNative);
+        document.addEventListener('webkitfullscreenchange', syncNative);
         document.addEventListener('keydown', (event) => {
             if (!expanded) return;
             if (event.key === 'Escape') { event.preventDefault(); close(); return; }

@@ -19,6 +19,7 @@ use App\Models\SignatureSnapshot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -1449,43 +1450,30 @@ CSS;
      */
     public function reissueLateReturnBillingStatement(BillingStatement $billing): GeneratedDocument
     {
-        $billing->loadMissing('lines');
+        return DB::transaction(function () use ($billing): GeneratedDocument {
+            $billing = BillingStatement::query()->lockForUpdate()->findOrFail($billing->id);
+            $billing->loadMissing('lines');
+            if ($billing->status === 'VOID' || ! $billing->isLateReturnBilling()) {
+                throw new \InvalidArgumentException('Only non-voided Late Return Billing Statements can be reissued through this format refresh.');
+            }
+            $documents = GeneratedDocument::query()->where('subject_type', $billing::class)
+                ->where('subject_id', $billing->id)->where('document_type', 'BILLING_STATEMENT')->get();
+            $nextRevision = max(1, ((int) $documents->max('version_no')) + 1);
+            $billingAudit = AuditEvent::query()->where('action_code', 'LATE_RETURN_FEE_BILLED')
+                ->where('record_type', $billing::class)->where('record_id', $billing->id)->latest('id')->first(['after_json']);
+            $snapshotId = data_get($billingAudit?->after_json, 'head_signature_snapshot_id');
+            $approvalSignature = $snapshotId ? SignatureSnapshot::query()->find($snapshotId) : null;
 
-        if (! $billing->isLateReturnBilling()) {
-            throw new \InvalidArgumentException('Only Late Return Billing Statements can be reissued through this format refresh.');
-        }
-
-        $documents = GeneratedDocument::query()
-            ->where('subject_type', $billing::class)
-            ->where('subject_id', $billing->id)
-            ->where('document_type', 'BILLING_STATEMENT')
-            ->orderBy('id')
-            ->get();
-
-        $nextRevision = max(1, ((int) $documents->max('version_no')) + 1);
-
-        $documents
-            ->where('status', 'FINAL')
-            ->each(fn (GeneratedDocument $document) => $document->update([
+            // This is the replacement PDF generated before the previous valid copy is superseded.
+            $replacement = $this->billingStatement($billing, $approvalSignature, $nextRevision);
+            $documents->where('status', 'FINAL')->each(fn (GeneratedDocument $document) => $document->update([
                 'status' => 'SUPERSEDED',
                 'invalidated_at' => now(),
                 'invalidation_reason' => 'Replaced by a revised Late Return Billing Statement layout.',
             ]));
 
-        $billingAudit = AuditEvent::query()
-            ->where('action_code', 'LATE_RETURN_FEE_BILLED')
-            ->where('record_type', $billing::class)
-            ->where('record_id', $billing->id)
-            ->latest('id')
-            ->first(['after_json']);
-
-        $approvalSnapshotId = data_get($billingAudit?->after_json, 'head_signature_snapshot_id');
-
-        $approvalSignature = $approvalSnapshotId
-            ? SignatureSnapshot::query()->find($approvalSnapshotId)
-            : null;
-
-        return $this->billingStatement($billing, $approvalSignature, $nextRevision);
+            return $replacement;
+        });
     }
 
     public function lateReturnNotice(

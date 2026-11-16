@@ -1,9 +1,10 @@
 @extends('layouts.app', ['title' => 'Operational Configuration'])
 
 @section('content')
+{{-- This is the Operational Configuration UI for SPMU Admin. --}}
 
 @php
-    $configurationSection = request()->query('section');
+    $configurationSection = request()->query('section', 'transaction-schedule');
     $allowedConfigurationSections = [
         'transaction-schedule',
         'special-dates',
@@ -12,13 +13,13 @@
     ];
 
     if (! in_array($configurationSection, $allowedConfigurationSections, true)) {
-        $configurationSection = null;
+        $configurationSection = 'transaction-schedule';
     }
 
     $sectionTitles = [
         'transaction-schedule' => ['SPMU Head', 'Operational Configuration', 'Set office state, allowed transactions, and operating hours for each day.'],
         'special-dates' => ['Operational Calendar', 'Special Dates & Closures', 'Manage holidays, typhoons, emergency closures, and approved special working days.'],
-        'academic-periods' => ['Academic Calendar', 'Academic Period', 'Manage the active semester and historical academic periods used by the system.'],
+        'academic-periods' => ['Academic Calendar', 'Academic Period', 'Set semester dates once. The current academic period follows them automatically.'],
         'sanction-rules' => ['Administrative Accountability', 'Sanction Rules', 'Configure the default consequence for the 1st, 2nd, and 3rd confirmed offense.'],
     ];
 
@@ -41,23 +42,7 @@
         7 => 'Sunday',
     ];
 
-    $effectiveStatus = function ($period): string {
-        if ($period->status === 'ACTIVE') {
-            return 'ACTIVE';
-        }
-
-        if (
-            $period->end_date
-            && $period->end_date
-                ->copy()
-                ->endOfDay()
-                ->isPast()
-        ) {
-            return 'COMPLETED';
-        }
-
-        return 'UPCOMING';
-    };
+    $effectiveStatus = fn ($period): string => app(\App\Services\AcademicPeriodResolver::class)->statusFor($period);
 @endphp
 
 <style>
@@ -67,15 +52,15 @@
         --period-ink: var(--text, #18324a);
         --period-soft: var(--surface-subtle, #f7f9fc);
         display: grid;
-        gap: 16px;
+        gap: 12px;
     }
 
     .current-period-card {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 18px;
-        padding: 18px 20px;
+        gap: 16px;
+        padding: 16px 16px;
         text-align: left;
     }
 
@@ -107,13 +92,13 @@
 
     .academic-period-form {
         display: grid;
-        gap: 14px;
+        gap: 12px;
     }
 
     .academic-period-form-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
+        gap: 12px;
     }
 
     .academic-period-form-grid label {
@@ -180,64 +165,6 @@
     @endif
 </section>
 
-@if(!$configurationSection)
-<section class="content-area operational-config-hub">
-    <div class="operational-config-group">
-        <h2 class="operational-config-group-title">Schedule &amp; availability</h2>
-
-        <div class="operational-config-grid operational-config-grid-2">
-            <a class="operational-config-card ui-pressable" href="{{ route('policies.index', ['section' => 'transaction-schedule']) }}">
-                <span class="operational-config-card-icon" aria-hidden="true"><x-icon name="calendar" size="24" /></span>
-                <span class="operational-config-card-text">
-                    <strong>Transaction Schedule</strong>
-                    <span>Weekly request, pickup, release &amp; return hours</span>
-                </span>
-            </a>
-
-            <a class="operational-config-card ui-pressable" href="{{ route('policies.index', ['section' => 'special-dates']) }}">
-                <span class="operational-config-card-icon" aria-hidden="true"><x-icon name="calendar-clock" size="24" /></span>
-                <span class="operational-config-card-text">
-                    <strong>Special Dates &amp; Closures</strong>
-                    <span>Closures and special working days</span>
-                </span>
-            </a>
-        </div>
-    </div>
-
-    <div class="operational-config-group">
-        <h2 class="operational-config-group-title">Policies</h2>
-
-        <div class="operational-config-grid operational-config-grid-3">
-            <a class="operational-config-card ui-pressable" href="{{ route('policies.index', ['section' => 'academic-periods']) }}">
-                <span class="operational-config-card-icon" aria-hidden="true"><x-icon name="calendar" size="24" /></span>
-                <span class="operational-config-card-text">
-                    <strong>Academic Period</strong>
-                    <span>Semester and academic year</span>
-                </span>
-            </a>
-
-            <a class="operational-config-card ui-pressable" href="{{ route('administration.settings.index', ['section' => 'late-return-fee']) }}">
-                <span class="operational-config-card-icon" aria-hidden="true"><x-icon name="clock" size="24" /></span>
-                <span class="operational-config-card-text">
-                    <strong>Late Return Policy</strong>
-                    <span>Late-return fee and assessment</span>
-                </span>
-            </a>
-
-            <a class="operational-config-card ui-pressable" href="{{ route('policies.index', ['section' => 'sanction-rules']) }}">
-                <span class="operational-config-card-icon" aria-hidden="true"><x-icon name="accountability" size="24" /></span>
-                <span class="operational-config-card-text">
-                    <strong>Sanction Rules</strong>
-                    <span>Confirmed offense rules</span>
-                </span>
-            </a>
-        </div>
-    </div>
-</section>
-@endif
-
-
-
 @if($configurationSection === 'transaction-schedule')
     @include('administration.partials.transaction-schedule')
 @endif
@@ -297,34 +224,22 @@
             <div class="special-dates-records-header">
                 <h3 id="special-dates-records-title">
                     Scheduled Exceptions
-                    <span class="special-dates-count" data-special-dates-count>{{ $dateExceptions->count() }}</span>
+                    <span class="special-dates-count" data-special-dates-count>{{ $dateExceptions->total() }}</span>
                 </h3>
 
-                <label class="special-dates-search" for="special-dates-search">
-                    <span class="visually-hidden">Search special dates</span>
-                    <span class="search-input-shell special-dates-search-shell">
-                        <input
-                            id="special-dates-search"
-                            type="search"
-                            placeholder="Search special dates..."
-                            autocomplete="off"
-                            data-special-dates-search
-                        >
-                        <span class="search-input-icon" aria-hidden="true"><x-icon name="search" size="17" /></span>
-                    </span>
-                </label>
             </div>
+            @include('administration.partials.special-date-filters')
 
             <div class="table-wrap special-dates-table-wrap">
                 <table>
                     <thead>
                         <tr>
                             @foreach(['date' => 'Date', 'status' => 'Status', 'transactions' => 'Transactions', 'hours' => 'Hours', 'reason' => 'Reason'] as $sortKey => $columnLabel)
-                                <th scope="col" aria-sort="none">
-                                    <button class="special-dates-sort" type="button" data-special-dates-sort="{{ $sortKey }}">
+                                <th scope="col" aria-sort="{{ request('exception_sort', 'date') === $sortKey ? (request('exception_direction', 'asc') === 'asc' ? 'ascending' : 'descending') : 'none' }}">
+                                    <a class="special-dates-sort" href="{{ request()->fullUrlWithQuery(['section' => 'special-dates', 'exception_sort' => $sortKey, 'exception_direction' => request('exception_sort', 'date') === $sortKey && request('exception_direction', 'asc') === 'asc' ? 'desc' : 'asc', 'exception_page' => null]) }}">
                                         {{ $columnLabel }}
                                         <x-icon name="sort" size="12" />
-                                    </button>
+                                    </a>
                                 </th>
                             @endforeach
                             <th scope="col">Action</th>
@@ -332,7 +247,7 @@
                     </thead>
                     <tbody data-special-dates-body>
                         @forelse($dateExceptions as $exception)
-                            @php
+@php
                                 $transactionSummary = $exception->status === 'CLOSED'
                                     ? 'Physical SPMU transactions closed'
                                     : (collect([
@@ -370,27 +285,18 @@
                         @empty
                             <tr>
                                 <td colspan="6" class="empty-state special-dates-empty">
-                                    @include('administration.partials.special-dates-empty')
+                                    @include('administration.partials.special-dates-empty', ['emptyTitle' => 'No matching special dates.', 'emptyMessage' => 'Try another search or clear the filters.'])
                                 </td>
                             </tr>
                         @endforelse
 
-                        <tr data-special-dates-no-results hidden>
-                            <td colspan="6" class="empty-state special-dates-empty">
-                                @include('administration.partials.special-dates-empty', [
-                                    'emptyTitle' => 'No special dates match your search.',
-                                    'emptyMessage' => 'Try a different date, status, or reason keyword.',
-                                ])
-                            </td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
+            <x-record-table-footer :records="$dateExceptions" label="Special date pages" />
         </section>
     </article>
 </section>
-
-@include('administration.partials.special-dates-interactions')
 @endif
 
 @if($configurationSection === 'academic-periods')
@@ -424,7 +330,7 @@
 
         <x-status-badge
             status="ACTIVE"
-            label="Active"
+            label="Current · Auto"
         />
     @else
         <div class="current-period-empty-content">
@@ -485,11 +391,13 @@
 
         <div class="current-period-main">
             <div class="current-period-value">
-                No active academic period
+                {{ ($academicPeriodConflict ?? false) ? 'Academic calendar dates overlap' : 'No current semester' }}
             </div>
 
             <p class="current-period-empty">
-                Add an academic period below, then activate the one currently in effect.
+                {{ ($academicPeriodConflict ?? false)
+                    ? 'Correct the overlapping semester dates below. A current semester cannot be selected until the dates are unambiguous.'
+                    : 'The current semester follows saved dates automatically (Asia/Manila). Configure dates below; semester breaks are allowed.' }}
             </p>
         </div>
         </div>
@@ -510,7 +418,7 @@
                     </h2>
 
                     <p class="meta">
-                        Enter the academic year, semester, and official start and end dates.
+                        Enter the academic year, semester, and official start and end dates. Save future semesters in advance; no manual activation is needed.
                     </p>
                 </div>
             </div>
@@ -632,32 +540,12 @@
                     </h2>
 
                     <p class="meta">
-                        Review saved periods and activate the academic period
-                        currently in effect. Previous periods remain available for reference.
+                        Status follows saved dates automatically (Asia/Manila). Previous periods remain available for reference.
                     </p>
                 </div>
 
-                <div class="periods-toolbar">
-                    <label class="periods-search">
-                        <span class="visually-hidden">Search academic periods</span>
-                        <x-icon name="search" size="17" />
-                        <input
-                            id="academic-periods-search"
-                            type="search"
-                            placeholder="Search academic periods..."
-                            autocomplete="off"
-                        >
-                    </label>
-
-                    <label class="periods-sort">
-                        <span class="visually-hidden">Sort academic periods</span>
-                        <select id="academic-periods-sort">
-                            <option value="newest">Sort: Newest first</option>
-                            <option value="oldest">Sort: Oldest first</option>
-                        </select>
-                    </label>
-                </div>
             </div>
+            @include('administration.partials.academic-period-filters')
 
             <div class="table-wrap periods-table">
                 <table>
@@ -667,21 +555,16 @@
                             <th>Semester / Term</th>
                             <th>Dates</th>
                             <th>Status</th>
-                            <th>Action</th>
                         </tr>
                     </thead>
 
                     <tbody id="academic-periods-body">
                         @forelse($academicPeriods as $period)
-                            @php
+@php
                                 $status =
                                     $effectiveStatus(
                                         $period
                                     );
-
-                                $canActivate =
-                                    $status !== 'ACTIVE'
-                                    && $status !== 'COMPLETED';
 
                                 $periodSearch = strtolower(
                                     $period->academic_year.' '.
@@ -716,9 +599,9 @@
                                     <x-status-badge
                                         :status="$status"
                                         :label="match($status) {
-                                            'ACTIVE' => 'Active',
-                                            'COMPLETED' => 'Completed',
-                                            default => 'Upcoming',
+                                            'ACTIVE' => 'Current · Auto',
+                                            'COMPLETED' => 'Completed · Auto',
+                                            default => 'Upcoming · Auto',
                                         }"
                                     />
 
@@ -732,81 +615,34 @@
                                         </span>
                                     @else
                                         <span class="period-status-copy">
-                                            Saved and available for activation.
+                                            Becomes current on its saved Start Date.
                                         </span>
                                     @endif
                                 </td>
 
-                                <td>
-                                    <div class="period-actions">
-                                        @if($status === 'ACTIVE')
-                                            <span class="period-current">
-                                                Current
-                                            </span>
 
-                                        @elseif($canActivate)
-                                            <form
-                                                method="post"
-                                                action="{{ route(
-                                                    'policies.academic-periods.update',
-                                                    $period
-                                                ) }}"
-                                            >
-                                                @csrf
-                                                @method('PUT')
-
-                                                <input
-                                                    type="hidden"
-                                                    name="activate"
-                                                    value="1"
-                                                >
-
-                                                <button
-                                                    class="button secondary small ui-pressable"
-                                                    type="submit"
-                                                    onclick="return confirm(
-                                                        'Activate {{ $period->academic_year }} &middot; {{ $period->term_name }}? The current active period will be moved to Completed.'
-                                                    )"
-                                                >
-                                                    Activate
-                                                </button>
-                                            </form>
-
-                                        @else
-                                            <span class="period-no-action">
-                                                Historical
-                                            </span>
-                                        @endif
-                                    </div>
-                                </td>
                             </tr>
                         @empty
                             <tr data-period-empty>
-                                <td colspan="5" class="periods-empty-cell">
-                                    @include('administration.partials.academic-period-empty')
+                                <td colspan="4" class="periods-empty-cell">
+                                    @if(request()->filled('period_q') || request('period_status', 'ALL') !== 'ALL')
+                                        <div class="periods-empty"><strong>No matching academic period.</strong><span>Try another search or clear the filters.</span></div>
+                                    @else
+                                        @include('administration.partials.academic-period-empty')
+                                    @endif
                                 </td>
                             </tr>
                         @endforelse
 
-                        @if($academicPeriods->isNotEmpty())
-                            <tr data-period-no-results hidden>
-                                <td colspan="5" class="periods-empty-cell">
-                                    <div class="periods-empty">
-                                        <strong>No matching academic period.</strong>
-                                        <span>Try another academic year or term.</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endif
                     </tbody>
                 </table>
             </div>
+            <x-record-table-footer :records="$academicPeriods" label="Academic period pages" />
         </article>
     </section>
 
 </div>
 
-@include('administration.partials.academic-period-interactions')
 @endif
 
 @if($configurationSection === 'sanction-rules')
@@ -867,7 +703,7 @@
 
     <div class="sanction-rule-grid">
         @foreach([1 => '1st Offense', 2 => '2nd Offense', 3 => '3rd Offense'] as $offenseNo => $offenseLabel)
-            @php
+@php
                 $rule = $sanctionRules->get($offenseNo);
                 $defaultCode = $rule?->sanction_code;
                 $defaultLabel = $rule?->sanction_label;
@@ -934,8 +770,8 @@
 .operational-config-hub{--config-blue:#0f62d6}
 .operational-config-group{display:grid;gap:12px;margin-bottom:26px}
 .operational-config-group-title{margin:0;color:var(--config-blue);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-.operational-config-grid{display:grid;gap:14px}.operational-config-grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}.operational-config-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.operational-config-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:16px;min-height:86px;padding:18px 20px;border:1px solid var(--border);border-radius:10px;background:var(--surface-elevated);box-shadow:var(--shadow-sm);color:inherit;text-decoration:none;transition:border-color .16s ease,transform .16s ease,box-shadow .16s ease}
+.operational-config-grid{display:grid;gap:12px}.operational-config-grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}.operational-config-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.operational-config-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;min-height:86px;padding:16px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface-elevated);box-shadow:var(--shadow-sm);color:inherit;text-decoration:none;transition:border-color .16s ease,transform .16s ease,box-shadow .16s ease}
 .operational-config-card-icon{display:grid;place-items:center;flex-shrink:0;color:var(--config-blue)}
 .operational-config-card-text{display:grid;gap:4px;min-width:0}
 .operational-config-card-text strong{color:var(--heading);font-size:15px;font-weight:700;line-height:1.35}
@@ -943,7 +779,7 @@
 .operational-config-card-chevron{flex-shrink:0;color:var(--text-secondary);transition:color .16s ease,transform .16s ease}
 .operational-config-card:hover,.operational-config-card:focus-visible{border-color:var(--config-blue);transform:translateY(-1px);box-shadow:0 8px 18px rgba(15,55,95,.09)}
 .operational-config-card:hover .operational-config-card-chevron,.operational-config-card:focus-visible .operational-config-card-chevron{color:var(--config-blue);transform:translateX(2px)}
-.sanction-policy-required{margin:-6px 0 14px;padding:9px 10px;border:1px solid var(--warning-border,#e7c875);border-radius:8px;background:var(--warning-bg,#fff8e4);color:var(--text-secondary);font-size:11.5px;font-weight:750;line-height:1.45}
+.sanction-policy-required{margin:-6px 0 12px;padding:9px 10px;border:1px solid var(--warning-border,#e7c875);border-radius:8px;background:var(--warning-bg,#fff8e4);color:var(--text-secondary);font-size:11.5px;font-weight:750;line-height:1.45}
 html[data-theme="dark"] .operational-config-hub{--config-blue:#4a8ff7}
 @media(prefers-reduced-motion:reduce){.operational-config-card,.operational-config-card-chevron{transition:none}}
 .schedule-check{display:flex!important;align-items:center;gap:7px!important;min-height:38px;margin:0!important;padding:8px 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:11px!important;color:var(--text)!important}.schedule-check input[type=checkbox]{width:16px;height:16px;margin:0}

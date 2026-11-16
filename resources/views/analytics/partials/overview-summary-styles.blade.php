@@ -1,10 +1,5 @@
 <style>
-{{-- /*
-| Overview-only Analytics Summary.
-| This partial changes only the compact cross-workspace summary at the bottom
-| of Overview. Universal Analytics cards, filters, KPIs, charts, tabs and
-| other workspaces keep their existing styling.
-*/ --}}
+
 .analytics-summary-shell { overflow: hidden; }
 
 .analytics-summary-grid {
@@ -121,7 +116,6 @@
  font-weight: 750;
 }
 
-{{-- /* Wrap instead of squeezing when the viewport cannot comfortably hold four cards. */ --}}
 @media (max-width: 1180px) {
  .analytics-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

@@ -10,6 +10,7 @@ use App\Reports\ReportCatalogue;
 use App\Reports\ReportDataset;
 use App\Reports\ReportExportOptions;
 use App\Reports\ReportFilters;
+use App\Reports\ReportSignatories;
 use App\Models\User;
 use Illuminate\Support\Str;
 
@@ -40,8 +41,10 @@ class ReportService
         /** @var ReportBuilder $builder */
         $builder = app($definition['builder']);
 
-        return $builder->build($filters)->withMeta(
-            $this->metadata($filters, $definition['label'], $generatedBy)
+        $dataset = \App\Reports\ReportSearch::apply($builder->build($filters), $filters->get('search'));
+
+        return $dataset->withMeta(
+            $this->metadata($filters, $dataset->label, $generatedBy)
         );
     }
 
@@ -81,6 +84,7 @@ class ReportService
             'rejected_filters' => $filters->rejected(),
             'generated_by' => $generatedBy?->full_name,
             'generated_at' => now()->format('d M Y, g:i A'),
+            'signatories' => ReportSignatories::resolve(),
         ];
     }
 

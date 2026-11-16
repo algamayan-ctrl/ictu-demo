@@ -9,13 +9,13 @@
     <div class="request-card-body request-information-fields">
         <div class="field-grid">
             <label>
-                Purpose of Borrowing
+                Event
                 <input
                     name="purpose_event"
                     value="{{ old('purpose_event', $version->purpose_event) }}"
                     maxlength="255"
                     required
-                    placeholder="Enter the purpose of borrowing."
+                    placeholder="Enter the event or activity."
                 >
                 @error('purpose_event')
                     <small class="field-error">{{ $message }}</small>
@@ -44,7 +44,7 @@
                     @error('affiliation')<small class="field-error">{{ $message }}</small>@enderror
                 </label>
             @else
-            @php
+@php
                 $requestingUnitOptions = $requestingUnitOptions ?? [];
                 $hasMultipleRequestingUnits = count($requestingUnitOptions) > 1;
                 $effectiveRequestingUnitId = (int) old(
@@ -188,7 +188,6 @@
         </button>
     </div>
 </section>
-
 
 <script data-authorized-unit-sync>
 document.addEventListener('DOMContentLoaded', () => {

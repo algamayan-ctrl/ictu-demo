@@ -41,7 +41,7 @@
 
                 <div class="spmu-dialog-remarks">
                     <label for="{{ $cancelReasonId }}">Cancellation reason *</label>
-                    <textarea
+<textarea
                         id="{{ $cancelReasonId }}"
                         rows="4"
                         maxlength="500"
@@ -113,10 +113,10 @@ dialog[data-request-cancel-dialog]::backdrop {
 dialog[data-request-cancel-dialog] .spmu-confirm-dialog__surface {
     display: grid !important;
     grid-template-columns: 42px minmax(0, 1fr) !important;
-    gap: 14px !important;
+    gap: 12px !important;
     width: 100% !important;
     max-height: min(680px, calc(100dvh - 40px)) !important;
-    padding: 22px !important;
+    padding: 16px !important;
     box-sizing: border-box !important;
     overflow-y: auto !important;
     background: #fff !important;
@@ -149,7 +149,7 @@ dialog[data-request-cancel-dialog] h2 + .meta {
     line-height: 1.5 !important;
 }
 
-dialog[data-request-cancel-dialog] .spmu-dialog-remarks { margin-top: 18px !important; }
+dialog[data-request-cancel-dialog] .spmu-dialog-remarks { margin-top: 12px !important; }
 
 dialog[data-request-cancel-dialog] .spmu-dialog-remarks label {
     display: block !important;
@@ -228,7 +228,7 @@ dialog[data-request-cancel-dialog] .spmu-confirm-dialog__actions {
 
 dialog[data-request-cancel-dialog] .spmu-confirm-dialog__actions .button {
     min-height: 38px !important;
-    padding: 8px 14px !important;
+    padding: 8px 12px !important;
     border-radius: 8px !important;
 }
 
@@ -242,7 +242,7 @@ dialog[data-request-cancel-dialog] .spmu-confirm-dialog__actions .button {
         grid-template-columns: 38px minmax(0, 1fr) !important;
         max-height: calc(100dvh - 24px) !important;
         gap: 12px !important;
-        padding: 18px !important;
+        padding: 16px !important;
     }
 
     dialog[data-request-cancel-dialog] .spmu-confirm-dialog__icon {
@@ -318,10 +318,6 @@ dialog[data-request-cancel-dialog] .spmu-confirm-dialog__actions .button {
 
                 hiddenReason.value = cleanReason;
                 confirm.disabled = true;
-
-
-
-
 
                 window.setTimeout(() => { confirm.disabled = false; }, 20000);
                 form.submit();

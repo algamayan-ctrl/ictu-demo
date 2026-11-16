@@ -6,6 +6,7 @@
 ])
 
 @section('content')
+{{-- This is the Borrowing Request form for Borrower. --}}
 
 @php
     $editing = $borrowingRequest->exists;
@@ -59,7 +60,6 @@
     $ptcForSubmission = $isReturned ? null : $ptc;
 
     $maxUploadMb = max(1, (int) ($maxUploadMb ?? 5));
-
 
     $divisionOptions = App\Support\OrganizationalStructure::divisions();
 
@@ -138,7 +138,7 @@
 @if(!empty($borrowingBlockedReasons))
     {{-- Retain genuine validation errors, but display each active restriction only
          once in the dedicated yellow banner below. --}}
-    @php
+@php
         $otherFormErrors = collect($errors->all())->reject(function ($message) use ($borrowingBlockedReasons) {
             return collect($borrowingBlockedReasons)->contains(function ($reason) use ($message) {
                 $reason = trim((string) $reason);
@@ -195,13 +195,13 @@
         --cr-danger: #a62f2f;
         --cr-success: #237a45;
         display: grid;
-        gap: 16px;
+        gap: 12px;
         width: 100%;
     }
 
     .create-request-heading {
         align-items: flex-start;
-        margin-bottom: 18px;
+        margin-bottom: 12px;
     }
 
     .create-request-heading h1 {
@@ -226,8 +226,8 @@
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 16px;
-        padding: 17px 20px 14px;
+        gap: 12px;
+        padding: 12px 16px 12px;
         border-bottom: 1px solid var(--cr-line);
         background: linear-gradient(180deg, #fff 0%, #fbfcfe 100%);
     }
@@ -250,7 +250,7 @@
     }
 
     .create-request-ui .request-card-body {
-        padding: 20px;
+        padding: 16px;
     }
 
     .create-request-ui .field-grid {
@@ -275,7 +275,7 @@
     }
 
     .student-activity-panel {
-        padding: 15px;
+        padding: 12px;
         border: 1px solid var(--cr-line);
         border-radius: 12px;
         background: var(--cr-soft);
@@ -298,7 +298,6 @@
         margin: 0;
     }
 
-
     .inventory-date-context {
         display: inline-flex;
         align-items: center;
@@ -316,7 +315,7 @@
 
     .inventory-search-shell {
         position: relative;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
     }
 
     .inventory-search-label {
@@ -347,7 +346,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 10px 14px;
+        padding: 10px 12px;
         border-bottom: 1px solid var(--cr-line);
         background: #fbfcfe;
         color: var(--cr-muted);
@@ -362,9 +361,9 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
-        gap: 16px;
+        gap: 12px;
         min-height: 76px;
-        padding: 13px 14px;
+        padding: 13px 12px;
         border-bottom: 1px solid var(--cr-line);
     }
 
@@ -443,9 +442,8 @@
         color: var(--cr-success);
     }
 
-
     .catalog-empty {
-        padding: 28px 18px;
+        padding: 20px 16px;
         text-align: center;
         color: var(--cr-muted);
     }
@@ -455,7 +453,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        margin-top: 20px;
+        margin-top: 16px;
         margin-bottom: 10px;
     }
 
@@ -537,9 +535,9 @@
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 18px;
-        margin-bottom: 18px;
-        padding: 14px 16px;
+        gap: 16px;
+        margin-bottom: 12px;
+        padding: 12px 12px;
         border: 1px solid #d8e3ee;
         border-radius: 12px;
         background: #f8fafc;
@@ -587,7 +585,7 @@
     }
 
     .selected-empty {
-        padding: 22px 18px;
+        padding: 16px 16px;
         border: 1px dashed #cdd7e2;
         border-radius: 12px;
         background: #fbfcfe;
@@ -620,8 +618,8 @@
     }
 
     .review-summary {
-        margin-bottom: 18px;
-        padding: 17px;
+        margin-bottom: 12px;
+        padding: 12px;
         border: 1px solid var(--cr-line);
         border-radius: 14px;
         background: #fbfcfe;
@@ -640,7 +638,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 14px;
+        gap: 12px;
         padding: 12px;
         border: 1px solid var(--cr-line);
         border-radius: 14px;
@@ -671,8 +669,8 @@
         display: grid;
         grid-template-columns: auto minmax(56px, 1fr) auto minmax(56px, 1fr) auto;
         align-items: center;
-        gap: 14px;
-        padding: 19px 22px;
+        gap: 12px;
+        padding: 19px 16px;
         border-top: 1px solid var(--cr-line);
         border-bottom: 1px solid var(--cr-line);
         background: #f8fafc;
@@ -817,7 +815,6 @@
             text-align: left;
         }
 
-
         .sticky-actions {
             position: static;
             align-items: stretch;
@@ -834,15 +831,13 @@
         }
     }
 
-
-    {{-- /* Final Stage 3 confirmation */ --}}
     .final-confirmation {
         display: flex;
         align-items: flex-start;
         justify-content: flex-start;
         gap: 10px;
-        margin-top: 20px;
-        padding: 16px 18px;
+        margin-top: 16px;
+        padding: 12px 16px;
         border: 1px solid var(--cr-line);
         border-radius: 12px;
         background: #f8fafc;
@@ -874,8 +869,6 @@
         line-height: 1.55;
     }
 
-
-    {{-- /* Create Request final action must always receive pointer input when enabled. */ --}}
     #request-submit-button:not(:disabled) {
         pointer-events: auto !important;
         cursor: pointer;
@@ -893,12 +886,11 @@
     .create-request-heading { margin-bottom: 12px; }
     .create-request-heading h1 { margin-bottom: 3px; font-size: clamp(21px, 1.65vw, 25px); line-height: 1.2; }
     .create-request-heading .heading-copy { font-size: 12.5px; line-height: 1.4; }
-    {{-- /* Match the existing 1120px request-form shell so the restriction notice,
-       stepper, and form cards share the same left/right edges. */ --}}
+
     .create-request-restriction {
         width: 100%;
         max-width: 1120px;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
     }
     .create-request-restriction .request-restriction-alert {
         width: 100%;
@@ -908,8 +900,8 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         align-items: center;
-        gap: 10px 22px;
-        padding: 14px 18px;
+        gap: 10px 16px;
+        padding: 12px 16px;
         border-radius: 10px;
     }
     .request-restriction-alert .eyebrow { margin: 0 0 3px; font-size: 10px; letter-spacing: .045em; }
@@ -917,7 +909,7 @@
     .request-restriction-alert p:not(.eyebrow) { margin: 0; font-size: 12px; line-height: 1.45; }
     .request-restriction-alert .restriction-reasons {
         display: grid; gap: 3px; min-width: 0;
-        padding: 0 0 0 18px; margin: 0;
+        padding: 0 0 0 16px; margin: 0;
         border-left: 1px solid rgba(122, 82, 15, .20);
         font-size: 12px; line-height: 1.45;
         overflow-wrap: anywhere;
@@ -928,9 +920,6 @@
     .request-restriction-alert .restriction-obligations-link:focus-visible { color: #06479a; text-decoration: underline; }
     .request-restriction-alert .restriction-obligations-link:focus-visible { outline: 2px solid #075ac2; outline-offset: 2px; border-radius: 2px; }
 
-    {{-- /* Same universal interactive surface as the other borrower forms.
-       Only ENABLED controls respond to hover; disabled stages stay locked
-       until the existing client-side validation enables them. */ --}}
     #request-form .create-request-ui .stage-actions :is(a.button, button.button):not(:disabled):is(:hover, :focus-visible),
     #request-form .create-request-ui .request-card :is(a.button, button.button):not(:disabled):is(:hover, :focus-visible) {
         background: #065df0;
@@ -939,7 +928,7 @@
         text-decoration: none;
         cursor: pointer;
     }
-    {{-- /* Match the existing Borrowing Schedule heading; retain its blue exactly. */ --}}
+
     #request-form .create-request-ui .request-details-card .request-card-header #request-details-heading {
         color: #065df0;
         font-size: 12px;
@@ -949,8 +938,6 @@
         text-transform: uppercase;
     }
 
-    {{-- /* Documents & Review uses request-review-actions (not stage-actions).
-       Keep default outlined buttons; apply the universal blue on enabled hover/focus. */ --}}
     #request-form .create-request-ui .request-review-actions :is(a.button, button.button):not(:disabled):is(:hover, :focus-visible) {
         background-color: #065df0;
         border-color: #065df0;
@@ -988,10 +975,10 @@
         border-radius: 4px;
     }
     .request-form-shell { margin-top: 0; }
-    #request-form .create-request-ui { gap: 14px; }
+    #request-form .create-request-ui { gap: 12px; }
     #request-form .create-request-ui .request-stepper {
         gap: 12px;
-        padding: 11px 16px;
+        padding: 11px 12px;
         border: 1px solid var(--border);
         border-radius: 10px;
         background: var(--surface-elevated);
@@ -1001,9 +988,9 @@
         width: 28px; height: 28px; flex-basis: 28px; font-size: 12px;
     }
     #request-form .create-request-ui .request-details-card .request-card-header,
-    #request-form .create-request-ui .request-picker-card .request-card-header { padding: 15px 20px 12px; }
-    #request-form .create-request-ui .request-details-card .request-information-fields { padding: 0 20px 18px; }
-    #request-form .create-request-ui .request-details-card .field-grid { gap: 15px 22px; }
+    #request-form .create-request-ui .request-picker-card .request-card-header { padding: 12px 16px 12px; }
+    #request-form .create-request-ui .request-details-card .request-information-fields { padding: 0 16px 16px; }
+    #request-form .create-request-ui .request-details-card .field-grid { gap: 15px 16px; }
     #request-form .create-request-ui .request-details-card .field-grid > label {
         font-size: 13px; font-weight: 650; line-height: 1.4;
     }
@@ -1013,15 +1000,15 @@
         height: 43px; min-height: 43px; margin-top: 6px; padding: 9px 12px;
         font-size: 13px;
     }
-    #request-form .create-request-ui .request-schedule-fields { padding: 17px 20px 19px; }
+    #request-form .create-request-ui .request-schedule-fields { padding: 12px 16px 19px; }
     #request-form .create-request-ui .request-schedule-heading { gap: 4px; margin-bottom: 12px; }
     #request-form .create-request-ui .request-schedule-note { font-size: 12px; line-height: 1.45; }
-    #request-form .create-request-ui .request-details-card .student-activity-panel { padding: 15px 20px; }
+    #request-form .create-request-ui .request-details-card .student-activity-panel { padding: 12px 16px; }
     #request-form .create-request-ui .student-activity-panel .checkbox { gap: 11px; }
     #request-form .create-request-ui .student-activity-panel .checkbox input[type="checkbox"] {
         width: 18px; height: 18px; min-height: 18px;
     }
-    #request-form .create-request-ui .request-details-actions { padding: 13px 20px; }
+    #request-form .create-request-ui .request-details-actions { padding: 13px 16px; }
     @media (max-width: 760px) {
         .create-request-restriction .request-restriction-alert { grid-template-columns: 1fr; gap: 8px; }
         .request-restriction-alert .restriction-reasons { padding: 8px 0 0; border-left: 0; border-top: 1px solid rgba(122, 82, 15, .20); }
@@ -1129,7 +1116,6 @@
             </button>
         </nav>
 
-
         @include('requests.partials.create-details')
 
         <section class="request-card request-picker-card" data-stage-panel="2" aria-labelledby="item-picker-heading">
@@ -1185,7 +1171,7 @@
 
                     <div id="catalog-list" class="catalog-list">
                         @foreach($items as $item)
-                            @php
+@php
                                 $categoryName = $item->category?->category_name ?: 'Uncategorized';
                                 $itemUiId = 'INV-'.str_pad((string) $item->id, 4, '0', STR_PAD_LEFT);
 
@@ -1305,7 +1291,7 @@
 
                         <tbody>
                             @foreach($items as $item)
-                                @php
+@php
                                     $categoryName = $item->category?->category_name ?: 'Uncategorized';
                                     $itemUiId = 'INV-'.str_pad((string) $item->id, 4, '0', STR_PAD_LEFT);
                                     $requestItem = $selectedItems->get($item->id);
@@ -1387,7 +1373,7 @@
                                             aria-label="Requested quantity for {{ $item->unique_description }}"
                                         >
                                     </td>
-                                    @php
+@php
                                         $normalizedSelectedLocation = $item->off_campus_allowed
                                             && $selectedLocation === 'OFF_CAMPUS'
                                                 ? 'OFF_CAMPUS'
@@ -1548,6 +1534,9 @@
                             type="file"
                             name="approved_request_letter"
                             accept="application/pdf,image/png,image/jpeg,image/webp"
+                            data-request-upload-limit="{{ $maxUploadMb * 1024 * 1024 }}"
+                            data-upload-label="Borrowing Request Letter"
+                            aria-describedby="request-letter-upload-error"
                         >
                         <span class="visually-hidden">Fully signed Borrowing Request Letter</span>
                         <span class="document-dropzone-icon" aria-hidden="true">
@@ -1557,6 +1546,7 @@
                         <span class="document-dropzone-hint">or drag and drop</span>
                         <small class="document-dropzone-formats">PDF, JPG, PNG (Max {{ $maxUploadMb }}MB)</small>
                         <span class="document-dropzone-file" data-dropzone-file hidden></span>
+                        <small id="request-letter-upload-error" class="field-error" data-request-upload-error aria-live="polite" hidden></small>
                     </label>
                 </div>
 
@@ -1588,6 +1578,9 @@
                             type="file"
                             name="permission_to_conduct_letter"
                             accept="application/pdf,image/png,image/jpeg,image/webp"
+                            data-request-upload-limit="{{ $maxUploadMb * 1024 * 1024 }}"
+                            data-upload-label="Permission to Conduct Letter"
+                            aria-describedby="ptc-upload-error"
                         >
                         <span class="visually-hidden">Permission to Conduct Letter</span>
                         <span class="document-dropzone-icon" aria-hidden="true">
@@ -1597,6 +1590,7 @@
                         <span class="document-dropzone-hint">or drag and drop</span>
                         <small class="document-dropzone-formats">PDF, JPG, PNG (Max {{ $maxUploadMb }}MB)</small>
                         <span class="document-dropzone-file" data-dropzone-file hidden></span>
+                        <small id="ptc-upload-error" class="field-error" data-request-upload-error aria-live="polite" hidden></small>
                     </label>
                 </div>
             </div>
@@ -1768,6 +1762,7 @@
 </div>
 </section>
 
+<script src="{{ \App\Support\StaticAsset::url('js/request-upload-limits.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('request-form');
@@ -1844,11 +1839,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('[data-stage-target]')
     );
 
-
-
-
-
-
     const resumeStage = {{ $resumeStage }};
 
     let activeStage = 1;
@@ -1913,7 +1903,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         `[data-selected-quantity="${itemId}"]`
                     )?.value || '0';
                     const tr = document.createElement('tr');
-
 
                     const itemCell = document.createElement('td');
                     itemCell.className = 'review-item-cell';
@@ -2153,7 +2142,8 @@ document.addEventListener('DOMContentLoaded', () => {
             !ptcRequired || ptcAlreadyUploaded || ptcInput?.files?.length
         );
 
-        return requestLetterReady && ptcReady;
+        return requestLetterReady && ptcReady
+            && [requestLetterInput, ptcInput].every(input => !input || input.validity.valid);
     }
 
     function syncForwardActionStates() {
@@ -2164,17 +2154,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (stageTwoNextButton) {
             stageTwoNextButton.disabled = !isStageTwoReady();
         }
-
-
-
-
-
-
-
-
-
-
-
 
         const requestLetterReady = Boolean(
             requestLetterAlreadyUploaded ||
@@ -2192,20 +2171,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const detailsReady = isStageOneReady();
         const itemsReady = isStageTwoReady();
         const acknowledgementReady = Boolean(finalConfirmation?.checked);
+        const uploadsReady = [requestLetterInput, ptcInput].every(input => !input || input.validity.valid);
 
         const canSubmit =
             detailsReady &&
             itemsReady &&
             requestLetterReady &&
             ptcReady &&
+            uploadsReady &&
             signatureReady &&
             acknowledgementReady;
 
         if (submitButton) {
             submitButton.disabled = !canSubmit;
-
-
-
 
             if (!detailsReady) {
                 submitButton.title =
@@ -2219,6 +2197,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (!ptcReady) {
                 submitButton.title =
                     'Upload the Permission to Conduct Letter for this Student Activity before submitting.';
+            } else if (!uploadsReady) {
+                submitButton.title = 'Choose supporting documents within the displayed file-size limit.';
             } else if (!signatureReady) {
                 submitButton.title =
                     'Register your E-signature in Account Settings before submitting.';
@@ -2259,9 +2239,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function syncOfficeOptions() {
 
-
-
-
         syncRequestingUnitProfile();
     }
 
@@ -2300,9 +2277,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const from = scheduleDate?.value || '';
         const to = returnDate?.value || '';
         const validationId = ++operationalDateValidationId;
-
-
-
 
         if (!from || !to) {
             return true;
@@ -2357,6 +2331,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (ptcDocumentBox) {
             ptcDocumentBox.hidden = !active;
+        }
+
+        if (ptcInput) {
+            ptcInput.disabled = !active;
+            ptcInput.dispatchEvent(new Event('change', {bubbles: true}));
         }
     }
 
@@ -2792,16 +2771,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
-
-
-
-
-
-
-
-
-
     var spmuDateStates = null;
     var spmuDefaultReturnMin = '';
 
@@ -2843,8 +2812,6 @@ document.addEventListener('DOMContentLoaded', () => {
             state.node.style.display = showMessage ? 'block' : 'none';
         }
 
-
-
         if (showMessage && state.serverError) {
             state.serverError.hidden = true;
         }
@@ -2872,11 +2839,6 @@ document.addEventListener('DOMContentLoaded', () => {
             && spmuDateStates.get(returnDate).status === 'valid'
             && returnDate.value > scheduleDate.value;
     }
-
-
-
-
-
 
     function spmuDateEvaluate(field, { userChange, emptyMessage = null }) {
         const state = spmuDateStates.get(field);
@@ -2925,7 +2887,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
 
-
             const query = new URLSearchParams({ schedule_date: picked, return_date: picked });
             const response = await fetch(`${spmuDateCheckUrl}?${query}`, {
                 headers: { Accept: 'application/json' },
@@ -2956,9 +2917,6 @@ document.addEventListener('DOMContentLoaded', () => {
             state.message = result.message
                 || `SPMU is closed on ${spmuDateLabel(picked)}. Please choose another date.`;
 
-
-
-
             state.status = 'invalid';
         }
 
@@ -2987,8 +2945,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function spmuDateOnUserChange(field) {
         const state = spmuDateStates.get(field);
 
-
-
         if (field.value === state.lastValue && state.status !== 'error') return;
 
         state.lastValue = field.value;
@@ -3005,7 +2961,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const returnState = spmuDateStates.get(returnDate);
 
             if (returnDate.value && scheduleDate.value && returnDate.value <= scheduleDate.value) {
-
 
                 returnDate.value = '';
                 returnState.lastValue = '';
@@ -3026,11 +2981,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         spmuDateAfterChange();
     }
-
-
-
-
-
 
     function spmuDateServerResult(field, result) {
         if (!spmuDateStates || !field || !result || result.open) return;
@@ -3066,8 +3016,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         spmuSyncReturnMin();
 
-
-
         queueMicrotask(() => {
             [scheduleDate, returnDate].forEach((field) => spmuDateEvaluate(field, { userChange: false }));
         });
@@ -3076,10 +3024,6 @@ document.addEventListener('DOMContentLoaded', () => {
             scheduleDate.addEventListener(eventName, () => spmuDateOnUserChange(scheduleDate));
             returnDate.addEventListener(eventName, () => spmuDateOnUserChange(returnDate));
         });
-
-
-
-
 
         document.addEventListener('click', (event) => {
             const button = event.target instanceof Element
@@ -3112,7 +3056,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 .focus();
         }, true);
     }
-
 
     searchInput?.addEventListener('input', renderCatalog);
 
@@ -3187,15 +3130,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     requestOffCampusToggle?.addEventListener('change', handlePremisesChange);
     requestOnCampusToggle?.addEventListener('change', handlePremisesChange);
-
-
-
-
-
-
-
-
-
 
     submitButton?.addEventListener('click', () => {
         if (!form || !submitTrigger || submitButton.disabled) return;
@@ -3337,19 +3271,17 @@ document.addEventListener('DOMContentLoaded', () => {
     confirmSubmitButton?.addEventListener('click', () => {
         if (!form || !finalConfirmation?.checked) return;
 
+        const invalidUpload = [requestLetterInput, ptcInput].find(input => input && !input.validity.valid);
+        if (invalidUpload) {
+            closeDialog(submitDialog);
+            invalidUpload.reportValidity();
+            invalidUpload.focus();
+            return;
+        }
+
         submissionConfirmed = true;
         if (eSignatureConfirmation) eSignatureConfirmation.value = '1';
         if (confirmSubmitButton) confirmSubmitButton.disabled = true;
-
-
-
-
-
-
-
-
-
-
 
         if (typeof form.requestSubmit === 'function' && submitTrigger) {
             form.requestSubmit(submitTrigger);
@@ -3365,14 +3297,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (submitButton) {
 
-
-
             submitButton.disabled = true;
         }
-
-
-
-
 
         window.setTimeout(() => {
             if (confirmSubmitButton) confirmSubmitButton.disabled = false;
@@ -3424,8 +3350,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <script>
 
-
-
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('request-form');
     const dialog = document.querySelector('[data-request-leave-dialog]');
@@ -3435,9 +3359,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stayButton = dialog.querySelector('.request-dialog-actions [data-request-leave-stay]');
     const confirmButton = dialog.querySelector('[data-request-leave-confirm]');
 
-
     const ignoredNames = new Set(['_token', '_method', '_action_token', 'intent', 'confirm_e_signature']);
-
 
     const startsDirty = @json($errors->any());
 
@@ -3474,12 +3396,6 @@ document.addEventListener('DOMContentLoaded', () => {
             })
     );
 
-
-
-
-
-
-
     const captureBaseline = (event) => {
         if (baseline === null && event.isTrusted) {
             baseline = snapshot();
@@ -3496,25 +3412,16 @@ document.addEventListener('DOMContentLoaded', () => {
         submitting = true;
         window.clearTimeout(submitResetTimer);
 
-
-
         submitResetTimer = window.setTimeout(() => {
             submitting = false;
         }, 20000);
     };
-
-
-
-
-
 
     window.addEventListener('submit', (event) => {
         if (event.target === form && !event.defaultPrevented) {
             markSubmitting();
         }
     });
-
-
 
     document.querySelector('[data-confirm-request-submit]')?.addEventListener('click', () => {
         if (typeof form.requestSubmit !== 'function') {
@@ -3541,12 +3448,6 @@ document.addEventListener('DOMContentLoaded', () => {
         returnFocus?.focus?.();
         returnFocus = null;
     };
-
-
-
-
-
-
 
     window.addEventListener('click', (event) => {
         if (
@@ -3578,7 +3479,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!['http:', 'https:'].includes(url.protocol)) return;
-
 
         if (
             url.origin === window.location.origin
@@ -3613,11 +3513,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.assign(pendingHref);
     });
 
-
-
-
-
-
     window.addEventListener('beforeunload', (event) => {
         if (
             leaving
@@ -3632,7 +3527,6 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         event.returnValue = '';
     });
-
 
     window.addEventListener('pageshow', (event) => {
         if (!event.persisted) return;
@@ -3649,9 +3543,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <style>
-{{-- /* E-SIGN CONFIRM MODAL ENHANCEMENTS START */ --}}
 
-{{-- /* Title */ --}}
 [data-esign-modal-title] {
     margin:0 !important;
     color:var(--heading, #0f2d57) !important;
@@ -3660,7 +3552,6 @@ document.addEventListener('DOMContentLoaded', () => {
     line-height:1.2 !important;
 }
 
-{{-- /* Intro */ --}}
 [data-esign-modal-intro] {
     margin:0 !important;
     color:var(--text-secondary, #4a6284) !important;
@@ -3668,10 +3559,9 @@ document.addEventListener('DOMContentLoaded', () => {
     line-height:1.65 !important;
 }
 
-{{-- /* Notice / confirmation box */ --}}
 [data-esign-modal-note] {
-    margin-top:14px !important;
-    padding:16px 18px !important;
+    margin-top:12px !important;
+    padding:12px 16px !important;
 
     border:1px solid #b9d6f4 !important;
     border-radius:10px !important;
@@ -3689,7 +3579,6 @@ document.addEventListener('DOMContentLoaded', () => {
     text-decoration:underline !important;
 }
 
-{{-- /* Secondary CTA */ --}}
 [data-esign-cancel] {
     min-width:132px !important;
     min-height:44px !important;
@@ -3705,7 +3594,6 @@ document.addEventListener('DOMContentLoaded', () => {
     box-shadow:none !important;
 }
 
-{{-- /* Primary CTA */ --}}
 [data-esign-confirm] {
     min-width:180px !important;
     min-height:44px !important;
@@ -3732,7 +3620,6 @@ document.addEventListener('DOMContentLoaded', () => {
     box-shadow:0 0 0 3px rgba(23, 105, 224, .14) !important;
 }
 
-{{-- /* Slightly calmer spacing on narrow screens */ --}}
 @media (max-width:640px) {
     [data-esign-modal-title] {
         font-size:1.45rem !important;
@@ -3745,21 +3632,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 }
 
-{{-- /* E-SIGN CONFIRM MODAL ENHANCEMENTS END */ --}}
 </style>
-
-
 
 @endsection
 
-{{-- <!-- SPMU-QUANTITY-WHOLE-NUMBER-FIX:START --> --}}
-
 <style>
-    {{-- /*
-     * Quantity fields:
-     * - whole numbers only
-     * - remove browser number spinner arrows
-     */ --}}
 
     input[type="number"][name^="quantities"]::-webkit-inner-spin-button,
     input[type="number"][name^="quantities"]::-webkit-outer-spin-button {
@@ -3782,19 +3659,6 @@ document.addEventListener('DOMContentLoaded', () => {
         element instanceof HTMLInputElement &&
         element.matches(quantitySelector);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     const configureQuantityInput = (input) => {
         if (!isQuantityInput(input)) {
             return;
@@ -3807,10 +3671,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document
         .querySelectorAll(quantitySelector)
         .forEach(configureQuantityInput);
-
-
-
-
 
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
@@ -3835,10 +3695,6 @@ document.addEventListener('DOMContentLoaded', () => {
         subtree: true
     });
 
-
-
-
-
     document.addEventListener(
         'wheel',
         (event) => {
@@ -3857,9 +3713,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     );
 
-
-
-
     document.addEventListener(
         'keydown',
         (event) => {
@@ -3877,15 +3730,6 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         true
     );
-
-
-
-
-
-
-
-
-
 
     document.addEventListener(
         'paste',
@@ -3928,9 +3772,6 @@ document.addEventListener('DOMContentLoaded', () => {
         true
     );
 
-
-
-
     document.addEventListener(
         'change',
         (event) => {
@@ -3958,15 +3799,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-{{-- <!-- SPMU-QUANTITY-WHOLE-NUMBER-FIX:END --> --}}
-
-{{-- <!-- SPMU-QUANTITY-SCROLL-LOCK:START --> --}}
-
 <style>
-    {{-- /*
-     * Hide the browser's own number-spinner controls.
-     * Keep the custom minus / plus buttons unchanged.
-     */ --}}
+
     input[type="number"][name^="quantities"]::-webkit-inner-spin-button,
     input[type="number"][name^="quantities"]::-webkit-outer-spin-button {
         -webkit-appearance: none !important;
@@ -3982,10 +3816,6 @@ document.addEventListener('DOMContentLoaded', () => {
 <script>
 (() => {
 
-
-
-
-
     const isQuantityField = (element) => {
         return element instanceof HTMLInputElement
             && element.matches(
@@ -3994,10 +3824,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 '.quantity-input'
             );
     };
-
-
-
-
 
     document.addEventListener(
         'wheel',
@@ -4015,12 +3841,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     );
 
-
-
-
-
-
-
     document.addEventListener(
         'keydown',
         (event) => {
@@ -4036,9 +3856,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-
-
-
             if (
                 event.key === '.' ||
                 event.key === ',' ||
@@ -4053,9 +3870,6 @@ document.addEventListener('DOMContentLoaded', () => {
         true
     );
 
-
-
-
     document.addEventListener(
         'input',
         (event) => {
@@ -4069,9 +3883,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-
-
-
             const clean = input.value.replace(/[^0-9]/g, '');
 
             if (input.value !== clean) {
@@ -4082,5 +3893,3 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 })();
 </script>
-
-{{-- <!-- SPMU-QUANTITY-SCROLL-LOCK:END --> --}}

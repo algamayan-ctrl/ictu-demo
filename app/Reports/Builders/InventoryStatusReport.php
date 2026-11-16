@@ -37,6 +37,7 @@ class InventoryStatusReport implements ReportBuilder
         $items = InventoryItem::query()
             ->with(['category', 'unit'])
             ->where('active', true)
+            ->when($filters->get('category'), fn ($query, $category) => $query->whereHas('category', fn ($query) => $query->where('category_code', $category)))
             ->when(
                 $equipment !== null,
                 fn ($query) => $query->whereKey($equipment)

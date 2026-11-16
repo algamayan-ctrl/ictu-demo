@@ -1,5 +1,5 @@
                 @forelse($documents->whereNotIn('status', ['SUPERSEDED', 'INVALIDATED', 'EXPIRED']) as $document)
-                    @php
+@php
                         $operationalDocumentTypes = [
                             'BORROWER_SLIP',
                             'GATE_PASS',

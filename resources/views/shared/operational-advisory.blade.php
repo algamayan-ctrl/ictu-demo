@@ -13,7 +13,7 @@
         align-items: flex-start;
         gap: 11px;
         min-width: 0;
-        padding: 13px 16px;
+        padding: 13px 12px;
         border: 1px solid var(--border, #d9e2ec);
         border-left: 3px solid var(--advisory-accent);
         border-radius: 10px;
@@ -44,13 +44,13 @@
         color: var(--advisory-accent);
     }
     .spmu-advisory__main { margin:4px 0 0; color:var(--text, #24394c); font-size:12px; line-height:1.5; }
-    .spmu-advisory__meta { display:flex; gap:4px 14px; flex-wrap:wrap; margin-top:5px; font-size:11px; line-height:1.45; color:var(--text-muted, #68798a); }
+    .spmu-advisory__meta { display:flex; gap:4px 12px; flex-wrap:wrap; margin-top:5px; font-size:11px; line-height:1.45; color:var(--text-muted, #68798a); }
     .spmu-advisory__meta [hidden] { display:none !important; }
     .spmu-advisory__meta span { min-width:0; overflow-wrap:anywhere; }
     .spmu-advisory__link { align-self:center; flex:0 0 auto; font-size:11px; font-weight:700; color:var(--info, #1976d2); text-decoration:none; white-space:nowrap; }
     .spmu-advisory__link:hover,.spmu-advisory__link:focus-visible { text-decoration:underline; }
     .dashboard-page-shell > .spmu-advisory { margin-bottom: 12px; }
-    {{-- /* Staff dashboards use the same status but a less prominent footprint. */ --}}
+
     .spmu-advisory--compact { padding:8px 12px; gap:8px; }
     .spmu-advisory--compact .spmu-advisory__icon { height:27px; flex-basis:27px; }
     .spmu-advisory--compact .spmu-advisory__main { margin-top:2px; font-size:11px; }

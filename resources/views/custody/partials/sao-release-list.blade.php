@@ -24,7 +24,7 @@
                 <thead><tr><th scope="col">Borrower / Request</th><th scope="col">Borrowing Dates</th><th scope="col">Pickup</th><th scope="col">Preparation</th><th scope="col">Status</th><th scope="col">Details</th></tr></thead>
                 <tbody id="operational-filter-list">
                     @foreach($custodies as $custody)
-                        @php
+@php
                             $version = $custody->request?->currentVersion;
                             $scheduleDate = $version?->schedule_date ?: $version?->needed_from;
                             $originalReturnDate = $custody->original_due_at ?: $version?->return_date ?: $version?->return_due_at ?: $custody->due_at;

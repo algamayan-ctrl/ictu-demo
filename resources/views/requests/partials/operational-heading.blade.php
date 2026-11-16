@@ -55,6 +55,12 @@
     <div class="request-operational-identity">
         <div class="request-operational-title-row">
             <h1 id="operational-request-title">{{ $borrowingRequest->request_no }}</h1>
+            @php
+                $previousControlNumbers = $borrowingRequest->previousControlNumbers();
+            @endphp
+            @if($previousControlNumbers)
+                <p class="meta">Previous Control No.: {{ implode(', ', $previousControlNumbers) }}</p>
+            @endif
             <x-status-badge :status="$detailStatus" :label="$detailStatusLabel" />
         </div>
         <p>{{ $v->purpose_event }}</p>
@@ -80,6 +86,3 @@
         @endif
     </div>
 </section>
-
-
-

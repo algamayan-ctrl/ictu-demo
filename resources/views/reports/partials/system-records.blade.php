@@ -1,14 +1,5 @@
 @php
-    /*
-    | The interactive records table of a report preview.
-    |
-    | Rendered on the server from the report's own rows (App\Reports\ReportRecordTable),
-    | so search, sorting and pagination work across every record in scope, not
-    | just the page in the browser. `_link` becomes the record drilldown and
-    | `_tone_<key>` a status badge; neither is part of the record itself.
-    |
-    | Expects: $table (ReportRecordTable), $heading, $recordNoun (optional).
-    */
+    // This is the paginated records table for the selected report dataset.
     use App\Reports\ReportRecordTable;
 
     $records = $table->records;
@@ -43,8 +34,8 @@
 
     @if($table->isSearching())
         <p class="report-system-search-note" role="status">
-            {{ number_format($records->total()) }} of {{ number_format($table->scopeTotal) }} {{ $recordNoun }} match “{{ $table->search }}”.
-            Search only narrows this view; print and export include all {{ number_format($table->scopeTotal) }} {{ $recordNoun }} in the report.
+            {{ number_format($records->total()) }} matching {{ $recordNoun }} for “{{ $table->search }}”.
+            Print and download include all matching records across every page.
             <a href="{{ $table->url(['search' => null, 'page' => null]) }}" data-report-table-nav>Clear search</a>
         </p>
     @endif
@@ -79,7 +70,7 @@
                             @php
                                 $value = (string) ($row[$column['key']] ?? '');
                                 $tone = ReportRecordTable::badgeTone($row['_tone_'.$column['key']] ?? null);
-                                // Reference numbers and single dates read badly when broken across lines.
+                                // This is the wrapping rule for reference numbers and recorded dates.
                                 $nowrap = (bool) preg_match('/(^|_)no$|_date$|_at$|_time$/', $column['key']);
                                 $isReference = (bool) preg_match('/(^|_)(no|reference|code)$/', $column['key']);
                             @endphp
@@ -96,10 +87,13 @@
                         @if($showLinks)
                             <td class="report-system-action-column">
                                 @if(filled($row['_link'] ?? null))
-                                    <a class="report-inventory-view-action" href="{{ $row['_link'] }}" aria-label="View Record" title="View Record">
-                                        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.2 12s3.6-6 9.8-6 9.8 6 9.8 6-3.6 6-9.8 6-9.8-6-9.8-6Z"/><circle cx="12" cy="12" r="2.8"/></svg>View Record</a>
+                                    <a class="report-inventory-view-action{{ ($selectedReport ?? null) === 'all-transactions' ? ' report-overview-eye' : '' }}" href="{{ $row['_link'] }}" aria-label="View Record" title="View Record">
+                                        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.2 12s3.6-6 9.8-6 9.8 6 9.8 6-3.6 6-9.8 6-9.8-6-9.8-6Z"/><circle cx="12" cy="12" r="2.8"/></svg>
+                                        @if(($selectedReport ?? null) !== 'all-transactions')
+                                            View Record
+                                        @endif
+                                    </a>
                                 @elseif($row['_link_restricted'] ?? false)
-                                    {{-- The record exists, but its page is not open to this user at its current stage. --}}
                                     <span class="report-record-restricted" title="This record cannot be opened from your account at its current stage.">Not available</span>
                                 @endif
                             </td>
@@ -148,10 +142,6 @@
 @once
 <script>
 (() => {
-
-
-
-
 
     const markBusy = (element) => {
         const card = element.closest('[data-report-records]');

@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => $mode === 'ACTION_OFFICER_VERIFICATION' ? 'For Verification' : 'For Approval'])
 
 @section('content')
+{{-- This is the Verification and Approval Queue UI for authorized SPMU users. --}}
 @include('approvals.partials.queue-styles')
 
 <div class="approval-queue" data-approval-queue>
@@ -26,7 +27,7 @@
     </section>
 
     @if($mode === 'ACTION_OFFICER_VERIFICATION' || $requests->isNotEmpty())
-<div class="approval-queue-filters {{ $mode === 'ACTION_OFFICER_VERIFICATION' ? 'is-verification record-browser-toolbar' : '' }}">
+<div class="approval-queue-filters record-table-toolbar {{ $mode === 'ACTION_OFFICER_VERIFICATION' ? 'is-verification record-browser-toolbar' : '' }}">
             <label class="{{ $mode === 'ACTION_OFFICER_VERIFICATION' ? 'record-browser-search' : '' }}">
                 Search
                 <span class="search-input-shell">
@@ -63,6 +64,10 @@
                     @endif
                 </select>
             </label>
+            <label>Submitted from<input id="approval-queue-from" type="date"></label>
+            <label>Submitted to<input id="approval-queue-to" type="date"></label>
+            <label>Show entries<select id="approval-queue-size">@foreach([5, 10, 25, 50, 100] as $size)<option value="{{ $size }}">{{ $size }}</option>@endforeach</select></label>
+            <button class="button secondary" id="approval-queue-clear" type="button">Clear</button>
         </div>
     @endif
 
@@ -133,19 +138,15 @@
 @include('approvals.partials.queue-interactions')
 @endsection
 
-{{-- <!-- SPMU APPROVAL NOTICE ALIGNMENT START --> --}}
 <style>
-{{-- /*
- * Keep the approval success notice on the same horizontal grid
- * as the page heading, action button, and approval cards.
- */ --}}
+
 .spmu-approval-success-notice {
     box-sizing: border-box !important;
     width: 100% !important;
     max-width: none !important;
 
-    margin: 0 0 20px !important;
-    padding: 14px 18px !important;
+    margin: 0 0 16px !important;
+    padding: 12px 16px !important;
 
     display: flex !important;
     align-items: center !important;
@@ -170,9 +171,6 @@
     margin-bottom: 0 !important;
 }
 
-{{-- /*
- * Avoid a visually higher icon when the message wraps onto two lines.
- */ --}}
 .spmu-approval-success-notice svg {
     display: block !important;
 }
@@ -182,10 +180,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const expectedText =
         'Verified request E-signed and approved by the authorized SPMU Head signatory';
-
-
-
-
 
     const candidates = Array.from(
         document.querySelectorAll(
@@ -204,10 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
     notice.classList.add(
         'spmu-approval-success-notice'
     );
-
-
-
-
 
     const children = Array.from(notice.childNodes);
 
@@ -243,4 +233,3 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 </script>
-{{-- <!-- SPMU APPROVAL NOTICE ALIGNMENT END --> --}}

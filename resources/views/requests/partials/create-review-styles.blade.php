@@ -1,11 +1,11 @@
 <style>
-{{-- /* Step 3 — Documents & Review */ --}}
+
 #request-form .create-request-ui .request-card.review-card,
 #request-form .create-request-ui .request-card.documents-card,
 #request-form .create-request-ui .request-card.confirmation-card {
     display: grid;
-    gap: 14px;
-    padding: 22px 24px;
+    gap: 12px;
+    padding: 16px 16px;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--surface-elevated);
@@ -16,8 +16,7 @@
 .request-section-copy { margin: -8px 0 0; color: var(--text-muted); font-size: 12.5px; line-height: 1.55; }
 .request-section-rule { width: 100%; height: 0; margin: 4px 0; border: 0; border-top: 1px solid var(--border); }
 
-{{-- /* Review summary fields */ --}}
-.review-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 32px; }
+.review-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; }
 .review-summary-field { display: grid; gap: 6px; min-width: 0; }
 .review-summary-field > span { color: var(--text-muted); font-size: 12px; font-weight: 700; }
 .review-summary-field > strong { color: var(--heading); font-size: 13.5px; font-weight: 650; line-height: 1.45; overflow-wrap: anywhere; }
@@ -26,30 +25,27 @@
 .review-summary-pill.is-elevated { color: var(--warning); background: var(--warning-bg); border-color: var(--warning-border); }
 .review-summary-pill.is-neutral { color: var(--text-secondary); background: var(--surface-subtle); border-color: var(--border); }
 
-{{-- /* Selected items */ --}}
-.review-items-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; }
+.review-items-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 12px; }
 #request-form .create-request-ui .review-items-header h3 { margin: 0; color: var(--heading); font-size: 15px; font-weight: 750; }
 .review-items-count { display: inline-flex; align-items: center; padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-subtle); color: var(--text-secondary); font-size: 12px; font-weight: 650; white-space: nowrap; }
 #request-form .create-request-ui .review-items-table { border: 1px solid var(--border); border-radius: 8px; }
 #request-form .create-request-ui .review-items-table table { min-width: 560px; }
-#request-form .create-request-ui .review-items-table th { padding: 12px 14px; border-bottom: 1px solid var(--border); background: var(--table-heading-bg); color: var(--text-secondary); font-size: 10px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
-#request-form .create-request-ui .review-items-table td { padding: 13px 14px; border-bottom: 1px solid var(--row-border); color: var(--heading); font-size: 12.5px; vertical-align: middle; }
+#request-form .create-request-ui .review-items-table th { padding: 12px 12px; border-bottom: 1px solid var(--border); background: var(--table-heading-bg); color: var(--text-secondary); font-size: 10px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
+#request-form .create-request-ui .review-items-table td { padding: 13px 12px; border-bottom: 1px solid var(--row-border); color: var(--heading); font-size: 12.5px; vertical-align: middle; }
 #request-form .create-request-ui .review-items-table tbody tr:last-child td { border-bottom: 0; }
 .review-item-cell { display: flex; align-items: center; gap: 12px; }
 .review-item-name { min-width: 0; font-weight: 650; overflow-wrap: anywhere; }
 .review-items-empty { color: var(--text-muted); text-align: center; }
 
-{{-- /* Required documents */ --}}
-{{-- /* Both letters sit side by side; a hidden one lets the other span the row. */ --}}
-.document-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: stretch; gap: 16px; }
-.document-row { display: grid; align-content: start; gap: 16px; padding: 18px 20px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); }
+.document-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: stretch; gap: 12px; }
+.document-row { display: grid; align-content: start; gap: 12px; padding: 16px 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); }
 .document-row-info { display: grid; gap: 6px; min-width: 0; }
 .document-row-info > strong { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--heading); font-size: 13.5px; font-weight: 700; }
 .document-required { color: var(--danger); font-size: 11.5px; font-weight: 700; }
 .document-row-info > p { margin: 0; color: var(--text-muted); font-size: 12.5px; line-height: 1.5; }
 .document-current { margin: 2px 0 0 !important; font-size: 12px; }
 
-#request-form .create-request-ui .document-dropzone { position: relative; display: grid; justify-items: center; gap: 4px; margin: 0; padding: 20px 16px; border: 1.5px dashed var(--border-strong); border-radius: 9px; background: var(--surface-subtle); text-align: center; cursor: pointer; transition: border-color var(--motion) ease, background-color var(--motion) ease; }
+#request-form .create-request-ui .document-dropzone { position: relative; display: grid; justify-items: center; gap: 4px; margin: 0; padding: 16px 12px; border: 1.5px dashed var(--border-strong); border-radius: 9px; background: var(--surface-subtle); text-align: center; cursor: pointer; transition: border-color var(--motion) ease, background-color var(--motion) ease; }
 #request-form .create-request-ui .document-dropzone:hover,
 #request-form .create-request-ui .document-dropzone.is-dragging { border-color: #0f62d6; background: var(--info-bg); }
 #request-form .create-request-ui .document-dropzone.has-file { border-style: solid; border-color: var(--success-border); background: var(--success-bg); }
@@ -60,7 +56,6 @@
 .document-dropzone-formats { color: var(--text-soft); font-size: 11.5px; }
 .document-dropzone-file { max-width: 100%; margin-top: 4px; color: var(--success); font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
 
-{{-- /* Acknowledgement */ --}}
 #request-form .create-request-ui .confirmation-card .final-confirmation { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 12px; margin: 0; padding: 0; border: 0; background: transparent; }
 #request-form .create-request-ui .confirmation-card .final-confirmation input[type="checkbox"] { width: 17px; height: 17px; min-height: 0; margin: 3px 0 0; flex-shrink: 0; accent-color: #0f62d6; }
 #request-form .create-request-ui .confirmation-card .acknowledgement-copy { display: grid; gap: 6px; min-width: 0; }
@@ -70,51 +65,39 @@
 .request-terms-link { color: #0f62d6; font-weight: 750; text-decoration: underline; text-underline-offset: 2px; }
 .request-terms-link:hover { text-decoration-thickness: 2px; }
 
-{{-- /* Guidance, not an alert: registering an E-signature is a normal setup step,
-   not an error, so this stays in the same neutral tone as .request-terms-note
-   below rather than a warning-colored callout. */ --}}
 .esignature-notice { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-subtle); }
 .esignature-notice > .ui-icon { flex-shrink: 0; margin-top: 1px; color: var(--text-muted); }
 .esignature-notice strong { display: block; margin-bottom: 3px; color: var(--heading); font-size: 13px; font-weight: 700; }
 .esignature-notice p { margin: 0; color: var(--text-secondary); font-size: 12.5px; line-height: 1.5; }
 .esignature-notice a { color: #0f62d6; font-weight: 700; }
 
-{{-- /* Terms / submission confirmation dialogs */ --}}
 body.request-dialog-open { overflow: hidden; }
 .request-dialog-backdrop[hidden] { display: none !important; }
-.request-dialog-backdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 24px; background: rgba(8, 18, 33, .58); }
+.request-dialog-backdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 16px; background: rgba(8, 18, 33, .58); }
 .request-dialog { width: min(680px, 100%); max-height: min(82vh, 760px); overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-elevated); box-shadow: 0 24px 70px rgba(0, 0, 0, .24); }
 .request-submit-dialog { width: min(500px, calc(100vw - 32px)); }
-.request-dialog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 20px 22px 16px; border-bottom: 1px solid var(--border); }
+.request-dialog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 16px 16px 12px; border-bottom: 1px solid var(--border); }
 .request-dialog-header h2 { margin: 4px 0 0; color: var(--heading); font-size: 19px; line-height: 1.35; }
 .request-dialog-close { display: grid; place-items: center; width: 34px; height: 34px; min-height: 0; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-subtle); color: var(--text-secondary); font-size: 24px; line-height: 1; cursor: pointer; }
-.request-dialog-body { display: grid; gap: 14px; padding: 20px 22px; color: var(--text-secondary); font-size: 13px; line-height: 1.65; }
+.request-dialog-body { display: grid; gap: 12px; padding: 16px 16px; color: var(--text-secondary); font-size: 13px; line-height: 1.65; }
 .request-dialog-body p { margin: 0; }
 .request-terms-list { display: grid; gap: 9px; margin: 0; padding-left: 22px; }
-.request-terms-note { padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-subtle); color: var(--text-muted); }
-.request-dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; padding: 16px 22px 20px; border-top: 1px solid var(--border); }
+.request-terms-note { padding: 12px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-subtle); color: var(--text-muted); }
+.request-dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; padding: 12px 16px 16px; border-top: 1px solid var(--border); }
 .request-dialog-actions .button { justify-content: center; }
 
-{{-- /*
- | Submission confirmation dialog. Same shell, border-radius, shadow, backdrop
- | and button styles as the Terms dialog above - only the header composition and
- | a tighter rhythm, since this one is a short confirm rather than a long read.
- | The Terms dialog keeps its own padding because it carries the full list.
- */ --}}
-.request-submit-dialog .request-dialog-header { gap: 12px; padding: 16px 18px 12px; }
+.request-submit-dialog .request-dialog-header { gap: 12px; padding: 12px 16px 12px; }
 .request-submit-dialog .request-dialog-header h2 { font-size: 18px; }
 .request-submit-identity { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
 .request-submit-icon { display: grid; flex: 0 0 auto; place-items: center; width: 36px; height: 36px; margin-top: 2px; border-radius: 50%; background: var(--info-bg); color: var(--interactive); }
-.request-submit-dialog .request-dialog-body { gap: 10px; padding: 14px 18px; }
-.request-submit-note { margin: 0; padding: 12px 14px; border: 1px solid var(--info-border); border-radius: 8px; background: var(--info-bg); }
-.request-submit-dialog .request-dialog-actions { padding: 12px 18px 16px; }
+.request-submit-dialog .request-dialog-body { gap: 10px; padding: 12px 16px; }
+.request-submit-note { margin: 0; padding: 12px 12px; border: 1px solid var(--info-border); border-radius: 8px; background: var(--info-bg); }
+.request-submit-dialog .request-dialog-actions { padding: 12px 16px 12px; }
 html[data-theme="dark"] .request-submit-icon { color: #72b7f4; }
 
-{{-- /* The Terms dialog can be opened from inside the submit dialog, so it stacks above it. */ --}}
 #request-terms-dialog { z-index: 1210; }
 
-{{-- /* Review action bar */ --}}
-#request-form .create-request-ui .sticky-actions.request-review-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 18px; padding: 16px 20px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-elevated); box-shadow: var(--shadow-sm); }
+#request-form .create-request-ui .sticky-actions.request-review-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 16px; padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-elevated); box-shadow: var(--shadow-sm); }
 .request-review-actions .actions { margin-left: auto; gap: 10px; }
 #request-form .create-request-ui .request-submit-button { gap: 9px; }
 
@@ -126,11 +109,11 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone:hove
 html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-dragging { border-color: #72b7f4; }
 
 @media (max-width: 820px) {
-    .review-summary-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .review-summary-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
     .document-rows { grid-template-columns: minmax(0, 1fr); }
     #request-form .create-request-ui .request-card.review-card,
     #request-form .create-request-ui .request-card.documents-card,
-    #request-form .create-request-ui .request-card.confirmation-card { padding: 16px 14px; }
+    #request-form .create-request-ui .request-card.confirmation-card { padding: 12px 12px; }
 }
 @media (max-width: 620px) {
     #request-form .create-request-ui .sticky-actions.request-review-actions { align-items: stretch; }
@@ -149,22 +132,9 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
     #request-form .create-request-ui .document-dropzone { transition: none; }
 }
 
-{{-- /* BORROWER E-SIGN UNIVERSAL MODAL START */ --}}
-
-
-{{-- /* =========================================================
-   BACKDROP
-   ========================================================= */ --}}
-
 #request-submit-confirmation-dialog.request-dialog-backdrop {
-    padding:16px !important;
+    padding:12px !important;
 }
-
-
-{{-- /* =========================================================
-   CARD
-   Same modal family as Admin approval / revision / reject
-   ========================================================= */ --}}
 
 #request-submit-confirmation-dialog
 .request-submit-dialog {
@@ -187,18 +157,13 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
     font-family:inherit !important;
 }
 
-
-{{-- /* =========================================================
-   HEADER
-   ========================================================= */ --}}
-
 #request-submit-confirmation-dialog
 .request-dialog-header {
     align-items:flex-start !important;
 
     gap:11px !important;
 
-    padding:16px 18px 10px !important;
+    padding:12px 16px 10px !important;
 
     border-bottom:0 !important;
 
@@ -206,9 +171,6 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
 
     font-family:inherit !important;
 }
-
-
-{{-- /* eyebrow */ --}}
 
 #request-submit-confirmation-dialog
 .request-section-label {
@@ -224,9 +186,6 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
     letter-spacing:.08em !important;
     text-transform:uppercase !important;
 }
-
-
-{{-- /* title */ --}}
 
 #request-submit-confirmation-dialog
 #request-submit-confirmation-title,
@@ -248,25 +207,14 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
     overflow-wrap:normal !important;
 }
 
-
-{{-- /*
- | Cancel already provides the modal exit.
- | Hide X only on final submit confirmation.
- */ --}}
-
 #request-submit-confirmation-dialog
 .request-dialog-close {
     display:none !important;
 }
 
-
-{{-- /* =========================================================
-   BODY
-   ========================================================= */ --}}
-
 #request-submit-confirmation-dialog
 .request-dialog-body {
-    padding:0 18px 14px !important;
+    padding:0 16px 12px !important;
 
     color:#617492 !important;
 
@@ -275,9 +223,6 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
     font-weight:400 !important;
     line-height:1.5 !important;
 }
-
-
-{{-- /* intro */ --}}
 
 #request-submit-confirmation-dialog
 .request-dialog-body > p:first-child {
@@ -290,11 +235,6 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
     font-weight:400 !important;
     line-height:1.5 !important;
 }
-
-
-{{-- /* =========================================================
-   INFO PANEL
-   ========================================================= */ --}}
 
 #request-submit-confirmation-dialog
 .request-dialog-body > p:last-child,
@@ -322,9 +262,6 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
     overflow-wrap:normal !important;
 }
 
-
-{{-- /* Terms link */ --}}
-
 #request-submit-confirmation-dialog
 .request-dialog-body a,
 
@@ -339,11 +276,6 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
     text-underline-offset:2px !important;
 }
 
-
-{{-- /* =========================================================
-   FOOTER
-   ========================================================= */ --}}
-
 #request-submit-confirmation-dialog
 .request-dialog-actions {
     display:flex !important;
@@ -353,7 +285,7 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
 
     gap:8px !important;
 
-    padding:0 18px 16px !important;
+    padding:0 16px 12px !important;
 
     border-top:0 !important;
 
@@ -362,16 +294,13 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
     font-family:inherit !important;
 }
 
-
-{{-- /* Universal buttons */ --}}
-
 #request-submit-confirmation-dialog
 .request-dialog-actions .button {
     width:auto !important;
 
     min-height:34px !important;
 
-    padding:0 14px !important;
+    padding:0 12px !important;
 
     border-radius:8px !important;
 
@@ -382,9 +311,6 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
 
     white-space:nowrap !important;
 }
-
-
-{{-- /* Cancel */ --}}
 
 #request-submit-confirmation-dialog
 [data-cancel-request-submit] {
@@ -398,9 +324,6 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
 
     box-shadow:none !important;
 }
-
-
-{{-- /* Confirm */ --}}
 
 #request-submit-confirmation-dialog
 [data-confirm-request-submit] {
@@ -423,11 +346,6 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
         0 6px 14px rgba(23,105,224,.16) !important;
 }
 
-
-{{-- /* =========================================================
-   MOBILE
-   ========================================================= */ --}}
-
 @media (max-width:620px) {
 
     #request-submit-confirmation-dialog
@@ -437,7 +355,7 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
 
     #request-submit-confirmation-dialog
     .request-dialog-header {
-        padding:15px 16px 9px !important;
+        padding:12px 12px 9px !important;
     }
 
     #request-submit-confirmation-dialog
@@ -462,5 +380,4 @@ html[data-theme="dark"] #request-form .create-request-ui .document-dropzone.is-d
     }
 }
 
-{{-- /* BORROWER E-SIGN UNIVERSAL MODAL END */ --}}
 </style>

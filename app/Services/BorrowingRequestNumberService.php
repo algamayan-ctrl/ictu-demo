@@ -5,18 +5,47 @@ namespace App\Services;
 use App\Models\BorrowingRequest;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 class BorrowingRequestNumberService
 {
     public function newNumber(int|string $borrowerId): string
     {
-        // Ten characters keep even a 20-digit unsigned ID within VARCHAR(50).
-        return 'BR-'.now()->format('YmdHis').'-'.$borrowerId.'-'.strtoupper(Str::random(10));
+        if (! Schema::hasTable('request_number_counters')) {
+            throw ValidationException::withMessages([
+                'request_no' => 'Request numbering is not ready on this server. Please contact the system administrator before saving or submitting again.',
+            ]);
+        }
+
+        // This is the function for the generation of a monthly Borrowing Request number.
+        $period = now('Asia/Manila')->format('Y-m');
+        $prefix = 'BR-'.$period.'-';
+
+        return DB::transaction(function () use ($period, $prefix): string {
+            DB::table('request_number_counters')->insertOrIgnore(['period' => $period, 'last_number' => 0]);
+            $counter = DB::table('request_number_counters')->where('period', $period)->lockForUpdate()->first();
+            $highest = (int) $counter->last_number;
+
+            foreach (BorrowingRequest::query()->where('request_no', 'like', $prefix.'%')->pluck('request_no') as $number) {
+                $suffix = substr($number, strlen($prefix));
+                if (ctype_digit($suffix)) {
+                    $highest = max($highest, (int) $suffix);
+                }
+            }
+
+            $next = $highest + 1;
+            DB::table('request_number_counters')->where('period', $period)->update(['last_number' => $next]);
+
+            return $prefix.str_pad((string) $next, 4, '0', STR_PAD_LEFT);
+        }, 5);
     }
 
     public function createHeader(array $attributes): BorrowingRequest
     {
+        if (app(AcademicYearRequestNumbers::class)->enabled()) {
+            return BorrowingRequest::query()->create([...$attributes, 'request_no' => app(AcademicYearRequestNumbers::class)->pendingNumber()]);
+        }
         for ($attempt = 1; ; $attempt++) {
             try {
                 // Only header insertion is retried, before versions/files/signing.

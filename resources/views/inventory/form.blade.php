@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => $item->exists ? 'Edit Inventory Details' : 'Add Inventory Item'])
 
 @section('content')
+{{-- This is the Inventory Item form for SPMU Admin. --}}
 @include('inventory.partials.form-styles')
 
 <div class="inventory-form-page">
@@ -57,7 +58,7 @@
 
             <label>
                 Specification
-                <textarea name="specification">{{ old('specification', $item->specification) }}</textarea>
+<textarea name="specification">{{ old('specification', $item->specification) }}</textarea>
             </label>
 
             @if($item->exists)
@@ -150,7 +151,7 @@
             @if($item->exists)
                 <label>
                     Reason for Change
-                    <textarea
+<textarea
                         name="change_reason"
                         required
                         placeholder="Briefly state why the inventory details are being updated."
@@ -160,7 +161,7 @@
             @else
                 <label>
                     Initial Stock Source / Reference <small>(Optional)</small>
-                    <textarea
+<textarea
                         name="initial_stock_source"
                         placeholder="Example: Delivery Receipt, Purchase Order, property transfer, or opening inventory reference."
                     >{{ old('initial_stock_source') }}</textarea>
@@ -180,7 +181,7 @@
         </form>
 
         @if($item->exists)
-            @php
+@php
                 $deleteErrors = $errors->getBag('inventoryDelete');
                 $deletionBlockers = $deletionBlockers ?? [];
             @endphp
@@ -244,7 +245,7 @@
 
                         <label>
                             Reason for deletion
-                            <textarea name="deletion_reason" required maxlength="1000">{{ old('deletion_reason') }}</textarea>
+<textarea name="deletion_reason" required maxlength="1000">{{ old('deletion_reason') }}</textarea>
                             @if($deleteErrors->has('deletion_reason'))
                                 <small class="field-error">{{ $deleteErrors->first('deletion_reason') }}</small>
                             @endif
@@ -259,7 +260,7 @@
             @endif
 
             <style>
-                .inventory-delete-zone { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 14px 18px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); }
+                .inventory-delete-zone { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 12px 16px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-elevated); }
                 .inventory-delete-zone strong { color: var(--heading); font-size: 13px; }
                 .inventory-delete-zone p { margin: 4px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.45; }
                 .inventory-delete-zone ul { margin: 6px 0 0; padding-left: 18px; color: var(--text-muted); font-size: 12px; line-height: 1.45; }
@@ -267,7 +268,7 @@
                 .inventory-delete-zone .button { flex: 0 0 auto; }
                 .inventory-delete-dialog { width: min(480px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-elevated); color: var(--text); }
                 .inventory-delete-dialog::backdrop { background: rgba(8, 18, 33, .58); }
-                .inventory-delete-dialog form { display: grid; gap: 14px; padding: 20px 22px; }
+                .inventory-delete-dialog form { display: grid; gap: 12px; padding: 16px 16px; }
                 .inventory-delete-dialog h2 { margin: 0; color: var(--heading); font-size: 18px; }
                 .inventory-delete-dialog p { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
                 .inventory-delete-dialog label { display: grid; gap: 6px; font-size: 12px; font-weight: 650; }
@@ -278,7 +279,7 @@
                 }
             </style>
 
-            <script>
+<script>
             document.addEventListener('DOMContentLoaded', () => {
                 const dialog = document.getElementById('inventory-delete-dialog');
                 const openButton = document.querySelector('[data-inventory-delete-open]');
@@ -289,7 +290,6 @@
                 const nameInput = form.querySelector('[name="confirm_item_name"]');
                 const reasonInput = form.querySelector('[name="deletion_reason"]');
                 const submitButton = form.querySelector('[data-inventory-delete-submit]');
-
 
                 const sync = () => {
                     submitButton.disabled = nameInput.value.trim() !== nameInput.dataset.expectedName
@@ -304,7 +304,6 @@
                     dialog.showModal();
                     nameInput.focus();
                 });
-
 
                 form.querySelector('[data-inventory-delete-cancel]').addEventListener('click', () => {
                     dialog.close();

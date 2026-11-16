@@ -79,6 +79,22 @@ class InventoryBorrowingHistoryPresentationTest extends TestCase
         return route('inventory.show', array_merge(['inventory' => $this->item->id, 'tab' => 'borrowing-history'], $filters));
     }
 
+    public function test_admin_history_paginates_without_reducing_the_filtered_summary(): void
+    {
+        for ($number = 1; $number <= 12; $number++) $this->loan($number);
+        $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
+        $response = $this->actingAs($head)->get($this->url(['history_search' => 'History Borrower']))->assertOk();
+        $page = $response->viewData('saoBorrowingHistory')['page'];
+        $this->assertSame(12, $page->total());
+        $this->assertCount(10, $page->items());
+        $this->assertSame(12, $response->viewData('historySummary')['records']);
+        $this->assertSame(60.0, $response->viewData('historySummary')['issued']);
+        $second = $this->get($page->nextPageUrl())->assertOk();
+        $this->assertCount(2, $second->viewData('saoBorrowingHistory')['page']->items());
+        $this->assertSame(12, $second->viewData('historySummary')['records']);
+        $second->assertSee('aria-label="Borrowing history pages"', false);
+    }
+
     public function test_sao_history_keeps_essential_records_and_removes_duplicate_explanations_and_controls(): void
     {
         $custody = $this->loan(1);

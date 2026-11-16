@@ -22,6 +22,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
+// This is the controller for property release, custody, and return processing.
 class CustodyController extends Controller
 {
     /**
@@ -213,6 +214,9 @@ class CustodyController extends Controller
                     ->where('purpose_event', 'like', $term))
                 ->orWhereHas('lines.requestItem', fn ($item) => $item
                     ->where('description_snapshot', 'like', $term));
+            if (\Illuminate\Support\Facades\Schema::hasTable('request_number_aliases')) {
+                $match->orWhereHas('request.numberAliases', fn ($aliases) => $aliases->where('alias', 'like', $term));
+            }
         });
     }
 
@@ -329,7 +333,6 @@ class CustodyController extends Controller
             }
         });
 
-
         return view('custody.index', [
             'custodies' => $custodies,
             'spmuMode' => 'return',
@@ -405,7 +408,6 @@ class CustodyController extends Controller
             $relations[] = 'laundryJob.lines.custodyLine.requestItem.inventoryItem.unit';
             $relations[] = 'laundryJob.formVerifier';
         }
-
 
         $custody->load($relations);
 

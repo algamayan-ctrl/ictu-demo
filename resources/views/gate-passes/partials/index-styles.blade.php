@@ -6,19 +6,16 @@
     max-width: 100%;
     color: var(--text);
     font-size: 13px;
-    {{-- /* This is .app-main's only child on this page, so it - not a nested
-       .content-area - is what needs to fill the remaining viewport height
-       when there are no Gate Pass records yet. */ --}}
+
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
 }
 .gate-pass-browser [hidden] { display: none !important; }
-{{-- /* Only the true "no records" panel grows to fill the leftover space; a
-   populated toolbar/table keeps its natural height. */ --}}
+
 .gate-pass-browser > .gate-pass-empty-card { flex: 1 1 auto; }
-.gate-pass-browser .gate-pass-heading { margin: 0 0 20px; }
+.gate-pass-browser .gate-pass-heading { margin: 0 0 16px; }
 .gate-pass-browser .gate-pass-heading .eyebrow { margin-bottom: 9px; font-size: 9.5px; letter-spacing: .1em; }
 .gate-pass-browser .gate-pass-heading h1 { margin: 0 0 8px; font-size: clamp(21px, 1.65vw, 25px); }
 .gate-pass-browser .gate-pass-heading p:not(.eyebrow) { max-width: none; margin: 0; font-size: 12.5px; line-height: 1.4; }
@@ -27,9 +24,9 @@
 .gate-pass-browser .gate-pass-toolbar {
     display: grid;
     grid-template-columns: minmax(0, 3fr) minmax(180px, 1fr);
-    gap: 14px;
+    gap: 12px;
     align-items: end;
-    padding: 16px 18px;
+    padding: 12px 16px;
     margin-bottom: 10px;
 }
 .gate-pass-toolbar label {
@@ -48,8 +45,8 @@
     font-size: 12px;
 }
 
-.gate-pass-browser .gate-pass-records-card { padding: 16px 18px 4px; }
-.gate-pass-records-heading { margin-bottom: 14px; }
+.gate-pass-browser .gate-pass-records-card { padding: 12px 16px 4px; }
+.gate-pass-records-heading { margin-bottom: 12px; }
 .gate-pass-browser .gate-pass-records-heading h2 { margin: 0 0 6px; color: var(--heading); font-size: 17px; font-weight: 750; }
 .gate-pass-records-heading p { margin: 0; color: var(--text-muted); font-size: 12px; }
 .gate-pass-table-wrap { width: 100%; min-width: 0; overflow-x: auto; }
@@ -111,7 +108,7 @@
 .gate-pass-more-links a { padding: 7px 8px; border-radius: 4px; color: var(--text-secondary); font-size: 11px; }
 .gate-pass-more-links a:hover, .gate-pass-more-links a:focus-visible { color: var(--gate-pass-blue); background: var(--info-bg); }
 
-.gate-pass-filter-empty td { padding: 26px 12px; text-align: center; }
+.gate-pass-filter-empty td { padding: 20px 12px; text-align: center; }
 .gate-pass-filter-empty strong { color: var(--heading); font-size: 14px; }
 .gate-pass-filter-empty p { margin: 6px 0 12px; color: var(--text-muted); }
 .gate-pass-footer { display: flex; justify-content: flex-end; padding: 13px 0 9px; }
@@ -137,7 +134,7 @@
 .gate-pass-previous-icon { transform: rotate(180deg); }
 .gate-pass-page-ellipsis { padding: 0 2px; color: var(--text-muted); }
 
-.gate-pass-browser .gate-pass-empty-card { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 218px; padding: 24px 18px 30px; text-align: center; }
+.gate-pass-browser .gate-pass-empty-card { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 218px; padding: 16px 16px 24px; text-align: center; }
 .gate-pass-empty-illustration { display: block; flex-shrink: 0; width: 86px; height: 86px; margin: 0 0 12px; }
 .gate-pass-browser .gate-pass-empty-card h2 { margin: 0 0 7px; color: var(--heading); font-size: 16px; font-weight: 750; line-height: 1.5; }
 .gate-pass-browser .gate-pass-empty-card p { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
@@ -155,7 +152,7 @@ html[data-theme="dark"] .gate-pass-browser { --gate-pass-blue: #72b7f4; }
     .gate-pass-browser .gate-pass-toolbar { grid-template-columns: minmax(0, 1fr); }
     .gate-pass-toolbar > label:first-child { grid-column: auto; }
 }
-{{-- /* Compact Gate Pass actions and clear hover/focus labels */ --}}
+
 .gate-pass-browser .gate-pass-table th:last-child,
 .gate-pass-browser .gate-pass-table td:last-child { text-align: center; }
 .gate-pass-browser .gate-pass-row-actions { display: flex; justify-content: center; align-items: center; flex-wrap: nowrap; gap: 7px; overflow: visible; }

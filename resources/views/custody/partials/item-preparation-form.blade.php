@@ -26,7 +26,7 @@
                 </thead>
                 <tbody>
                     @foreach($custody->lines as $line)
-                        @php
+@php
                             $openLineIssue = $openPreparationIssues->firstWhere('custody_line_id', $line->id);
                             $latestLineIssue = $preparationIssueRecords->firstWhere('custody_line_id', $line->id);
                             $lineStatus = $openLineIssue
@@ -177,7 +177,7 @@
 
                     <label data-preparation-details-field hidden>
                         <span data-preparation-details-label>Remarks (Optional)</span>
-                        <textarea
+<textarea
                             name="details"
                             maxlength="1000"
                             placeholder="Add a short note only if needed."

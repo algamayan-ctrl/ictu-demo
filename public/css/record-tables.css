@@ -1,0 +1,23 @@
+/* This is the compact toolbar and pagination layout for record tables. */
+.record-table-toolbar{display:flex;flex-wrap:wrap;align-items:end;gap:10px;margin:12px 0}
+.record-table-toolbar label{display:flex;flex-direction:column;gap:5px;min-width:110px;font-size:12px;font-weight:600;color:var(--text-muted)}
+.record-table-toolbar .record-table-search{flex:1 1 230px;min-width:180px}
+.record-table-toolbar input,.record-table-toolbar select{width:100%;min-height:38px;background:var(--surface-elevated,var(--surface,#fff));color:var(--text-primary,var(--text));border:1px solid var(--border)}
+.record-table-toolbar input[type=date]{min-width:145px}
+.record-table-toolbar input:focus-visible,.record-table-toolbar select:focus-visible,.record-table-footer a:focus-visible,.record-table-footer button:focus-visible{outline:2px solid var(--interactive);outline-offset:2px}
+.record-table-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:38px}
+.record-table-footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding-block:12px 4px;border-top:1px solid var(--border);margin-top:10px}
+.record-table-footer p{margin:0}
+.record-table-footer nav{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+.record-table-footer [aria-disabled=true],.record-table-footer button:disabled{opacity:.5;cursor:default}
+.record-table-footer .button{min-width:32px;justify-content:center}
+.record-table-no-results td{text-align:center;padding:24px!important;color:var(--text-muted)}
+table[data-record-table] tbody tr[hidden]{display:none!important}
+.gate-pass-browser .gate-pass-toolbar.record-table-toolbar{display:flex}
+.gate-pass-toolbar.record-table-toolbar label{flex:1 1 145px}
+.gate-pass-toolbar.record-table-toolbar .record-browser-search{flex:2 1 230px}
+.approval-queue .approval-queue-filters.record-table-toolbar{display:flex;flex-wrap:wrap}
+.approval-queue-filters.record-table-toolbar label{flex:1 1 140px}
+.inventory-history-filter.record-table-toolbar{grid-template-columns:none}
+@media(max-width:640px){.record-table-toolbar label,.record-table-toolbar .record-table-search{flex:1 1 140px;min-width:0}.record-table-toolbar .record-table-search,.record-table-actions{flex-basis:100%}.record-table-footer nav{max-width:100%}.record-table-footer{align-items:flex-start}.record-table-footer .button{padding-inline:9px}}
+@media print{.record-table-toolbar,.record-table-footer,.record-table-no-results{display:none!important}table[data-record-table] tbody tr[data-record-row]{display:table-row!important}table[data-record-table] tbody tr[data-record-row][hidden]{display:table-row!important}}

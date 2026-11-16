@@ -69,10 +69,12 @@ class ReportFoundationTest extends TestCase
     /* Catalogue                                                           */
     /* ------------------------------------------------------------------ */
 
-    public function test_catalogue_offers_the_ten_formal_report_types(): void
+    public function test_catalogue_keeps_legacy_reports_and_adds_the_summary_report(): void
     {
         $this->assertSame(
             [
+                'all-transactions',
+                'summary',
                 'borrowing',
                 'approval',
                 'custody',
@@ -91,7 +93,7 @@ class ReportFoundationTest extends TestCase
     public function test_report_types_are_grouped_for_the_builder(): void
     {
         $this->assertSame(
-            ['Borrowing', 'Custody & Return', 'Accountability', 'Assets', 'Special Operations'],
+            ['General', 'Asset', 'Accountability'],
             array_keys(ReportCatalogue::grouped())
         );
     }

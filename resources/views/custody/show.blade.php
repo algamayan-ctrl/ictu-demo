@@ -9,6 +9,7 @@
 ])
 
 @section('content')
+{{-- This is the Custody Details UI for property preparation, release, and return. --}}
 @php
     $workspace = strtoupper((string) session('active_workspace'));
     $user = auth()->user();
@@ -87,7 +88,6 @@
     $pickupWindowOpen = $hasPickupSchedule
         && ! $pickupWindowUpcoming
         && ! $pickupWindowPassed;
-
 
     $hasOffCampusItem = $custody->lines->contains(
         fn ($line) => $line->requestItem?->use_location === 'OFF_CAMPUS'
@@ -300,7 +300,7 @@
 @endif
 
 @if($isBorrower)
-    @php
+@php
         $borrowerItemCount = $custody->lines->count();
         $borrowerCustodyLabel = $custody->status === 'OVERDUE' ? 'Overdue' : 'On Custody';
         $borrowerReleased = (bool) $custody->released_at;
@@ -901,7 +901,6 @@
     <section class="content-area">
         <div class="borrower-custody-stack">
 
-            {{-- Current state --}}
             <div class="borrower-custody-status is-{{ $borrowerStateTone }}">
                 <span class="borrower-custody-status-icon" aria-hidden="true">
                     <x-icon name="information" size="24" />
@@ -941,7 +940,6 @@
                 </div>
             </div>
 
-            {{-- Transaction facts --}}
             <article class="card">
                 <div class="card-header">
                     <div>
@@ -963,7 +961,6 @@
                 </div>
             </article>
 
-            {{-- Items --}}
             <article class="card">
                 <div class="card-header">
                     <div>
@@ -995,7 +992,7 @@
                         </thead>
                         <tbody>
                             @foreach($custody->lines as $line)
-                                @php
+@php
                                     $lineOnCustody = max(
                                         0,
                                         (float) $line->actual_released_quantity - (float) $line->returned_quantity
@@ -1021,8 +1018,6 @@
                 </div>
             </article>
 
-
-{{-- Processing that continues outside the borrower's hands --}}
             @if($borrowerSlipDocument || $hasLaundryItem || $hasOffCampusItem)
                 <article class="card borrower-document-card">
                     <div class="card-header" style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
@@ -1046,7 +1041,6 @@
                         </div>
                     </div>
 
-                    {{-- BORROWER SLIP DOCUMENT ROW START --}}
                     @if($borrowerSlipDocument)
                         <div class="borrower-processing-row">
                             <div class="borrower-processing-copy">
@@ -1068,7 +1062,6 @@
                             </a>
                         </div>
                     @endif
-                    {{-- BORROWER SLIP DOCUMENT ROW END --}}
 
 @if($hasOffCampusItem)
                         <div class="borrower-processing-row">
@@ -1140,7 +1133,6 @@
                 </article>
             @endif
 
-            {{-- BORROWER TRANSACTION TIMELINE UI START --}}
             @if($borrowerTimeline->isNotEmpty())
                 <details
                     class="card borrower-activity-card borrower-activity-disclosure"
@@ -1201,11 +1193,6 @@
                     </div>
                 </details>
             @endif
-            {{-- BORROWER TRANSACTION TIMELINE UI END --}}
-
-
-
-
 
         </div>
     </section>
@@ -1395,7 +1382,7 @@
                                                 <input type="hidden" name="resolution_type" value="UNABLE_TO_FULFILL_APPROVED_REQUEST">
                                                 <label>
                                                     Reason
-                                                    <textarea
+<textarea
                                                         name="resolution_notes"
                                                         maxlength="1000"
                                                         required
@@ -1435,7 +1422,7 @@
                                             <input type="hidden" name="resolution_type" value="UNABLE_TO_FULFILL_APPROVED_REQUEST">
                                             <label>
                                                 Reason
-                                                <textarea
+<textarea
                                                     name="resolution_notes"
                                                     maxlength="1000"
                                                     required
@@ -1468,7 +1455,7 @@
 
                                             <label data-preparation-resolution-notes>
                                                 <span data-preparation-resolution-notes-label>Remarks (Optional)</span>
-                                                <textarea
+<textarea
                                                     name="resolution_notes"
                                                     maxlength="1000"
                                                     placeholder="Add a short note only if needed."
@@ -1534,8 +1521,8 @@
 </script>
 @endif
 
-@endif {{-- useReleaseProcessLayout --}}
-@endif {{-- showReleaseWorkflow --}}
+@endif
+@endif
 
 @if($showReturnWorkflow)
 <div id="return-workflow" class="workflow-focus-target return-flow-page">
@@ -1552,7 +1539,7 @@
 @endif
 
 </div>
-@endif {{-- showReturnWorkflow --}}
+@endif
 
 @endif
 @if($useReleaseProcessLayout)

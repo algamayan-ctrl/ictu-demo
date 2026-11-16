@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => session('active_workspace') === 'BORROWER' ? 'My Borrowings' : (auth()->user()?->access_classification?->value === 'SPMU_HEAD' ? 'Release & Return Oversight' : (($spmuMode ?? null) === 'return' ? 'Return' : 'Release'))])
 
 @section('content')
+{{-- This is the Borrowings, Release, and Return UI for the current Borrower or SPMU user. --}}
 
 @php
     $isBorrower = session('active_workspace') === 'BORROWER';
@@ -43,7 +44,6 @@
         default => 8,
     };
 
-
     // My Borrowings search/status/sort run on the server (see CustodyController::index).
     $borrowerFilters = $borrowerFilters ?? ['search' => '', 'status' => 'all', 'sort' => 'newest', 'active' => false];
     $borrowerStatusFilters = $borrowerStatusFilters ?? [];
@@ -82,7 +82,6 @@
             'all' => $custodies->count(),
         ]
         : [];
-
 
     /*
      * The Return workspace is for the physical handover only. Financial,
@@ -346,7 +345,7 @@
         @endif
         <div class="operational-record-list" id="operational-filter-list">
             @forelse($custodies as $custody)
-                @php
+@php
                     $outstanding = $custody->lines->sum(
                         fn ($line) => max(
                             0,
@@ -474,26 +473,23 @@
     </section>
     @if(in_array($mode, ['release','return'], true))
     <style>
-    .operational-browser-toolbar{display:grid;grid-template-columns:minmax(280px,1fr) minmax(190px,230px) minmax(150px,190px);gap:12px;align-items:end;margin-bottom:14px;padding:14px;background:var(--surface-elevated);border:1px solid var(--border);border-radius:var(--radius)}
+    .operational-browser-toolbar{display:grid;grid-template-columns:minmax(280px,1fr) minmax(190px,230px) minmax(150px,190px);gap:12px;align-items:end;margin-bottom:12px;padding:12px;background:var(--surface-elevated);border:1px solid var(--border);border-radius:var(--radius)}
     .operational-browser-toolbar label{display:grid;gap:6px;font-size:12px;font-weight:800;color:var(--text-muted)}
     .operational-browser-toolbar input,.operational-browser-toolbar select{min-height:42px;width:100%}
     .operational-record-action{align-content:center}
-    {{-- /* Release/Return is a page-level operational workspace. When it has no
-       transactions, let the result panel fill the remaining screen just like
-       the other queue/list pages. The message itself stays constrained so the
-       text never stretches awkwardly across the wide card. */ --}}
+
     .operational-content-area{display:flex;flex-direction:column;width:100%;min-width:0}
     .operational-content-area > .operational-record-list{flex:1 1 auto;display:flex;flex-direction:column;width:100%;min-width:0;min-height:0}
     .operational-record-list > .operational-empty-card{flex:1 1 auto;width:100%}
-    .operational-empty-card{--operational-empty-accent:#0865df;display:flex;min-height:300px;align-items:center;justify-content:center;padding:40px 22px;background:var(--surface-elevated);border:1px solid var(--border);border-radius:9px;text-align:center}
+    .operational-empty-card{--operational-empty-accent:#0865df;display:flex;min-height:300px;align-items:center;justify-content:center;padding:40px 16px;background:var(--surface-elevated);border:1px solid var(--border);border-radius:9px;text-align:center}
     .operational-empty-card-content{display:flex;flex-direction:column;align-items:center;max-width:400px}
-    .operational-empty-card-icon{display:grid;place-items:center;width:72px;height:72px;margin-bottom:18px;border-radius:50%;background:var(--info-bg);color:var(--operational-empty-accent)}
+    .operational-empty-card-icon{display:grid;place-items:center;width:72px;height:72px;margin-bottom:12px;border-radius:50%;background:var(--info-bg);color:var(--operational-empty-accent)}
     .operational-empty-card h2{margin:0 0 8px;font-size:16px;font-weight:750;line-height:1.4}
     .operational-empty-card p{margin:0;color:var(--text-secondary);font-size:13px;line-height:1.65}
     html[data-theme="dark"] .operational-empty-card{--operational-empty-accent:#72b7f4}
-    @media(max-width:760px){.operational-browser-toolbar{grid-template-columns:1fr}.operational-empty-card{min-height:260px;padding:30px 16px}}
+    @media(max-width:760px){.operational-browser-toolbar{grid-template-columns:1fr}.operational-empty-card{min-height:260px;padding:24px 12px}}
     </style>
-    <script>
+<script>
     (()=>{const list=document.getElementById('operational-filter-list');const rows=[...document.querySelectorAll('[data-operational-record]')];const search=document.getElementById('operational-search');const status=document.getElementById('operational-status');const sort=document.getElementById('operational-sort');const empty=document.getElementById('operational-filter-empty');if(!list||!rows.length||!search||!status||!sort)return;const render=()=>{const q=search.value.trim().toLowerCase();const st=status.value;const ordered=[...rows].sort((a,b)=>{const priority=Number(b.dataset.priority||0)-Number(a.dataset.priority||0);if(priority!==0)return priority;return(Number(b.dataset.created)-Number(a.dataset.created))*(sort.value==='newest'?1:-1)});ordered.forEach(r=>list.appendChild(r));let n=0;rows.forEach(r=>{const show=(!q||r.dataset.search.includes(q))&&(st==='all'||r.dataset.status===st);r.hidden=!show;if(show)n++});if(empty)empty.hidden=n>0};search.addEventListener('input',render);status.addEventListener('change',render);sort.addEventListener('change',render);render()})();
     </script>
     @endif

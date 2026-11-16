@@ -44,8 +44,6 @@
                 const leftArchived = ['completed', 'cancelled'].includes(left.dataset.custodyGroup);
                 const rightArchived = ['completed', 'cancelled'].includes(right.dataset.custodyGroup);
 
-
-
                 if (! ['completed', 'cancelled'].includes(activeStatus) && leftArchived !== rightArchived) {
                     return leftArchived ? 1 : -1;
                 }
@@ -225,8 +223,6 @@
 
                 const searchMatches = !query || recordSearch.includes(query);
 
-
-
                 const dateMatches =
                     invalidDateRange
                     || (!fromDate && !toDate)
@@ -263,7 +259,6 @@
             }
 
             renderPagination(totalPages);
-
 
             if (summary) {
                 summary.textContent = matched.length === 1

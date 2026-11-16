@@ -39,7 +39,7 @@
 </div>
 
 @if($pickupMissed)
-    @php
+@php
         $missedNotificationFailed = $missedDeliveryRows->contains(
             fn ($delivery) => strtoupper((string) $delivery->delivery_status) === 'FAILED'
         );
@@ -89,7 +89,7 @@
         </div>
     </div>
 @elseif($delayedApprovalReview)
-    @php
+@php
         $originalSuggestedPickup = $scheduleReviewDate($scheduleReviewDetails['original_suggested_pickup_date'] ?? null, 'F j, Y');
         $approvedAt = $scheduleReviewDate($scheduleReviewDetails['approved_at'] ?? null, 'F j, Y g:i A');
         $itemsNeededFrom = $scheduleReviewDate($scheduleReviewDetails['items_needed_from'] ?? null, 'F j, Y');

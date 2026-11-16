@@ -1,7 +1,7 @@
 {{-- Empty and unavailable-period states of a report preview. --}}
                     <section class="report-no-results {{ $reportPeriodUnavailable ? 'is-period-unavailable' : '' }}" aria-labelledby="report-no-results-title">
 
-    @php
+@php
         $emptyReportContext = strtolower(
             ($selectedReportMeta['label'] ?? '') . ' ' . ($selectedReport ?? '')
         );

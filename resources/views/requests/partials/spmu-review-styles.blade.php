@@ -1,27 +1,5 @@
 <style>
-{{-- /*
-|--------------------------------------------------------------------------
-| SPMU Head - request review workspace
-|--------------------------------------------------------------------------
-|
-| One stylesheet for the whole review page. It replaces the layered override
-| blocks this page had accumulated, so a single place decides the review
-| layout instead of several competing ones.
-|
-| Sections, in order:
-|   1. Workspace layout        4. Verification checklist and decision
-|   2. Scanned document panel  5. Confirmation dialog
-|   3. Request details grid    6. Responsive
-|
-*/ --}}
 
-{{-- /* 0. Progress tracker ----------------------------------------------------- */ --}}
-
-{{-- /*
- * The shared tracker reserves a fixed rail width, which leaves a short
- * horizontal scrollbar on a 1366px screen. On this page the visible stages
- * are allowed to share the available width instead.
- */ --}}
 @media (min-width: 1100px) {
     .request-tracker__rail {
         min-width: 0;
@@ -32,8 +10,6 @@
 
     .request-tracker__copy small { max-width: 100%; }
 }
-
-{{-- /* 1. Workspace layout ---------------------------------------------------- */ --}}
 
 .spmu-verification-workspace {
     --spmu-gap: 18px;
@@ -57,8 +33,6 @@
 
 .spmu-review-top-row > * { min-width: 0; }
 
-{{-- /* Panels that manage their own internal padding per region. The inventory
-   card below keeps the standard card padding. */ --}}
 .spmu-scan-slot > .scanned-document-card,
 .spmu-verification-workspace .spmu-checklist-panel,
 .spmu-verification-workspace .spmu-left-borrowing-info {
@@ -70,9 +44,9 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 14px;
+    gap: 12px;
     margin: 0;
-    padding: 15px 20px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--border);
 }
 
@@ -87,8 +61,6 @@
     font-size: 16px;
     line-height: 1.3;
 }
-
-{{-- /* 2. Scanned document panel ---------------------------------------------- */ --}}
 
 .spmu-scan-slot {
     display: flex;
@@ -107,7 +79,7 @@
 
 .spmu-scan-slot .scanned-document-header {
     flex: 0 0 auto;
-    padding: 15px 20px;
+    padding: 12px 16px;
 }
 
 .spmu-scan-slot .scanned-document-header h2 {
@@ -115,16 +87,6 @@
     font-size: 16px;
 }
 
-{{-- /*
- * Only the stage is sized. The document inside keeps its own scrolling, so
- * the full page - signatures, footer and all - stays reachable. It is never
- * clipped with overflow:hidden.
- */ --}}
-{{-- /*
- * The document pane follows the actual height of the Review / Decide panel.
- * No fixed preview height is imposed here: the two grid columns stretch to
- * the same row height, and only the document stage scrolls when needed.
- */ --}}
 .spmu-scan-slot .scanned-pdf-stage,
 .spmu-scan-slot .scanned-image-stage {
     flex: 1 1 0;
@@ -150,8 +112,6 @@
     border: 0;
 }
 
-{{-- /* 3. Request details grid ------------------------------------------------ */ --}}
-
 .spmu-left-borrowing-info {
     display: flex;
     flex-direction: column;
@@ -169,7 +129,7 @@
     justify-content: flex-start;
     gap: 4px;
     min-width: 0;
-    padding: 13px 20px;
+    padding: 13px 16px;
     border-right: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
 }
@@ -192,8 +152,6 @@
     word-break: normal;
 }
 
-{{-- /* 4. Verification checklist and decision --------------------------------- */ --}}
-
 .spmu-checklist-panel {
     display: flex;
     flex-direction: column;
@@ -201,10 +159,10 @@
     min-height: 0;
 }
 
-.spmu-checklist-panel > .empty-state { margin: 18px 20px; }
+.spmu-checklist-panel > .empty-state { margin: 12px 16px; }
 
 .spmu-review-summary {
-    margin: 15px 20px 0;
+    margin: 12px 16px 0;
     color: var(--text-muted);
     font-size: 12.5px;
     line-height: 1.5;
@@ -214,8 +172,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    margin: 14px 20px 0;
+    gap: 12px;
+    margin: 12px 16px 0;
     padding: 11px 13px;
     background: var(--surface-subtle);
     border: 1px solid var(--border);
@@ -239,7 +197,7 @@
 .spmu-ao-verification-summary {
     display: grid;
     gap: 12px;
-    margin: 14px 20px 0;
+    margin: 12px 16px 0;
     padding: 13px;
     border: 1px solid var(--success-border);
     border-radius: 10px;
@@ -270,7 +228,7 @@
 .spmu-ao-verification-summary__details {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 9px 14px;
+    gap: 9px 12px;
     margin: 0;
 }
 
@@ -314,13 +272,13 @@
     flex: 1 1 auto;
     flex-direction: column;
     margin: 0;
-    padding: 0 20px 18px;
+    padding: 0 16px 16px;
 }
 
 .spmu-checklist {
     display: grid;
     gap: 8px;
-    margin: 15px 0 0;
+    margin: 12px 0 0;
 }
 
 .spmu-check-row {
@@ -366,10 +324,6 @@
     line-height: 1.45;
 }
 
-{{-- /*
- * The decision block sits at the foot of the card so the two review panels
- * finish on the same line on a desktop screen.
- */ --}}
 .spmu-review-footer {
     margin-top: auto;
     padding-top: 16px;
@@ -394,17 +348,6 @@
     transform: none;
 }
 
-{{-- /*
- * Decision hover states
- * ---------------------
- * Each decision announces itself in its own colour only while the pointer is
- * on it (or it is keyboard-focused); the resting state is left exactly as the
- * page already renders it.
- *
- * !important is required here, and only here: app.css carries a generic
- * `button:not(...):not(...)...:hover` rule whose long :not() chain gives it a
- * specificity no reasonable selector in this file can outrank.
- */ --}}
 .spmu-decision-actions .button {
     transition:
         background-color 170ms ease,
@@ -435,7 +378,6 @@
     border-color: #dc2626 !important;
 }
 
-{{-- /* The focus ring stays on top of the fill so keyboard position is obvious. */ --}}
 .spmu-decision-actions .button:focus-visible {
     outline: 2px solid var(--surface-elevated);
     outline-offset: -4px;
@@ -451,7 +393,6 @@ html[data-theme="dark"] .spmu-decision-actions .button[data-decision-trigger="VE
     border-color: #22c55e !important;
 }
 
-{{-- /* Dark amber is too light to carry white text, so this one takes dark ink. */ --}}
 html[data-theme="dark"] .spmu-decision-actions .button[data-decision-trigger="RETURNED_FOR_REVISION"]:hover:not(:disabled),
 html[data-theme="dark"] .spmu-decision-actions .button[data-decision-trigger="RETURNED_FOR_REVISION"]:focus-visible:not(:disabled) {
     color: #111827 !important;
@@ -465,8 +406,6 @@ html[data-theme="dark"] .spmu-decision-actions .button[data-decision-trigger="RE
     background-color: #ef4444 !important;
     border-color: #ef4444 !important;
 }
-
-{{-- /* 5. Confirmation dialog -------------------------------------------------- */ --}}
 
 .spmu-confirm-dialog {
     position: fixed;
@@ -493,7 +432,7 @@ html[data-theme="dark"] .spmu-decision-actions .button[data-decision-trigger="RE
     display: grid;
     grid-template-columns: 40px minmax(0, 1fr);
     gap: 15px;
-    padding: 22px;
+    padding: 16px;
 }
 
 .spmu-confirm-dialog__surface h2 {
@@ -518,7 +457,7 @@ html[data-theme="dark"] .spmu-decision-actions .button[data-decision-trigger="RE
 .spmu-dialog-remarks {
     display: grid;
     gap: 7px;
-    margin-top: 14px;
+    margin-top: 12px;
 }
 
 .spmu-dialog-remarks textarea {
@@ -534,12 +473,9 @@ html[data-theme="dark"] .spmu-decision-actions .button[data-decision-trigger="RE
     margin-top: 2px;
 }
 
-{{-- /* 6. Responsive ----------------------------------------------------------- */ --}}
-
 @media (max-width: 1180px) {
     .spmu-review-top-row { grid-template-columns: 1fr; }
 
-    {{-- /* Once the panels stack, they no longer need equal heights. */ --}}
     .spmu-scan-slot > .scanned-document-card { height: auto; }
 
     .spmu-scan-slot .scanned-pdf-stage,

@@ -1,10 +1,5 @@
 <style>
-{{-- /* UNIVERSAL PUBLIC AUTH BACKGROUND START */ --}}
 
-{{-- /*
- * Shared visual shell for Sign-in-related public pages.
- * Desktop stays left aligned; mobile remains centered.
- */ --}}
 .forgot-login-page,
 .auth-recovery-page {
     position: relative;
@@ -39,10 +34,6 @@
         scroll;
 }
 
-{{-- /*
- * Keep the card comfortably above the image while allowing
- * the CSPC building to remain visible on the right side.
- */ --}}
 .forgot-login-card,
 .auth-recovery-card {
     position: relative;
@@ -62,5 +53,4 @@
     }
 }
 
-{{-- /* UNIVERSAL PUBLIC AUTH BACKGROUND END */ --}}
 </style>

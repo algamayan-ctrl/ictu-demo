@@ -674,9 +674,7 @@ class OfficeDraftTemplateRenderer
         }
     }
 
-    /* ------------------------------------------------------------------ */
     /* Phase 4: minor presentation edits (DOCX)                            */
-    /* ------------------------------------------------------------------ */
 
     /** @param array<string,mixed> $schema */
     private function applyDocxMinorEdits(ZipArchive $zip, array $schema): void
@@ -1022,9 +1020,7 @@ class OfficeDraftTemplateRenderer
         }
     }
 
-    /* ------------------------------------------------------------------ */
     /* Phase 4: minor presentation edits (XLSX)                            */
-    /* ------------------------------------------------------------------ */
 
     /** @param array<string,mixed> $schema */
     private function applyXlsxMinorEdits(ZipArchive $zip, array $schema): void
@@ -1285,9 +1281,7 @@ class OfficeDraftTemplateRenderer
         $xf->setAttribute('applyAlignment', '1');
     }
 
-    /* ------------------------------------------------------------------ */
     /* Phase 4: shared helpers                                             */
-    /* ------------------------------------------------------------------ */
 
     /**
      * @param list<array<string,mixed>> $minorEdits

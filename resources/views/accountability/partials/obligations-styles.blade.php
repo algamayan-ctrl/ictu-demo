@@ -1,25 +1,15 @@
 <style>
-{{-- /*
-|--------------------------------------------------------------------------
-| Borrower - My Obligations (Grouped)
-|--------------------------------------------------------------------------
-|
-| Borrower view only. Related technical records are presented as one
-| obligation card so Incident + Billing + Restriction do not look like three
-| different problems.
-|
-*/ --}}
 
 .ob-workspace {
     display: grid;
-    gap: 18px;
+    gap: 16px;
 }
 
 .ob-section-heading {
     display: flex;
     align-items: end;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
 }
 
 .ob-section-heading span {
@@ -37,16 +27,12 @@
     font-size: 12px;
 }
 
-{{-- /* Record summary --------------------------------------------------------- */ --}}
-
 .ob-summary {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
 }
 
-{{-- /* Universal KPI card: matches Admin/AO/Borrower dashboard and the SPMU
-   accountability summary cards in size, spacing, border and hover rhythm. */ --}}
 .ob-summary-card {
     --ob-accent: var(--info);
     --ob-hover: rgba(23, 105, 224, .045);
@@ -61,7 +47,7 @@
     row-gap: 2px;
     min-width: 0;
     min-height: 122px;
-    padding: 16px 18px;
+    padding: 12px 16px;
     border: 1px solid var(--border);
     border-top: 3px solid var(--ob-accent);
     border-radius: 12px;
@@ -138,13 +124,11 @@ html[data-theme="dark"] .ob-summary-card.is-success {
     --ob-tint: var(--surface-subtle);
 }
 
-{{-- /* Current obligations heading ------------------------------------------- */ --}}
-
 .ob-current-header {
     display: flex;
     align-items: end;
     justify-content: space-between;
-    gap: 18px;
+    gap: 16px;
     padding-top: 2px;
 }
 
@@ -175,15 +159,13 @@ html[data-theme="dark"] .ob-summary-card.is-success {
     margin: 0;
 }
 
-{{-- /* Obligation cards ------------------------------------------------------- */ --}}
-
 .ob-case-list {
     display: grid;
     gap: 12px;
 }
 
 .ob-case-card {
-    padding: 16px 18px;
+    padding: 12px 16px;
     background: var(--surface-elevated);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -196,7 +178,7 @@ html[data-theme="dark"] .ob-summary-card.is-success {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 18px;
+    gap: 16px;
 }
 
 .ob-case-identity {
@@ -343,19 +325,13 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
     position: relative;
 }
 
-{{-- /*
- * One obligation = one obvious primary action. This is the sole visible
- * control on the collapsed card, so it carries the exact same look as the
- * universal primary button used everywhere else in the system (View
- * Request, View Record, and so on) - not a secondary/outline treatment.
- */ --}}
 .ob-details > summary:not(.disclosure-trigger) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 7px;
     min-height: 34px;
-    padding: 6px 14px;
+    padding: 6px 12px;
     color: #fff;
     background: var(--primary-action);
     border: 1px solid var(--primary-action);
@@ -392,12 +368,9 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
     transform: rotate(180deg);
 }
 
-{{-- /* Expanded obligation: Documents / Borrowing Reference / Restriction /
-   History, each its own labeled group instead of one undifferentiated
-   button row - and never repeating what the collapsed card already shows. */ --}}
 .ob-detail-body {
     display: grid;
-    gap: 14px;
+    gap: 12px;
     width: 100%;
 }
 
@@ -505,7 +478,7 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
     display: flex;
     align-items: center;
     gap: 13px;
-    padding: 18px 20px;
+    padding: 16px 16px;
     color: var(--success);
     background: var(--surface-elevated);
     border: 1px solid var(--border);
@@ -526,15 +499,13 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
 }
 
 .ob-no-match {
-    padding: 24px;
+    padding: 16px;
     color: var(--text-muted);
     background: var(--surface-elevated);
     border: 1px solid var(--border);
     border-radius: 10px;
     text-align: center;
 }
-
-{{-- /* Responsive ------------------------------------------------------------- */ --}}
 
 @media (max-width: 1080px) {
     .ob-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -576,8 +547,6 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
     .ob-detail-grid { grid-template-columns: 1fr; }
 }
 
-{{-- /* Borrower summary cards use the same KPI language as the dashboards and
-   AO/Admin accountability summary: white body, colored top accent, tinted icon. */ --}}
 .ob-summary-card {
     border-top:3px solid var(--ob-accent);
     box-shadow:0 1px 2px rgba(7, 27, 53, .05);
@@ -597,12 +566,6 @@ html[data-theme="dark"] .ob-case-icon.is-orange  { --ob-tint:#33210f; --ob-ink:#
 .ob-summary-card.is-empty { opacity:1; }
 html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover); }
 
-
-{{-- /* -----------------------------------------------------------------------
-| My Obligations summary cards — exact dashboard KPI proportions
-| Matches the SPMU Head / Administrator dashboard card dimensions and
-| information hierarchy while remaining non-clickable summary content.
-| ------------------------------------------------------------------------ */ --}}
 .ob-summary-card {
     position: relative;
     display: grid;
@@ -611,7 +574,7 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     column-gap: 12px;
     row-gap: 2px;
     min-height: 122px;
-    padding: 16px 18px;
+    padding: 12px 16px;
     align-items: initial;
     border: 1px solid var(--border);
     border-top: 3px solid var(--ob-accent);
@@ -677,12 +640,9 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     .ob-summary { grid-template-columns: 1fr; }
 }
 
-{{-- /* Resolved History disclosure --------------------------------------------
-   Kept out of the way by default so My Obligations stays one clean, active
-   workspace; the borrower's own resolved records remain one click away. */ --}}
 .ob-resolved-history-disclosure {
     margin-top: 4px;
-    padding: 16px 18px;
+    padding: 12px 16px;
     background: var(--surface-elevated);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -708,16 +668,15 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     gap: 8px;
 }
 
-.ob-resolved-history-disclosure[open] > summary { margin-bottom: 14px; }
+.ob-resolved-history-disclosure[open] > summary { margin-bottom: 12px; }
 
 .ob-resolved-history-body { padding-top: 2px; }
 .ob-resolved-history-body > .content-area { margin: 0; }
 
 </style>
 <style>
-{{-- /* Final borrower-facing obligation cleanup: current information first,
-   no hover affordance on summary-only cards, and one consistent disclosure. */ --}}
-.ob-workspace { gap: 18px; }
+
+.ob-workspace { gap: 16px; }
 
 .ob-summary-card {
     min-height: 124px;
@@ -741,14 +700,14 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 }
 .ob-current-header h2 { margin: 0; }
 
-.ob-case-card { padding: 17px 19px; }
+.ob-case-card { padding: 12px 19px; }
 .ob-case-summary { margin-top: 10px; }
 .ob-next-action { margin-top: 12px; }
 .ob-case-actions { margin-top: 12px; }
 
 .ob-clear-card {
     min-height: 104px;
-    padding: 20px 22px;
+    padding: 16px 16px;
     border-left: 3px solid var(--success);
 }
 .ob-clear-card > span { flex: 0 0 auto; }
@@ -762,9 +721,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     .ob-search { width: 100%; }
 }
 
-
-{{-- /* Compact borrower surface: do not let an empty My Obligations workspace
-   stretch its lone state card to the remaining viewport height. */ --}}
 .app-main > .ob-workspace {
     flex: 0 0 auto;
     width: 100%;
@@ -810,21 +766,11 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 
 .ob-clear-card {
     min-height: 0;
-    padding: 15px 18px;
+    padding: 12px 16px;
 }
 </style>
 
 <style>
-{{-- /* MY OBLIGATIONS FULL COLOR KPI START */ --}}
-
-{{-- /*
- | Exact visual alignment with the main role dashboard KPI cards.
- | Presentation only.
- */ --}}
-
-{{-- /* ============================================================
-   GRID
-   ============================================================ */ --}}
 
 .ob-workspace .ob-summary {
     display:grid !important;
@@ -832,11 +778,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     gap:12px !important;
     width:100% !important;
 }
-
-
-{{-- /* ============================================================
-   CARD
-   ============================================================ */ --}}
 
 .ob-workspace .ob-summary-card {
     --ob-from:#32a5f5;
@@ -860,7 +801,7 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     height:132px !important;
     min-height:132px !important;
 
-    padding:16px 43px 16px 20px !important;
+    padding:12px 43px 12px 16px !important;
 
     overflow:hidden !important;
 
@@ -890,11 +831,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
         box-shadow 160ms ease !important;
 }
 
-
-{{-- /* ============================================================
-   DASHBOARD LOWER CURVE
-   ============================================================ */ --}}
-
 .ob-workspace .ob-summary-card::before {
     content:"" !important;
 
@@ -914,11 +850,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 
     pointer-events:none !important;
 }
-
-
-{{-- /* ============================================================
-   DASHBOARD ARROW
-   ============================================================ */ --}}
 
 .ob-workspace .ob-summary-card::after {
     content:"→" !important;
@@ -956,16 +887,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     z-index:1 !important;
 }
 
-
-{{-- /* ============================================================
-   UNIVERSAL DASHBOARD SEMANTIC COLORS
-   ============================================================ */ --}}
-
-{{-- /*
- | RED
- | Active Obligations = same metric and same semantic treatment
- | as the Borrower Dashboard.
- */ --}}
 .ob-workspace .ob-summary-card.is-info {
     --ob-from:#fb5d5d;
     --ob-mid:#ea3939;
@@ -973,11 +894,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     --ob-shadow:rgba(234,57,57,.20);
 }
 
-
-{{-- /*
- | BLUE
- | Needs My Action = primary/current action.
- */ --}}
 .ob-workspace .ob-summary-card.is-warning {
     --ob-from:#32a5f5;
     --ob-mid:#1479ea;
@@ -985,11 +901,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     --ob-shadow:rgba(20,121,234,.20);
 }
 
-
-{{-- /*
- | AMBER
- | My Unsettled Charges = financial warning / unpaid amount.
- */ --}}
 .ob-workspace .ob-summary-card.is-orange {
     --ob-from:#ffc443;
     --ob-mid:#f6a10c;
@@ -997,11 +908,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     --ob-shadow:rgba(246,161,12,.21);
 }
 
-
-{{-- /*
- | GREEN
- | Borrowing status clear.
- */ --}}
 .ob-workspace .ob-summary-card.is-success {
     --ob-from:#2acb9e;
     --ob-mid:#12ab83;
@@ -1009,12 +915,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     --ob-shadow:rgba(18,171,131,.20);
 }
 
-
-{{-- /*
- | If Borrowing Status becomes restricted, its existing Blade
- | changes the tone to warning. Since "warning" above is used by
- | Needs My Action, override the last card specifically to amber.
- */ --}}
 .ob-workspace .ob-summary-card:last-child.is-warning {
     --ob-from:#ffc443;
     --ob-mid:#f6a10c;
@@ -1022,19 +922,12 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     --ob-shadow:rgba(246,161,12,.21);
 }
 
-
-{{-- /* Future danger support */ --}}
 .ob-workspace .ob-summary-card.is-danger {
     --ob-from:#fb5d5d;
     --ob-mid:#ea3939;
     --ob-to:#c92525;
     --ob-shadow:rgba(234,57,57,.20);
 }
-
-
-{{-- /* ============================================================
-   ICON
-   ============================================================ */ --}}
 
 .ob-workspace .ob-summary-icon {
     grid-column:1 !important;
@@ -1066,11 +959,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     color:#fff !important;
 }
 
-
-{{-- /* ============================================================
-   LABEL
-   ============================================================ */ --}}
-
 .ob-workspace .ob-summary-label {
     grid-column:2 !important;
     grid-row:1 !important;
@@ -1096,11 +984,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     overflow:hidden !important;
 }
 
-
-{{-- /* ============================================================
-   VALUE
-   ============================================================ */ --}}
-
 .ob-workspace .ob-summary-value {
     grid-column:2 !important;
     grid-row:2 !important;
@@ -1122,16 +1005,9 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     white-space:nowrap !important;
 }
 
-
-{{-- /* My Unsettled Charges */ --}}
 .ob-workspace .ob-summary-card.is-orange .ob-summary-value {
     font-size:28px !important;
 }
-
-
-{{-- /* ============================================================
-   NOTE
-   ============================================================ */ --}}
 
 .ob-workspace .ob-summary-note {
     grid-column:2 !important;
@@ -1153,11 +1029,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 
     overflow:hidden !important;
 }
-
-
-{{-- /* ============================================================
-   HOVER
-   ============================================================ */ --}}
 
 .ob-workspace .ob-summary-card:hover {
     background:
@@ -1181,17 +1052,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     transform:translateX(1px) !important;
 }
 
-
-{{-- /* ============================================================
-   REMOVE FILTER-SELECTION VISUAL DIFFERENCE
-   ============================================================ */ --}}
-
-{{-- /*
- | The URL focus behavior still works.
- | We only remove the special yellow/white outline so cards remain
- | visually identical to dashboard cards.
- */ --}}
-
 .ob-workspace .ob-summary-card.is-selected,
 .ob-workspace .ob-summary-card[aria-current="true"] {
     outline:0 !important;
@@ -1207,23 +1067,14 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
         0 7px 17px var(--ob-shadow) !important;
 }
 
-
-{{-- /* keyboard accessibility remains visible */ --}}
 .ob-workspace .ob-summary-card:focus-visible {
     outline:2px solid rgba(255,255,255,.95) !important;
     outline-offset:2px !important;
 }
 
-
-{{-- /* Zero values retain full semantic color */ --}}
 .ob-workspace .ob-summary-card.is-empty {
     opacity:1 !important;
 }
-
-
-{{-- /* ============================================================
-   RESPONSIVE
-   ============================================================ */ --}}
 
 @media (max-width:1100px) {
 
@@ -1260,11 +1111,9 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 
 }
 
-{{-- /* MY OBLIGATIONS FULL COLOR KPI END */ --}}
 </style>
 
 <style>
-{{-- /* MY OBLIGATIONS ALL CLEAR PANEL START */ --}}
 
 .ob-workspace
 .ob-clear-card.ob-all-clear-card {
@@ -1275,12 +1124,12 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 
     align-items:center !important;
 
-    gap:14px !important;
+    gap:12px !important;
 
     min-height:76px !important;
 
     margin:0 !important;
-    padding:14px 17px !important;
+    padding:12px 12px !important;
 
     overflow:hidden !important;
 
@@ -1301,9 +1150,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 
     color:inherit !important;
 }
-
-
-{{-- /* ICON */ --}}
 
 .ob-workspace
 .ob-all-clear-icon {
@@ -1330,9 +1176,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 
     color:#087b55 !important;
 }
-
-
-{{-- /* COPY */ --}}
 
 .ob-workspace
 .ob-all-clear-copy {
@@ -1364,9 +1207,6 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     line-height:1.45 !important;
 }
 
-
-{{-- /* VIEW HISTORY */ --}}
-
 .ob-workspace
 .ob-all-clear-history {
     display:inline-flex !important;
@@ -1394,12 +1234,10 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     color:#075f46 !important;
 }
 
-
 #obligation-history {
     scroll-margin-top:
         calc(var(--topbar-height, 64px) + 16px) !important;
 }
-
 
 @media (max-width:680px) {
 
@@ -1409,7 +1247,7 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
 
         gap:11px !important;
 
-        padding:13px 14px !important;
+        padding:13px 12px !important;
     }
 
     .ob-workspace
@@ -1426,35 +1264,33 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
     }
 }
 
-{{-- /* MY OBLIGATIONS ALL CLEAR PANEL END */ --}}
 </style>
 
 <style>
-{{-- /* Borrower My Obligations: viewport-filling KPI row and compact record disclosures.
-   The three-card layout must override the older forced four-column KPI CSS. */ --}}
-.ob-workspace { width:100%; min-width:0; gap:14px; align-content:start; }
+
+.ob-workspace { width:100%; min-width:0; gap:12px; align-content:start; }
 .ob-workspace .ob-summary.is-three { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
 .ob-workspace .ob-summary:not(.is-three) { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
 .ob-workspace .ob-summary-card { width:100%; min-width:0; height:126px !important; }
 .ob-workspace .ob-focused-results { min-height:0; }
 .ob-workspace .ob-resolved-history-disclosure { width:100%; min-width:0; margin:0; padding:0; overflow:hidden; }
-.ob-workspace .ob-resolved-history-disclosure > summary { min-height:58px; padding:15px 19px; }
+.ob-workspace .ob-resolved-history-disclosure > summary { min-height:58px; padding:12px 19px; }
 .ob-workspace .ob-resolved-history-disclosure[open] > summary { margin-bottom:0; border-bottom:1px solid var(--border); }
-.ob-workspace .ob-resolved-history-body { padding:12px 16px 16px; }
+.ob-workspace .ob-resolved-history-body { padding:12px 12px 12px; }
 .ob-workspace .ob-resolved-history-body > .content-area { margin:0; padding:0; min-height:0; display:block; }
-.ob-workspace .ob-resolved-history-body .resolved-history-card { margin:0 0 9px; padding:12px 15px; min-height:0; }
+.ob-workspace .ob-resolved-history-body .resolved-history-card { margin:0 0 9px; padding:12px 12px; min-height:0; }
 .ob-workspace .ob-resolved-history-body .resolved-history-card:last-of-type { margin-bottom:0; }
 .ob-workspace .ob-resolved-history-body .resolved-history-card .card-header { padding:0; min-height:0; margin:0; }
 .ob-workspace .ob-resolved-history-body .resolved-history-card .card-header h3 { margin:0; }
 .ob-workspace .ob-resolved-history-body .resolved-history-card .card-header small { display:block; margin-top:3px; }
 .ob-workspace .ob-resolved-history-body .resolved-history-summary { margin:8px 0 0; padding:7px 0 0; border-top:1px solid var(--border); }
 .ob-workspace .ob-resolved-history-body .resolved-history-card > .accountability-case-details { margin-top:8px; padding:0; }
-{{-- /* A collapsed sanctions disclosure must be only its heading, never a full-height panel. */ --}}
+
 .ob-sanctions-history { display:block; flex:0 0 auto; align-self:auto; height:auto; min-height:0 !important; width:100%; margin:0; padding:0; overflow:hidden; }
-.ob-sanctions-history > summary { min-height:58px; padding:15px 19px; }
+.ob-sanctions-history > summary { min-height:58px; padding:12px 19px; }
 .ob-sanctions-history:not([open]) > .accountability-sanctions-section { display:none !important; }
 .ob-sanctions-history[open] > summary { margin-bottom:0; border-bottom:1px solid var(--border); }
-.ob-sanctions-history > .accountability-sanctions-section { display:block; flex:none; width:100%; min-height:0 !important; height:auto; margin:0; padding:12px 15px 15px; }
+.ob-sanctions-history > .accountability-sanctions-section { display:block; flex:none; width:100%; min-height:0 !important; height:auto; margin:0; padding:12px 12px 12px; }
 .ob-sanctions-history .accountability-sanctions-card { margin:0; padding:0; min-height:0; height:auto; border:0; box-shadow:none; }
 .ob-sanctions-history .accountability-cases-table { margin:0; }
 @media(max-width:1000px) {
@@ -1466,25 +1302,25 @@ html[data-theme="dark"] .ob-summary-card:hover { background:var(--surface-hover)
  .ob-workspace .ob-resolved-history-body { padding:10px; }
  .ob-sanctions-history > .accountability-sanctions-section { padding:10px; }
 }
-{{-- /* Final borrower spacing rhythm: no empty grid row in the clear state. */ --}}
-.ob-workspace { gap: 16px !important; margin: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
-.ob-workspace .ob-summary { gap: 14px !important; margin: 0 !important; }
+
+.ob-workspace { gap: 12px !important; margin: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
+.ob-workspace .ob-summary { gap: 12px !important; margin: 0 !important; }
 .ob-workspace .ob-summary-card { margin: 0 !important; }
 .ob-workspace .ob-resolved-history-disclosure { margin: 0 !important; }
 .ob-workspace .ob-resolved-history-disclosure > summary,
-.ob-sanctions-history > summary { min-height: 60px !important; padding: 16px 20px !important; }
-{{-- /* Sanctions follow the self-contained borrower workspace as a separate sibling. */ --}}
-body:has(.ob-workspace) #sanction-history { margin-top: 16px !important; margin-bottom: 0 !important; }
-{{-- /* Keep the heading close to the dashboard rather than stacking large generic margins. */ --}}
-body:has(.ob-workspace) .accountability-heading { margin-bottom: 18px !important; padding-bottom: 0 !important; }
+.ob-sanctions-history > summary { min-height: 60px !important; padding: 12px 16px !important; }
+
+body:has(.ob-workspace) #sanction-history { margin-top: 12px !important; margin-bottom: 0 !important; }
+
+body:has(.ob-workspace) .accountability-heading { margin-bottom: 12px !important; padding-bottom: 0 !important; }
 @media (max-width: 660px) {
   .ob-workspace { gap: 12px !important; }
   body:has(.ob-workspace) #sanction-history { margin-top: 12px !important; }
-  body:has(.ob-workspace) .accountability-heading { margin-bottom: 14px !important; }
+  body:has(.ob-workspace) .accountability-heading { margin-bottom: 12px !important; }
 }
-{{-- /* Borrower dashboard: balanced spacing for active and clear states. */ --}}
-.ob-workspace { gap: 20px !important; align-content: start !important; }
-.ob-workspace .ob-summary { gap: 14px !important; }
+
+.ob-workspace { gap: 16px !important; align-content: start !important; }
+.ob-workspace .ob-summary { gap: 12px !important; }
 .ob-workspace .ob-summary-card { height: 122px !important; min-height: 122px !important; }
 .ob-workspace .ob-focused-results {
     display: grid;
@@ -1495,8 +1331,8 @@ body:has(.ob-workspace) .accountability-heading { margin-bottom: 18px !important
 }
 .ob-workspace .ob-current-header { padding: 0 !important; margin: 0 !important; align-items: center; }
 .ob-workspace .ob-current-header h2 { font-size: 15px; line-height: 1.3; }
-.ob-workspace .ob-case-list { gap: 14px; }
-.ob-workspace .ob-case-card { padding: 15px 18px !important; }
+.ob-workspace .ob-case-list { gap: 12px; }
+.ob-workspace .ob-case-card { padding: 12px 16px !important; }
 .ob-workspace .ob-case-identity { gap: 11px; }
 .ob-workspace .ob-case-icon { width: 38px; height: 38px; }
 .ob-workspace .ob-case-identity h3 { font-size: 15px; line-height: 1.3; }
@@ -1515,22 +1351,22 @@ body:has(.ob-workspace) .accountability-heading { margin-bottom: 18px !important
 .ob-workspace .ob-next-action > strong { font-size: 12px; font-weight: 650; }
 .ob-workspace .ob-case-actions { margin-top: 11px !important; }
 .ob-workspace .ob-resolved-history-disclosure { margin: 0 !important; }
-{{-- /* Sanction disclosure is a sibling, not a child of .ob-workspace. */ --}}
-body:has(.ob-workspace) #sanction-history { margin: 18px 0 0 !important; }
+
+body:has(.ob-workspace) #sanction-history { margin: 12px 0 0 !important; }
 @media(max-width:1000px) {
  .ob-workspace .ob-summary-card { height: 122px !important; }
 }
 @media(max-width:660px) {
- .ob-workspace { gap: 16px !important; }
+ .ob-workspace { gap: 12px !important; }
  .ob-workspace .ob-summary-card { height: auto !important; min-height: 112px !important; }
- .ob-workspace .ob-case-card { padding: 14px !important; }
+ .ob-workspace .ob-case-card { padding: 12px !important; }
  .ob-workspace .ob-case-summary,
  .ob-workspace .ob-linked-restriction,
  .ob-workspace .ob-next-action,
  .ob-workspace .ob-case-actions { margin-left: 0; }
- body:has(.ob-workspace) #sanction-history { margin-top: 16px !important; }
+ body:has(.ob-workspace) #sanction-history { margin-top: 12px !important; }
 }
-{{-- /* Only My Unsettled Charges uses blue when the balance is zero. */ --}}
+
 .ob-workspace .ob-summary-card.is-blue {
     --ob-from:#38a0f2;
     --ob-mid:#1777dc;

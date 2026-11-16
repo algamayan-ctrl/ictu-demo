@@ -102,6 +102,7 @@ class RsldppWorkflowTest extends TestCase
                 'decision' => 'CONFIRM',
                 'resolution_remarks' => 'Accountability confirmed.',
                 'resolution_outcome' => 'COMPLIANCE_REQUIRED',
+                'confirm_e_signature' => '1',
                 'compliance_action' => 'RECOVERY',
                 'requires_rslddp' => '0',
                 'count_as_offense' => '0',
@@ -127,6 +128,7 @@ class RsldppWorkflowTest extends TestCase
             ->post(route('incidents.resolve', $incident), [
                 'decision' => 'CLEAR',
                 'resolution_remarks' => 'Finding was not substantiated on review.',
+                'confirm_e_signature' => '1',
                 '_action_token' => 'test-clear-decision',
             ])
             ->assertSessionHasNoErrors();
@@ -169,6 +171,7 @@ class RsldppWorkflowTest extends TestCase
             ->post(route('incidents.resolve', $incident), [
                 'decision' => 'CONFIRM',
                 'resolution_remarks' => 'Damage confirmed on inspection.',
+                'confirm_e_signature' => '1',
                 '_action_token' => 'test-confirm-auto-offense',
             ])
             ->assertSessionHasNoErrors();
@@ -197,6 +200,7 @@ class RsldppWorkflowTest extends TestCase
             ->post(route('incidents.resolve', $incident), [
                 'decision' => 'CONFIRM',
                 'resolution_remarks' => 'Confirmed after physical inspection.',
+                'confirm_e_signature' => '1',
                 '_action_token' => 'test-f2f-confirm',
             ])->assertSessionHasNoErrors();
 
@@ -221,6 +225,7 @@ class RsldppWorkflowTest extends TestCase
                 'decision' => 'CONFIRM',
                 'resolution_remarks' => 'Accountability confirmed.',
                 '_action_token' => 'test-rslddp-compliance-decide-1',
+                'confirm_e_signature' => '1',
             ])
             ->assertSessionHasNoErrors();
 

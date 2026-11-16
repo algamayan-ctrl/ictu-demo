@@ -107,11 +107,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
         Route::post('/registrations/{registration}/decision', [BorrowerRegistrationReviewController::class, 'decide'])->name('registrations.decide');
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Dashboard / Authentication
-    |--------------------------------------------------------------------------
-    */
+    // This is the route group for the Dashboard and authenticated session actions.
 
     Route::get('/dashboard', DashboardController::class)
         ->name('dashboard');
@@ -134,12 +130,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
         ->middleware('throttle:20,1')
         ->name('session.activity');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Notifications
-    |--------------------------------------------------------------------------
-    */
+    // This is the route group for system notification records and read actions.
 
     Route::get('/notifications', [NotificationController::class, 'index'])
         ->name('notifications.index');
@@ -157,12 +148,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])
         ->name('notifications.read');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Profile
-    |--------------------------------------------------------------------------
-    */
+    // This is the route group for the current user's profile and signature settings.
 
     Route::get('/profile', [ProfileController::class, 'show'])
         ->name('profile.show');
@@ -191,21 +177,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
     Route::get('/protected-files/{file}', [DocumentController::class, 'protectedFile'])
         ->name('files.show');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Inventory - Borrower + SPMU
-    |--------------------------------------------------------------------------
-    |
-    | Borrower:
-    | - Read-only inventory visibility
-    | - Current borrowable availability
-    | - No create / edit / reserve / hold
-    |
-    | SPMU:
-    | - Full operational inventory access
-    |
-    */
+    // This is the route group for Inventory pages for authorized Borrower and SPMU users.
 
     Route::middleware('workspace:BORROWER,SPMU')->group(function (): void {
 
@@ -223,12 +195,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
             ->name('inventory.stock-card.print');
     });
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Inventory Management - SPMU Only
-    |--------------------------------------------------------------------------
-    */
+    // This is the route group for authorized SPMU inventory management.
 
     Route::middleware('workspace:SPMU')->group(function (): void {
 
@@ -254,16 +221,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
 
     });
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Borrowing Calendar
-    |--------------------------------------------------------------------------
-    |
-    | Active borrower/SPMU operational calendar only.
-    | GSU/VPAF are not borrowing approvers in the current workflow.
-    |
-    */
+    // This is the route group for the borrowing and SPMU operations calendar.
 
     Route::middleware('workspace:BORROWER,SPMU')->group(function (): void {
 
@@ -271,12 +229,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
             ->name('calendar.index');
     });
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Borrowing Request - Create / Store
-    |--------------------------------------------------------------------------
-    */
+    // This is the route group for creating and submitting a borrowing request.
 
     Route::middleware('workspace:BORROWER')->group(function (): void {
 
@@ -290,15 +243,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
             ->name('requests.store');
     });
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Borrowing Requests - Active Workflow View
-    |--------------------------------------------------------------------------
-    |
-    | Borrower and SPMU only. GSU/VPAF approval stages are retired from the
-    | active workflow; historical database values may remain for compatibility.
-    */
+    // This is the route group for active borrowing request records.
 
     Route::middleware('workspace:BORROWER,SPMU')->group(function (): void {
 
@@ -309,12 +254,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
             ->name('requests.show');
     });
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Borrowing Request - Borrower Actions
-    |--------------------------------------------------------------------------
-    */
+    // This is the route group for authorized borrower request actions.
 
     Route::middleware('workspace:BORROWER')->group(function (): void {
 
@@ -328,26 +268,13 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
             ->name('requests.submit');
     });
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Request Cancellation
-    |--------------------------------------------------------------------------
-    */
+    // This is the route group for authorized borrowing request cancellation.
 
     Route::post('/requests/{borrowingRequest}/cancel', [BorrowingRequestController::class, 'cancel'])
         ->middleware('workspace:BORROWER,SPMU')
         ->name('requests.cancel');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Approval Workflow - SPMU Only
-    |--------------------------------------------------------------------------
-    |
-    | New submissions are verified/decided by SPMU. GSU/VPAF are not active
-    | in-system approval stages.
-    */
+    // This is the route group for SPMU verification and final borrowing approval.
 
     Route::middleware('workspace:SPMU')->group(function (): void {
 
@@ -364,12 +291,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
             ->name('approvals.decide');
     });
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Documents
-    |--------------------------------------------------------------------------
-    */
+    // This is the route group for authorized document previews, system records, and downloads.
 
     Route::get('/documents/{document}/download', [DocumentController::class, 'download'])
         ->name('documents.download');
@@ -386,12 +308,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
     Route::get('/documents/{document}/record', [DocumentController::class, 'record'])
         ->name('documents.record');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Custody - Borrower + SPMU
-    |--------------------------------------------------------------------------
-    */
+    // This is the route group for borrowing custody records, physical release, and return processing.
 
     Route::middleware('workspace:BORROWER,SPMU')->group(function (): void {
 
@@ -424,7 +341,6 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
         ->middleware('workspace:SPMU')
         ->name('custody.reschedule-pickup');
 
-
     Route::post('/custody/{custody}/request-pickup-reschedule', [CustodyController::class, 'requestPickupReschedule'])
         ->middleware('workspace:BORROWER')
         ->name('custody.request-pickup-reschedule');
@@ -449,12 +365,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
         ->middleware('workspace:SPMU')
         ->name('custody.return');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Gate Pass - SPMU Action Officer
-    |--------------------------------------------------------------------------
-    */
+    // This is the route group for Gate Pass processing by SPMU Action Officer.
 
     Route::middleware('workspace:SPMU')->group(function (): void {
         Route::get('/gate-passes', [GatePassController::class, 'index'])
@@ -469,23 +380,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
         )->name('gate-passes.verify');
     });
 
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SPMU Laundry Operations
-    |--------------------------------------------------------------------------
-    |
-    | Current workflow:
-    | - the Laundry Worker is an offline actor with no system account
-    | - borrower returns linen + the physical Laundry Form to the Laundry Area
-    | - Laundry Personnel complete/sign it and later deliver the form to SPMU
-    | - Action Officer uploads the form, transcribes its actual receipt date,
-    |   and encodes the linen findings without a second physical inspection
-    | - the completed form and return encoding restore serviceable linen to
-    |   Available inventory automatically
-    |
-    */
+    // This is the route group for Laundry Operations managed by SPMU Action Officer.
 
     Route::middleware('workspace:SPMU')->group(function (): void {
         Route::get('/laundry', [LaundryController::class, 'index'])
@@ -509,30 +404,13 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
         Route::post('/spmu/laundry/{laundryJob}/upload-form', [LaundryController::class, 'upload'])
             ->name('laundry.spmu.upload-form');
 
-        /* Action Officer: verification found the linen was not returned. */
+        // This is the route to record the Action Officer's finding that linen was not returned.
         Route::post('/spmu/laundry/{laundryJob}/confirm-not-returned', [LaundryController::class, 'confirmNotReturned'])
             ->name('laundry.spmu.confirm-not-returned');
 
     });
 
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Laundry Processing
-    |--------------------------------------------------------------------------
-    |
-    | No separate Laundry Worker portal action is exposed. Historical
-    | LaundryRecord verification remains in code only for legacy data, while
-    | the current workflow is handled through LaundryJob + SPMU Return.
-    |
-    */
-
-    /*
-    |--------------------------------------------------------------------------
-    | Accountability
-    |--------------------------------------------------------------------------
-    */
+    // This is the route group for borrower obligations and SPMU accountability actions.
 
     Route::get('/accountability', [AccountabilityController::class, 'index'])
         ->middleware('workspace:BORROWER,SPMU')
@@ -598,12 +476,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
         ->middleware('workspace:SPMU')
         ->name('accountability.violations.review');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Academic Period Configuration
-    |--------------------------------------------------------------------------
-    */
+    // This is the route group for academic period configuration.
 
     Route::middleware('workspace:SPMU')->group(function (): void {
         Route::get('/administration/policies', [PolicyController::class, 'index'])
@@ -629,7 +502,6 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
             [PolicyController::class, 'updateOffenseApplication']
         )->name('policies.offense-application.update');
 
-
         Route::put(
             '/administration/policies/weekly-schedule',
             [PolicyController::class, 'updateWeeklyScheduleBatch']
@@ -652,12 +524,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
 
     });
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Reports
-    |--------------------------------------------------------------------------
-    */
+    // This is the route group for authorized reports and analytics.
 
     Route::middleware('workspace:SPMU')->group(function (): void {
 
@@ -670,7 +537,6 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
 
         Route::get('/reports/analytics-records', AnalyticsRecordsController::class)
             ->name('reports.analytics-records');
-
 
         Route::get('/reports', [ReportController::class, 'index'])
             ->name('reports.index');
@@ -709,16 +575,7 @@ Route::middleware(['auth', 'active', 'verified-email', 'approved-registration', 
         ->middleware('workspace:SPMU')
         ->name('reports.notifications.resolveBulk');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | Administration - SPMU
-    |--------------------------------------------------------------------------
-    | Account administration belongs to the SPMU Admin/Head (UserPolicy). The
-    | Action Officer may only resend a borrower's verification OTP. Database
-    | backups and temporary delegations are backend maintenance and have no
-    | screen here.
-    */
+    // This is the route group for user accounts and configuration authorized for SPMU Admin.
 
     Route::prefix('administration')
         ->name('administration.')

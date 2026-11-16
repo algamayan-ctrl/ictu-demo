@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
+// This is the controller for reviewing and deciding borrower registrations.
 class BorrowerRegistrationReviewController extends Controller
 {
     public function index(Request $request): View

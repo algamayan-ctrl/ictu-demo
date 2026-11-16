@@ -38,18 +38,17 @@
 @endphp
 
 <style>
-{{-- /* SPMU_RETURN_BAR_V5 */ --}}
 
 .spmu-return-v5 {
  width: 100%;
  display: grid;
- gap: 14px;
+ gap: 12px;
 }
 
 .spmu-return-v5-legend {
  display: flex;
  align-items: center;
- gap: 18px;
+ gap: 16px;
  min-height: 20px;
  color: var(--text-secondary);
  font-size: 11px;
@@ -241,7 +240,7 @@ html[data-theme="dark"] .spmu-return-v5-dot.late {
 
  <div class="spmu-return-v5-axis" aria-hidden="true">
  @foreach($ticks as $tick)
- @php
+@php
  $position = $axisMax > 0
  ? ($tick / $axisMax) * $chartHeight
  : 0;
@@ -261,7 +260,7 @@ html[data-theme="dark"] .spmu-return-v5-dot.late {
  <div class="spmu-return-v5-plot">
 
  @foreach($ticks as $tick)
- @php
+@php
  $position = $axisMax > 0
  ? ($tick / $axisMax) * $chartHeight
  : 0;
@@ -281,7 +280,7 @@ html[data-theme="dark"] .spmu-return-v5-dot.late {
  @else
  <div class="spmu-return-v5-groups">
  @foreach($points as $point)
- @php
+@php
  $onTime = (int) ($point['on_time'] ?? 0);
  $late = (int) ($point['late'] ?? 0);
 

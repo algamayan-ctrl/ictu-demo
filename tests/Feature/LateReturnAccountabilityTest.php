@@ -495,10 +495,64 @@ class LateReturnAccountabilityTest extends TestCase
 
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
-            ->post(route('overdue.bill', $case), ['basis' => 'Three chargeable late days at the configured tariff.'])
+            ->post(route('overdue.bill', $case), ['basis' => 'Three chargeable late days at the configured tariff.', 'confirm_e_signature' => '1'])
             ->assertSessionHasNoErrors();
 
         $this->assertSame(LateReturnService::STATUS_AWAITING_PAYMENT, $case->fresh()->status);
+
+        $snapshot = \App\Models\SignatureSnapshot::query()->where('purpose_code', 'LATE_RETURN_BILLING_STATEMENT')->sole();
+        $this->assertSame($head->id, $snapshot->signer_user_id);
+        $this->assertSame('SPMU Head', $snapshot->signer_role);
+        $this->assertTrue(data_get(\App\Models\AuditEvent::query()->where('action_code', 'E_SIGNATURE_APPLIED')->sole()->after_json, 'confirm_e_signature'));
+    }
+
+    public function test_billing_requires_explicit_signature_consent_before_any_writes(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        $custody = $this->custody($this->borrower());
+        $this->overdueCase($custody);
+        $officer = $this->officer();
+        $head = $this->spmuHead();
+        $this->registerSignature($head);
+        $this->recordReturn($custody, Carbon::create(2026, 9, 4, 14), $officer);
+        $case = $this->lateReturns->assess($custody->fresh(['lines', 'returns']), $officer);
+        $original = $case->fresh()->getAttributes();
+        $files = \Illuminate\Support\Facades\Storage::disk('local')->allFiles();
+        $tables = ['penalties', 'billing_statements', 'billing_lines', 'signature_snapshots', 'generated_documents', 'audit_events', 'notification_events', 'notification_deliveries', 'borrower_restrictions', 'stored_files'];
+        $counts = collect($tables)->mapWithKeys(fn ($table) => [$table => DB::table($table)->count()]);
+
+        foreach ([null, '0', 'false', 'off'] as $attempt => $consent) {
+            $payload = ['basis' => 'Final late-return assessment.', '_action_token' => 'billing-no-consent-'.$attempt];
+            if ($consent !== null) $payload['confirm_e_signature'] = $consent;
+            $this->withSession(['active_workspace' => 'SPMU'])->actingAs($head)
+                ->post(route('overdue.bill', $case), $payload)
+                ->assertRedirect()->assertSessionHasErrors('confirm_e_signature');
+            $this->assertSame($original, $case->fresh()->getAttributes());
+            foreach ($counts as $table => $count) $this->assertDatabaseCount($table, $count);
+            $this->assertSame($files, \Illuminate\Support\Facades\Storage::disk('local')->allFiles());
+        }
+    }
+
+    public function test_billing_consent_is_offered_on_both_existing_head_views_only(): void
+    {
+        $custody = $this->custody($this->borrower());
+        $this->overdueCase($custody);
+        $officer = $this->officer();
+        $head = $this->spmuHead();
+        $this->recordReturn($custody, Carbon::create(2026, 9, 4, 14), $officer);
+        $case = $this->lateReturns->assess($custody->fresh(['lines', 'returns']), $officer);
+
+        foreach ([route('accountability.index', ['view' => 'cases', 'borrower' => $custody->borrower_user_id]), route('accountability.borrower', ['borrower' => $custody->borrower_user_id, 'focus' => 'overdue-'.$case->id])] as $url) {
+            $page = $this->withSession(['active_workspace' => 'SPMU'])->actingAs($head)->get($url);
+            $page->assertOk()->assertSee('data-accountability-signature="billing"', false)
+                ->assertSee('data-signature-amount="PHP 225.00"', false)
+                ->assertSee('data-signature-case="'.$custody->custody_no.'"', false)
+                ->assertSee('name="confirm_e_signature" value=""', false)
+                ->assertSee($head->full_name)->assertSee('Confirm E-signature');
+            $this->assertSame(1, substr_count($page->getContent(), 'data-accountability-signature-dialog'));
+        }
+        $this->accountability($officer, $custody->borrower_user_id)->assertOk()->assertDontSee('data-accountability-signature-dialog', false);
+        $this->assertDatabaseCount('signature_snapshots', 0);
     }
 
     /**
@@ -545,7 +599,7 @@ class LateReturnAccountabilityTest extends TestCase
 
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($this->spmuHead())
-            ->post(route('overdue.bill', $case), ['basis' => 'Still out.'])
+            ->post(route('overdue.bill', $case), ['basis' => 'Still out.', 'confirm_e_signature' => '1'])
             ->assertSessionHasErrors('overdue');
 
         $this->assertDatabaseCount('billing_statements', 0);
@@ -566,7 +620,7 @@ class LateReturnAccountabilityTest extends TestCase
 
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
-            ->post(route('overdue.bill', $case->fresh()), ['basis' => 'Rechecked and confirmed correct.'])
+            ->post(route('overdue.bill', $case->fresh()), ['basis' => 'Rechecked and confirmed correct.', 'confirm_e_signature' => '1'])
             ->assertSessionHasNoErrors();
 
         $this->assertSame(LateReturnService::STATUS_AWAITING_PAYMENT, $case->fresh()->status);
@@ -606,7 +660,7 @@ class LateReturnAccountabilityTest extends TestCase
         // Billing is genuinely blocked - no fee policy applied at the time of return.
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
-            ->post(route('overdue.bill', $case), ['basis' => 'No policy configured.'])
+            ->post(route('overdue.bill', $case), ['basis' => 'No policy configured.', 'confirm_e_signature' => '1'])
             ->assertSessionHasErrors('overdue');
 
         $this->assertDatabaseCount('billing_statements', 0);
@@ -745,7 +799,7 @@ class LateReturnAccountabilityTest extends TestCase
 
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
-            ->post(route('overdue.bill', $case), ['basis' => 'Confirmed against the Laundry receipt date.'])
+            ->post(route('overdue.bill', $case), ['basis' => 'Confirmed against the Laundry receipt date.', 'confirm_e_signature' => '1'])
             ->assertSessionHasNoErrors();
     }
 
@@ -909,7 +963,7 @@ class LateReturnAccountabilityTest extends TestCase
 
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
-            ->post(route('overdue.bill', $case), ['basis' => 'Three chargeable late days at the configured tariff.'])
+            ->post(route('overdue.bill', $case), ['basis' => 'Three chargeable late days at the configured tariff.', 'confirm_e_signature' => '1'])
             ->assertSessionHasNoErrors();
 
         $this->assertSame(LateReturnService::STATUS_AWAITING_PAYMENT, $case->fresh()->status);
@@ -919,7 +973,7 @@ class LateReturnAccountabilityTest extends TestCase
         /* A repeated approval must not raise a second charge. */
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
-            ->post(route('overdue.bill', $case->fresh()), ['basis' => 'Duplicate submission.'])
+            ->post(route('overdue.bill', $case->fresh()), ['basis' => 'Duplicate submission.', 'confirm_e_signature' => '1'])
             ->assertSessionHasErrors('overdue');
 
         $this->assertDatabaseCount('billing_statements', 1);
@@ -951,6 +1005,7 @@ class LateReturnAccountabilityTest extends TestCase
             ->actingAs($head)
             ->post(route('overdue.bill', $case->fresh()), [
                 'basis' => 'Three chargeable late days at the configured tariff.',
+                'confirm_e_signature' => '1',
             ])
             ->assertSessionHasNoErrors();
 

@@ -28,6 +28,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
+// This is the controller for Inventory pages and authorized inventory actions.
 class InventoryController extends Controller
 {
     public function index(Request $request, InventoryService $inventory): View
@@ -35,13 +36,7 @@ class InventoryController extends Controller
         $workspace = strtoupper((string) $request->user()->primaryWorkspace());
         $isBorrower = $workspace === 'BORROWER';
 
-        /*
-         * Borrower Inventory is a current, informational availability view only.
-         * It must not imply or create a reservation.
-         *
-         * Current database mapping:
-         * SERVICEABLE = Good / suitable for borrowing.
-         */
+        // This is the read-only Inventory availability view for Borrower; SERVICEABLE items are eligible and no reservation is created.
         if ($isBorrower) {
             $from = now();
             $to = now()->addSecond();
@@ -239,6 +234,9 @@ class InventoryController extends Controller
         $historyStatus = 'ALL';
         $borrowingHistory = collect();
         $stockCard = collect();
+        $lastStockEntry = null;
+        $movementTypes = collect();
+        $movementPage = null;
         $stockCardReferences = [];
         $lastInventoryActivityAt = null;
         $currentInventorySources = collect();
@@ -260,7 +258,8 @@ class InventoryController extends Controller
                 ->leftJoin('users as actor', 'actor.id', '=', 'tx.actor_user_id')
                 ->where('line.inventory_item_id', $inventory->id)
                 ->orderByDesc('tx.occurred_at')
-                ->limit(100)
+                ->orderByDesc('tx.id')
+                ->orderByDesc('line.id')
                 ->get([
                     'tx.id',
                     'tx.transaction_type',
@@ -278,7 +277,32 @@ class InventoryController extends Controller
                 ]);
 
             $stockCardReferences = $this->resolveStockCardReferences($stockCard);
-            $lastInventoryActivityAt = $stockCard->first()?->occurred_at;
+            $lastStockEntry = $stockCard->first();
+            $lastInventoryActivityAt = $lastStockEntry?->occurred_at;
+            $movementTypes = $stockCard->pluck('transaction_type')->unique()->sort()->values();
+            $movementFilters = $request->validate([
+                'movement_q' => ['nullable', 'string', 'max:200'],
+                'movement_type' => ['nullable', 'string', Rule::in($movementTypes->merge(['ALL'])->all())],
+                'movement_from' => ['nullable', 'date_format:Y-m-d'],
+                'movement_to' => ['nullable', 'date_format:Y-m-d', Rule::when($request->filled('movement_from'), 'after_or_equal:movement_from')],
+                'movement_per_page' => ['nullable', 'integer', Rule::in([10, 25, 50, 100])],
+                'movement_page' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            ]);
+            $movementRows = $stockCard->filter(function ($entry) use ($movementFilters, $stockCardReferences): bool {
+                $date = \Illuminate\Support\Carbon::parse($entry->occurred_at)->toDateString();
+                $reference = $stockCardReferences[(int) $entry->id] ?? [];
+                $text = implode(' ', [$entry->transaction_type, str_replace('_', ' ', $entry->transaction_type),
+                    $entry->actor_name ?: 'System', $entry->actor_email, $entry->reason, $entry->from_state, $entry->to_state,
+                    $entry->quantity, $reference['label'] ?? 'System movement', $reference['kind'] ?? '',
+                    $date, \Illuminate\Support\Carbon::parse($entry->occurred_at)->format('d M Y, g:i A')]);
+
+                return (($movementFilters['movement_type'] ?? 'ALL') === 'ALL' || $entry->transaction_type === $movementFilters['movement_type'])
+                    && (empty($movementFilters['movement_from']) || $date >= $movementFilters['movement_from'])
+                    && (empty($movementFilters['movement_to']) || $date <= $movementFilters['movement_to'])
+                    && str_contains(mb_strtolower($text), mb_strtolower(trim($movementFilters['movement_q'] ?? '')));
+            });
+            $movementPage = \App\Support\RecordTable::paginate($movementRows, $request, 'movement', (int) ($movementFilters['movement_per_page'] ?? 10));
+            $movementPage->appends(['tab' => 'stock-card'])->fragment('inventory-movement-details');
 
             /*
              * CURRENT INVENTORY SOURCE RECORDS
@@ -912,11 +936,10 @@ class InventoryController extends Controller
             ];
         }
 
-        $isActionOfficer = $workspace === 'SPMU' && $request->user()->access_classification === AccessClassification::SpmuOfficer;
-        $saoStockCard = $isActionOfficer
+        $saoStockCard = $workspace === 'SPMU'
             ? $this->stockCardData($request, $inventory, $balance)
             : null;
-        $saoBorrowingHistory = $isActionOfficer
+        $saoBorrowingHistory = $workspace === 'SPMU'
             ? $this->borrowingHistoryPage($request, $inventory, $borrowingHistory)
             : null;
 
@@ -932,6 +955,9 @@ class InventoryController extends Controller
             'borrowingHistory' => $borrowingHistory,
             'historySummary' => $historySummary,
             'stockCard' => $stockCard,
+            'lastStockEntry' => $lastStockEntry,
+            'movementTypes' => $movementTypes,
+            'movementPage' => $movementPage,
             'stockCardReferences' => $stockCardReferences,
             'lastInventoryActivityAt' => $lastInventoryActivityAt,
             'currentInventorySources' => $currentInventorySources,

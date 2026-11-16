@@ -1,11 +1,12 @@
 @extends('layouts.app', ['title' => 'Notifications'])
 @section('content')
+{{-- This is the System Notifications UI for the current user. --}}
 <section class="page-heading"><div><p class="eyebrow">Account updates</p><h1>My notifications</h1><p>Review approval, deadline, release, return, evidence, and accountability updates addressed to you.</p></div><form method="post" action="{{ route('notifications.read-all') }}">@csrf<button class="button secondary">Mark all as read</button></form></section>
 
 <section class="content-area">
     <div class="notification-list borrower-notifications">
     @forelse($notifications as $notification)
-        @php
+@php
             $eventCode = strtoupper((string) $notification->event->event_code);
             $eventLabel = [
                 'REQUEST_APPROVED' => 'Borrowing Request Approved',
@@ -69,18 +70,7 @@
 @endsection
 
 <style>
-{{-- /* NOTIFICATION READ WHITE ONLY START */ --}}
 
-{{-- /*
- * Keep the existing notification design completely unchanged.
- *
- * Only an already-read notification becomes white.
- *
- * IMPORTANT:
- * Direct-child selectors identify one notification row only.
- * This prevents the parent list/card from inheriting the unread
- * blue state from another notification.
- */ --}}
 :where(article, section, li, div)
 :has(> .notification-date)
 :has(> .notification-copy)
@@ -88,11 +78,6 @@
     background: #ffffff !important;
 }
 
-
-{{-- /*
- * The date and message sections must remain transparent so the
- * row appears as one continuous white notification.
- */ --}}
 :where(article, section, li, div)
 :has(> .notification-date)
 :has(> .notification-copy)
@@ -107,11 +92,6 @@
     background: transparent !important;
 }
 
-
-{{-- /*
- * Dark appearance uses the normal application surface rather
- * than forcing a bright white notification.
- */ --}}
 html[data-theme="dark"]
 :where(article, section, li, div)
 :has(> .notification-date)
@@ -120,20 +100,9 @@ html[data-theme="dark"]
     background: var(--surface-elevated) !important;
 }
 
-{{-- /* NOTIFICATION READ WHITE ONLY END */ --}}
 </style>
 
 <script>
-
-
-
-
-
-
-
-
-
-
 
 window.addEventListener('pageshow', (event) => {
     if (!event.persisted) {
@@ -142,6 +111,5 @@ window.addEventListener('pageshow', (event) => {
 
     window.location.reload();
 });
-
 
 </script>

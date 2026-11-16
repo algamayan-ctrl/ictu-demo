@@ -1,12 +1,5 @@
 @php
-    /*
-    | Universal report export dialog.
-    |
-    | The dataset is already fixed by the preview. This dialog only controls
-    | the output format and presentation. Formal provenance is automatic so
-    | an official report cannot accidentally lose its generated-by metadata,
-    | applied filters, footer or repeating table headers.
-    */
+    // This is the download format and presentation dialog for the matching report.
     use App\Reports\ReportExportOptions;
 
     $meta = $dataset->meta;
@@ -47,24 +40,22 @@
                     @endif
                 </small>
             </p>
-
-            <label class="report-options-field report-options-format" for="export-format">
-                <span>Export Format</span>
-                <select id="export-format" name="format" data-export-format>
-                    @foreach(ReportExportOptions::FORMATS as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </label>
-
-            <section class="report-options-section" data-page-settings aria-labelledby="report-page-layout-title">
+            <section class="report-options-section" aria-labelledby="report-page-layout-title">
                 <div class="report-options-section-heading">
-                    <h3 id="report-page-layout-title">Page Layout</h3>
+                    <h3 id="report-page-layout-title">Generation options</h3>
                     <small>Used for PDF, Word and Print Preview.</small>
                 </div>
 
                 <div class="report-options-grid">
-                    <label class="report-options-field" for="export-page-size">
+                    <label class="report-options-field report-options-format" for="export-format">
+                        <span>Format</span>
+                        <select id="export-format" name="format" data-export-format>
+                            @foreach(ReportExportOptions::FORMATS as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="report-options-field" for="export-page-size" data-page-settings>
                         <span>Page Size</span>
                         <select id="export-page-size" name="page_size">
                             @foreach(ReportExportOptions::PAGE_SIZES as $value => $label)
@@ -73,7 +64,7 @@
                         </select>
                     </label>
 
-                    <label class="report-options-field" for="export-orientation">
+                    <label class="report-options-field" for="export-orientation" data-page-settings>
                         <span>Orientation</span>
                         <select id="export-orientation" name="orientation">
                             @foreach(ReportExportOptions::ORIENTATIONS as $value => $label)
@@ -84,6 +75,8 @@
                 </div>
             </section>
 
+            <p class="report-all-records-note">All {{ number_format($dataset->count()) }} matching records are included.</p>
+            <details class="report-export-context"><summary>Included report information</summary>
             <fieldset class="report-options-content" data-summary-setting>
                 <legend>Report Content</legend>
                 <label class="checkbox">
@@ -116,6 +109,7 @@
                 </div>
             </div>
 
+            </details>
             <details class="report-options-advanced" data-page-settings>
                 <summary>Advanced Print Settings</summary>
                 <div class="report-options-advanced-body">
@@ -154,7 +148,7 @@
 
         <footer class="report-options-footer">
             <button class="button secondary ui-pressable" type="button" data-export-close>Cancel</button>
-            <button class="button primary ui-pressable" type="submit" data-export-submit>Export PDF</button>
+            <button class="button primary ui-pressable" type="submit" data-export-submit>Generate PDF</button>
         </footer>
     </form>
 </dialog>

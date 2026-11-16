@@ -91,7 +91,7 @@ test('the numbered step chrome is gone; forms and operational document links sti
     assert.doesNotMatch(processLayout, /@include\('custody\.partials\.item-preparation-form'\)/);
     assert.match(processLayout, /id="item-preparation"/);
     assert.match(processLayout, /id="release-actions"/);
-    assert.match(processLayout, /id="pickup-schedule"/); // via the pickup-schedule-form partial itself
+    assert.match(schedule, /id="pickup-schedule"/);
 });
 
 test('preparation now happens inline in Approved Items, with a single Confirm action that disappears once complete', () => {

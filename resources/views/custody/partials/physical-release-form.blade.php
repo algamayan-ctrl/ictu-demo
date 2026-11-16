@@ -21,7 +21,7 @@
     <div class="release-handover-footer">
         <label>
             Remarks (Optional)
-            <textarea
+<textarea
                 name="remarks"
                 placeholder="Add a short note, if needed"
                 @disabled(!$preparationComplete || !$pickupWindowOpen)
@@ -49,11 +49,6 @@
     const refreshReleaseConfirmation = () => {
         releaseButton.disabled = confirmation.disabled || !confirmation.checked;
     };
-
-
-
-
-
 
     const resetReleaseConfirmation = () => {
         confirmation.checked = false;

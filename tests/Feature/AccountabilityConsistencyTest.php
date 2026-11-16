@@ -101,6 +101,10 @@ class AccountabilityConsistencyTest extends TestCase
 
         $this->clear($head, $incident, 'Damage was pre-existing and already on record.')->assertSessionHasNoErrors();
 
+        $snapshot = \App\Models\SignatureSnapshot::query()->findOrFail($incident->fresh()->head_decision_signature_snapshot_id);
+        $this->assertSame($head->id, $snapshot->signer_user_id);
+        $this->assertSame('ACCOUNTABILITY_HEAD_DECISION', $snapshot->purpose_code);
+
         $violation->refresh();
         $this->assertSame('DISMISSED', $violation->status);
         $this->assertSame($head->id, $violation->reviewed_by_user_id);
@@ -132,6 +136,8 @@ class AccountabilityConsistencyTest extends TestCase
         $violation = $this->propertyViolation($custody);
 
         $this->confirm($head, $incident, 'Damage verified during return inspection.')->assertSessionHasNoErrors();
+
+        $this->assertSame($head->id, \App\Models\SignatureSnapshot::query()->findOrFail($incident->fresh()->head_decision_signature_snapshot_id)->signer_user_id);
 
         $this->assertSame('F2F_PROCESSING', $incident->fresh()->status);
         $this->assertSame('CONFIRMED', $violation->fresh()->status);
@@ -645,6 +651,65 @@ class AccountabilityConsistencyTest extends TestCase
         $this->assertSame('PENDING_REVIEW', $violationB->fresh()->status);
     }
 
+    public function test_head_decisions_require_signature_consent_without_changing_the_case(): void
+    {
+        [$custody, $line] = $this->custody('Signature consent fixture');
+        [$head, $officer] = $this->headAndOfficer();
+        $incident = $this->openIncident($custody, $line, $officer, 'DAMAGED');
+        $violation = $this->propertyViolation($custody);
+        $tables = ['signature_snapshots', 'generated_documents', 'sanctions', 'borrower_restrictions', 'audit_events', 'notification_events', 'notification_deliveries', 'stored_files'];
+        $counts = collect($tables)->mapWithKeys(fn ($table) => [$table => \Illuminate\Support\Facades\DB::table($table)->count()]);
+        $original = $incident->getAttributes();
+        $files = Storage::disk('local')->allFiles();
+
+        foreach (['CONFIRM', 'CLEAR'] as $decision) {
+            foreach ([null, '0', 'false'] as $attempt => $consent) {
+                $payload = ['decision' => $decision, 'resolution_remarks' => 'Reviewed physical finding.', '_action_token' => $decision.'-no-consent-'.$attempt];
+                if ($consent !== null) $payload['confirm_e_signature'] = $consent;
+                $this->actingAs($head)->withSession(['active_workspace' => 'SPMU'])
+                    ->post(route('incidents.resolve', $incident), $payload)
+                    ->assertRedirect()->assertSessionHasErrors('confirm_e_signature');
+                $this->assertSame($original, $incident->fresh()->getAttributes());
+                $this->assertSame('PENDING_REVIEW', $violation->fresh()->status);
+                foreach ($counts as $table => $count) $this->assertDatabaseCount($table, $count);
+                $this->assertSame($files, Storage::disk('local')->allFiles());
+            }
+        }
+    }
+
+    public function test_legacy_head_decision_cannot_bypass_signature_consent(): void
+    {
+        [$custody, $line] = $this->custody('Legacy signature consent fixture');
+        [$head, $officer] = $this->headAndOfficer();
+        $incident = $this->openIncident($custody, $line, $officer, 'DAMAGED');
+        $incident->update(['status' => 'FOR_BILLING']);
+        $this->actingAs($head)->withSession(['active_workspace' => 'SPMU'])
+            ->post(route('incidents.resolve', $incident), [
+                'resolution_outcome' => 'NO_BORROWER_CHARGE',
+                'resolution_remarks' => 'Legacy decision reviewed.',
+                'count_as_offense' => '0',
+            ])->assertSessionHasErrors('confirm_e_signature');
+        $this->assertSame('FOR_BILLING', $incident->fresh()->status);
+        $this->assertNull($incident->fresh()->head_decision_signature_snapshot_id);
+        $this->assertDatabaseCount('signature_snapshots', 0);
+    }
+
+    public function test_decision_consent_preserves_the_forms_on_both_head_views(): void
+    {
+        [$custody, $line] = $this->custody('Decision consent layout fixture');
+        [$head, $officer] = $this->headAndOfficer();
+        $incident = $this->openIncident($custody, $line, $officer, 'DAMAGED');
+        foreach ([route('accountability.index', ['view' => 'cases', 'borrower' => $custody->borrower_user_id]), route('accountability.borrower', ['borrower' => $custody->borrower_user_id, 'focus' => 'incident-'.$incident->id])] as $url) {
+            $page = $this->actingAs($head)->withSession(['active_workspace' => 'SPMU'])->get($url);
+            $page->assertOk()->assertSee('data-accountability-signature="decision"', false)
+                ->assertSee('data-signature-case="'.$incident->incident_no.'"', false)
+                ->assertSee('name="confirm_e_signature" value=""', false)
+                ->assertSee('Confirm E-signature')->assertSee($head->full_name);
+            $this->assertSame(1, substr_count($page->getContent(), 'data-accountability-signature-dialog'));
+        }
+        $this->assertDatabaseCount('signature_snapshots', 0);
+    }
+
     /* ------------------------------------------------------------------ */
     /* Helpers                                                             */
     /* ------------------------------------------------------------------ */
@@ -655,6 +720,7 @@ class AccountabilityConsistencyTest extends TestCase
             ->post(route('incidents.resolve', $incident), [
                 'decision' => 'CLEAR',
                 'resolution_remarks' => $remarks,
+                'confirm_e_signature' => '1',
                 '_action_token' => 'consistency-clear-'.$incident->id.'-'.$token,
             ]);
     }
@@ -665,6 +731,7 @@ class AccountabilityConsistencyTest extends TestCase
             ->post(route('incidents.resolve', $incident), [
                 'decision' => 'CONFIRM',
                 'resolution_remarks' => $remarks,
+                'confirm_e_signature' => '1',
                 '_action_token' => 'consistency-confirm-'.$incident->id.'-'.$token,
             ]);
     }

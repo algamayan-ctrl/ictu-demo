@@ -15,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
+// This is the controller for the current user's system notifications.
 class NotificationController extends Controller
 {
     public function index(Request $request): View

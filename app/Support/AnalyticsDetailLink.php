@@ -31,6 +31,10 @@ final class AnalyticsDetailLink
  [
  'section' => $section,
  'academic_period' => $periodSelection,
+ ...($periodSelection === 'custom' ? [
+ 'start_date' => request()->query('start_date'),
+ 'end_date' => request()->query('end_date'),
+ ] : []),
  'group' => self::scalar($division),
  'unit' => self::scalar($unit),
  /*

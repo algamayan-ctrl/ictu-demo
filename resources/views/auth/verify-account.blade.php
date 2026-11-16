@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => 'Verify Account', 'inlinePageNotices' => true])
 
 @section('content')
+{{-- This is the Email Verification UI for the account holder. --}}
 
 @php
     $otpValue = preg_replace(
@@ -18,18 +19,11 @@
 @endphp
 
 <style>
-{{-- /* ==========================================================
-   SPMU-ACPMP UNIVERSAL OTP AUTH PAGE
-   ========================================================== */ --}}
 
-{{-- /* The normal public header is intentionally hidden here so
-   Verification uses the same full-page experience as Login. */ --}}
 .site-header.public-header {
     display: none !important;
 }
 
-{{-- /* The app layout normally prints flash messages above the page content.
-   The OTP card displays them itself so there is no duplicate. */ --}}
 #main-content > .notice {
     display: none !important;
 }
@@ -89,7 +83,7 @@ body > footer {
     max-width: 420px;
     box-sizing: border-box;
 
-    padding: 27px 28px 26px;
+    padding: 27px 20px 20px;
 
     background: #ffffff;
     border: 1px solid #d7e2ee;
@@ -105,7 +99,7 @@ body > footer {
 .otp-auth-brand {
     display: flex;
     justify-content: center;
-    margin: 0 0 24px;
+    margin: 0 0 16px;
 }
 
 .otp-auth-brand img {
@@ -144,7 +138,7 @@ body > footer {
     align-items: flex-start;
     gap: 10px;
 
-    margin: 0 0 20px;
+    margin: 0 0 16px;
     padding: 12px 13px;
 
     border: 1px solid #a9dfc0;
@@ -190,7 +184,7 @@ body > footer {
 
 .otp-form {
     display: grid;
-    gap: 16px;
+    gap: 12px;
 }
 
 .otp-field {
@@ -236,7 +230,7 @@ body > footer {
     height: 54px;
     box-sizing: border-box;
 
-    padding: 0 14px 0 43px;
+    padding: 0 12px 0 43px;
 
     border: 1px solid #bfd0e3;
     border-radius: 9px;
@@ -332,7 +326,7 @@ body > footer {
     width: 100%;
     min-height: 50px;
 
-    padding: 10px 18px;
+    padding: 10px 16px;
 
     border-radius: 9px;
 
@@ -396,7 +390,7 @@ body > footer {
     display: grid;
     gap: 3px;
 
-    margin: 15px 0 0;
+    margin: 12px 0 0;
 
     color: #7187a0;
     font-size: 10.5px;
@@ -424,14 +418,13 @@ body > footer {
     text-decoration: underline;
 }
 
-{{-- /* Existing global button rules must not alter these controls. */ --}}
 .otp-auth-card button {
     transform: none;
 }
 
 @media (max-width: 900px) {
     .otp-auth-page {
-        padding: 36px 28px 48px;
+        padding: 36px 20px 48px;
 
         background:
             linear-gradient(
@@ -448,7 +441,7 @@ body > footer {
 @media (max-width: 620px) {
     .otp-auth-page {
         min-height: 100vh;
-        padding: 20px 16px 32px;
+        padding: 16px 12px 24px;
 
         background:
             linear-gradient(
@@ -461,7 +454,7 @@ body > footer {
 
     .otp-auth-card {
         max-width: none;
-        padding: 24px 20px;
+        padding: 16px 16px;
         border-radius: 15px;
     }
 

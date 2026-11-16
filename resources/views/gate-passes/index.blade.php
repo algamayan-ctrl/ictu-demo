@@ -1,5 +1,6 @@
 @extends('layouts.app', ['title' => 'Gate Pass'])
 @section('content')
+{{-- This is the Gate Pass Records UI for SPMU Action Officer. --}}
 @php
     $gatePasses->loadMissing([
         'custody.borrower.organizationalUnit',
@@ -22,19 +23,23 @@
         </div>
     </section>
 
-    <section class="card record-browser-toolbar gate-pass-toolbar" aria-label="Gate Pass filters">
+    <section class="card record-browser-toolbar gate-pass-toolbar record-table-toolbar" aria-label="Gate Pass filters">
                 <label class="record-browser-search" for="gate-pass-search">Search
                     <span class="search-input-shell">
                         <span class="search-input-icon" aria-hidden="true"><x-icon name="search" size="17" /></span>
                         <input id="gate-pass-search" type="search" placeholder="Request, borrower, custody, destination..." data-gate-pass-search autocomplete="off">
                     </span>
                 </label>
+                <label>Date from<input type="date" data-gate-pass-from></label>
+                <label>Date to<input type="date" data-gate-pass-to></label>
+                <label>Show entries<select data-gate-pass-size>@foreach([10, 25, 50, 100] as $size)<option value="{{ $size }}">{{ $size }}</option>@endforeach</select></label>
                 <label for="gate-pass-sort">Sort
                     <select id="gate-pass-sort" data-gate-pass-sort>
                         <option value="newest">Newest first</option>
                         <option value="oldest">Oldest first</option>
                     </select>
                 </label>
+                <button class="button secondary" type="button" data-gate-pass-clear>Clear</button>
             </section>
 
     @if($gatePasses->isEmpty())
@@ -44,7 +49,6 @@
             <p>Accomplished Gate Passes will appear after their copies have been uploaded and recorded by SPMU.</p>
         </section>
     @else
-
 
         <section class="card gate-pass-records-card" aria-labelledby="gate-pass-records-title">
             <div class="gate-pass-records-heading">

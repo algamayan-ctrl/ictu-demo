@@ -30,6 +30,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
+// This is the service for physical property release and return transactions.
 class CustodyService
 {
     public function __construct(

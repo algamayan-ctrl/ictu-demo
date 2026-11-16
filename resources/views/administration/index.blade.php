@@ -1,5 +1,6 @@
 @extends('layouts.app', ['title' => 'Administration'])
 @section('content')
+{{-- This is the Administration UI for authorized SPMU users. --}}
 <section class="page-heading">
     <div>
         <p class="eyebrow">Restricted administration</p>

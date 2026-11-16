@@ -1,10 +1,10 @@
 <style>
-{{-- /* ICTU User Administration: scoped styling shared by the directory and form. */ --}}
+
 .app-main.ictu-admin-main {
     width: 100%;
     max-width: none;
     margin: 0;
-    padding: 24px clamp(18px, 2.2vw, 38px) 42px;
+    padding: 16px clamp(16px, 2.2vw, 38px) 42px;
     overflow-x: hidden;
 }
 .app-topbar .topbar-title { display: grid; min-width: 0; gap: 5px; }
@@ -15,7 +15,7 @@
     line-height: 1.4;
 }
 .ictu-users-area, .ictu-user-form-area { width: 100%; min-width: 0; margin: 0; }
-.ictu-users-area { display: grid; gap: 24px; }
+.ictu-users-area { display: grid; gap: 16px; }
 .ictu-users-area :is(input, select, button),
 .ictu-user-form :is(input, select, button) { font-family: inherit; }
 .ictu-users-area :is(button, a, select, input):focus-visible,
@@ -24,7 +24,6 @@
     outline-offset: 2px;
 }
 
-{{-- /* Directory filters: exactly four desktop grid tracks. */ --}}
 .ictu-users-filter-card, .ictu-users-list-card {
     min-width: 0;
     margin: 0;
@@ -39,8 +38,8 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     align-items: end;
-    gap: 24px;
-    padding: 24px;
+    gap: 16px;
+    padding: 16px;
 }
 .ictu-users-filter-field { display: grid; min-width: 0; gap: 9px; }
 .ictu-users-filter-field > label {
@@ -82,22 +81,21 @@
     justify-content: center;
     width: auto;
     gap: 7px;
-    padding: 0 15px;
+    padding: 0 12px;
     white-space: nowrap;
     color: var(--text-secondary);
     border: 1px solid var(--border-strong);
 }
 .ictu-users-reset:hover { color: var(--interactive); border-color: var(--interactive); }
 
-{{-- /* Table toolbar, native table, and pagination. */ --}}
 .ictu-users-list-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 16px 24px;
+    gap: 12px 16px;
     min-height: 76px;
-    padding: 16px 24px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--border);
 }
 .ictu-users-list-title { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
@@ -133,7 +131,7 @@
     width: auto;
     min-width: 134px;
     min-height: 38px;
-    padding: 6px 32px 6px 10px;
+    padding: 6px 24px 6px 10px;
     border-radius: 8px;
     color: var(--text-secondary);
     font-size: 12px;
@@ -168,7 +166,7 @@
 .ictu-col-status { width: 16%; }
 .ictu-col-action { width: 8%; }
 .ictu-users-table th {
-    padding: 16px 15px;
+    padding: 12px 12px;
     background: var(--table-heading-bg);
     border-bottom: 1px solid var(--border);
     color: var(--text-secondary);
@@ -180,7 +178,7 @@
     text-align: left;
 }
 .ictu-users-table td {
-    padding: 15px;
+    padding: 12px;
     height: 98px;
     vertical-align: middle;
     border-bottom: 1px solid var(--row-border);
@@ -249,18 +247,17 @@
 .ictu-user-icon-button:hover { color: var(--interactive) !important; background: var(--surface-hover) !important; border-color: var(--border) !important; }
 .ictu-user-icon-button-danger:hover { color: var(--danger) !important; background: var(--danger-bg) !important; }
 .ictu-user-icon-button:disabled { opacity: .35; cursor: not-allowed; }
-.ictu-users-empty-directory td, .ictu-users-no-results { padding: 26px !important; text-align: center; color: var(--text-muted); font-size: 13px; }
+.ictu-users-empty-directory td, .ictu-users-no-results { padding: 20px !important; text-align: center; color: var(--text-muted); font-size: 13px; }
 .ictu-users-no-results[hidden] { display: none !important; }
 
-{{-- /* Edit / create form: wide stacked cards, uniform tracks and input heights. */ --}}
-.ictu-form-page-heading { margin: 0 0 24px; }
+.ictu-form-page-heading { margin: 0 0 16px; }
 .ictu-form-page-heading p:not(.eyebrow) { max-width: 1020px; font-size: 13.5px; line-height: 1.55; }
-.ictu-user-form { display: grid; width: 100%; min-width: 0; gap: 20px; }
+.ictu-user-form { display: grid; width: 100%; min-width: 0; gap: 16px; }
 .ictu-form-card {
     min-width: 0;
     width: 100%;
     margin: 0;
-    padding: 24px;
+    padding: 16px;
     border: 1px solid var(--border);
     border-radius: 12px;
     background: var(--surface-elevated);
@@ -270,7 +267,7 @@
 .ictu-form-section-header { display: grid; gap: 5px; margin: 0 0 22px; }
 .ictu-form-section-header h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0; font-size: 17px; font-weight: 750; }
 .ictu-form-section-header p { margin: 0; color: var(--text-muted); font-size: 12.5px; line-height: 1.5; }
-.ictu-field-grid { display: grid; align-items: start; gap: 24px; min-width: 0; }
+.ictu-field-grid { display: grid; align-items: start; gap: 16px; min-width: 0; }
 .ictu-field-grid-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .ictu-field-grid-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .ictu-field { display: grid; align-content: start; gap: 8px; min-width: 0; margin: 0; color: var(--text-secondary); font-size: 12.5px; font-weight: 700; }
@@ -373,21 +370,18 @@
 @media (max-width: 560px) {
     .ictu-identity-heading-row, .ictu-email-label-row { align-items: flex-start; flex-wrap: wrap; }
 }
-.admin-additional-assignment-picker { display: grid; grid-template-columns: minmax(0, 85fr) minmax(145px, 15fr); align-items: end; gap: 14px; }
+.admin-additional-assignment-picker { display: grid; grid-template-columns: minmax(0, 85fr) minmax(145px, 15fr); align-items: end; gap: 12px; }
 .ictu-add-unit-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; width: 100%; height: 48px; min-height: 48px; padding: 0 12px; border-radius: 9px; white-space: nowrap; font-size: 13px; }
-.admin-additional-unit-list { display: grid; gap: 9px; margin-top: 14px; }
+.admin-additional-unit-list { display: grid; gap: 9px; margin-top: 12px; }
 .admin-additional-unit-list:empty { display: none; }
-.admin-additional-unit-item { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 14px; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 9px; }
+.admin-additional-unit-item { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: 9px; }
 .admin-additional-unit-item > div { display: grid; gap: 2px; min-width: 0; }
 .admin-additional-unit-item strong { font-size: 12.5px; font-weight: 650; color: var(--heading); overflow-wrap: anywhere; }
 .admin-additional-unit-item small { font-size: 11.5px; font-weight: 400; color: var(--text-muted); }
 .admin-additional-unit-item .button { flex: none; width: auto; min-height: 34px; padding: 5px 12px; font-size: 12px; }
-.ictu-form-actions { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 16px; padding: 2px 0 8px; }
+.ictu-form-actions { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 12px; padding: 2px 0 8px; }
 .ictu-form-actions .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: auto; min-height: 46px; min-width: 134px; padding: 10px 19px; margin: 0; border-radius: 9px; font-size: 13.5px; font-weight: 700; text-decoration: none; }
 
-
-{{-- /* FINAL ICTU directory / form — reference-matched, slim, page-scoped.
-   Does not change the global design of Borrower / SPMU screens. */ --}}
 .ictu-shell {
     --sidebar-width: 270px;
     --topbar-height: 89px;
@@ -395,18 +389,18 @@
 }
 .ictu-shell .app-stage { min-width: 0; background: #f5faff; }
 .ictu-shell .app-sidebar { background: #eaf5ff !important; }
-.ictu-shell .sidebar-brand-row { min-height: 86px; padding: 9px 14px; border-bottom: 0; }
+.ictu-shell .sidebar-brand-row { min-height: 86px; padding: 9px 12px; border-bottom: 0; }
 .ictu-shell .sidebar-brand.sidebar-brand-logo { min-height: 55px; padding: 3px 8px; justify-content: flex-start; }
 .ictu-shell .sidebar-brand-logo-image { max-width: 220px; max-height: 59px; object-position: left center; }
-.ictu-shell .sidebar-label { margin: 11px 20px 14px !important; font-size: 11px !important; letter-spacing: .16em !important; }
-.ictu-shell .sidebar-nav { gap: 7px; padding: 0 12px 14px; }
-.ictu-shell .sidebar-nav a { min-height: 51px; padding: 0 14px; gap: 12px; font-size: 13px; border-radius: 12px; font-weight: 680; }
+.ictu-shell .sidebar-label { margin: 11px 16px 12px !important; font-size: 11px !important; letter-spacing: .16em !important; }
+.ictu-shell .sidebar-nav { gap: 7px; padding: 0 12px 12px; }
+.ictu-shell .sidebar-nav a { min-height: 51px; padding: 0 12px; gap: 12px; font-size: 13px; border-radius: 12px; font-weight: 680; }
 .ictu-shell .sidebar-nav a .nav-icon { width: 23px; min-width: 23px; }
 .ictu-shell .sidebar-nav a .nav-icon svg { width: 20px; height: 20px; }
 .ictu-shell .sidebar-nav a.active, .ictu-shell .sidebar-nav a[aria-current="page"] {
     background: #1869e7 !important; border-color: #1869e7 !important; box-shadow: 0 6px 13px rgba(16,100,221,.1);
 }
-.ictu-shell .app-topbar { min-height: 89px; padding: 10px 20px; }
+.ictu-shell .app-topbar { min-height: 89px; padding: 10px 16px; }
 .ictu-shell .topbar-title { gap: 3px; }
 .ictu-shell .topbar-title strong { font-size: 21px; font-weight: 760; line-height: 1.15; letter-spacing: -.02em; }
 .ictu-shell .ictu-topbar-subtitle { font-size: 12.5px; line-height: 1.35; }
@@ -415,25 +409,24 @@
 .ictu-shell .account-menu-toggle { gap: 9px; }
 .ictu-shell .account-menu-toggle .user-avatar { width: 43px; height: 43px; flex-basis: 43px; background: #1b3c62; font-size: 12px; }
 .ictu-shell .notification-control .ui-icon { width: 21px; height: 21px; }
-.app-main.ictu-admin-main { width: 100%; max-width: none; min-width: 0; margin: 0; padding: 15px 18px 38px; }
+.app-main.ictu-admin-main { width: 100%; max-width: none; min-width: 0; margin: 0; padding: 12px 16px 38px; }
 
-{{-- /* Original Institutional user accounts heading: do not move button to global topbar. */ --}}
 .ictu-users-heading {
     display: grid; grid-template-columns: minmax(0,1fr) auto; grid-auto-flow: row dense;
-    align-items: center; column-gap: 16px; row-gap: 0; width: 100%; margin: 0 0 12px;
+    align-items: center; column-gap: 12px; row-gap: 0; width: 100%; margin: 0 0 12px;
 }
 .ictu-users-heading .eyebrow { font-size: 10.5px; letter-spacing: .12em; margin: 0 0 3px; }
 .ictu-users-heading h1 { font-size: clamp(21px, 1.8vw, 25px); line-height: 1.2; margin: 0 0 4px; }
 .ictu-users-heading p:not(.eyebrow) { font-size: 12.5px; line-height: 1.4; max-width: 980px; }
 .ictu-users-heading .ictu-register-button {
     display: inline-flex; align-items: center; justify-content: center; justify-self: end;
-    width: auto; min-width: 0; min-height: 40px; height: 40px; padding: 0 15px; margin: 0;
+    width: auto; min-width: 0; min-height: 40px; height: 40px; padding: 0 12px; margin: 0;
     border: 1px solid #1769e7; border-radius: 9px; color: #fff; background: #1769e7;
     font-size: 12.5px; line-height: 1; font-weight: 750; text-decoration: none; white-space: nowrap;
 }
 .ictu-users-heading .ictu-register-button:hover { color: #fff; background: #105bd3; border-color: #105bd3; }
 .ictu-users-heading .ictu-register-button:focus-visible { outline: 2px solid #1769e7; outline-offset: 3px; }
-.ictu-users-area { display: grid; width: 100%; min-width: 0; align-content: start; gap: 14px; margin: 0 !important; }
+.ictu-users-area { display: grid; width: 100%; min-width: 0; align-content: start; gap: 12px; margin: 0 !important; }
 .ictu-users-filter-card, .ictu-users-list-card {
     min-width: 0; margin: 0; padding: 0; overflow: hidden;
     background: var(--surface-elevated); border: 1px solid #d2dff0;
@@ -441,7 +434,7 @@
 }
 .ictu-users-filter-grid {
     display: grid; grid-template-columns: minmax(0,2.08fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.64fr);
-    align-items: end; gap: 13px; min-width: 0; padding: 17px 19px;
+    align-items: end; gap: 13px; min-width: 0; padding: 12px 19px;
 }
 .ictu-users-filter-field { min-width: 0; gap: 7px; }
 .ictu-users-filter-field > label { margin: 0; color: var(--heading); font-size: 12px; font-weight: 750; }
@@ -456,7 +449,7 @@
 .ictu-users-borrowing-actions .ictu-users-reset { width: 100%; min-width: 0; padding: 0 10px; gap: 6px; font-weight: 700; }
 .ictu-users-reset .ui-icon { width: 15px; height: 15px; }
 
-.ictu-users-list-toolbar { min-height: 56px; padding: 8px 19px; gap: 9px 16px; }
+.ictu-users-list-toolbar { min-height: 56px; padding: 8px 19px; gap: 9px 12px; }
 .ictu-users-list-title { gap: 10px; }
 .ictu-users-list-title h2 { font-size: 17px; font-weight: 760; }
 .ictu-users-total-pill { padding: 3px 10px; font-size: 11.5px; }
@@ -495,17 +488,16 @@
 .ictu-user-icon-button:disabled { opacity: .32 !important; cursor: not-allowed !important; }
 .ictu-users-table tbody tr[hidden] { display: none !important; }
 
-{{-- /* Create / Manage User: full-width cards, thin and equal-sized controls. */ --}}
-.ictu-form-page-heading { width: 100%; margin: 0 0 16px; }
+.ictu-form-page-heading { width: 100%; margin: 0 0 12px; }
 .ictu-form-page-heading h1 { font-size: clamp(21px,1.8vw,25px); }
 .ictu-form-page-heading p:not(.eyebrow) { max-width: none; font-size: 12.5px; }
 .ictu-user-form-area { width: 100%; max-width: none; margin: 0 !important; }
-.ictu-user-form { gap: 14px; width: 100%; }
-.ictu-form-card { width: 100%; padding: 18px 20px; border-radius: 10px; }
-.ictu-form-section-header { gap: 4px; margin: 0 0 16px; }
+.ictu-user-form { gap: 12px; width: 100%; }
+.ictu-form-card { width: 100%; padding: 16px 16px; border-radius: 10px; }
+.ictu-form-section-header { gap: 4px; margin: 0 0 12px; }
 .ictu-form-section-header h2 { font-size: 15px; }
 .ictu-form-section-header p { font-size: 11.5px; }
-.ictu-field-grid { gap: 16px 20px; }
+.ictu-field-grid { gap: 12px 16px; }
 .ictu-field-grid-two { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .ictu-field-grid-three { grid-template-columns: repeat(3,minmax(0,1fr)); }
 .ictu-field { gap: 6px; }
@@ -530,7 +522,7 @@
 .admin-additional-assignment-picker { grid-template-columns: minmax(0,85fr) minmax(132px,15fr); gap: 12px; }
 .ictu-add-unit-button { height: 43px; min-height: 43px; border-radius: 8px; font-size: 12px; }
 .ictu-form-actions { gap: 12px; }
-.ictu-form-actions .button { min-height: 42px; min-width: 110px; padding: 8px 16px; border-radius: 8px; font-size: 12.5px; }
+.ictu-form-actions .button { min-height: 42px; min-width: 110px; padding: 8px 12px; border-radius: 8px; font-size: 12.5px; }
 
 html[data-theme="dark"] .ictu-shell .app-stage { background: var(--surface); }
 html[data-theme="dark"] .ictu-shell .app-sidebar { background: #070518 !important; }
@@ -557,16 +549,16 @@ html[data-theme="dark"] .ictu-users-filter-field :is(input,select), html[data-th
     .ictu-shell .app-topbar { min-height: 66px; padding: 8px 13px; }
     .ictu-shell .topbar-title strong { font-size: 16px; }
     .ictu-shell .ictu-topbar-subtitle { display: none; }
-    .app-main.ictu-admin-main { padding: 14px 12px 28px; }
+    .app-main.ictu-admin-main { padding: 12px 12px 20px; }
     .ictu-users-heading { grid-template-columns: minmax(0,1fr) auto; }
     .ictu-users-heading h1 { font-size: 20px; }
     .ictu-users-heading p:not(.eyebrow) { font-size: 11.5px; }
-    .ictu-users-filter-grid { gap: 13px; padding: 14px; }
+    .ictu-users-filter-grid { gap: 13px; padding: 12px; }
     .ictu-users-list-toolbar { padding: 10px 13px; }
     .ictu-users-pagination-meta { width: 100%; justify-content: space-between; }
     .ictu-field-grid-two,.ictu-field-grid-three { grid-template-columns: minmax(0,1fr); }
     .ictu-field-grid-three > :last-child { grid-column: auto; }
-    .ictu-form-card { padding: 15px; }
+    .ictu-form-card { padding: 12px; }
     .admin-additional-assignment-picker { grid-template-columns: minmax(0,1fr); }
 }
 @media (max-width: 550px) {
@@ -584,13 +576,11 @@ html[data-theme="dark"] .ictu-users-filter-field :is(input,select), html[data-th
     .ictu-shell * { transition-duration: 0s !important; scroll-behavior: auto !important; }
 }
 
-
-{{-- /* Latest Manage User layout: paired additional Division / Unit controls; action alignment. */ --}}
 .ictu-additional-selection-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .ictu-additional-picker-actions { display:flex; justify-content:flex-end; margin-top:12px; }
 .ictu-additional-picker-actions .ictu-add-unit-button { width:auto; min-width:122px; padding-inline:15px; }
 .ictu-additional-picker-actions .ictu-add-unit-button:disabled { opacity:.48; cursor:not-allowed; }
-.ictu-form-actions { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.ictu-form-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
 .ictu-administrative-actions-row { margin-top:12px; padding:0; align-items:center; }
 .ictu-form-action-left { display:flex; align-items:center; flex-direction:row; gap:8px; min-width:0; }
 .ictu-account-action-note { display:inline-flex; align-items:center; gap:5px; max-width:100%; font-size:11px; font-weight:400; line-height:1.35; color:var(--text-muted); }
@@ -608,10 +598,6 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
 }
 @media (max-width:440px) { .ictu-form-action-right { flex-wrap:wrap; } }
 
-{{-- /* ICTU Manage User dropdown hotfix (2026-09-29).
-   The global input:disabled/select:disabled background shorthand resets
-   background-repeat to its initial value (repeat). Reinstate the one-chevron
-   decoration at the higher specificity of the form's select selector. */ --}}
 .ictu-user-form .ictu-field select,
 .ictu-user-form .ictu-field select:disabled {
     background-repeat: no-repeat !important;
@@ -623,17 +609,14 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
     background-image: var(--select-chevron);
 }
 
-{{-- /* Opaque sticky header prevents form labels from ghosting through on scroll. */ --}}
 .ictu-shell .app-topbar {
     background-color: var(--surface-elevated) !important;
 }
 
-
-{{-- /* Compact institutional-account directory and expanded filter set. */ --}}
 .ictu-users-filter-grid {
     grid-template-columns: minmax(260px, 2fr) repeat(3, minmax(145px, 1fr)) minmax(145px, 1fr) minmax(150px, 1fr) auto;
     gap: 10px;
-    padding: 13px 16px;
+    padding: 13px 12px;
 }
 .ictu-users-filter-field { gap: 5px; }
 .ictu-users-filter-field > label { font-size: 11.5px; }
@@ -657,7 +640,7 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
     border: 1px solid var(--border-strong);
 }
 .ictu-users-filter-actions .ictu-users-reset:hover { color: var(--interactive); border-color: var(--interactive); }
-.ictu-users-list-toolbar { min-height: 50px; padding: 7px 16px; }
+.ictu-users-list-toolbar { min-height: 50px; padding: 7px 12px; }
 .ictu-users-list-title h2 { font-size: 16px; }
 .ictu-users-total-pill { padding: 2px 8px; font-size: 11px; }
 .ictu-users-table th { padding: 9px 10px; font-size: 9.5px; }
@@ -690,14 +673,13 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
     .ictu-users-filter-actions .ictu-users-reset { width: 100%; }
 }
 
-{{-- /* 2026-09-30: Keep ICTU User Administration chrome the same size as Dashboard. */ --}}
 .ictu-shell {
     --sidebar-width: 232px;
     --topbar-height: 64px;
 }
 .ictu-shell .sidebar-brand-row {
     min-height: 0;
-    padding: 14px 14px 10px;
+    padding: 12px 12px 10px;
 }
 .ictu-shell .sidebar-brand.sidebar-brand-logo {
     min-height: 58px;
@@ -711,17 +693,17 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
     object-position: center;
 }
 .ictu-shell .sidebar-label {
-    margin: 14px 18px 10px !important;
+    margin: 12px 12px 10px !important;
     font-size: .73rem !important;
     letter-spacing: .14em !important;
 }
 .ictu-shell .sidebar-nav {
     gap: 8px;
-    padding: 0 10px 14px;
+    padding: 0 10px 12px;
 }
 .ictu-shell .sidebar-nav a {
     min-height: 48px;
-    padding: 0 14px;
+    padding: 0 12px;
     gap: 12px;
     border-radius: 14px;
     font-size: inherit;
@@ -736,7 +718,7 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
 }
 .ictu-shell .app-topbar {
     min-height: 64px;
-    padding: 10px 20px;
+    padding: 10px 16px;
 }
 .ictu-shell .topbar-title strong {
     font-size: 14px;
@@ -756,12 +738,11 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
     height: 18px;
 }
 
-{{-- /* Compact primary filters + popover-only secondary filters. */ --}}
 .ictu-users-filter-grid {
     position: relative;
     grid-template-columns: minmax(300px, 2.2fr) repeat(3, minmax(145px, 1fr)) auto;
     gap: 10px;
-    padding: 12px 16px;
+    padding: 12px 12px;
 }
 .ictu-users-filter-actions {
     position: relative;
@@ -787,7 +768,7 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
     top: calc(100% + 8px);
     right: 0;
     width: min(320px, calc(100vw - 40px));
-    padding: 14px;
+    padding: 12px;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--surface-elevated);
@@ -841,8 +822,6 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
     .ictu-users-extra-filters { left: 0; right: auto; width: 100%; }
 }
 
-
-{{-- /* Preserve Edit User primary-action hover behavior. */ --}}
 .ictu-form-actions .button.primary:hover,
 .ictu-form-actions .button.primary:focus-visible {
     color: #fff;
@@ -851,8 +830,6 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
     box-shadow: var(--shadow-sm);
 }
 
-
-{{-- /* Edit institutional account: compact borderless password reveal control. */ --}}
 .ictu-password-input-wrap {
     position: relative;
     display: block;
@@ -903,4 +880,3 @@ html[data-theme="dark"] .ictu-form-actions .ictu-delete-account-button { backgro
 html[data-theme="dark"] .ictu-password-toggle { color: #a9bad0; }
 
 </style>
-

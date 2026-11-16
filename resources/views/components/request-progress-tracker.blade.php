@@ -681,16 +681,11 @@
     };
 @endphp
 
-
 <section
     class="content-area request-tracker-card"
     aria-labelledby="request-progress-title"
 >
     <article class="card request-tracker">
-
-        {{-- ================================================================
-             HEADER
-        ================================================================= --}}
 
         <div class="request-tracker__header {{ $compact ? 'visually-hidden' : '' }}">
 
@@ -709,7 +704,6 @@
                 </p>
 
             </div>
-
 
             @if($showCurrentStatus)
 
@@ -742,11 +736,6 @@
 
         </div>
 
-
-        {{-- ================================================================
-             TERMINAL / ATTENTION MESSAGES
-        ================================================================= --}}
-
        @if($terminal && $statusValue !== 'CANCELLED')
             <div class="request-tracker__terminal-note" role="status">
                 <x-icon name="information" size="18" />
@@ -773,11 +762,6 @@
             </div>
         @endif
 
-
-        {{-- ================================================================
-             TRACKER RAIL
-        ================================================================= --}}
-
         <div
             class="request-tracker__scroll"
             tabindex="0"
@@ -788,7 +772,7 @@
 
                 @foreach($steps as $index => $step)
 
-                    @php
+@php
 
                         $stepState = 'is-pending';
 
@@ -844,7 +828,6 @@
 
                     @endphp
 
-
                     <li
                         class="
                             request-tracker__step
@@ -865,8 +848,6 @@
                             aria-current="step"
                         @endif
                     >
-
-                        {{-- Marker --}}
 
                         <div
                             class="request-tracker__marker"
@@ -909,9 +890,6 @@
 
                         </div>
 
-
-                        {{-- Text --}}
-
                         <div
                             class="request-tracker__copy workflow-tracker__interactive"
                             data-workflow-step
@@ -925,7 +903,6 @@
                             <strong>
                                 {{ $step['label'] }}
                             </strong>
-
 
                             @if($step['time'])
 
@@ -965,11 +942,6 @@
             </ol>
 
         </div>
-
-
-        {{-- ================================================================
-             FOOTER / INFO
-        ================================================================= --}}
 
         @unless($compact)
         <p class="request-tracker__hint">

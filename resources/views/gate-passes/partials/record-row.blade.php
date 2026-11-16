@@ -19,7 +19,7 @@
         $statusLabel,
     ]);
 @endphp
-<tr data-gate-pass-record data-search="{{ $search }}" data-status="{{ $statusKey }}" data-date="{{ $gatePass->updated_at?->timestamp ?? 0 }}">
+<tr data-gate-pass-record data-search="{{ $search }}" data-status="{{ $statusKey }}" data-date="{{ $gatePass->updated_at?->timestamp ?? 0 }}" data-recorded-date="{{ $recordedAt?->format('Y-m-d') }}">
     <td><a class="gate-pass-request-link" href="{{ route('gate-passes.show', $gatePass) }}">{{ $requestRecord?->request_no ?: 'Gate Pass #'.$gatePass->id }}</a></td>
     <td><strong>{{ $borrower?->full_name ?: '—' }}</strong><small>{{ $borrower?->organizationalUnit?->unit_name ?: '—' }}</small></td>
     <td class="gate-pass-destination"><strong>{{ $gatePass->purpose ?: '—' }}</strong><small>{{ $destination }}</small></td>

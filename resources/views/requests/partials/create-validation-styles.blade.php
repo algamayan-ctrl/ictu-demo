@@ -1,20 +1,17 @@
 <style>
-{{-- /* Create Request — guided validation states and spacing cleanup */ --}}
+
 #request-form .create-request-ui {
-    gap: 22px;
+    gap: 16px;
 }
 
-{{-- /* Do not visually overlap the Select Items card and its action bar. */ --}}
 #request-form .create-request-ui .request-picker-actions {
     margin-top: 0 !important;
 }
 
-{{-- /* Give contextual messages breathing room without making the form feel bulky. */ --}}
 #request-form .create-request-ui .picker-warning {
-    margin-top: 16px;
+    margin-top: 12px;
 }
 
-{{-- /* Disabled actions must look disabled, not like active primary actions. */ --}}
 #request-form .create-request-ui .button:disabled,
 #request-form .create-request-ui .button[disabled] {
     opacity: 1;
@@ -31,24 +28,23 @@
     opacity: .65;
 }
 
-{{-- /* Step 3 reads as three clear sections rather than one crowded block. */ --}}
 #request-form .create-request-ui .request-card.review-card,
 #request-form .create-request-ui .request-card.documents-card,
 #request-form .create-request-ui .request-card.confirmation-card {
-    row-gap: 18px;
+    row-gap: 16px;
 }
 
 #request-form .create-request-ui .documents-card .document-rows {
-    gap: 20px;
+    gap: 16px;
 }
 
 #request-form .create-request-ui .documents-card .document-row {
-    gap: 18px;
-    padding: 20px 22px;
+    gap: 16px;
+    padding: 16px 16px;
 }
 
 #request-form .create-request-ui .confirmation-card .final-confirmation {
-    gap: 14px;
+    gap: 12px;
 }
 
 #request-form .create-request-ui .sticky-actions.request-review-actions {
@@ -57,12 +53,11 @@
 
 @media (max-width: 820px) {
     #request-form .create-request-ui {
-        gap: 16px;
+        gap: 12px;
     }
 
     #request-form .create-request-ui .documents-card .document-row {
-        padding: 17px 16px;
+        padding: 12px 12px;
     }
 }
 </style>
-

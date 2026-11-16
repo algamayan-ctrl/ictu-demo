@@ -34,13 +34,10 @@ class AnalyticsRecordsController extends Controller
         \App\Support\AnalyticsFilters::validate($request);
 
         $academicPeriods = AcademicPeriod::query()
-            ->orderByRaw("CASE WHEN status = 'ACTIVE' THEN 0 ELSE 1 END")
             ->orderByDesc('start_date')
             ->get();
 
-        $activeAcademicPeriod = $academicPeriods->first(
-            fn (AcademicPeriod $period): bool => $period->status === 'ACTIVE'
-        );
+        $activeAcademicPeriod = app(\App\Services\AcademicPeriodResolver::class)->current(periods: $academicPeriods);
 
         [$from, $to, $selectedAcademicPeriod, $periodSelection] = $periods->resolve(
             $request,

@@ -3,6 +3,7 @@
     'topbarTitle' => session('active_workspace') === 'BORROWER' ? 'My Requests' : 'Request Records',
 ])
 @section('content')
+{{-- This is the Borrowing Request Details UI with actions based on the current user role. --}}
 @php
     $v = $borrowingRequest->currentVersion;
     $workspace = session('active_workspace');
@@ -134,6 +135,12 @@
     <div>
         <p class="eyebrow">{{ $isBorrower ? 'My request' : ($v->off_campus ? 'Off-Campus Borrowing Request' : 'Borrowing Request') }}</p>
         <h1>{{ $borrowingRequest->request_no }}</h1>
+        @php
+            $previousControlNumbers = $borrowingRequest->previousControlNumbers();
+        @endphp
+        @if($previousControlNumbers)
+            <p class="meta">Previous Control No.: {{ implode(', ', $previousControlNumbers) }}</p>
+        @endif
         <p>{{ $v->purpose_event }}</p>
         @if($isBorrower)
             <p class="meta">Review the request, documents, and current progress.</p>
@@ -253,9 +260,9 @@
 
 @if($isBorrower)
 <style>
-{{-- /* Keep the borrower action and progress cards visually separate and concise. */ --}}
+
 .borrower-current-action-area {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
 }
 
 .borrower-current-action-copy {
@@ -269,12 +276,12 @@
 }
 
 .request-tracker-card {
-    margin-top: 14px;
+    margin-top: 12px;
 }
 
 .request-tracker-card .request-tracker {
     overflow: visible;
-    padding: 18px 20px;
+    padding: 16px 16px;
 }
 
 .request-tracker-card .request-tracker__header {
@@ -289,7 +296,7 @@
 .request-tracker-card .request-tracker__scroll {
     width: 100%;
     margin: 0;
-    padding: 18px 0 12px;
+    padding: 16px 0 12px;
     overflow: visible;
     overscroll-behavior-inline: auto;
     scrollbar-width: auto;
@@ -366,7 +373,7 @@
         display: grid;
         grid-template-columns: 40px minmax(0, 1fr);
         gap: 11px;
-        padding: 0 0 18px;
+        padding: 0 0 16px;
         text-align: left;
     }
 
@@ -682,7 +689,7 @@
 
                             <div class="spmu-dialog-remarks" data-confirm-remarks-wrap hidden>
                                 <label for="spmu-decision-remarks" data-confirm-remarks-label>Remarks</label>
-                                <textarea
+<textarea
                                     id="spmu-decision-remarks"
                                     rows="5"
                                     maxlength="2000"
@@ -835,7 +842,7 @@
         </article>
 
         <article class="borrower-detail-card">
-            @php
+@php
                 $awaitingItemDecision = $v->items->every(
                     fn ($item) => $item->approved_quantity === null
                 );
@@ -852,7 +859,7 @@
 
             <div class="borrower-item-list">
                 @foreach($v->items as $item)
-                    @php
+@php
                         $requestedQty = $item->requested_quantity + 0;
                         $approvedQty = $item->approved_quantity === null
                             ? null
@@ -901,7 +908,7 @@
 
                     <tbody>
                         @foreach($currentDocs as $doc)
-                            @php
+@php
                                 $isRequestLetter = $doc->document_type
                                     === App\Models\RequestSupportingDocument::TYPE_REQUEST_LETTER;
 
@@ -1082,8 +1089,6 @@
 </section>
 @endif
 
-
-
 @if($borrowingRequest->custody && !$isBorrower && !$isOperationalRequestLayout)
 <section class="content-area">
     <div class="action-panel action-neutral">
@@ -1146,9 +1151,6 @@
     </article>
 </div>
 @endif
-
-
-
 
 @unless($isBorrower)
 <section class="content-area">
@@ -1230,7 +1232,6 @@
     const headApprovalUsesPriorAoVerification =
         @json($canDecide && $v->off_campus && $actionOfficerVerified);
 
-
     const checklistComplete = () =>
         requiredSupportingPresent &&
         hasCurrentESignature &&
@@ -1292,10 +1293,6 @@
         confirmSubmit.textContent = copy.confirm;
         confirmSubmit.className = `button ${copy.tone} ui-pressable`;
 
-
-
-
-
         const approvalMode = decision === 'APPROVED';
 
         dialog.classList.toggle(
@@ -1330,11 +1327,6 @@
             );
         }
 
-
-
-
-
-
         const icon =
             dialog.querySelector('.spmu-confirm-dialog__icon');
 
@@ -1347,11 +1339,6 @@
             icon.textContent =
                 approvalMode ? '✓' : '?';
         }
-
-
-
-
-
 
         let eyebrow =
             dialog.querySelector(
@@ -1380,11 +1367,6 @@
             eyebrow.hidden =
                 !approvalMode;
         }
-
-
-
-
-
 
         let approvalNote =
             dialog.querySelector(
@@ -1443,12 +1425,6 @@
             }
         }
 
-
-
-
-
-
-
         if (
             approvalNote &&
             copyWrap &&
@@ -1488,14 +1464,6 @@
             }
         }
 
-
-
-
-
-
-
-
-
         const applyApprovalInlineStyle = (element, declarations) => {
             if (!element) {
                 return;
@@ -1511,7 +1479,6 @@
                 element.style.setProperty(property, value, 'important');
             });
         };
-
 
         const restoreApprovalInlineStyle = (element) => {
             if (
@@ -1534,7 +1501,6 @@
             delete element.dataset.adminApprovalOriginalStyleStored;
         };
 
-
         const approvalNoteIcon =
             approvalNote?.querySelector('.admin-approval-note-icon');
 
@@ -1556,7 +1522,6 @@
             confirmCancel,
             confirmSubmit
         ];
-
 
         if (approvalMode) {
 
@@ -1779,16 +1744,6 @@
             );
         }
 
-
-
-
-
-
-
-
-
-
-
         const revisionMode =
             decision === 'RETURNED_FOR_REVISION';
 
@@ -1813,12 +1768,7 @@
             confirmSubmit
         ];
 
-
         if (revisionMode) {
-
-
-
-
 
             applyApprovalInlineStyle(
                 dialog,
@@ -1831,12 +1781,6 @@
                     overflow: 'visible'
                 }
             );
-
-
-
-
-
-
 
             applyApprovalInlineStyle(
                 surface,
@@ -1880,11 +1824,6 @@
                 }
             );
 
-
-
-
-
-
             icon.textContent = '?';
 
             applyApprovalInlineStyle(
@@ -1923,11 +1862,6 @@
                 }
             );
 
-
-
-
-
-
             applyApprovalInlineStyle(
                 copyWrap,
                 {
@@ -1946,11 +1880,6 @@
                     'font-family': 'inherit'
                 }
             );
-
-
-
-
-
 
             applyApprovalInlineStyle(
                 confirmTitle,
@@ -1976,11 +1905,6 @@
                 }
             );
 
-
-
-
-
-
             applyApprovalInlineStyle(
                 confirmMessage,
                 {
@@ -2005,11 +1929,6 @@
                 }
             );
 
-
-
-
-
-
             applyApprovalInlineStyle(
                 remarksWrap,
                 {
@@ -2024,7 +1943,6 @@
                     'font-family': 'inherit'
                 }
             );
-
 
             applyApprovalInlineStyle(
                 remarksLabel,
@@ -2042,9 +1960,6 @@
                     'line-height': '1.35'
                 }
             );
-
-
-
 
             applyApprovalInlineStyle(
                 remarksField,
@@ -2083,9 +1998,6 @@
                 }
             );
 
-
-
-
             applyApprovalInlineStyle(
                 remarksHelp,
                 {
@@ -2102,11 +2014,6 @@
                     'line-height': '1.45'
                 }
             );
-
-
-
-
-
 
             applyApprovalInlineStyle(
                 actions,
@@ -2129,9 +2036,6 @@
                     'font-family': 'inherit'
                 }
             );
-
-
-
 
             applyApprovalInlineStyle(
                 confirmCancel,
@@ -2162,9 +2066,6 @@
                     'box-shadow': 'none'
                 }
             );
-
-
-
 
             applyApprovalInlineStyle(
                 confirmSubmit,
@@ -2201,25 +2102,10 @@
         }
         else if (!approvalMode) {
 
-
-
-
-
-
             revisionStyledElements.forEach(
                 restoreApprovalInlineStyle
             );
         }
-
-
-
-
-
-
-
-
-
-
 
         const rejectMode =
             decision === 'REJECTED';
@@ -2240,12 +2126,7 @@
             confirmSubmit
         ];
 
-
         if (rejectMode) {
-
-
-
-
 
             applyApprovalInlineStyle(
                 dialog,
@@ -2262,11 +2143,6 @@
                     overflow: 'visible'
                 }
             );
-
-
-
-
-
 
             applyApprovalInlineStyle(
                 surface,
@@ -2310,11 +2186,6 @@
                 }
             );
 
-
-
-
-
-
             icon.textContent = '!';
 
             applyApprovalInlineStyle(
@@ -2354,11 +2225,6 @@
                 }
             );
 
-
-
-
-
-
             applyApprovalInlineStyle(
                 copyWrap,
                 {
@@ -2377,11 +2243,6 @@
                     'font-family': 'inherit'
                 }
             );
-
-
-
-
-
 
             applyApprovalInlineStyle(
                 confirmTitle,
@@ -2407,11 +2268,6 @@
                 }
             );
 
-
-
-
-
-
             applyApprovalInlineStyle(
                 confirmMessage,
                 {
@@ -2436,11 +2292,6 @@
                 }
             );
 
-
-
-
-
-
             applyApprovalInlineStyle(
                 remarksWrap,
                 {
@@ -2453,7 +2304,6 @@
                     'font-family': 'inherit'
                 }
             );
-
 
             applyApprovalInlineStyle(
                 remarksLabel,
@@ -2471,9 +2321,6 @@
                     'line-height': '1.35'
                 }
             );
-
-
-
 
             applyApprovalInlineStyle(
                 remarksField,
@@ -2512,9 +2359,6 @@
                 }
             );
 
-
-
-
             applyApprovalInlineStyle(
                 remarksHelp,
                 {
@@ -2531,11 +2375,6 @@
                     'line-height': '1.45'
                 }
             );
-
-
-
-
-
 
             applyApprovalInlineStyle(
                 actions,
@@ -2558,9 +2397,6 @@
                     'font-family': 'inherit'
                 }
             );
-
-
-
 
             applyApprovalInlineStyle(
                 confirmCancel,
@@ -2591,9 +2427,6 @@
                     'box-shadow': 'none'
                 }
             );
-
-
-
 
             applyApprovalInlineStyle(
                 confirmSubmit,
@@ -2628,10 +2461,6 @@
             );
         }
 
-
-
-
-
         else if (
             !approvalMode &&
             decision !== 'RETURNED_FOR_REVISION'
@@ -2641,19 +2470,10 @@
             );
         }
 
-
-
-
-
         const verificationMode =
             decision === 'VERIFIED';
 
         if (verificationMode) {
-
-
-
-
-
 
             if (eyebrow) {
                 eyebrow.hidden = false;
@@ -2678,11 +2498,6 @@
                 surface.insertBefore(approvalNote, actions);
             }
 
-
-
-
-
-
             applyApprovalInlineStyle(
                 dialog,
                 {
@@ -2694,11 +2509,6 @@
                     overflow: 'visible'
                 }
             );
-
-
-
-
-
 
             applyApprovalInlineStyle(
                 surface,
@@ -2742,11 +2552,6 @@
                 }
             );
 
-
-
-
-
-
             if (icon) {
                 icon.textContent = '✓';
             }
@@ -2788,11 +2593,6 @@
                 }
             );
 
-
-
-
-
-
             applyApprovalInlineStyle(
                 copyWrap,
                 {
@@ -2811,9 +2611,6 @@
                     'font-family': 'inherit'
                 }
             );
-
-
-
 
             applyApprovalInlineStyle(
                 eyebrow,
@@ -2837,9 +2634,6 @@
                     'text-transform': 'uppercase'
                 }
             );
-
-
-
 
             applyApprovalInlineStyle(
                 confirmTitle,
@@ -2865,9 +2659,6 @@
                 }
             );
 
-
-
-
             applyApprovalInlineStyle(
                 confirmMessage,
                 {
@@ -2891,11 +2682,6 @@
                     'overflow-wrap': 'normal'
                 }
             );
-
-
-
-
-
 
             if (approvalNote) {
 
@@ -3000,11 +2786,6 @@
                 );
             }
 
-
-
-
-
-
             applyApprovalInlineStyle(
                 actions,
                 {
@@ -3026,9 +2807,6 @@
                     'font-family': 'inherit'
                 }
             );
-
-
-
 
             applyApprovalInlineStyle(
                 confirmCancel,
@@ -3059,9 +2837,6 @@
                     'box-shadow': 'none'
                 }
             );
-
-
-
 
             applyApprovalInlineStyle(
                 confirmSubmit,
@@ -3095,8 +2870,6 @@
                 }
             );
         }
-
-
 
         configureRemarks(decision);
 
@@ -3187,9 +2960,6 @@
 
         confirmSubmit.disabled = true;
 
-
-
-
         window.setTimeout(() => { confirmSubmit.disabled = false; }, 20000);
         form.submit();
     });
@@ -3206,30 +2976,8 @@
     updateApproveState();
 })();
 
-
-
 </script>
 @endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 @if($isBorrower)
 <style>
@@ -3243,10 +2991,9 @@
 
 .borrower-request-workspace {
     display: grid;
-    gap: 14px;
+    gap: 12px;
 }
 
-{{-- /* Borrower monitoring is always visible above the detail tabs. */ --}}
 .borrower-progress-always > .request-tracker-card {
     margin-top: 0;
 }
@@ -3296,7 +3043,6 @@
     min-height: 64px;
 }
 
-
 @media (max-width: 680px) {
     .request-heading-actions {
         justify-content: flex-start;
@@ -3310,12 +3056,6 @@
     </div>
 @endif
 <style>
-{{-- /* SPMU REVIEW WORKSPACE RECOVERY START */ --}}
-
-
-{{-- /* =========================================================
-   EQUAL HEIGHT LEFT / RIGHT
-   ========================================================= */ --}}
 
 .spmu-verification-workspace
 .spmu-review-top-row {
@@ -3345,11 +3085,6 @@
     min-height:0 !important;
 }
 
-
-{{-- /* =========================================================
-   DOCUMENT TABS
-   ========================================================= */ --}}
-
 .spmu-verification-workspace
 .spmu-document-tabs {
     display:flex !important;
@@ -3368,7 +3103,7 @@
 .spmu-document-tab {
     min-height:42px !important;
 
-    padding:0 14px !important;
+    padding:0 12px !important;
 
     border:0 !important;
     border-bottom:2px solid transparent !important;
@@ -3406,11 +3141,6 @@
     cursor:not-allowed !important;
 }
 
-
-{{-- /* =========================================================
-   CHECKLIST → READINESS
-   ========================================================= */ --}}
-
 .spmu-verification-workspace
 .spmu-checklist {
     margin-bottom:0 !important;
@@ -3424,8 +3154,8 @@
 
     gap:12px !important;
 
-    margin-top:20px !important;
-    padding:16px 17px !important;
+    margin-top:16px !important;
+    padding:12px 12px !important;
 
     border:1px solid var(--border, #d7dee8) !important;
     border-radius:10px !important;
@@ -3434,9 +3164,6 @@
 
     box-shadow:none !important;
 }
-
-
-{{-- /* heading */ --}}
 
 .spmu-verification-workspace
 .spmu-review-readiness-heading {
@@ -3468,9 +3195,6 @@
     font-weight:750 !important;
 }
 
-
-{{-- /* status */ --}}
-
 .spmu-verification-workspace
 .spmu-review-readiness-status {
     display:inline-flex !important;
@@ -3501,9 +3225,6 @@
     color:#087b55 !important;
 }
 
-
-{{-- /* count */ --}}
-
 .spmu-verification-workspace
 .spmu-review-readiness-summary {
     display:flex !important;
@@ -3528,9 +3249,6 @@
     font-size:10px !important;
     font-weight:700 !important;
 }
-
-
-{{-- /* progress */ --}}
 
 .spmu-verification-workspace
 .spmu-review-readiness-track {
@@ -3566,9 +3284,6 @@
     background:#177551 !important;
 }
 
-
-{{-- /* message */ --}}
-
 .spmu-verification-workspace
 .spmu-review-readiness-message {
     margin:0 !important;
@@ -3586,21 +3301,11 @@
     font-weight:600 !important;
 }
 
-
-{{-- /* =========================================================
-   KEEP DECISION ACTIONS LOW / BALANCED
-   ========================================================= */ --}}
-
 .spmu-verification-workspace
 .spmu-decision-actions {
     margin-top:auto !important;
     padding-top:20px !important;
 }
-
-
-{{-- /* =========================================================
-   MOBILE
-   ========================================================= */ --}}
 
 @media (max-width:680px) {
 
@@ -3616,12 +3321,9 @@
 
     .spmu-verification-workspace
     .spmu-review-readiness {
-        margin-top:16px !important;
+        margin-top:12px !important;
     }
 }
-
-
-{{-- /* SPMU DOCUMENT TAB CLICKABILITY FIX */ --}}
 
 .spmu-verification-workspace
 .spmu-document-tabs {
@@ -3665,13 +3367,6 @@
     margin: 0 auto;
 }
 
-{{-- /* SPMU IMAGE HAND CURSOR START */ --}}
-
-{{-- /*
- * Uploaded image documents are interactive inspection surfaces.
- * The hand cursor makes it clear that the image can be inspected
- * while the existing - / + / Fit controls handle zoom.
- */ --}}
 .spmu-verification-workspace
 .scanned-document-card img:not([hidden]) {
     cursor: grab !important;
@@ -3685,9 +3380,6 @@
     cursor: grabbing !important;
 }
 
-{{-- /*
- * Keep the hand cursor on dynamically-created tab images as well.
- */ --}}
 .spmu-verification-workspace
 .spmu-tab-document-image {
     cursor: grab !important;
@@ -3701,14 +3393,6 @@
     cursor: grabbing !important;
 }
 
-{{-- /* SPMU IMAGE HAND CURSOR END */ --}}
-
-{{-- /* SPMU IMAGE-ONLY ZOOM CSS START */ --}}
-
-{{-- /*
- * Browser/page zoom must not take over while the user is
- * inspecting an uploaded image document.
- */ --}}
 .spmu-verification-workspace
 .scanned-document-card img:not([hidden]) {
     cursor: grab !important;
@@ -3716,15 +3400,8 @@
     -webkit-user-select: none !important;
     -webkit-user-drag: none !important;
 
-    {{-- /*
-     * Prevent touch gestures on the image itself from zooming
-     * the whole browser page.
-     */ --}}
     touch-action: none !important;
 
-    {{-- /*
-     * JS controls image zoom/pan using transform only.
-     */ --}}
     transform-origin: center center !important;
     will-change: transform;
 }
@@ -3736,18 +3413,13 @@
 
 .spmu-verification-workspace
 .scanned-document-card {
-    {{-- /*
-     * Keep transformed image interaction inside the document viewer.
-     */ --}}
+
     overscroll-behavior: contain;
 }
 
-{{-- /* SPMU IMAGE-ONLY ZOOM CSS END */ --}}
-{{-- /* SPMU REVIEW WORKSPACE RECOVERY END */ --}}
 </style>
 
 <script>
-
 
 (() => {
     const workspace =
@@ -3756,11 +3428,6 @@
     if (!workspace) {
         return;
     }
-
-
-
-
-
 
     const tabList =
         workspace.querySelector('[data-spmu-document-tabs]');
@@ -3775,10 +3442,6 @@
         const frame =
             viewer?.querySelector('.scanned-pdf-frame');
 
-
-
-
-
         if (viewer && header && tabList.parentElement !== viewer) {
             header.insertAdjacentElement('afterend', tabList);
         }
@@ -3786,7 +3449,6 @@
         const tabs = Array.from(
             tabList.querySelectorAll('[data-document-tab]')
         );
-
 
         let documentActivationSequence = 0;
 
@@ -3813,11 +3475,6 @@
             catch (error) {
 
             }
-
-
-
-
-
 
             return await new Promise((resolve) => {
                 const probe = new Image();
@@ -3855,10 +3512,6 @@
             const activationSequence =
                 ++documentActivationSequence;
 
-
-
-
-
             tabs.forEach((candidate) => {
                 const active = candidate === tab;
 
@@ -3878,10 +3531,6 @@
 
             const documentType =
                 await detectDocumentType(documentUrl);
-
-
-
-
 
             if (
                 activationSequence !==
@@ -3904,19 +3553,10 @@
                     'img[data-document-image]'
                 );
 
-
-
-
-
-
             if (!imageElement) {
                 imageElement =
                     viewer.querySelector('img');
             }
-
-
-
-
 
             if (imageElement) {
                 imageElement.classList.add(
@@ -3938,10 +3578,6 @@
                 pdfFrame?.parentElement ||
                 imageElement?.parentElement;
 
-
-
-
-
             if (!mediaHost) {
                 mediaHost =
                     document.createElement('div');
@@ -3953,10 +3589,6 @@
             }
 
             if (documentType === 'image') {
-
-
-
-
 
                 if (!imageElement) {
                     imageElement =
@@ -3992,11 +3624,6 @@
 
                 return;
             }
-
-
-
-
-
 
             if (!pdfFrame) {
                 pdfFrame =
@@ -4091,11 +3718,6 @@
             });
         });
     }
-
-
-
-
-
 
     workspace
         .querySelectorAll('[data-verification-form]')
@@ -4223,9 +3845,6 @@
         });
 })();
 
-
-
-
 (() => {
     const workspace =
         document.querySelector(
@@ -4241,9 +3860,6 @@
 
     const imageSelector =
         '.scanned-document-card img:not([hidden])';
-
-
-
 
     const imageStates = new WeakMap();
 
@@ -4297,18 +3913,6 @@
         image.style.transform = '';
     };
 
-
-
-
-
-
-
-
-
-
-
-
-
     workspace.addEventListener(
         'wheel',
         (event) => {
@@ -4324,10 +3928,6 @@
                 return;
             }
 
-
-
-
-
             if (!event.ctrlKey) {
                 return;
             }
@@ -4336,10 +3936,6 @@
             event.stopPropagation();
 
             const state = getState(image);
-
-
-
-
 
             const direction =
                 event.deltaY < 0 ? 1 : -1;
@@ -4351,9 +3947,6 @@
                 0.50,
                 3.00
             );
-
-
-
 
             if (
                 Math.abs(nextScale - 1) < 0.001
@@ -4377,15 +3970,6 @@
         }
     );
 
-
-
-
-
-
-
-
-
-
     workspace.addEventListener(
         'pointerdown',
         (event) => {
@@ -4406,10 +3990,6 @@
             }
 
             const state = getState(image);
-
-
-
-
 
             if (state.scale <= 1) {
                 return;
@@ -4442,7 +4022,6 @@
         },
         true
     );
-
 
     workspace.addEventListener(
         'pointermove',
@@ -4491,7 +4070,6 @@
         },
         true
     );
-
 
     const finishPan = (event) => {
         const images =
@@ -4543,16 +4121,6 @@
         true
     );
 
-
-
-
-
-
-
-
-
-
-
     workspace.addEventListener(
         'click',
         (event) => {
@@ -4599,11 +4167,6 @@
         true
     );
 
-
-
-
-
-
     workspace
         .querySelectorAll(
             '[data-document-tab]'
@@ -4628,17 +4191,9 @@
 
 })();
 
-
-
 </script>
 
 <style>
-{{-- /* ADMIN REQUEST DETAILS CLEAN START */ --}}
-
-{{-- /*
- | Clean request details presentation.
- | Keep the original request data; presentation only.
- */ --}}
 
 .spmu-verification-workspace
 .spmu-left-borrowing-info
@@ -4653,17 +4208,12 @@
 
     width:100% !important;
 
-    padding:22px 20px 24px !important;
+    padding:16px 16px 16px !important;
 
     border:0 !important;
     background:transparent !important;
     box-shadow:none !important;
 }
-
-
-{{-- /* ---------------------------------------------------------
-   Remove the previous table/cell appearance
-   --------------------------------------------------------- */ --}}
 
 .spmu-verification-workspace
 .spmu-left-borrowing-grid-clean
@@ -4682,11 +4232,6 @@
     box-shadow:none !important;
 }
 
-
-{{-- /* ---------------------------------------------------------
-   Label
-   --------------------------------------------------------- */ --}}
-
 .spmu-verification-workspace
 .spmu-left-borrowing-grid-clean
 .spmu-left-borrowing-cell > span {
@@ -4704,11 +4249,6 @@
     text-transform:none !important;
     letter-spacing:0 !important;
 }
-
-
-{{-- /* ---------------------------------------------------------
-   Value
-   --------------------------------------------------------- */ --}}
 
 .spmu-verification-workspace
 .spmu-left-borrowing-grid-clean
@@ -4733,21 +4273,11 @@
     background:transparent !important;
 }
 
-
-{{-- /* ---------------------------------------------------------
-   Header remains separate and clean
-   --------------------------------------------------------- */ --}}
-
 .spmu-verification-workspace
 .spmu-left-borrowing-info
 .card-header {
     margin-bottom:0 !important;
 }
-
-
-{{-- /* ---------------------------------------------------------
-   Responsive
-   --------------------------------------------------------- */ --}}
 
 @media (max-width:760px) {
 
@@ -4757,14 +4287,13 @@
         grid-template-columns:1fr !important;
 
         column-gap:0 !important;
-        row-gap:20px !important;
+        row-gap:16px !important;
 
-        padding:20px 16px 22px !important;
+        padding:16px 12px 16px !important;
     }
 
 }
 
-{{-- /* ADMIN REQUEST DETAILS CLEAN END */ --}}
 </style>
 
 @endsection

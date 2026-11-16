@@ -99,7 +99,7 @@
                 <button class="icon-button return-flash-dismiss" type="button" aria-label="Dismiss notification" data-return-flash-dismiss><x-icon name="close" size="18" /></button>
             </div>
         @endif
-        @php
+@php
             $calendarNotice = $errors->first('operational_calendar') ?: ($returnOperationalNotice ?? null);
             $validationErrors = collect($errors->getMessages())
                 ->except('operational_calendar')
@@ -406,7 +406,7 @@
                                         {{ optional($return->received_at)->format('d M Y, g:i A') ?: '—' }}
                                     @endif
                                 </td>
-                                @php
+@php
                                     $returnTiming = match (strtoupper((string) ($return->return_type ?: 'NORMAL'))) {
                                         'EARLY' => 'Early',
                                         'OVERDUE', 'LATE', 'LATE_RETURN' => 'Late',
@@ -426,4 +426,3 @@
 @endif
 
 @include('custody.partials.return-process-interactions')
-

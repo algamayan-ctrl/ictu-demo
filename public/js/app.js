@@ -1,3 +1,4 @@
+// This is the shared script for appearance, sidebar navigation, and interface controls.
 (() => {
     const root = document.documentElement;
     const storageKey = root.dataset.themeStorageKey;
@@ -636,10 +637,6 @@
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-
-
-
-
     const topbarOffset = () => {
         const raw = getComputedStyle(document.documentElement).getPropertyValue('--topbar-height');
         const parsed = parseInt(raw, 10);
@@ -737,7 +734,6 @@
     });
 })();
 
-
 (() => {
     const toggles = Array.from(
         document.querySelectorAll('[data-sidebar-section-toggle]')
@@ -770,10 +766,6 @@
             return;
         }
 
-
-
-
-
         toggles.forEach((otherToggle) => {
             if (otherToggle !== toggle) {
                 closeGroup(otherToggle);
@@ -783,13 +775,6 @@
         panel.hidden = false;
         toggle.setAttribute('aria-expanded', 'true');
     };
-
-
-
-
-
-
-
 
     toggles.forEach(closeGroup);
 
@@ -812,19 +797,8 @@
             return;
         }
 
-
-
-
-
         event.preventDefault();
         event.stopPropagation();
-
-
-
-
-
-
-
 
         const isDesktop = window.matchMedia('(min-width: 1050px)').matches;
         const sidebarIsCollapsed =

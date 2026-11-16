@@ -93,7 +93,6 @@
     $deliveryColumnCount = 7;
 @endphp
 
-
 <section class="page-heading notification-delivery-heading" aria-labelledby="notification-delivery-page-title">
     <div>
         <p class="eyebrow">ICTU notification administration</p>
@@ -249,7 +248,7 @@
                     </thead>
                 <tbody>
                     @foreach($deliveries as $delivery)
-                        @php
+@php
                             $eventCode = (string) ($delivery->event?->event_code ?? '');
                             $eventDisplay = $eventLabel($eventCode);
                             $channelCode = strtoupper((string) $delivery->channel);
@@ -421,7 +420,7 @@
                                                     <div><dt>Opened By Recipient</dt><dd>{{ $delivery->read_at ? $delivery->read_at->format('M j, Y • g:i A') : 'Not yet opened' }}</dd></div>
                                                 @endif
                                                 @if($statusCode === 'FAILED' && ! $isSmsNotConfigured)
-                                                    @php
+@php
                                                         // Summary and technical text both come from the sanitized diagnostic only.
                                                         $failureSummary = \App\Models\NotificationDelivery::failureSummary($delivery->provider_response);
                                                     @endphp
@@ -479,7 +478,7 @@
                                         >
                                             @csrf
                                             <label for="resolution-note-{{ $delivery->id }}">Resolution note (required)</label>
-                                            <textarea
+<textarea
                                                 id="resolution-note-{{ $delivery->id }}"
                                                 name="resolution_note"
                                                 required
@@ -504,14 +503,8 @@
     @endif
 </section>
 
-
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-
-
-
-
-
 
     const form = document.getElementById('delivery-filter-form');
     const search = document.getElementById('delivery-search');

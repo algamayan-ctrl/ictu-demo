@@ -45,8 +45,8 @@
     <h2>3. Google sign-in</h2>
     <p>
         If you choose &ldquo;Continue with Google&rdquo;, Google shares only your basic profile:
-        your Google account identifier, email address and name (the <code>openid</code>, <code>email</code> and
-        <code>profile</code> permissions). We use them only to identify you and to fill in your registration form.
+        your Google account identifier, email address and name (the<code>openid</code>,<code>email</code> and
+<code>profile</code> permissions). We use them only to identify you and to fill in your registration form.
         We store your Google account identifier to link it to your {{ config('app.name') }} account.
         We do not access your Gmail, Google Drive, contacts or any other Google data, and we do not receive
         your Google password.

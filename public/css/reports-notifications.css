@@ -20,7 +20,7 @@
     grid-template-columns: minmax(260px, 1.8fr) repeat(4, minmax(120px, .82fr)) 86px;
     gap: 10px;
     align-items: end;
-    padding: 12px 14px;
+    padding: 12px 12px;
 }
 
 .notification-delivery-toolbar > div { min-width: 0; }
@@ -65,8 +65,8 @@
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 8px 16px;
-    padding: 7px 14px;
+    gap: 8px 12px;
+    padding: 7px 12px;
     border-bottom: 1px solid var(--border);
 }
 .notification-delivery-table-heading {
@@ -107,7 +107,7 @@
     min-width: 132px;
     height: 32px;
     min-height: 32px;
-    padding: 4px 26px 4px 7px;
+    padding: 4px 20px 4px 7px;
     border: 1px solid transparent;
     border-radius: 7px;
     background-color: transparent;
@@ -239,7 +239,7 @@
 }
 .notification-delivery-detail-group {
     min-width: 0;
-    padding: 2px 14px 3px;
+    padding: 2px 12px 3px;
 }
 .notification-delivery-detail-group:first-child { padding-left: 4px; }
 .notification-delivery-detail-group:last-child { padding-right: 4px; }
@@ -341,7 +341,7 @@
 .notification-delivery-bulk-bar textarea { min-height: 38px; resize: vertical; }
 .notification-delivery-no-results td {
     height: auto !important;
-    padding: 24px !important;
+    padding: 16px !important;
     color: var(--text-muted);
     text-align: center;
 }
@@ -367,7 +367,7 @@
 
 
 @media screen {
-  .notification-delivery-heading { margin-bottom: 14px !important; }
+  .notification-delivery-heading { margin-bottom: 12px !important; }
   .notification-delivery-heading h1 { font-size: 21px !important; }
   .notification-delivery-area { gap: 10px !important; }
   .notification-delivery-toolbar { padding: 11px 13px !important; }

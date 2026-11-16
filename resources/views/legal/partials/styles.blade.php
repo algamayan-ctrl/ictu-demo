@@ -1,7 +1,7 @@
 <style>
     .legal-page {
         width: min(860px, calc(100% - 32px));
-        margin: 32px auto 56px;
+        margin: 24px auto 56px;
         color: #0f2545;
         line-height: 1.65;
     }
@@ -14,13 +14,13 @@
     }
 
     .legal-page .legal-meta {
-        margin: 0 0 28px;
+        margin: 0 0 20px;
         color: #60708a;
         font-size: .95rem;
     }
 
     .legal-page h2 {
-        margin: 32px 0 8px;
+        margin: 24px 0 8px;
         font-size: 1.2rem;
         font-weight: 750;
     }

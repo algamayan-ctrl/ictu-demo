@@ -10,32 +10,87 @@ use App\Models\OperationalWeeklySchedule;
 use App\Models\SanctionRule;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Services\AcademicPeriodResolver;
 use App\Services\AuditService;
 use App\Services\OperationalCalendarService;
 use App\Services\NotificationService;
 use App\Services\PolicyService;
+use App\Support\RecordTable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
+// This is the controller for authorized operational configuration.
 class PolicyController extends Controller
 {
     public function index(Request $request, PolicyService $policy): View
     {
         $this->authorizeHead($request);
 
-        $academicPeriods = AcademicPeriod::query()
-            ->orderByDesc('start_date')
-            ->get();
+        $filters = $request->validate([
+            'period_q' => ['nullable', 'string', 'max:200'],
+            'period_status' => ['nullable', Rule::in(['ALL', 'ACTIVE', 'UPCOMING', 'COMPLETED'])],
+            'period_sort' => ['nullable', Rule::in(['newest', 'oldest'])],
+            'period_per_page' => ['nullable', 'integer', Rule::in([10, 25, 50, 100])],
+            'period_page' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'exception_q' => ['nullable', 'string', 'max:200'],
+            'exception_status' => ['nullable', Rule::in(['ALL', 'OPEN', 'CLOSED'])],
+            'exception_from' => ['nullable', 'date_format:Y-m-d'],
+            'exception_to' => ['nullable', 'date_format:Y-m-d', Rule::when($request->filled('exception_from'), 'after_or_equal:exception_from')],
+            'exception_sort' => ['nullable', Rule::in(['date', 'status', 'transactions', 'hours', 'reason'])],
+            'exception_direction' => ['nullable', Rule::in(['asc', 'desc'])],
+            'exception_per_page' => ['nullable', 'integer', Rule::in([10, 25, 50, 100])],
+            'exception_page' => ['nullable', 'integer', 'min:1', 'max:100000'],
+        ]);
+        $academicPeriods = AcademicPeriod::query()->orderByDesc('start_date')->orderByDesc('id')->get();
+        $calendar = app(AcademicPeriodResolver::class);
+        $activePeriod = $calendar->current(periods: $academicPeriods);
+        $academicPeriodConflict = $calendar->covering(periods: $academicPeriods)->count() > 1;
+        $academicPeriods = $academicPeriods->filter(function (AcademicPeriod $period) use ($filters, $calendar): bool {
+            $status = $calendar->statusFor($period);
+            $text = implode(' ', [$period->academic_year, $period->term_name, $period->start_date->format('d M Y'), $period->end_date->format('d M Y'), $status, $status === 'ACTIVE' ? 'Current' : '']);
+
+            return (($filters['period_status'] ?? 'ALL') === 'ALL' || $status === $filters['period_status'])
+                && str_contains(mb_strtolower($text), mb_strtolower(trim($filters['period_q'] ?? '')));
+        });
+        if (($filters['period_sort'] ?? 'newest') === 'oldest') {
+            $academicPeriods = $academicPeriods->reverse();
+        }
+
+        // This is the complete exception register, including historical closures.
+        $dateExceptions = OperationalDateException::query()->orderBy('exception_date')->orderBy('id')->get()
+            ->filter(function (OperationalDateException $exception) use ($filters): bool {
+                $date = $exception->exception_date->toDateString();
+                $text = implode(' ', [$date, $exception->exception_date->format('d M Y l'), $exception->status,
+                    $exception->reason, $exception->status === 'CLOSED' ? 'Physical SPMU transactions closed' : 'Open Special Working Day',
+                    $exception->allows_pickup ? 'Pickup Release' : '', $exception->allows_return ? 'Returns' : '',
+                    $exception->open_time, $exception->close_time,
+                    $exception->open_time && $exception->close_time ? '' : 'Date-based']);
+                $terms = preg_split('/\s+/u', mb_strtolower(trim($filters['exception_q'] ?? '')), -1, PREG_SPLIT_NO_EMPTY);
+
+                return (($filters['exception_status'] ?? 'ALL') === 'ALL' || $exception->status === $filters['exception_status'])
+                    && (empty($filters['exception_from']) || $date >= $filters['exception_from'])
+                    && (empty($filters['exception_to']) || $date <= $filters['exception_to'])
+                    && collect($terms)->every(fn ($term) => str_contains(mb_strtolower($text), $term));
+            });
+        $dateExceptions = $dateExceptions->sortBy(function (OperationalDateException $exception) use ($filters) {
+            return match ($filters['exception_sort'] ?? 'date') {
+                'status' => $exception->status,
+                'transactions' => $exception->status === 'CLOSED' ? 'Physical SPMU transactions closed'
+                    : (collect([$exception->allows_pickup ? 'Pickup / Release' : null, $exception->allows_return ? 'Returns' : null])->filter()->join(', ') ?: 'Open day with no enabled physical transaction'),
+                'hours' => $exception->open_time && $exception->close_time ? $exception->open_time.' '.$exception->close_time : 'Date-based',
+                'reason' => mb_strtolower($exception->reason ?? ''),
+                default => $exception->exception_date->toDateString(),
+            };
+        }, SORT_REGULAR, ($filters['exception_direction'] ?? 'asc') === 'desc');
 
         return view('administration.policies', [
-            'academicPeriods' => $academicPeriods,
-            'activePeriod' => $academicPeriods->first(
-                fn (AcademicPeriod $period): bool =>
-                    $period->status === 'ACTIVE'
-            ),
+            'academicPeriods' => RecordTable::paginate($academicPeriods, $request, 'period', (int) ($filters['period_per_page'] ?? 10)),
+            'activePeriod' => $activePeriod,
+            'academicPeriodConflict' => $academicPeriodConflict,
             'sanctionRules' => SanctionRule::query()
                 ->whereIn('offense_no', [1, 2, 3])
                 ->orderBy('offense_no')
@@ -45,308 +100,76 @@ class PolicyController extends Controller
                 ->orderBy('weekday')
                 ->get()
                 ->keyBy('weekday'),
-            'dateExceptions' => OperationalDateException::query()
-                ->whereDate('exception_date', '>=', now()->subMonth()->toDateString())
-                ->orderBy('exception_date')
-                ->get(),
+            'dateExceptions' => RecordTable::paginate($dateExceptions, $request, 'exception', (int) ($filters['exception_per_page'] ?? 10)),
             'offenseApplicationTypes' => $policy->offenseApplicationTypes(),
         ]);
     }
 
-    public function storeAcademicPeriod(
-        Request $request,
-        AuditService $audit
-    ): RedirectResponse {
+    public function storeAcademicPeriod(Request $request, AuditService $audit): RedirectResponse
+    {
         $this->authorizeHead($request);
+        $data = $this->academicPeriodData($request);
 
-        $data = $request->validate([
-            'academic_year' => [
-                'required',
-                'string',
-                'max:20',
-                'regex:/^\d{4}-\d{4}$/',
-            ],
-            'term_code' => [
-                'required',
-                Rule::in([
-                    'FIRST_SEMESTER',
-                    'SECOND_SEMESTER',
-                    'SUMMER_MIDYEAR',
-                ]),
-            ],
-            'start_date' => [
-                'required',
-                'date',
-            ],
-            'end_date' => [
-                'required',
-                'date',
-                'after_or_equal:start_date',
-            ],
-        ], [
-            'academic_year.regex' =>
-                'Use the academic year format YYYY-YYYY, for example 2026-2027.',
-            'end_date.after_or_equal' =>
-                'End Date cannot be earlier than Start Date.',
-        ]);
+        DB::transaction(function () use ($request, $audit, $data): void {
+            $existing = AcademicPeriod::query()->where('academic_year', $data['academic_year'])
+                ->where('term_code', $data['term_code'])->first();
+            app(AcademicPeriodResolver::class)->validateCalendar($data, $existing);
+            $period = AcademicPeriod::query()->updateOrCreate(
+                ['academic_year' => $data['academic_year'], 'term_code' => $data['term_code']],
+                $this->academicPeriodAttributes($data, $request)
+            );
+            $audit->record('ACADEMIC_PERIOD_CONFIGURED', $period, after: $period->toArray());
+        });
 
-        [$startYear, $endYear] = array_map(
-            'intval',
-            explode(
-                '-',
-                $data['academic_year']
-            )
-        );
-
-        if ($endYear !== $startYear + 1) {
-            return back()
-                ->withErrors([
-                    'academic_year' =>
-                        'The academic year must use consecutive years, for example 2026-2027.',
-                ])
-                ->withInput();
-        }
-
-        $termName = $this->termNameFor(
-            $data['term_code']
-        );
-
-        $existing = AcademicPeriod::query()
-            ->where(
-                'academic_year',
-                $data['academic_year']
-            )
-            ->where(
-                'term_code',
-                $data['term_code']
-            )
-            ->first();
-
-        $derivedStatus =
-            now()->startOfDay()->gt(
-                \Illuminate\Support\Carbon::parse(
-                    $data['end_date']
-                )->startOfDay()
-            )
-                ? 'COMPLETED'
-                : 'UPCOMING';
-
-        /*
-         * If the SPMU Head updates the dates of the currently active period
-         * through the add/save form, do not silently remove its Active state.
-         * A period only changes Active state through the explicit Activate
-         * action below.
-         */
-        if (
-            $existing?->status === 'ACTIVE'
-            && $derivedStatus !== 'COMPLETED'
-        ) {
-            $derivedStatus = 'ACTIVE';
-        }
-
-        $period = AcademicPeriod::query()->updateOrCreate(
-            [
-                'academic_year' =>
-                    $data['academic_year'],
-
-                'term_code' =>
-                    $data['term_code'],
-            ],
-            [
-                'term_name' =>
-                    $termName,
-
-                'start_date' =>
-                    $data['start_date'],
-
-                'end_date' =>
-                    $data['end_date'],
-
-                'status' =>
-                    $derivedStatus,
-
-                'configured_by_user_id' =>
-                    $request->user()->id,
-            ]
-        );
-
-        $audit->record(
-            'ACADEMIC_PERIOD_CONFIGURED',
-            $period,
-            after: $period->toArray()
-        );
-
-        return back()->with(
-            'status',
-            $derivedStatus === 'ACTIVE'
-                ? 'Active academic period dates updated.'
-                : 'Academic period saved. Activate it when it becomes the official current period.'
-        );
+        return back()->with('status', 'Academic period saved. The current semester follows the saved dates automatically.');
     }
 
-    public function updateAcademicPeriod(
-        Request $request,
-        AcademicPeriod $period,
-        AuditService $audit
-    ): RedirectResponse {
+    public function updateAcademicPeriod(Request $request, AcademicPeriod $period, AuditService $audit): RedirectResponse
+    {
         $this->authorizeHead($request);
-
-        /*
-         * The configuration screen uses this route for an explicit Activate
-         * action. This keeps status management out of the create form and
-         * guarantees that only one academic period is Active at a time.
-         */
         if ($request->boolean('activate')) {
-            if (
-                $period->end_date
-                && $period->end_date
-                    ->copy()
-                    ->endOfDay()
-                    ->isPast()
-            ) {
-                return back()->withErrors([
-                    'academic_period' =>
-                        'A completed academic period cannot be activated.',
-                ]);
-            }
+            return back()->with('status', 'Academic periods now follow saved dates automatically. No manual activation is needed.');
+        }
 
+        $data = $this->academicPeriodData($request);
+        DB::transaction(function () use ($request, $period, $audit, $data): void {
+            app(AcademicPeriodResolver::class)->validateCalendar($data, $period);
             $before = $period->toArray();
+            $period->update($this->academicPeriodAttributes($data, $request));
+            $audit->record('ACADEMIC_PERIOD_UPDATED', $period, before: $before, after: $period->fresh()->toArray());
+        });
 
-            AcademicPeriod::query()
-                ->whereKeyNot($period->id)
-                ->where('status', 'ACTIVE')
-                ->update([
-                    'status' => 'COMPLETED',
-                ]);
+        return back()->with('status', 'Academic period updated. The current semester follows the saved dates automatically.');
+    }
 
-            $period->update([
-                'status' =>
-                    'ACTIVE',
-
-                'configured_by_user_id' =>
-                    $request->user()->id,
-            ]);
-
-            $audit->record(
-                'ACADEMIC_PERIOD_ACTIVATED',
-                $period,
-                before: $before,
-                after: $period->fresh()->toArray()
-            );
-
-            return back()->with(
-                'status',
-                $period->academic_year
-                .' · '
-                .$period->term_name
-                .' is now the active academic period.'
-            );
-        }
-
-        /*
-         * Keep the existing update capability for compatibility with any
-         * older links/forms, but derive Term Name from Semester / Term and
-         * avoid requiring a manual Status selection.
-         */
+    private function academicPeriodData(Request $request): array
+    {
         $data = $request->validate([
-            'academic_year' => [
-                'required',
-                'string',
-                'max:20',
-                'regex:/^\d{4}-\d{4}$/',
-            ],
-            'term_code' => [
-                'required',
-                Rule::in([
-                    'FIRST_SEMESTER',
-                    'SECOND_SEMESTER',
-                    'SUMMER_MIDYEAR',
-                ]),
-            ],
-            'start_date' => [
-                'required',
-                'date',
-            ],
-            'end_date' => [
-                'required',
-                'date',
-                'after_or_equal:start_date',
-            ],
-        ], [
-            'academic_year.regex' =>
-                'Use the academic year format YYYY-YYYY, for example 2026-2027.',
-            'end_date.after_or_equal' =>
-                'End Date cannot be earlier than Start Date.',
+            'academic_year' => ['required', 'string', 'max:20', 'regex:/^\d{4}-\d{4}$/'],
+            'term_code' => ['required', Rule::in(['FIRST_SEMESTER', 'SECOND_SEMESTER', 'SUMMER_MIDYEAR'])],
+            'start_date' => ['required', 'date_format:Y-m-d'],
+            'end_date' => ['required', 'date_format:Y-m-d'],
+        ], ['academic_year.regex' => 'Use the academic year format YYYY-YYYY, for example 2026-2027.']);
+        $request->validate(['end_date' => ['after_or_equal:start_date']], [
+            'end_date.after_or_equal' => 'End Date cannot be earlier than Start Date.',
         ]);
-
-        [$startYear, $endYear] = array_map(
-            'intval',
-            explode(
-                '-',
-                $data['academic_year']
-            )
-        );
-
+        [$startYear, $endYear] = array_map('intval', explode('-', $data['academic_year']));
         if ($endYear !== $startYear + 1) {
-            return back()
-                ->withErrors([
-                    'academic_year' =>
-                        'The academic year must use consecutive years, for example 2026-2027.',
-                ])
-                ->withInput();
+            throw ValidationException::withMessages([
+                'academic_year' => 'The academic year must use consecutive years, for example 2026-2027.',
+            ]);
         }
 
-        $before = $period->toArray();
+        return $data;
+    }
 
-        $derivedStatus =
-            $period->status === 'ACTIVE'
-                ? 'ACTIVE'
-                : (
-                    now()->startOfDay()->gt(
-                        \Illuminate\Support\Carbon::parse(
-                            $data['end_date']
-                        )->startOfDay()
-                    )
-                        ? 'COMPLETED'
-                        : 'UPCOMING'
-                );
-
-        $period->update([
-            'academic_year' =>
-                $data['academic_year'],
-
-            'term_code' =>
-                $data['term_code'],
-
-            'term_name' =>
-                $this->termNameFor(
-                    $data['term_code']
-                ),
-
-            'start_date' =>
-                $data['start_date'],
-
-            'end_date' =>
-                $data['end_date'],
-
-            'status' =>
-                $derivedStatus,
-
-            'configured_by_user_id' =>
-                $request->user()->id,
-        ]);
-
-        $audit->record(
-            'ACADEMIC_PERIOD_UPDATED',
-            $period,
-            before: $before,
-            after: $period->fresh()->toArray()
-        );
-
-        return back()->with(
-            'status',
-            'Academic period updated.'
-        );
+    private function academicPeriodAttributes(array $data, Request $request): array
+    {
+        return $data + [
+            'term_name' => $this->termNameFor($data['term_code']),
+            'status' => app(AcademicPeriodResolver::class)->statusFor(new AcademicPeriod($data)),
+            'configured_by_user_id' => $request->user()->id,
+        ];
     }
 
     public function updateSanctionRule(

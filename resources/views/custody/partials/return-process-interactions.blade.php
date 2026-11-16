@@ -8,11 +8,6 @@
         });
     }
 
-
-
-
-
-
     const laundryDateInput = document.querySelector('[data-laundry-return-date]');
     const laundryDateStatus = document.querySelector('[data-laundry-return-date-status]');
 
@@ -117,8 +112,6 @@
 
             if (detailsRow) detailsRow.hidden = nonFine <= epsilon;
             if (policeWrap) policeWrap.hidden = stolen <= epsilon;
-
-
 
             if (evidence) evidence.required = kind !== 'linen' && nonFine > epsilon;
             if (police) police.required = stolen > epsilon;

@@ -21,6 +21,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\EvidenceFixtures;
@@ -38,6 +39,51 @@ class BorrowingRequestNumberTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         Mail::fake();
         Storage::fake('local');
+    }
+
+    public function test_missing_counter_schema_returns_a_setup_error_without_partial_request_data(): void
+    {
+        $borrower = $this->borrower(false);
+        $this->signature();
+        Schema::drop('request_number_counters');
+        $tables = ['borrowing_requests', 'request_versions', 'request_items', 'request_supporting_documents',
+            'signature_snapshots', 'stored_files', 'audit_events', 'notification_events'];
+        $before = collect($tables)->mapWithKeys(fn ($table) => [$table => DB::table($table)->count()])->all();
+
+        $this->from(route('requests.create'))
+            ->post(route('requests.store'), $this->payload($borrower, 'Missing numbering schema', true) + $this->letter('missing-schema'))
+            ->assertRedirect(route('requests.create'))
+            ->assertSessionHasErrors('request_no');
+
+        $this->assertStringContainsString('Request numbering is not ready', session('errors')->first('request_no'));
+        foreach ($before as $table => $count) $this->assertDatabaseCount($table, $count);
+    }
+
+    public function test_the_single_counter_migration_restores_submission_without_academic_numbering_activation(): void
+    {
+        $borrower = $this->borrower(false);
+        $this->signature();
+        $academicMigration = require database_path('migrations/2026_11_14_000001_create_academic_request_numbering_tables.php');
+        $academicMigration->down();
+        Schema::drop('request_number_counters');
+        $migration = require database_path('migrations/2026_11_13_000001_create_request_number_counters_table.php');
+        $migration->up();
+
+        $this->post(route('requests.store'), $this->payload($borrower, 'Restored current numbering', true) + $this->letter('restored-schema'))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $request = BorrowingRequest::query()->sole();
+        $this->assertSame('BR-2026-10-0001', $request->getRawOriginal('request_no'));
+        $this->assertSame(RequestStatus::UnderSpmu, $request->status);
+        $this->assertDatabaseCount('request_versions', 1);
+        $this->assertDatabaseCount('request_supporting_documents', 1);
+        $this->assertDatabaseCount('signature_snapshots', 1);
+        $this->assertFalse(app(\App\Services\AcademicYearRequestNumbers::class)->enabled());
+        $this->assertFalse(Schema::hasTable('request_number_assignments'));
+        $this->assertFalse(Schema::hasTable('request_number_aliases'));
+        $this->get(route('requests.show', $request))->assertOk()->assertSee('BR-2026-10-0001');
+        $this->assertNoReservation();
     }
 
     #[DataProvider('createModes')]
@@ -58,7 +104,7 @@ class BorrowingRequestNumberTest extends TestCase
         $this->assertCount(2, $requests);
         $this->assertNotSame($requests[0]->request_no, $requests[1]->request_no);
         foreach ($requests as $index => $request) {
-            $this->assertStringStartsWith('BR-'.now()->format('YmdHis').'-'.$borrower->id.'-', $request->request_no);
+            $this->assertMatchesRegularExpression('/^BR-'.now('Asia/Manila')->format('Y-m').'-[0-9]{4,}$/D', $request->request_no);
             $this->assertLessThanOrEqual(50, strlen($request->request_no));
             $this->assertSame($borrower->id, $request->borrower_user_id);
             $this->assertSame(1, $request->current_version_no);
@@ -101,6 +147,31 @@ class BorrowingRequestNumberTest extends TestCase
         }
 
         return $cases;
+    }
+
+    public function test_academic_number_is_assigned_only_after_explicit_first_submission_and_failed_signing_rolls_it_back(): void
+    {
+        \App\Models\AcademicPeriod::create(['academic_year' => '2026-2027', 'term_code' => 'FIRST_SEMESTER', 'term_name' => 'Configured test calendar',
+            'start_date' => '2026-08-01', 'end_date' => '2027-07-31', 'status' => 'ACTIVE']);
+        \App\Models\SystemSetting::updateOrCreate(['setting_key' => \App\Services\AcademicYearRequestNumbers::SETTING], [
+            'value_json' => true, 'data_type' => 'BOOLEAN', 'group_code' => 'NUMBERING', 'status' => 'ACTIVE']);
+        $borrower = $this->borrower(false);
+        $this->post(route('requests.store'), $this->payload($borrower, 'Pending official number', false) + $this->letter('pending'))
+            ->assertSessionHasNoErrors();
+        $draft = BorrowingRequest::sole();
+        $this->assertSame('Control No. pending submission', $draft->request_no);
+        $this->assertDatabaseCount('request_number_assignments', 0);
+        $this->post(route('requests.submit', $draft), ['borrower_acknowledgement' => 1, 'confirm_e_signature' => 0])->assertSessionHasErrors('confirm_e_signature');
+        $this->assertDatabaseCount('request_number_assignments', 0);
+        $this->post(route('requests.submit', $draft), ['borrower_acknowledgement' => 1, 'confirm_e_signature' => 1])->assertSessionHasErrors();
+        $this->assertDatabaseCount('request_number_assignments', 0);
+        $this->assertDatabaseCount('academic_request_number_counters', 0);
+        $this->signature();
+        $this->post(route('requests.submit', $draft), ['borrower_acknowledgement' => 1, 'confirm_e_signature' => 1])->assertSessionHasNoErrors();
+        $this->assertSame('BR-2026-10-1', $draft->fresh()->request_no);
+        $this->assertNotNull($draft->fresh()->currentVersion->borrower_signature_snapshot_id);
+        $this->assertDatabaseCount('request_number_assignments', 1);
+        $this->assertNoReservation();
     }
 
     public function test_completed_action_token_still_prevents_a_duplicate_create(): void
@@ -192,9 +263,9 @@ class BorrowingRequestNumberTest extends TestCase
     public function test_largest_unsigned_borrower_reference_fits_existing_number_column(): void
     {
         $number = app(BorrowingRequestNumberService::class)->newNumber('18446744073709551615');
-        $this->assertStringStartsWith('BR-'.now()->format('YmdHis').'-18446744073709551615-', $number);
+        $this->assertStringStartsWith('BR-'.now('Asia/Manila')->format('Y-m').'-', $number);
         $this->assertLessThanOrEqual(50, strlen($number));
-        $this->assertMatchesRegularExpression('/-[A-Z0-9]{10}$/D', $number);
+        $this->assertMatchesRegularExpression('/-[0-9]{4,}$/D', $number);
     }
 
     #[DataProvider('failedWrites')]

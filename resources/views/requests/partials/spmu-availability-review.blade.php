@@ -73,7 +73,7 @@
 
             <tbody>
                 @foreach($availabilityVersion->items as $requestItem)
-                    @php
+@php
                         $requestedQuantity = (float) (
                             $requestItem->approved_quantity
                             ?? $requestItem->requested_quantity
@@ -126,29 +126,18 @@
 </section>
 
 <style>
-{{-- /*
-|--------------------------------------------------------------------------
-| Inventory check - requested items and availability
-|--------------------------------------------------------------------------
-|
-| The table is laid out with fixed column widths so quantity columns stay
-| aligned and result badges never wrap onto a second line. The section is a
-| full-width card, so it needs no internal scrolling of its own; the page
-| scrolls instead.
-|
-*/ --}}
 
 .spmu-availability-review {
     display: grid;
-    gap: 14px;
-    padding: 18px 20px 20px;
+    gap: 12px;
+    padding: 16px 16px 16px;
 }
 
 .spmu-availability-review__header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
 }
 
 .spmu-availability-review__header .eyebrow {
@@ -175,13 +164,12 @@
     white-space: nowrap;
 }
 
-{{-- /* Borrowing period */ --}}
 .spmu-availability-period {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 18px;
-    padding: 10px 14px;
+    gap: 16px;
+    padding: 10px 12px;
     background: var(--surface-subtle);
     border: 1px solid var(--border);
     border-radius: 9px;
@@ -208,7 +196,6 @@
     font-size: 15px;
 }
 
-{{-- /* Item table */ --}}
 .spmu-availability-table-wrap {
     margin: 0;
     overflow-x: auto;
@@ -253,7 +240,6 @@
     font-size: 11px;
 }
 
-{{-- /* Quantities read as a column of figures, so they are aligned and compact. */ --}}
 .spmu-availability-table th:not(:first-child),
 .spmu-availability-table td:not(:first-child) { text-align: center; }
 
@@ -275,13 +261,11 @@
 
 .spmu-availability-table th:nth-child(5) { white-space: normal; }
 
-{{-- /* A result never breaks across lines. */ --}}
 .spmu-availability-table .status-badge {
     white-space: nowrap;
     font-size: 11px;
 }
 
-{{-- /* Compact result notice */ --}}
 .spmu-availability-guidance {
     margin: 0;
     padding: 10px 13px;
@@ -294,7 +278,7 @@
 .spmu-availability-guidance p { margin: 2px 0 0; }
 
 @media (max-width: 760px) {
-    .spmu-availability-review { padding: 16px; }
+    .spmu-availability-review { padding: 12px; }
 
     .spmu-availability-review__header {
         align-items: flex-start;
@@ -357,11 +341,6 @@
 
         return numeric.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
     };
-
-
-
-
-
 
     const updateGuidance = (state) => {
         if (!guidance) return;
@@ -526,4 +505,3 @@
         });
 })();
 </script>
-

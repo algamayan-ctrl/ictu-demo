@@ -1,5 +1,6 @@
 @extends('layouts.app', ['title' => 'Gate Pass '.$gatePass->custody?->custody_no])
 @section('content')
+{{-- This is the Gate Pass Details UI for authorized SPMU users. --}}
 @php
     $custody = $gatePass->custody;
     $version = $custody?->request?->currentVersion;
@@ -94,7 +95,7 @@
         <article class="card gate-pass-progress-card" aria-label="Gate Pass progress">
             <div class="gate-pass-progress">
                 @foreach($gatePassSteps as $step)
-                    @php $gatePassStepTime = $formatGatePassStepTime($step['time']); @endphp
+@php $gatePassStepTime = $formatGatePassStepTime($step['time']); @endphp
                     <div
                         class="gate-pass-progress-step workflow-tracker__interactive {{ $step['done'] ? 'is-done' : ($step['current'] ? 'is-current' : 'is-pending') }}"
                         data-workflow-step
@@ -184,7 +185,7 @@
                         <small class="meta">Enter the date and time written on the accomplished Gate Pass.</small>
                     </label>
                     <label>Remarks (Optional)
-                        <textarea name="remarks" rows="3" maxlength="2000" placeholder="Optional note">{{ old('remarks', $gatePass->verification_remarks) }}</textarea>
+<textarea name="remarks" rows="3" maxlength="2000" placeholder="Optional note">{{ old('remarks', $gatePass->verification_remarks) }}</textarea>
                     </label>
                     <button class="button primary ui-pressable">Save Gate Pass Record</button>
                 </form>
@@ -241,7 +242,7 @@
 </section>
 
 <style>
-    .gate-pass-progress-card { margin-bottom: 24px; padding: 1rem 1.25rem; }
+    .gate-pass-progress-card { margin-bottom: 16px; padding: 1rem 1.25rem; }
     .gate-pass-progress { display: flex; align-items: center; gap: .65rem; width: 100%; overflow-x: auto; padding: .15rem 0; }
     .gate-pass-progress-step { display: flex; align-items: center; gap: .5rem; min-width: max-content; font-weight: 700; color: var(--text-muted, #64748b); }
     .gate-pass-progress-dot { width: 2rem; height: 2rem; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border, #cbd5e1); background: var(--surface, #fff); font-size: .82rem; }
@@ -250,7 +251,7 @@
     .gate-pass-progress-step.is-current { color: #075fc4; }
     .gate-pass-progress-step.is-current .gate-pass-progress-dot { background: #eaf4ff; border-color: #7ab7f5; }
     .gate-pass-progress-line { flex: 1 1 2rem; min-width: 1.5rem; height: 2px; background: var(--border, #d7e0ea); }
-    .gate-pass-detail-grid { gap: 24px; }
+    .gate-pass-detail-grid { gap: 16px; }
     .gate-pass-detail-grid .callout p { max-width: 760px; line-height: 1.5; }
     .gate-pass-detail-note { display: block; margin-top: .2rem; line-height: 1.35; }
     .gate-pass-items-table table { min-width: 0; }

@@ -25,11 +25,12 @@ function element(dataset = {}) {
 function mount() {
     const records = Array.from({ length: 23 }, (_, i) => element({
         search: `Borrower ${i + 1} ${i === 0 ? 'Maria Science Hall' : 'Campus'}`,
-        status: i % 2 ? 'VERIFIED' : 'PENDING', date: String(i + 1),
+        status: i % 2 ? 'VERIFIED' : 'PENDING', date: String(i + 1), recordedDate: `2026-01-${String(i + 1).padStart(2, '0')}`,
     }));
-    const names = ['list', 'search', 'status', 'sort', 'empty', 'count', 'pagination', 'page-numbers', 'reset'];
+    const names = ['list', 'search', 'status', 'sort', 'empty', 'count', 'pagination', 'page-numbers', 'reset', 'clear', 'size', 'from', 'to'];
     const controls = Object.fromEntries(names.map(name => [name, element()]));
     controls.sort.value = 'newest';
+    controls.size.value = '10';
     controls.list.children = [...records];
     const previous = element({ gatePassPage: 'previous' });
     const next = element({ gatePassPage: 'next' });
@@ -106,4 +107,20 @@ test('reinitializing is harmless and the true empty state needs no controls', ()
     assert.doesNotThrow(() => vm.runInNewContext(script, {
         document: { querySelector: () => ({ dataset: {}, querySelector: () => null }) },
     }));
+});
+
+test('date filters cover all recorded dates and page-size changes reset navigation', () => {
+    const ui = mount();
+    ui.click(ui.next);
+    ui.from.value = '2026-01-01';
+    ui.to.value = '2026-01-03';
+    ui.from.dispatch('change');
+    assert.deepEqual(ui.visible(), [3, 2, 1]);
+    assert.equal(ui.count.textContent, 'Showing 1 to 3 of 3 records');
+    ui.clear.dispatch('click');
+    ui.size.value = '25';
+    ui.size.dispatch('change');
+    assert.equal(ui.visible().length, 23);
+    assert.equal(ui.next.disabled, true);
+    assert.equal(ui.search.focused, true);
 });

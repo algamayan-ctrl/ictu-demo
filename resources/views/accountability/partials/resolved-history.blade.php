@@ -48,7 +48,7 @@
         </article>
     @else
         @foreach($resolvedHistory as $resolvedHistoryIndex => $row)
-            @php
+@php
                 $case = $row['case'];
                 $incident = $row['incident'] ?? null;
                 $billing = $row['billing'];
@@ -119,7 +119,7 @@
             <button type="button" class="button secondary top-gap" id="resolved-history-show-more">
                 Show {{ $resolvedHistory->count() - $resolvedHistoryInitialLimit }} More
             </button>
-            <script>
+<script>
             (() => {
                 const button = document.getElementById('resolved-history-show-more');
                 if (!button) return;
@@ -153,7 +153,7 @@
             </div>
         @else
             @unless($embeddedInBorrowerWorkspace)
-            {{-- RESOLVED HISTORY FILTERS START --}}
+
             <div class="accountability-browser-toolbar" aria-label="Search and filter resolved accountability cases">
 
                 <label class="accountability-browser-search">
@@ -200,7 +200,7 @@
                 </label>
 
             </div>
-            {{-- RESOLVED HISTORY FILTERS END --}}
+
             @endunless
 
             <div class="table-wrap accountability-cases-table">
@@ -217,7 +217,7 @@
                     </thead>
                     <tbody>
                         @foreach($resolvedHistory as $resolvedHistoryIndex => $row)
-                            @php
+@php
                                 $case = $row['case'];
                                 $incident = $row['incident'] ?? null;
                                 $billing = $row['billing'];
@@ -303,7 +303,7 @@
                 ></nav>
             </div>
 
-            <script>
+<script>
             (() => {
                 const section = document.getElementById('resolved-history');
                 if (!section) return;
@@ -461,8 +461,6 @@
 .accountability-history-embedded table { margin: 0; }
 .resolved-history-card .accountability-case-facts { margin-top: 12px; }
 
-{{-- /* Compact facts inside expanded history rows. This partial is also used in
-   the per-borrower staff workspace, where oversight-styles is not loaded. */ --}}
 .resolved-history-facts {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -478,11 +476,10 @@
 .resolved-history-facts dd { margin: 0; color: var(--heading); font-size: 12px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
 
 .accountability-history-embedded .accountability-case-detail-row > td {
-    padding: 10px 16px 12px;
+    padding: 10px 12px 12px;
     background: var(--surface-subtle);
 }
 
-{{-- /* Always-visible compact summary; everything else lives behind "View Details". */ --}}
 .resolved-history-summary {
     display: flex;
     flex-wrap: wrap;
@@ -498,7 +495,7 @@
 .resolved-history-detail {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-    gap: 10px 16px;
+    gap: 10px 12px;
     margin-top: 8px;
     padding-top: 8px;
     border-top: 1px solid var(--row-border);
@@ -527,7 +524,6 @@
 .resolved-history-payment > div { display: grid; gap: 1px; }
 .resolved-history-payment dt { color: var(--text-muted); font-size: 11px; }
 
-{{-- /* Receipt numbers can be long, so they wrap instead of widening the page. */ --}}
 .resolved-history-payment dd {
     margin: 0;
     color: var(--heading);

@@ -2,7 +2,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '../..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -10,61 +9,9 @@ const partial = (name) => read(`resources/views/laundry/partials/completed-${nam
 const page = read('resources/views/laundry/completed.blade.php');
 const row = partial('case-row');
 const back = partial('back-link');
-const pagination = partial('pagination');
+const pagination = read('resources/views/components/record-table-footer.blade.php');
+const filters = read('resources/views/laundry/partials/record-filters.blade.php');
 const styles = partial('styles');
-const interactions = partial('interactions');
-const script = interactions.match(/<script>([\s\S]*?)<\/script>/)[1];
-
-function element(dataset = {}) {
-    const handlers = new Map();
-    return {
-        dataset,
-        value: '',
-        textContent: '',
-        hidden: false,
-        focused: false,
-        addEventListener(name, callback) { handlers.set(name, [...(handlers.get(name) || []), callback]); },
-        dispatch(name) { (handlers.get(name) || []).forEach((callback) => callback()); },
-        focus() { this.focused = true; },
-    };
-}
-
-function mount({ paginated = false, withRecords = true } = {}) {
-    const records = withRecords ? [
-        element({ search: 'LND-2026-00001 Juan Cruz tablecloth', outcomes: 'available' }),
-        element({ search: 'LND-2026-00002 Maria Santos linen', outcomes: 'maintenance' }),
-        element({ search: 'LND-2026-00003 Ana Reyes tablecloth linen', outcomes: 'available maintenance' }),
-        element({ search: 'LND-2026-00004 No laundry required', outcomes: 'not-needed' }),
-        element({ search: 'LND-2026-00005 Old record', outcomes: 'unrecorded' }),
-    ] : [];
-    const search = element();
-    const outcome = element();
-    const sort = element();
-    const empty = element();
-    const count = element({
-        total: paginated ? '25' : String(records.length),
-        first: records.length ? '1' : '0',
-        last: String(records.length),
-        paginated: String(paginated),
-    });
-    const reset = element();
-    const browser = {
-        dataset: {},
-        querySelector: (selector) => ({
-            '[data-completed-search]': search,
-            '[data-completed-outcome]': outcome,
-            '[data-completed-sort]': sort,
-            '[data-completed-empty]': empty,
-            '[data-completed-count]': count,
-            '[data-completed-reset]': reset,
-        })[selector],
-        querySelectorAll: () => records,
-    };
-    const context = { document: { querySelector: () => browser } };
-    vm.runInNewContext(script, context);
-    return { records, search, outcome, sort, empty, count, reset, context };
-}
-
 test('completed laundry has separate empty and populated states matching the reference', () => {
     assert.match(back, /<span>Back<\/span>/);
     assert.match(page, /<p class="eyebrow">Laundry Operations<\/p>/);
@@ -73,7 +20,7 @@ test('completed laundry has separate empty and populated states matching the ref
     assert.match(page, /No completed laundry cases yet\./);
     assert.match(page, /Completed laundry cases will appear here after processing is finalized\./);
     assert.match(page, /@include\('laundry\.partials\.completed-empty-illustration'\)/);
-    assert.match(page, /@else\s+<section class="card completed-laundry-filter-card"/);
+    assert.ok(page.indexOf("@include('laundry.partials.record-filters'") < page.indexOf('@if($jobs->total() === 0)'));
     assert.match(page, /<section class="card completed-laundry-card"/);
     assert.equal(page.split("@include('laundry.partials.completed-back-link')").length - 1, 2);
     assert.match(back, /route\('laundry\.index'\)/);
@@ -115,81 +62,25 @@ test('outcomes reflect recorded quantities, including mixed and unknown results'
     assert.match(row, /\$hasAccountability \? 'accountability' : null/);
     assert.match(row, /if \(! \$caseOutcomes\) \{\s+\$caseOutcomes = \['completed'\];\s+\}/);
     assert.match(row, /Recorded return findings:/);
-    assert.match(page, /With Return Findings/);
+    assert.match(filters, /With Return Findings/);
     assert.doesNotMatch(page, /<option value="completed">/);
     assert.doesNotMatch(row, /status === 'LAUNDRY_COMPLETED'[^;]*'available'/);
 });
 
-test('numbered pagination keeps server URLs and non-interactive boundary states', () => {
-    assert.match(page, /\$jobs->onEachSide\(1\)->links\('laundry\.partials\.completed-pagination'\)/);
-    assert.match(pagination, /\$paginator->previousPageUrl\(\)/);
-    assert.match(pagination, /\$paginator->nextPageUrl\(\)/);
-    assert.match(pagination, /@foreach\(\$elements as \$element\)/);
-    assert.match(pagination, /href="\{\{ \$url \}\}"/);
+test('numbered pagination preserves server links and disabled boundaries', () => {
+    assert.match(page, /<x-record-table-footer :records="\$jobs"/);
+    assert.match(pagination, /\$records->previousPageUrl\(\)/);
+    assert.match(pagination, /\$records->nextPageUrl\(\)/);
     assert.match(pagination, /aria-current="page"/);
-    assert.match(pagination, /@if\(\$paginator->onFirstPage\(\)\)\s+<span class="completed-page-link" aria-disabled="true"/);
-    assert.match(pagination, /@else\s+<span class="completed-page-link" aria-disabled="true" aria-label="Next page"/);
+    assert.match(pagination, /aria-disabled="true"/);
     assert.doesNotMatch(pagination, /<a[^>]+aria-disabled|href="#"/);
-});
-
-test('search and outcome filters compose and keep mixed outcomes discoverable', () => {
-    const ui = mount();
-    assert.equal(ui.count.textContent, 'Showing 1 to 5 of 5 completed cases');
-    ui.outcome.value = 'available';
-    ui.outcome.dispatch('change');
-    assert.deepEqual(ui.records.map((record) => record.hidden), [false, true, false, true, true]);
-    ui.outcome.value = 'maintenance';
-    ui.outcome.dispatch('change');
-    assert.deepEqual(ui.records.map((record) => record.hidden), [true, false, false, true, true]);
-    ui.search.value = '  ANA   TABLECLOTH ';
-    ui.search.dispatch('input');
-    assert.deepEqual(ui.records.map((record) => record.hidden), [true, true, false, true, true]);
-    assert.equal(ui.count.textContent, 'Showing 1 of 5 completed cases');
-    ui.search.value = 'not found';
-    ui.search.dispatch('input');
-    assert.equal(ui.empty.hidden, false);
-});
-
-test('unknown and no-processing results are not presented as available', () => {
-    const ui = mount();
-    ui.outcome.value = 'unrecorded';
-    ui.outcome.dispatch('change');
-    assert.deepEqual(ui.records.map((record) => record.hidden), [true, true, true, true, false]);
-    ui.outcome.value = 'not-needed';
-    ui.outcome.dispatch('change');
-    assert.deepEqual(ui.records.map((record) => record.hidden), [true, true, true, false, true]);
-});
-
-test('clear filters restores the original page range and focus, with safe repeated initialization', () => {
-    const ui = mount({ paginated: true });
-    vm.runInNewContext(script, ui.context);
-    ui.search.value = 'Ana';
-    ui.outcome.value = 'maintenance';
-    ui.search.dispatch('input');
-    assert.equal(ui.count.textContent, 'Showing 1 of 5 cases on this page (25 total)');
-    ui.reset.dispatch('click');
-    assert.equal(ui.count.textContent, 'Showing 1 to 5 of 25 completed cases');
-    assert.equal(ui.search.value, '');
-    assert.equal(ui.outcome.value, '');
-    assert.equal(ui.search.focused, true);
-    assert.equal(ui.empty.hidden, true);
-    assert.ok(ui.records.every((record) => !record.hidden));
-});
-
-test('true empty pages and out-of-range server pages are handled without errors', () => {
-    assert.doesNotThrow(() => vm.runInNewContext(script, {
-        document: { querySelector: () => ({ dataset: {}, querySelector: () => null }) },
-    }));
-    const ui = mount({ withRecords: false, paginated: true });
-    assert.equal(ui.count.textContent, 'Showing 0 to 0 of 25 completed cases');
-    assert.equal(ui.empty.hidden, false);
-    assert.match(page, /Filters apply to the cases on this page\./);
 });
 
 test('completed UI contains no processing forms or workflow mutations', () => {
     assert.doesNotMatch(page + row + back + pagination, /<form|->(?:save|update|delete|create)\(|DB::|FOR_SPMU_FINAL_CHECK|AWAITING_FINAL_FORM_UPLOAD/);
-    assert.doesNotMatch(interactions, /fetch\(|XMLHttpRequest|\.submit\(|requestSubmit\(/);
-    assert.match(page, /type="button" data-completed-reset/);
+    assert.match(filters, /<form method="get"/);
+    assert.doesNotMatch(filters, /method="post"|@csrf|@method/);
+    assert.match(filters, />Clear<\/a>/);
     assert.match(page, /role="status" aria-live="polite"/);
 });
 

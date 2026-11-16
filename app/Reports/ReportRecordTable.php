@@ -7,14 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
-/**
- * The on-screen records table for a report preview.
- *
- * It only arranges rows the report already produced: search narrows what is
- * shown, sorting reorders it and pagination slices it. It never queries and
- * never changes the report scope, so print and export still carry every
- * record in the period and filters the preview was generated for.
- */
+// This is the sorting and pagination for the selected matching report records.
 final class ReportRecordTable
 {
     public const PER_PAGE_OPTIONS = [10, 25, 50, 100];
@@ -54,7 +47,8 @@ final class ReportRecordTable
     ): self {
         $keys = array_column($columns, 'key');
 
-        $search = mb_substr(trim((string) $request->query('search', '')), 0, 100);
+        $rawSearch = $request->query('search', '');
+        $search = is_scalar($rawSearch) ? mb_substr(trim((string) $rawSearch), 0, 100) : '';
         $sort = in_array($request->query('sort'), $keys, true) ? (string) $request->query('sort') : null;
         $direction = $request->query('direction') === 'desc' ? 'desc' : 'asc';
         $perPage = (int) $request->query('per_page', self::DEFAULT_PER_PAGE);
@@ -66,7 +60,7 @@ final class ReportRecordTable
             $needle = mb_strtolower($search);
 
             $visible = $visible->filter(function (array $row) use ($keys, $needle): bool {
-                $text = implode(' ', array_map(static fn (string $key): string => (string) ($row[$key] ?? ''), $keys));
+                $text = implode(' ', array_map(static fn (string $key): string => (string) ($row[$key] ?? ''), $keys)).' '.($row['_search_aliases'] ?? '');
 
                 return str_contains(mb_strtolower($text), $needle);
             })->values();
@@ -218,7 +212,7 @@ final class ReportRecordTable
 
     private static function date(string $value): ?int
     {
-        foreach (['!d M Y, g:i A', '!d M Y', '!Y-m-d H:i:s', '!Y-m-d'] as $format) {
+        foreach (['!d/m/Y h:i A', '!d/m/Y', '!d M Y, g:i A', '!d M Y', '!Y-m-d H:i:s', '!Y-m-d'] as $format) {
             $date = DateTimeImmutable::createFromFormat($format, $value);
 
             if ($date !== false && $date->format(ltrim($format, '!')) === $value) {

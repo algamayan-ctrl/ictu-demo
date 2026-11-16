@@ -27,6 +27,7 @@ use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
+// This is the controller for authorized document previews and downloads.
 class DocumentController extends Controller
 {
     public function download(

@@ -48,7 +48,6 @@
  $conditionRows = $returnConditions['rows'];
 @endphp
 
-{{-- Headline figures ------------------------------------------------- --}}
 <div class="analytics-kpis analytics-kpis-returns">
  <a
  class="analytics-kpi-card tone-accountability"
@@ -99,7 +98,6 @@
  </a>
 </div>
 
-{{-- Return trend and outcome ------------------------------------------ --}}
 @if($detail)
  @include('analytics.partials.detail-panel')
 @endif
@@ -154,20 +152,18 @@
  </section>
 
  <style>
-{{-- /* SPMU RETURN OUTCOME DONUT V2 */ --}}
 
 .return-outcome-v2 .analytics-card-body {
- padding: 18px;
+ padding: 16px;
 }
 
 .return-outcome-v2-layout {
  display: grid;
  grid-template-columns: 142px minmax(0, 1fr);
  align-items: center;
- gap: 20px;
+ gap: 16px;
 }
 
-{{-- /* DONUT */ --}}
 .return-outcome-v2-donut {
  position: relative;
  display: grid;
@@ -220,7 +216,6 @@
  line-height: 1.25;
 }
 
-{{-- /* OUTCOME ROWS */ --}}
 .return-outcome-v2-results {
  display: grid;
  gap: 10px;
@@ -304,7 +299,6 @@
  color: #c2410c;
 }
 
-{{-- /* INSIGHT */ --}}
 .return-outcome-v2-insight {
  display: flex;
  align-items: center;
@@ -332,7 +326,6 @@
  background: color-mix(in srgb, #07845f 10%, transparent);
 }
 
-{{-- /* RESPONSIVE */ --}}
 @media (max-width: 760px) {
  .return-outcome-v2-layout {
  grid-template-columns: 1fr;
@@ -484,7 +477,6 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
 </section>
 </div>
 
-{{-- Where late returns concentrate ----------------------------------------- --}}
 @php
  /*
  | Late Return Patterns: the completed returns already counted above
@@ -533,7 +525,7 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
  @else
  <div class="analytics-card-body analytics-laterate-body">
  @foreach($lateRatePanels as $panel)
- @php
+@php
  $rows = array_slice($panel['data']['groups'], 0, $panel['shown']);
  $hidden = count($panel['data']['groups']) - count($rows);
  @endphp
@@ -608,7 +600,6 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
  @endif
 </section>
 
-{{-- Overdue follow-up and return condition ----------------------------- --}}
 @php
  $agingLink = static fn (?string $bucket = null): string => AnalyticsDetailLink::to(
  'overdue-aging', 'returns', $periodSelection, $division, $unit, $bucket ? ['bucket' => $bucket] : []
@@ -725,13 +716,13 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
  No return inspections were recorded during this period.
  </p>
  @else
- @php
+@php
  $conditionTotal = max(1, (float) $returnConditions['total']);
  @endphp
  <div class="analytics-condition-composition" role="img" aria-label="Return condition composition">
  <div class="analytics-condition-bar">
  @foreach($conditionRows as $row)
- @php $pct = round(((float) $row['quantity'] / $conditionTotal) * 100, 1); @endphp
+@php $pct = round(((float) $row['quantity'] / $conditionTotal) * 100, 1); @endphp
  <span
  class="analytics-condition-segment {{ $row['is_fine'] ? 'is-good' : 'is-issue' }}"
  style="width: {{ $pct }}%"
@@ -750,7 +741,7 @@ html[data-theme="dark"] .return-outcome-v2-donut::after {
 
  <ul class="analytics-condition-legend">
  @foreach($conditionRows as $row)
- @php $pct = round(((float) $row['quantity'] / $conditionTotal) * 100, 1); @endphp
+@php $pct = round(((float) $row['quantity'] / $conditionTotal) * 100, 1); @endphp
  <li>
  <span class="analytics-condition-key {{ $row['is_fine'] ? 'is-good' : 'is-issue' }}" aria-hidden="true"></span>
  <span>{{ $row['label'] }}</span>

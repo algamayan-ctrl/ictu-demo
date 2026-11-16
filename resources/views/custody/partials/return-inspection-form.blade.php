@@ -82,7 +82,7 @@
                 </thead>
                 <tbody>
                     @foreach($orderedReturnLines as $line)
-                        @php
+@php
                             $isLinenLine = (bool) $line->requestItem?->inventoryItem?->laundry_required;
                             $linenLinePending = $isLinenLine && $laundryFormMissing;
 
@@ -233,7 +233,7 @@
                     <label>
                         Remarks
                         <span class="return-remarks-input">
-                            <textarea name="remarks" rows="2" maxlength="2000" placeholder="Add remarks about this return inspection" @disabled($returnOperationallyClosed)>{{ old('remarks') }}</textarea>
+<textarea name="remarks" rows="2" maxlength="2000" placeholder="Add remarks about this return inspection" @disabled($returnOperationallyClosed)>{{ old('remarks') }}</textarea>
                         </span>
                     </label>
 

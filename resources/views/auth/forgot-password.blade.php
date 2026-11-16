@@ -1,18 +1,12 @@
 @extends('layouts.app', ['title' => 'Forgot Password'])
 
 @section('content')
+{{-- This is the Password Recovery UI for registered users. --}}
 
 @include('auth.partials.public-auth-background')
 
 <style>
-{{-- /* ==========================================================
-   FORGOT PASSWORD - SAME VISUAL LANGUAGE AS LOGIN
-   ========================================================== */ --}}
 
-{{-- /*
- * Public recovery pages should look like the login landing page,
- * not like a normal application page.
- */ --}}
 body:has(.forgot-login-page) .site-header,
 body:has(.forgot-login-page) .app-topbar,
 body:has(.forgot-login-page) .app-main > .notice,
@@ -27,9 +21,6 @@ body:has(.forgot-login-page) .app-main {
     padding: 0 !important;
 }
 
-{{-- /*
- * Same visible page composition as the login screen.
- */ --}}
 .forgot-login-page {
     width: 100%;
     min-height: 100vh;
@@ -42,16 +33,13 @@ body:has(.forgot-login-page) .app-main {
     box-sizing: border-box;
 }
 
-{{-- /*
- * Same login card dimensions.
- */ --}}
 .forgot-login-card {
     width: 420px;
     max-width: calc(100vw - 32px);
 
     box-sizing: border-box;
 
-    padding: 20px 28px 26px;
+    padding: 16px 20px 20px;
 
     border: 1px solid #d0dce9;
     border-radius: 17px;
@@ -62,11 +50,6 @@ body:has(.forgot-login-page) .app-main {
         0 12px 30px rgba(34, 63, 98, .07);
 }
 
-
-{{-- /* ----------------------------------------------------------
-   LOGO
-   ---------------------------------------------------------- */ --}}
-
 .forgot-login-logo-wrap {
     display: flex;
     align-items: center;
@@ -74,7 +57,7 @@ body:has(.forgot-login-page) .app-main {
 
     min-height: 54px;
 
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 }
 
 .forgot-login-logo {
@@ -84,11 +67,6 @@ body:has(.forgot-login-page) .app-main {
     max-width: 100%;
     height: auto;
 }
-
-
-{{-- /* ----------------------------------------------------------
-   HEADING
-   ---------------------------------------------------------- */ --}}
 
 .forgot-login-heading {
     margin: 0;
@@ -104,7 +82,7 @@ body:has(.forgot-login-page) .app-main {
 }
 
 .forgot-login-subtitle {
-    margin: 7px auto 20px;
+    margin: 7px auto 16px;
 
     max-width: 330px;
 
@@ -117,13 +95,8 @@ body:has(.forgot-login-page) .app-main {
     text-align: center;
 }
 
-
-{{-- /* ----------------------------------------------------------
-   STATUS INSIDE CARD ONLY
-   ---------------------------------------------------------- */ --}}
-
 .forgot-login-status {
-    margin: 0 0 16px;
+    margin: 0 0 12px;
     padding: 10px 12px;
 
     border: 1px solid #a9dbc0;
@@ -136,14 +109,9 @@ body:has(.forgot-login-page) .app-main {
     line-height: 1.45;
 }
 
-
-{{-- /* ----------------------------------------------------------
-   FORM
-   ---------------------------------------------------------- */ --}}
-
 .forgot-login-form {
     display: grid;
-    gap: 16px;
+    gap: 12px;
 }
 
 .forgot-login-field {
@@ -161,11 +129,6 @@ body:has(.forgot-login-page) .app-main {
     line-height: 1.2;
 }
 
-
-{{-- /* ----------------------------------------------------------
-   INPUT - MATCH LOGIN EMAIL FIELD
-   ---------------------------------------------------------- */ --}}
-
 .forgot-login-input-wrap {
     position: relative;
 }
@@ -180,7 +143,7 @@ body:has(.forgot-login-page) .app-main {
 
     padding:
         0
-        14px
+        12px
         0
         43px;
 
@@ -236,11 +199,6 @@ body:has(.forgot-login-page) .app-main {
     height: 19px;
 }
 
-
-{{-- /* ----------------------------------------------------------
-   ERRORS
-   ---------------------------------------------------------- */ --}}
-
 .forgot-login-error {
     margin: 0;
 
@@ -249,11 +207,6 @@ body:has(.forgot-login-page) .app-main {
     font-size: 11.5px;
     line-height: 1.35;
 }
-
-
-{{-- /* ----------------------------------------------------------
-   PRIMARY BUTTON - SAME LOGIN BLUE
-   ---------------------------------------------------------- */ --}}
 
 .forgot-login-submit {
     display: inline-flex;
@@ -264,7 +217,7 @@ body:has(.forgot-login-page) .app-main {
     height: 48px;
 
     margin-top: 1px;
-    padding: 0 18px;
+    padding: 0 16px;
 
     border: 1px solid #246cec !important;
     border-radius: 9px;
@@ -305,11 +258,6 @@ body:has(.forgot-login-page) .app-main {
         0 10px 20px rgba(38, 111, 233, .20);
 }
 
-
-{{-- /* ----------------------------------------------------------
-   BACK LINK
-   ---------------------------------------------------------- */ --}}
-
 .forgot-login-back {
     display: flex;
     align-items: center;
@@ -336,18 +284,13 @@ body:has(.forgot-login-page) .app-main {
     text-decoration: underline;
 }
 
-
-{{-- /* ----------------------------------------------------------
-   MOBILE
-   ---------------------------------------------------------- */ --}}
-
 @media (max-width: 720px) {
     .forgot-login-page {
         justify-content: center;
 
         padding:
-            24px
             16px
+            12px
             36px;
     }
 
@@ -358,12 +301,10 @@ body:has(.forgot-login-page) .app-main {
 }
 </style>
 
-
 <section class="forgot-login-page">
 
     <div class="forgot-login-card">
 
-        {{-- LOGO --}}
         <div class="forgot-login-logo-wrap">
             <img
                 src="{{ \App\Support\StaticAsset::url('images/spmu-acpmp-logo.png') }}"
@@ -372,8 +313,6 @@ body:has(.forgot-login-page) .app-main {
             >
         </div>
 
-
-        {{-- HEADING --}}
         <h1 class="forgot-login-heading">
             Forgot your password?
         </h1>
@@ -384,8 +323,6 @@ body:has(.forgot-login-page) .app-main {
             to your email inbox.
         </p>
 
-
-        {{-- STATUS --}}
         @if(session('status'))
             <div
                 class="forgot-login-status"
@@ -395,8 +332,6 @@ body:has(.forgot-login-page) .app-main {
             </div>
         @endif
 
-
-        {{-- FORM --}}
         <form
             method="POST"
             action="{{ route('password.email') }}"
@@ -404,8 +339,6 @@ body:has(.forgot-login-page) .app-main {
         >
             @csrf
 
-
-            {{-- EMAIL --}}
             <div class="forgot-login-field">
 
                 <label for="forgot-email">
@@ -448,8 +381,6 @@ body:has(.forgot-login-page) .app-main {
 
             </div>
 
-
-            {{-- SUBMIT --}}
             <button
                 type="submit"
                 class="forgot-login-submit"
@@ -459,8 +390,6 @@ body:has(.forgot-login-page) .app-main {
 
         </form>
 
-
-        {{-- BACK --}}
         <div class="forgot-login-back">
             <a href="{{ route('login') }}">
                 Back to sign in

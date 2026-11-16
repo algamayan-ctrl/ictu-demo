@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => 'Analytics'])
 
 @section('content')
+{{-- This is the Analytics UI for SPMU Admin. --}}
 
 @include('analytics.partials.analytics-styles')
 @include('analytics.partials.card-interactions')
@@ -98,7 +99,6 @@
  @endif
  </p>
 
-
  </form>
 
  {{--
@@ -116,7 +116,6 @@
  </span>
  </p>
  @endif
-
 
  {{-- Each section places the shared detail after its complete KPI group. --}}
  @include('analytics.partials.'.$sectionPartial)

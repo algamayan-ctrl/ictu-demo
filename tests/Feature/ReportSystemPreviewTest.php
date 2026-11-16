@@ -111,7 +111,7 @@ class ReportSystemPreviewTest extends TestCase
         $this->assertSame(4, AuditEvent::query()->where('action_code', 'report.exported')->count());
     }
 
-    public function test_search_sort_and_page_size_only_arrange_the_preview_never_the_export_scope(): void
+    public function test_search_filters_the_export_scope_while_sort_and_page_size_arrange_the_preview(): void
     {
         foreach (range(1, 13) as $index) {
             $this->request(sprintf('PRV-%03d', $index), sprintf('2026-09-%02d 08:30:00', $index));
@@ -121,12 +121,11 @@ class ReportSystemPreviewTest extends TestCase
         $searched = $this->asHead()->get(route('reports.index', $scope + ['search' => 'prv-007']))->assertOk();
         $table = $searched->viewData('table');
         $this->assertSame(1, $table->records->total());
-        $this->assertSame(13, $table->scopeTotal);
-        $searched->assertSee('print and export include all 13 records', false);
+        $this->assertSame(1, $table->scopeTotal);
+        $searched->assertSee('Print and download include all matching records across every page.', false);
         $searched->assertSee('Clear search', false);
-        // The export dialog and the Print action carry the report scope only.
-        $this->assertDoesNotMatchRegularExpression('#data-export-form>.*?name="search".*?</form>#s', $searched->getContent());
-        $searched->assertSee('href="'.e(route('reports.print', ['type' => 'borrowing', 'report' => 'borrowing', 'academic_period' => 'month'])).'"', false);
+        $this->assertMatchesRegularExpression('#data-export-form>.*?name="search".*?</form>#s', $searched->getContent());
+        $searched->assertSee('href="'.e(route('reports.print', ['type' => 'borrowing', 'report' => 'borrowing', 'academic_period' => 'month', 'search' => 'prv-007'])).'"', false);
 
         $sorted = $this->asHead()->get(route('reports.index', $scope + ['sort' => 'request_no', 'direction' => 'asc', 'per_page' => 10]))->assertOk();
         $records = $sorted->viewData('records');
@@ -331,7 +330,7 @@ class ReportSystemPreviewTest extends TestCase
         // The regions the builder swaps, and the export dialog that travels with the records.
         $page->assertSee('data-report-live="builder"', false);
         $page->assertSee('data-report-live="results"', false);
-        $page->assertSee('data-report-live="filters-heading"', false);
+        $page->assertSee('data-report-more-panel', false);
         $page->assertSee('id="report-options"', false);
         $page->assertSee('data-report-records', false);
 
@@ -411,7 +410,7 @@ class ReportSystemPreviewTest extends TestCase
 
             $this->assertEqualsCanonicalizing(['ACL-HEAD', 'ACL-APPROVED', 'ACL-REJECTED'], $offered, $name);
             $this->assertSame(2, substr_count($page->getContent(), 'class="report-record-restricted"'), $name);
-            $this->assertSame(3, substr_count($page->getContent(), '>View Record</a>'), $name);
+            $this->assertSame(3, $this->xpath($page)->query('//a[contains(@class,"report-inventory-view-action")]')->length, $name);
         }
 
         /* Withholding a link never removes the record: the export still carries all five. */

@@ -153,6 +153,45 @@ class OffCampusGatePassWorkflowTest extends TestCase
         $this->assertDatabaseCount('request_supporting_documents', 1);
     }
 
+    public function test_oversized_supporting_files_are_rejected_before_a_request_or_signature_is_saved(): void
+    {
+        SystemSetting::query()->where('setting_key', 'max_upload_mb')->update(['value_json' => 5]);
+
+        foreach (['approved_request_letter', 'permission_to_conduct_letter'] as $field) {
+            $payload = $this->requestPayload(studentActivity: true, includePtc: true);
+            $payload[$field] = UploadedFile::fake()->createWithContent('oversized.pdf', \Tests\Support\EvidenceFixtures::pdfBytes())
+                ->size(5 * 1024 + 1);
+
+            $this->withSession(['active_workspace' => 'BORROWER'])
+                ->actingAs($this->borrower)
+                ->post(route('requests.store'), $payload)
+                ->assertSessionHasErrors($field);
+
+            $this->assertDatabaseCount('borrowing_requests', 0);
+            $this->assertDatabaseCount('request_supporting_documents', 0);
+            $this->assertDatabaseCount('signature_snapshots', 0);
+        }
+    }
+
+    public function test_two_allowed_files_can_exceed_the_old_combined_eight_mb_limit(): void
+    {
+        SystemSetting::query()->where('setting_key', 'max_upload_mb')->update(['value_json' => 10]);
+        $payload = $this->requestPayload(studentActivity: true, includePtc: true);
+
+        foreach (['approved_request_letter', 'permission_to_conduct_letter'] as $field) {
+            $payload[$field] = UploadedFile::fake()->createWithContent($field.'.pdf', \Tests\Support\EvidenceFixtures::pdfBytes())
+                ->size(8 * 1024);
+        }
+
+        $this->withSession(['active_workspace' => 'BORROWER'])
+            ->actingAs($this->borrower)
+            ->post(route('requests.store'), $payload)
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('borrowing_requests', 1);
+        $this->assertDatabaseCount('request_supporting_documents', 2);
+    }
+
     public function test_action_officer_can_return_for_correction_and_corrected_version_restarts_verification(): void
     {
         $request = $this->submitOffCampusRequest();

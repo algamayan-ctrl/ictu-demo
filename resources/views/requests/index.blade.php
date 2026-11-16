@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => session('active_workspace') === 'BORROWER' ? 'My Requests' : 'Request Records'])
 
 @section('content')
+{{-- This is the Request Records UI for the current Borrower or SPMU user. --}}
 <style>.record-browser-toolbar + .table-wrap tbody td { padding-block: 10px; }</style>
 @php
     $isBorrower = session('active_workspace') === 'BORROWER';
@@ -293,7 +294,7 @@
 
             <tbody>
             @forelse($requests as $request)
-                @php
+@php
                     $recordWorkflowStatus = $requestRecordStatus($request);
                     $recordStatus = $recordWorkflowStatus['key'];
                     $recordStatusLabel = $recordWorkflowStatus['label'];
@@ -304,7 +305,7 @@
                         ? 'd M Y'
                         : 'd M Y, g:i A';
                     $recordSearch = strtolower(trim(
-                        $request->request_no.' '.
+                        $request->request_no.' '.implode(' ', $request->previousControlNumbers()).' '.
                         ($request->borrower?->full_name ?? '').' '.
                         ($request->currentVersion?->purpose_event ?? '').' '.
                         $request->currentVersion?->items?->map(fn($ri) => $ri->inventoryItem?->unique_description)->filter()->implode(' ').' '.
@@ -383,22 +384,22 @@
 
 @unless($isBorrower)
 <style>
-.record-browser-toolbar{display:grid;grid-template-columns:minmax(260px,1fr) minmax(170px,220px) minmax(150px,190px);gap:12px;align-items:end;margin-bottom:14px;padding:14px;background:var(--surface-elevated);border:1px solid var(--border);border-radius:var(--radius)}
+.record-browser-toolbar{display:grid;grid-template-columns:minmax(260px,1fr) minmax(170px,220px) minmax(150px,190px);gap:12px;align-items:end;margin-bottom:12px;padding:12px;background:var(--surface-elevated);border:1px solid var(--border);border-radius:var(--radius)}
 .record-browser-toolbar label{display:grid;gap:6px;font-size:12px;font-weight:800;color:var(--text-muted)}
 .record-browser-toolbar input,.record-browser-toolbar select{width:100%;min-height:42px}
 @media(max-width:760px){.record-browser-toolbar{grid-template-columns:1fr}}
-.sao-record-pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:16px}
+.sao-record-pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:12px}
 .sao-record-pagination nav{display:flex;align-items:center;gap:12px}
 .sao-record-pagination[hidden]{display:none}
-.sao-records-workspace{display:flex;flex-direction:column;gap:14px;min-width:0}
+.sao-records-workspace{display:flex;flex-direction:column;gap:12px;min-width:0}
 .app-shell .app-main .sao-records-workspace > .record-browser-toolbar{flex:0 0 auto;margin-bottom:0 !important}
 .app-shell .app-main .sao-records-workspace > .sao-record-results{display:flex;flex-direction:column;flex:1 1 auto;min-height:320px;padding:0 !important;overflow:hidden}
 .sao-record-results > .table-wrap{flex:0 0 auto;width:100%;border:0;border-radius:0;box-shadow:none;overflow-x:auto}
-.sao-record-results table th{font-size:11px;padding:10px 14px}
-.sao-record-results table td{font-size:12.5px;padding:10px 14px}
+.sao-record-results table th{font-size:11px;padding:10px 12px}
+.sao-record-results table td{font-size:12.5px;padding:10px 12px}
 .sao-record-results .table-wrap tbody tr[data-request-record] > td{border-bottom:1px solid var(--border)}
-.sao-record-results > .sao-record-pagination{flex:0 0 auto;margin-top:auto;padding:14px 16px;border-top:1px solid var(--border)}
-.sao-record-results > [data-record-empty]{flex:1 1 auto;margin:0;padding:24px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center}
+.sao-record-results > .sao-record-pagination{flex:0 0 auto;margin-top:auto;padding:12px 12px;border-top:1px solid var(--border)}
+.sao-record-results > [data-record-empty]{flex:1 1 auto;margin:0;padding:16px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center}
 .sao-record-results > [data-record-empty][hidden]{display:none}
 @media(max-width:600px){.sao-record-results > .sao-record-pagination{justify-content:center;padding:12px;gap:8px}.sao-record-pagination nav{gap:8px}}
 </style>

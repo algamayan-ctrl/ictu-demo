@@ -26,6 +26,7 @@ use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
+// This is the controller for user account management by SPMU Admin.
 class UserAdministrationController extends Controller
 {
     public function index(Request $request): View

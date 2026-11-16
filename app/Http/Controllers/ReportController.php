@@ -47,6 +47,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
+// This is the controller for report previews, exports, and operational audit records.
 class ReportController extends Controller
 {
     public function index(Request $request): View|RedirectResponse|JsonResponse
@@ -76,11 +77,16 @@ class ReportController extends Controller
             return $this->borrowerOptions($request);
         }
 
-        /* All Transactions is the unfiltered landing page, not an official report type. */
-        if (! $request->filled('report') || $request->input('report') === 'all-transactions') {
+        // This is the compatibility view for historical event-ledger filters.
+        if (($request->input('report') === 'all-transactions' && ($request->hasAny(['type', 'from', 'to']) || $request->input('view') === 'events'))
+            || (! $request->filled('report') && $request->hasAny(['type', 'from', 'to']))) {
             $timeline = app(AllTransactionsService::class)->page($request, $request->user());
 
             return view('reports.all-transactions', $timeline);
+        }
+
+        if (! $request->filled('report')) {
+            $request->merge(['report' => 'summary']);
         }
 
         $scope = $this->resolveScope($request, $request->input('report'));
@@ -120,6 +126,9 @@ class ReportController extends Controller
 
         $reportingPeriods = [];
         foreach (ReportingPeriodService::REPORT_PERIODS as $value => $label) {
+            if (in_array($scope['report'], ['inventory', 'utilization'], true)
+                && ! in_array($value, ['month', 'last_month', 'semester', 'previous_semester', 'custom'], true)) continue;
+            if ($value === 'last_month') $label = 'Previous Month';
             /* An unconfigured Previous Semester has no dates to offer, so the builder reports it as not set. */
             $unavailable = $value === 'previous_semester' && ! app(ReportingPeriodService::class)
                 ->previousSemester($scope['academicPeriods'], $scope['activeAcademicPeriod']);
@@ -321,28 +330,43 @@ class ReportController extends Controller
      */
     private function resolveScope(Request $request, ?string $reportKey): array
     {
+        $summaryMonth = null;
+        if ($reportKey === 'summary' && $request->input('academic_period') !== 'custom') {
+            $selection = $request->validate([
+                'summary_month' => 'nullable|integer|between:1,12',
+                'summary_year' => 'nullable|integer|between:1900,9999',
+                'start_date' => 'nullable|date_format:Y-m-d',
+            ]);
+            $month = isset($selection['start_date'])
+                ? Carbon::parse($selection['start_date'], 'Asia/Manila')->startOfMonth()
+                : now('Asia/Manila')->startOfMonth();
+            $summaryMonth = Carbon::create(
+                (int) ($selection['summary_year'] ?? $month->year),
+                (int) ($selection['summary_month'] ?? $month->month), 1, 0, 0, 0, 'Asia/Manila'
+            );
+        }
+
         $academicPeriods = AcademicPeriod::query()
-            ->orderByRaw("CASE WHEN status = 'ACTIVE' THEN 0 ELSE 1 END")
             ->orderByDesc('start_date')
             ->get();
 
-        $activeAcademicPeriod = $academicPeriods->first(
-            fn (AcademicPeriod $period): bool => $period->status === 'ACTIVE'
-        );
+        $activeAcademicPeriod = app(\App\Services\AcademicPeriodResolver::class)->current(periods: $academicPeriods);
 
         [
             $from,
             $to,
             $selectedAcademicPeriod,
             $periodSelection,
-        ] = $this->resolveReportingPeriod($request, $academicPeriods, $activeAcademicPeriod);
+        ] = $summaryMonth
+            ? [$summaryMonth, $summaryMonth->copy()->endOfMonth()->endOfDay(), null, 'month']
+            : $this->resolveReportingPeriod($request, $academicPeriods, $activeAcademicPeriod);
 
         /*
          * Links made before the builder existed carry explicit from/to dates
          * and no period selection. Those still resolve to the range they
          * asked for instead of silently switching to the current month.
          */
-        if (! $request->filled('academic_period') && $request->filled('from')) {
+        if ($summaryMonth === null && ! $request->filled('academic_period') && $request->filled('from')) {
             $from = Carbon::parse($request->input('from'))->startOfDay();
             $to = Carbon::parse($request->input('to', now()->toDateString()))->endOfDay();
             $selectedAcademicPeriod = null;
@@ -675,9 +699,10 @@ class ReportController extends Controller
             $categoryPairs
         );
 
+        $selectedCategories = self::AUDIT_FILTER_CATEGORY_GROUPS[$filters['category']] ?? [$filters['category']];
         $query = $this->scopeAuditCategories(
             AuditEvent::query(),
-            $filters['category'] === 'ALL' ? $allowedCategories : [$filters['category']],
+            $filters['category'] === 'ALL' ? $allowedCategories : array_values(array_intersect($allowedCategories, $selectedCategories)),
             $categoryPairs
         );
 
@@ -711,10 +736,18 @@ class ReportController extends Controller
             ->distinct()
             ->pluck('actor_user_id');
 
-        $actorOptions = User::query()
+        $actors = User::query()
             ->whereIn('id', $actorIds)
             ->orderBy('full_name')
-            ->pluck('full_name', 'id');
+            ->orderBy('id')
+            ->get(['id', 'full_name', 'email']);
+        $actorOptions = $actors->pluck('full_name', 'id');
+        $nameCounts = $actors->countBy(fn (User $actor): string => mb_strtolower(trim($actor->full_name)));
+        $actorChoices = $actors->map(fn (User $actor): array => [
+            'value' => (string) $actor->id,
+            'label' => $actor->full_name,
+            'detail' => $nameCounts[mb_strtolower(trim($actor->full_name))] > 1 ? $actor->email : '',
+        ])->values();
 
         $hasSystemActor = $audienceQuery()
             ->whereNull('actor_user_id')
@@ -724,18 +757,35 @@ class ReportController extends Controller
         $totalEvents = $events->total();
 
         $categoryOptions = [
-            'BORROWING' => 'Borrowing',
-            'APPROVAL' => 'Approval',
+            'BORROWING_APPROVALS' => 'Borrowing & Approvals',
             'RELEASE_RETURN' => 'Release / Return',
             'LAUNDRY_GATEPASS' => 'Laundry / Gate Pass',
             'ACCOUNTABILITY' => 'Accountability',
             'INVENTORY' => 'Inventory',
             'CORRECTIONS_REOPENINGS' => 'Corrections / Reopenings',
-            'OPERATIONAL_SETTINGS' => 'Operational Settings',
-            'OTHER_OPERATIONAL' => 'Other Operational',
-            'ACCOUNT' => 'Account',
-            'SETTINGS' => 'System Settings',
+            'ADMINISTRATION_SETTINGS' => 'Administration & Settings',
+            'OTHER_OPERATIONAL' => 'Other Activities',
         ];
+
+        // This is the shared category wording for the filter, record Type and View Details.
+        $eventCategoryLabels = [];
+        foreach ($categoryOptions as $category => $label) {
+            foreach (self::AUDIT_FILTER_CATEGORY_GROUPS[$category] ?? [$category] as $eventCategory) {
+                $eventCategoryLabels[$eventCategory] = $label;
+            }
+        }
+
+        if ($filters['category'] !== 'ALL' && ! isset($categoryOptions[$filters['category']])) {
+            $historicalLabel = match ($filters['category']) {
+                'BORROWING' => 'Borrowing',
+                'APPROVAL' => 'Approval',
+                'ACCOUNT' => 'Account',
+                'OPERATIONAL_SETTINGS' => 'Operational Settings',
+                'SETTINGS' => 'System Settings',
+                default => $eventCategoryLabels[$filters['category']],
+            };
+            $categoryOptions[$filters['category']] = $eventCategoryLabels[$filters['category']].' — '.$historicalLabel.' (historical filter)';
+        }
 
         return view('reports.audit', [
             'events' => $events,
@@ -743,8 +793,10 @@ class ReportController extends Controller
             'totalVisibleEvents' => $totalEvents,
             'auditMode' => $auditMode,
             'categoryOptions' => $categoryOptions,
+            'eventCategoryLabels' => $eventCategoryLabels,
             'filters' => $filters,
             'actorOptions' => $actorOptions,
+            'actorChoices' => $actorChoices,
             'hasSystemActor' => $hasSystemActor,
             'recordNames' => $this->auditRecordNames($events->getCollection()),
         ]);
@@ -796,6 +848,12 @@ class ReportController extends Controller
             'The change was reverted. A new audit event records the recovery and refers to the original event, which is unchanged.'
         );
     }
+
+    // This is the grouping for the Audit Trail category selector; stored event classifications stay intact.
+    private const AUDIT_FILTER_CATEGORY_GROUPS = [
+        'BORROWING_APPROVALS' => ['BORROWING', 'APPROVAL'],
+        'ADMINISTRATION_SETTINGS' => ['ACCOUNT', 'OPERATIONAL_SETTINGS', 'SETTINGS'],
+    ];
 
     /**
      * Audit categories one audience may see.
@@ -896,7 +954,7 @@ class ReportController extends Controller
         }
 
         $category = strtoupper((string) $request->query('category', 'ALL'));
-        if (! in_array($category, $allowedCategories, true)) {
+        if (! in_array($category, $allowedCategories, true) && ! isset(self::AUDIT_FILTER_CATEGORY_GROUPS[$category])) {
             $category = 'ALL';
         }
 

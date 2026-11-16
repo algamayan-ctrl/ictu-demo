@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
+// This is the controller for the borrowing and SPMU operations calendar.
 class CalendarController extends Controller
 {
     private const AUTHORITY_CUSTODY_STATUSES = [

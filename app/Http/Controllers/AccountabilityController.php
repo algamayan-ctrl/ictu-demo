@@ -38,6 +38,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
+// This is the controller for borrower obligations and SPMU accountability case processing.
 class AccountabilityController extends Controller
 {
     public function index(Request $request, PolicyService $policy, AccountabilityWorkQueueService $workQueues): View
@@ -374,6 +375,10 @@ class AccountabilityController extends Controller
         $data = $request->validate([
             'basis' => ['required', 'string', 'max:2000'],
             'due_at' => ['nullable', 'date', 'after_or_equal:today'],
+            'confirm_e_signature' => ['required', 'accepted'],
+        ], [
+            'confirm_e_signature.required' => 'Confirm use of your registered E-signature before issuing this Billing Statement.',
+            'confirm_e_signature.accepted' => 'Confirm use of your registered E-signature before issuing this Billing Statement.',
         ]);
 
         $overdue->loadMissing('custody.lines');
@@ -483,6 +488,7 @@ class AccountabilityController extends Controller
                     'custody_no' => $overdue->custody?->custody_no,
                     'late_days' => (int) $overdue->late_days,
                     'amount' => (float) $penalty->amount,
+                    'confirm_e_signature' => true,
                 ]
             );
 
@@ -1174,6 +1180,10 @@ class AccountabilityController extends Controller
         $data = $request->validate([
             'decision' => ['required', 'in:CONFIRM,CLEAR'],
             'resolution_remarks' => ['required', 'string', 'max:2000'],
+            'confirm_e_signature' => ['required', 'accepted'],
+        ], [
+            'confirm_e_signature.required' => 'Confirm use of your registered E-signature before recording this accountability decision.',
+            'confirm_e_signature.accepted' => 'Confirm use of your registered E-signature before recording this accountability decision.',
         ]);
 
         $offensePreview = $policy->incidentOffensePreview($incident);
@@ -1216,6 +1226,7 @@ class AccountabilityController extends Controller
                 [
                     'incident_no' => $incident->incident_no,
                     'decision' => $data['decision'],
+                    'confirm_e_signature' => true,
                 ]
             );
 
@@ -1411,7 +1422,10 @@ class AccountabilityController extends Controller
             'resolution_remarks' => ['required', 'string', 'max:2000'],
             'count_as_offense' => [$requiresOffenseDecision ? 'required' : 'nullable', 'boolean'],
             'requires_rslddp' => ['required_if:resolution_outcome,COMPLIANCE_REQUIRED', 'boolean'],
+            'confirm_e_signature' => ['required', 'accepted'],
         ], [
+            'confirm_e_signature.required' => 'Confirm use of your registered E-signature before recording this accountability decision.',
+            'confirm_e_signature.accepted' => 'Confirm use of your registered E-signature before recording this accountability decision.',
             'count_as_offense.required' => 'Choose whether this eligible incident should count as an administrative offense.',
             'requires_rslddp.required_if' => 'Choose whether this confirmed property accountability requires an RSLDDP.',
         ]);
@@ -1482,6 +1496,7 @@ class AccountabilityController extends Controller
                     'incident_no' => $incident->incident_no,
                     'resolution_outcome' => $data['resolution_outcome'],
                     'compliance_action' => $complianceAction,
+                    'confirm_e_signature' => true,
                 ]
             );
 
@@ -1745,7 +1760,6 @@ class AccountabilityController extends Controller
             'Property compliance verified. The case is now awaiting final SPMU Head/Admin review; its linked restriction remains active until resolution.'
         );
     }
-
 
     /** @return list<string> */
     private function allowedComplianceActions(Incident $incident): array

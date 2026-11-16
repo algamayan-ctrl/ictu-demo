@@ -1,5 +1,6 @@
 @extends('layouts.app', ['title' => 'Borrower registration'])
 @section('content')
+{{-- This is the Account Registration UI for Borrower. --}}
 @php
     $google = $googleRegistration ?? null;
     $selectedType = $google['registration_type'] ?? old('registration_type', request('type', 'EMPLOYEE'));

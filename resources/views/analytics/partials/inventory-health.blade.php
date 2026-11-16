@@ -76,7 +76,6 @@
  $coverageByItem = collect($coverage['items'] ?? [])->keyBy('item_id');
 @endphp
 
-{{-- Current position ---------------------------------------------------- --}}
 <div class="analytics-kpis analytics-kpis-inventory">
  {{--
  Current-state readings. Each card opens its own Analytics detail, which
@@ -133,7 +132,6 @@
  <span><strong>Current stock scope:</strong> inventory totals are institution-wide and do not change with Division, Office / College / Unit, or Borrower. Utilization and Coverage Detail below show releases recorded in the selected reporting period.</span>
 </p>
 
-{{-- Availability and composition ---------------------------------------- --}}
 <div class="analytics-inventory-main">
  <section
  data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.availability']) }}"
@@ -277,7 +275,6 @@
  </section>
 </div>
 
-{{-- Watchlist and usage -------------------------------------------------- --}}
 <div class="analytics-inventory-pair">
  <section
  data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.low-availability']) }}"
@@ -310,7 +307,7 @@
  >
  <span class="analytics-watch-main">
  <span class="analytics-watch-name">{{ $row['name'] }}</span>
- @php $coverageRow = $coverageByItem->get($row['item_id']); @endphp
+@php $coverageRow = $coverageByItem->get($row['item_id']); @endphp
  <span class="analytics-watch-sub">
  {{ $num($row['available']) }} of {{ $num($row['stock']) }} units available
  @if($coverageRow)
@@ -385,7 +382,6 @@
  </section>
 </div>
 
-{{-- Secondary states and coverage ---------------------------------------- --}}
 <div class="analytics-inventory-pair">
  <section
  data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'inventory', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'inventory.operational']) }}"
@@ -481,15 +477,7 @@
  </section>
 </div>
 
-
-{{-- INVENTORY HEALTH EQUAL CARD HEIGHTS START --}}
-
 <style>
-{{-- /*
-|--------------------------------------------------------------------------
-| Inventory Health paired card heights
-|--------------------------------------------------------------------------
-*/ --}}
 
 .analytics-inventory-equal-row {
     align-items: stretch !important;
@@ -501,20 +489,11 @@
     height: 100% !important;
 }
 
-
-{{-- /*
- * Keep empty / short content visually balanced when its paired card
- * contains more information.
- */ --}}
 .analytics-inventory-equal-card
 .analytics-inventory-equal-body {
     flex: 1 1 auto !important;
 }
 
-
-{{-- /*
- * On stacked layouts, allow every card to return to natural height.
- */ --}}
 @media (max-width: 900px) {
     .analytics-inventory-equal-row
     > .analytics-inventory-equal-card {
@@ -523,7 +502,6 @@
     }
 }
 </style>
-
 
 <script>
 (() => {
@@ -539,12 +517,10 @@
         ]
     ];
 
-
     const normalize = (value) =>
         String(value || '')
             .replace(/\s+/g, ' ')
             .trim();
-
 
     const findHeading = (title) =>
         Array.from(
@@ -555,7 +531,6 @@
             (heading) =>
                 normalize(heading.textContent) === title
         );
-
 
     const findCard = (heading) => {
         if (!heading) {
@@ -572,7 +547,6 @@
             ].join(',')
         );
     };
-
 
     const getCommonParent = (
         firstCard,
@@ -600,7 +574,6 @@
         return null;
     };
 
-
     const clearInlineHeight = (card) => {
         if (!card) {
             return;
@@ -614,7 +587,6 @@
             'height'
         );
     };
-
 
     const syncPair = (
         firstTitle,
@@ -641,7 +613,6 @@
             return;
         }
 
-
         firstCard.classList.add(
             'analytics-inventory-equal-card'
         );
@@ -649,7 +620,6 @@
         secondCard.classList.add(
             'analytics-inventory-equal-card'
         );
-
 
         const row =
             getCommonParent(
@@ -663,10 +633,8 @@
             );
         }
 
-
         clearInlineHeight(firstCard);
         clearInlineHeight(secondCard);
-
 
         const desktop =
             window.matchMedia(
@@ -676,7 +644,6 @@
         if (!desktop) {
             return;
         }
-
 
         requestAnimationFrame(() => {
 
@@ -698,12 +665,6 @@
                     )
                 );
 
-
-
-
-
-
-
             firstCard.style.setProperty(
                 'min-height',
                 `${target}px`,
@@ -718,7 +679,6 @@
         });
     };
 
-
     const apply = () => {
 
         CARD_PAIRS.forEach(
@@ -730,7 +690,6 @@
             }
         );
     };
-
 
     if (
         document.readyState === 'loading'
@@ -747,7 +706,6 @@
         apply();
     }
 
-
     requestAnimationFrame(apply);
 
     setTimeout(
@@ -759,7 +717,6 @@
         apply,
         400
     );
-
 
     let resizeFrame = null;
 
@@ -783,5 +740,3 @@
 
 })();
 </script>
-
-{{-- INVENTORY HEALTH EQUAL CARD HEIGHTS END --}}

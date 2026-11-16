@@ -3,7 +3,7 @@
     SPMU Head/Admin only; preview streams retain their authorization checks.
 --}}
 @if(auth()->user()?->access_classification === App\Enums\AccessClassification::SpmuHead)
-    @php
+@php
         $documentHistory = App\Models\RequestSupportingDocument::query()
             ->where('request_id', $borrowingRequest->id)
             ->with(['file', 'uploader', 'requestVersion'])
@@ -26,7 +26,7 @@
                 </p>
 
                 <div class="table-wrap">
-                    <table>
+                    <table data-record-table="Document history" data-record-filter-column="4" data-record-filter-label="Status" data-record-dates>
                         <thead>
                             <tr>
                                 <th scope="col">Version</th>
@@ -39,7 +39,7 @@
                         </thead>
                         <tbody>
                             @foreach($documentHistory as $historyDoc)
-                                <tr>
+                                <tr data-record-filter="{{ $historyDoc->is_current ? 'Current' : 'Superseded' }}" data-record-date="{{ $historyDoc->uploaded_at?->format('Y-m-d') }}">
                                     <td>
                                         {{ $historyDoc->version_no }}
                                         @if($historyDoc->requestVersion && $borrowingRequest->current_version_no > 1)
@@ -77,7 +77,7 @@
                                 </tr>
                             @endforeach
                             @if($originalSlip)
-                                <tr>
+                                <tr data-record-filter="Retained original" data-record-date="{{ $originalSlip->generated_at?->format('Y-m-d') }}">
                                     <td>{{ $originalSlip->version_no }}</td>
                                     <td>
                                         <strong>Borrower Slip</strong><br>

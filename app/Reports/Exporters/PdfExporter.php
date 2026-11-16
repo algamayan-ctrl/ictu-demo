@@ -92,7 +92,6 @@ class PdfExporter
 
                 $ruleY = $height - 42;
                 $firstLineY = $height - 32;
-                $secondLineY = $height - 22;
 
                 $textColor = [0.28, 0.32, 0.37];
                 $ruleColor = [0.62, 0.66, 0.70];
@@ -116,15 +115,6 @@ class PdfExporter
                     $left,
                     $firstLineY,
                     'Prepared from official SPMU-ACPMP operational records.',
-                    $regular,
-                    $fontSize,
-                    $textColor
-                );
-
-                $canvas->text(
-                    $left,
-                    $secondLineY,
-                    'This is a system-generated report. No signature is required.',
                     $regular,
                     $fontSize,
                     $textColor

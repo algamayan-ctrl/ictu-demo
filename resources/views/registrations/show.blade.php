@@ -1,5 +1,6 @@
 @extends('layouts.app', ['title' => 'Review borrower registration'])
 @section('content')
+{{-- This is the Borrower Registration Review UI for authorized SPMU users. --}}
 @php
     $isPending = $registration->status === App\Enums\RegistrationStatus::Pending;
     $isEmployee = $registration->registration_type === App\Enums\RegistrationType::Employee;
@@ -101,7 +102,7 @@
             <form id="registration-review-form" method="post" action="{{ route('registrations.decide', $registration) }}">
                 @csrf
                 <label for="registration-remarks-{{ $registration->id }}">Review remarks</label>
-                <textarea id="registration-remarks-{{ $registration->id }}" name="remarks" maxlength="1000" rows="3" placeholder="Required only when rejecting the registration.">{{ old('remarks') }}</textarea>
+<textarea id="registration-remarks-{{ $registration->id }}" name="remarks" maxlength="1000" rows="3" placeholder="Required only when rejecting the registration.">{{ old('remarks') }}</textarea>
                 @error('remarks')
                     <p class="field-error" role="alert">{{ $message }}</p>
                 @enderror
@@ -124,12 +125,12 @@
 </div>
 
 <style>
-.registration-review-page { display: grid; gap: 18px; min-width: 0; }
+.registration-review-page { display: grid; gap: 16px; min-width: 0; }
 .registration-review-heading { margin-bottom: 0; }
 .registration-review-card,
 .registration-decision-card,
 .registration-completed-card { overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-elevated); box-shadow: var(--shadow-sm); }
-.registration-review-card__header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 24px; border-bottom: 1px solid var(--border); background: linear-gradient(120deg, color-mix(in srgb, var(--primary-action) 6%, var(--surface-elevated)), var(--surface-elevated) 55%); }
+.registration-review-card__header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 16px; border-bottom: 1px solid var(--border); background: linear-gradient(120deg, color-mix(in srgb, var(--primary-action) 6%, var(--surface-elevated)), var(--surface-elevated) 55%); }
 .registration-review-identity { display: flex; align-items: center; min-width: 0; gap: 13px; }
 .registration-review-avatar { display: grid; width: 44px; height: 44px; flex: 0 0 44px; place-items: center; border: 1px solid color-mix(in srgb, var(--primary-action) 24%, var(--border)); border-radius: 50%; background: color-mix(in srgb, var(--primary-action) 10%, var(--surface-elevated)); color: var(--primary-action); font-size: 17px; font-weight: 800; }
 .registration-review-identity .eyebrow,
@@ -139,23 +140,23 @@
 .registration-review-identity h2 { margin: 0; color: var(--heading); font-size: 22px; line-height: 1.25; }
 .registration-review-identity h2 + p { margin: 4px 0 0; color: var(--text-secondary); font-size: 13px; }
 .registration-review-status { display: grid; justify-items: end; gap: 5px; flex: 0 0 auto; }
-.registration-review-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 20px 24px 24px; }
+.registration-review-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 16px 16px 16px; }
 .registration-review-section { min-width: 0; }
 .registration-review-section h3,
 .registration-document-card h3 { margin: 0 0 10px; color: var(--heading); font-size: 14px; }
 .registration-data-list { display: grid; margin: 0; border-top: 1px solid var(--border); }
-.registration-data-list > div { display: grid; grid-template-columns: minmax(122px, .75fr) minmax(0, 1.25fr); gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.registration-data-list > div { display: grid; grid-template-columns: minmax(122px, .75fr) minmax(0, 1.25fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .registration-data-list dt { color: var(--text-secondary); font-size: 12px; font-weight: 700; }
 .registration-data-list dd { display: flex; min-width: 0; align-items: baseline; flex-wrap: wrap; gap: 7px; margin: 0; color: var(--heading); font-size: 13px; overflow-wrap: anywhere; }
 .registration-email-status { display: inline-flex; flex: 0 0 auto; padding: 2px 7px; border: 1px solid; border-radius: 999px; font-size: 10px; font-weight: 750; white-space: nowrap; }
 .registration-email-status.is-verified { border-color: #a7dfbc; background: #edf9f0; color: #087443; }
 .registration-email-status.is-pending { border-color: #f2d193; background: #fff8e7; color: #9b6100; }
-.registration-document-card { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 15px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-subtle); }
+.registration-document-card { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-subtle); }
 .registration-document-card h3 { margin-bottom: 3px; }
 .registration-document-card p { margin: 0; color: var(--text-secondary); font-size: 12px; }
 .registration-document-missing { color: var(--danger); font-size: 12px; font-weight: 750; }
-.registration-decision-card { padding: 22px 24px 24px; }
-.registration-decision-card__heading { margin-bottom: 16px; }
+.registration-decision-card { padding: 16px 16px 16px; }
+.registration-decision-card__heading { margin-bottom: 12px; }
 .registration-decision-card__heading h2 { margin: 0; color: var(--heading); font-size: 18px; }
 .registration-decision-card__heading h2 + p { margin: 5px 0 0; color: var(--text-secondary); font-size: 13px; }
 #registration-review-form { display: grid; gap: 8px; }
@@ -165,18 +166,18 @@
 #registration-review-form .field-error { margin: 0; color: var(--danger); font-size: 12px; font-weight: 650; }
 .registration-decision-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--border); }
 .registration-decision-actions .button { min-height: 40px; }
-.registration-completed-card { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px; }
+.registration-completed-card { display: flex; align-items: flex-start; gap: 12px; padding: 16px 16px; }
 .registration-completed-card__icon { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--primary-action) 10%, var(--surface-elevated)); color: var(--primary-action); }
 .registration-completed-card > div:last-child { min-width: 0; }
 .registration-completed-card p { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
 .registration-completed-card .eyebrow { margin-bottom: 3px; }
 .registration-completed-card__remarks { margin-top: 7px !important; color: var(--heading) !important; }
 @media (max-width: 760px) {
-    .registration-review-card__header { align-items: flex-start; flex-direction: column; padding: 18px; }
+    .registration-review-card__header { align-items: flex-start; flex-direction: column; padding: 16px; }
     .registration-review-status { justify-items: start; }
-    .registration-review-details { grid-template-columns: minmax(0, 1fr); padding: 18px; }
+    .registration-review-details { grid-template-columns: minmax(0, 1fr); padding: 16px; }
     .registration-document-card { grid-column: auto; align-items: flex-start; flex-direction: column; }
-    .registration-decision-card { padding: 18px; }
+    .registration-decision-card { padding: 16px; }
     .registration-decision-actions .button { flex: 1 1 190px; }
 }
 @media (max-width: 480px) {

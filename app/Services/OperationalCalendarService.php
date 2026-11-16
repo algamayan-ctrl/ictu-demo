@@ -799,7 +799,6 @@ class OperationalCalendarService
         return $custody->fresh();
     }
 
-
     private function profileFromRecords(
         CarbonImmutable $day,
         ?OperationalWeeklySchedule $weekly,

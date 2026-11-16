@@ -50,6 +50,7 @@
 <tr
     data-approval-record
     data-created="{{ optional($submittedAt)->timestamp ?? 0 }}"
+    data-submitted-date="{{ $submittedAt?->format('Y-m-d') }}"
     data-search="{{ $searchText }}"
     data-status="{{ $needsAttention ? 'attention' : 'review' }}"
 >

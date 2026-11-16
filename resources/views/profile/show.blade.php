@@ -1,9 +1,10 @@
 @extends('layouts.app', ['title' => 'Account Settings'])
 @section('content')
+{{-- This is the Account Settings UI for the current user. --}}
 <style>
     .account-settings-page {
         display: grid;
-        gap: 20px;
+        gap: 16px;
     }
 
     .account-settings-page .page-heading {
@@ -21,14 +22,11 @@
         color: var(--text-muted);
     }
 
-    {{-- /* Two balanced rows. Each pair shares the same width and row height.
-       The taller card determines the row height, so additional content on
-       either side never breaks alignment. */ --}}
     .account-settings-primary-grid,
     .account-settings-secondary-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 20px;
+        gap: 16px;
         align-items: stretch;
     }
 
@@ -40,14 +38,14 @@
 
     .account-settings-card {
         min-width: 0;
-        padding: 18px;
+        padding: 16px;
         border-radius: 12px;
         box-shadow: 0 1px 2px rgba(7, 27, 53, .05);
     }
 
     .account-settings-card .card-header,
     .account-settings-card .section-heading {
-        margin-bottom: 14px;
+        margin-bottom: 12px;
     }
 
     .account-settings-card .card-header h2,
@@ -69,14 +67,14 @@
         flex: 1 1 auto;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         grid-auto-rows: minmax(64px, 1fr);
-        gap: 0 18px;
+        gap: 0 16px;
         align-content: stretch;
     }
 
     .account-settings-readonly {
         min-width: 0;
         min-height: 68px;
-        padding: 12px 14px;
+        padding: 12px 12px;
         border: 1px solid var(--border);
         border-radius: 10px;
         background: var(--surface-subtle);
@@ -104,8 +102,6 @@
         overflow-wrap: anywhere;
     }
 
-    {{-- /* The identity card is intentionally flatter than form controls so the
-       official data reads as one structured record instead of six nested cards. */ --}}
     .account-settings-identity .account-settings-readonly {
         min-height: 0;
         padding: 11px 4px 12px;
@@ -124,7 +120,7 @@
     }
 
     .account-settings-note {
-        margin: 14px 0 0;
+        margin: 12px 0 0;
         padding-top: 12px;
         border-top: 1px solid var(--border);
         color: var(--text-muted);
@@ -141,7 +137,7 @@
     }
 
     .account-settings-inner-section + .account-settings-inner-section {
-        margin-top: 15px;
+        margin-top: 12px;
         padding-top: 15px;
         border-top: 1px solid var(--border);
     }
@@ -163,7 +159,7 @@
     .account-settings-photo-layout {
         display: grid;
         grid-template-columns: 90px minmax(0, 1fr);
-        gap: 14px;
+        gap: 12px;
         align-items: center;
     }
 
@@ -268,7 +264,7 @@
     }
 
     .account-settings-contact-form {
-        gap: 14px;
+        gap: 12px;
     }
 
     .account-settings-contact-grid {
@@ -307,7 +303,7 @@
         display: grid;
         gap: 9px;
         margin: 0;
-        padding: 12px 14px;
+        padding: 12px 12px;
         border: 1px solid var(--border);
         border-radius: 10px;
         background: var(--surface-subtle);
@@ -327,7 +323,6 @@
     .account-settings-notifications .checkbox {
         margin: 0;
     }
-
 
     .account-settings-notification-grid {
         display: grid;
@@ -352,13 +347,13 @@
     }
 
     .account-settings-appearance-card {
-        gap: 16px;
+        gap: 12px;
     }
 
     .account-settings-appearance-body {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: 14px;
+        gap: 12px;
         align-items: stretch;
     }
 
@@ -371,7 +366,7 @@
     .account-settings-appearance-summary {
         display: grid;
         gap: 6px;
-        padding: 12px 14px;
+        padding: 12px 12px;
         align-content: start;
         border: 1px solid var(--border);
         border-radius: 10px;
@@ -450,7 +445,7 @@
             <div class="section-heading">
                 <div>
                     <p class="eyebrow">Official Identity</p>
-                    <h2 id="account-details-heading">Account Information</h2>
+                    <h2 id="account-details-heading">Profile Information</h2>
                 </div>
             </div>
 
@@ -486,7 +481,7 @@
                 <div class="account-settings-readonly"><span>Division</span><strong>{{ $user->organizationalUnit?->divisionLabel() ?: 'Not recorded' }}</strong></div>
                 <div class="account-settings-readonly"><span>Office / College / Unit</span><strong>{{ $user->organizationalUnit?->unit_name ?: 'Not recorded' }}</strong></div>
 
-                @php
+@php
                     $additionalRequestingUnits = $user->authorizedOrganizationalUnits
                         ->where('id', '!=', $user->organizational_unit_id)
                         ->values();
@@ -633,7 +628,7 @@
         </article>
     </section>
 
-    <section class="account-settings-secondary-grid" aria-label="Communication and display preferences">
+    <section class="account-settings-secondary-grid" aria-label="Contact, security and appearance preferences">
         <form method="post" action="{{ route('profile.update') }}" class="card account-settings-card account-settings-contact-form">
             @csrf
             @method('PUT')
@@ -641,7 +636,7 @@
             <div class="section-heading">
                 <div>
                     <p class="eyebrow">Communication</p>
-                    <h2>Contact and Notification Settings</h2>
+                    <h2>Contact &amp; Security</h2>
                 </div>
             </div>
 
@@ -703,7 +698,7 @@
                 </div>
             </div>
 
-            <div class="account-settings-appearance-spacer" aria-hidden="true"></div>
+
         </article>
     </section>
 </div>

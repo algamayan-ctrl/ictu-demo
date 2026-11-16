@@ -1,18 +1,15 @@
 @extends('layouts.app', ['title' => 'Dashboard'])
 @section('content')
+{{-- This is the Dashboard UI for Borrower, SPMU Action Officer, and SPMU Admin. --}}
 
 @if($dashboardMode === 'BORROWER')
     @include('dashboard.partials.borrower-styles')
 @endif
 
 <style>
-    .dashboard-heading { margin-bottom:16px; }
+    .dashboard-heading { margin-bottom:12px; }
     .dashboard-heading > div > p:last-child { max-width:860px; }
 
-    {{-- /* Let the dashboard itself absorb the app-main's remaining viewport
-       height. Desktop operational panels can then keep the approved 2-column
-       layout while extending toward the bottom of the screen instead of
-       ending halfway down the workspace. */ --}}
     .dashboard-page-shell {
         display:flex;
         flex:1 1 auto;
@@ -20,9 +17,6 @@
         flex-direction:column;
     }
 
-    {{-- /* One universal KPI language for Borrower, AO, Admin/Head, and ICTU.
-       Summary cards are informational only: color communicates the metric,
-       while navigation stays in explicit buttons, queues, and the sidebar. */ --}}
     .dashboard-stat-grid {
         display:grid;
         grid-template-columns:repeat(4,minmax(0,1fr));
@@ -42,7 +36,7 @@
         min-width:0;
         height:126px;
         min-height:126px;
-        padding:17px 34px 15px 18px;
+        padding:12px 34px 12px 16px;
         overflow:hidden;
         border:1px solid var(--border);
         border-radius:12px;
@@ -63,8 +57,7 @@
         background:var(--dashboard-card-accent);
         pointer-events:none;
     }
-    {{-- /* Every clickable KPI card shares the same hover/focus affordance and
-       arrow, regardless of role - the interaction never changes meaning. */ --}}
+
     .dashboard-kpi-card:hover {
         color:inherit;
         border-color:var(--border-strong);
@@ -169,18 +162,14 @@
         overflow:hidden;
     }
 
-    {{-- /* Universal dashboard panels and rows. */ --}}
     .dashboard-balanced-grid {
         display:grid;
-        gap:16px;
+        gap:12px;
         align-items:stretch;
     }
     .dashboard-balanced-grid > .dashboard-order-primary { order:1; }
     .dashboard-balanced-grid > .dashboard-order-secondary { order:2; }
 
-    {{-- /* Borrower lower sections use the same populated-before-empty rule.
-       The wrapper only controls vertical order; each existing card keeps
-       its own spacing, width, and responsive behavior. */ --}}
     .borrower-dashboard-priority-stack {
         display:flex;
         flex-direction:column;
@@ -192,15 +181,10 @@
     .borrower-dashboard-priority-stack.borrower-current-first > .borrower-current-requests { order:1; }
     .dashboard-balanced-grid.dashboard-two-panel {
         grid-template-columns:repeat(2,minmax(0,1fr));
-        {{-- /* Keep the desktop pair side-by-side, but let the row consume the
-           remaining dashboard height so both cards visually reach toward the
-           bottom of the screen instead of stopping midway through it. */ --}}
+
         flex:1 1 auto;
         min-height:320px;
-        {{-- /* Paired panels stay equal height (inherited align-items:stretch)
-           so neither reads as oversized or squeezed next to the other; the
-           shorter panel's own content stays packed at the top and any
-           extra space is absorbed below it, not by distorting either card. */ --}}
+
     }
     .dashboard-balanced-grid.dashboard-single-panel,
     .dashboard-balanced-grid.borrower-actions-only {
@@ -219,10 +203,6 @@
         box-shadow:var(--shadow-sm);
     }
 
-    {{-- /* Paired dashboard panels are one universal component: equal width and
-       equal height. Each card's own list flexes to fill that shared height,
-       so a shorter list stays packed at the top instead of stretching its
-       rows apart, and a lone empty-state centers within the extra space. */ --}}
     .dashboard-balanced-grid.dashboard-two-panel > .queue-card {
         display:flex;
         flex-direction:column;
@@ -233,9 +213,7 @@
     }
     .dashboard-balanced-grid.dashboard-two-panel > .queue-card > .queue-list,
     .dashboard-balanced-grid.dashboard-two-panel > .queue-card > .dashboard-watch-list {
-        {{-- /* Populated staff dashboard lists stay packed directly below the
-           panel header. The panel itself may fill the remaining viewport,
-           but a single transaction must never float in the vertical center. */ --}}
+
         align-content:start;
         grid-auto-rows:max-content;
     }
@@ -259,9 +237,9 @@
         align-items:flex-start;
         justify-content:space-between;
         flex-wrap:wrap;
-        gap:10px 18px;
+        gap:10px 16px;
         margin:0;
-        padding:14px 16px;
+        padding:12px 12px;
         border-bottom:1px solid var(--border);
         background:transparent;
     }
@@ -308,7 +286,7 @@
         gap:12px !important;
         align-items:center !important;
         min-height:64px;
-        padding:11px 16px !important;
+        padding:11px 12px !important;
         border-bottom:1px solid var(--row-border);
     }
     .dashboard-primary-queue-row {
@@ -381,7 +359,7 @@
     }
     .dashboard-balanced-grid .empty-state {
         min-height:0;
-        padding:16px 16px;
+        padding:12px 12px;
         text-align:left;
     }
     .dashboard-balanced-grid .empty-state strong,
@@ -428,11 +406,6 @@
         }
     }
 
-    {{-- /* DASHBOARD KPI ANALYTICS VISUAL V3 START
-   FINAL UNIVERSAL ROLE DASHBOARD KPI DESIGN
-   Presentation only. Routes, counts, permissions and logic remain unchanged.
-*/ --}}
-
 .dashboard-kpi-card {
     --dashboard-kpi-start:#32a5f5;
     --dashboard-kpi-mid:#1479ea;
@@ -455,7 +428,7 @@
     min-width:0;
     min-height:116px;
 
-    padding:14px 36px 14px 15px !important;
+    padding:12px 36px 12px 12px !important;
 
     color:#fff !important;
 
@@ -496,17 +469,10 @@
         filter 160ms ease;
 }
 
-{{-- /* Remove legacy colored top stripe. */ --}}
 .dashboard-kpi-card::before {
     display:none !important;
 }
 
-
-{{-- /* ============================================================
-   SEMANTIC COLORS
-   ============================================================ */ --}}
-
-{{-- /* BLUE — normal workflow / pending action */ --}}
 .dashboard-kpi-card.kpi-accent-info,
 .dashboard-kpi-card.dashboard-kpi-for-approval,
 .dashboard-kpi-card.dashboard-kpi-for-verification,
@@ -521,8 +487,6 @@
     --dashboard-kpi-end:#4032cb;
 }
 
-
-{{-- /* GREEN / TEAL — active / ready / progressing */ --}}
 .dashboard-kpi-card.kpi-accent-success,
 .dashboard-kpi-card.dashboard-kpi-active-custodies,
 .dashboard-kpi-card.dashboard-kpi-for-release,
@@ -533,8 +497,6 @@
     --dashboard-kpi-end:#087b69;
 }
 
-
-{{-- /* RED — unresolved accountability / failure / obligation */ --}}
 .dashboard-kpi-card.kpi-accent-danger,
 .dashboard-kpi-card.dashboard-kpi-open-accountability-cases,
 .dashboard-kpi-card.dashboard-kpi-accountability-cases,
@@ -545,8 +507,6 @@
     --dashboard-kpi-end:#c92525;
 }
 
-
-{{-- /* AMBER — restriction / due / return warning */ --}}
 .dashboard-kpi-card.kpi-accent-warning,
 .dashboard-kpi-card.dashboard-kpi-active-restrictions,
 .dashboard-kpi-card.dashboard-kpi-for-return,
@@ -557,18 +517,11 @@
     --dashboard-kpi-end:#dc7b00;
 }
 
-
-{{-- /* Neutral fallback only when no semantic class applies. */ --}}
 .dashboard-kpi-card.kpi-accent-neutral {
     --dashboard-kpi-start:#718096;
     --dashboard-kpi-mid:#59687b;
     --dashboard-kpi-end:#425064;
 }
-
-
-{{-- /* ============================================================
-   UNIVERSAL ICON CIRCLE
-   ============================================================ */ --}}
 
 .dashboard-stat-grid .dashboard-kpi-card .kpi-icon {
     grid-column:1 !important;
@@ -632,11 +585,6 @@
     stroke:currentColor !important;
 }
 
-
-{{-- /* ============================================================
-   TEXT HIERARCHY
-   ============================================================ */ --}}
-
 .dashboard-kpi-card .kpi-label {
     grid-column:2;
     grid-row:1;
@@ -699,12 +647,6 @@
     overflow:hidden;
 }
 
-
-{{-- /* ============================================================
-   CLICKABLE ARROW
-   Entire <a> card remains the click target.
-   ============================================================ */ --}}
-
 a.dashboard-kpi-card::after {
     content:"\2192";
 
@@ -737,15 +679,9 @@ a.dashboard-kpi-card::after {
         background-color 160ms ease;
 }
 
-{{-- /* Hide any legacy inline arrow. */ --}}
 .dashboard-kpi-card-arrow {
     display:none !important;
 }
-
-
-{{-- /* ============================================================
-   INTERACTION
-   ============================================================ */ --}}
 
 a.dashboard-kpi-card:hover {
     color:#fff !important;
@@ -774,11 +710,6 @@ a.dashboard-kpi-card:focus-visible {
         0 10px 22px rgba(15,35,58,.18) !important;
 }
 
-
-{{-- /* ============================================================
-   TABLET / MOBILE
-   ============================================================ */ --}}
-
 @media (max-width:760px) {
     .dashboard-kpi-card {
         min-height:124px;
@@ -787,7 +718,7 @@ a.dashboard-kpi-card:focus-visible {
 
         column-gap:12px;
 
-        padding:16px 40px 16px 16px !important;
+        padding:12px 40px 12px 12px !important;
     }
 
     .dashboard-stat-grid .dashboard-kpi-card .kpi-icon {
@@ -846,9 +777,6 @@ a.dashboard-kpi-card:focus-visible {
     }
 }
 
-{{-- /* DASHBOARD FINAL SEMANTIC COLORS START */ --}}
-
-{{-- /* BLUE — normal workflow / primary pending action */ --}}
 .dashboard-kpi-card.dashboard-kpi-for-approval,
 .dashboard-kpi-card.dashboard-kpi-for-verification,
 .dashboard-kpi-card.dashboard-kpi-active-borrowings {
@@ -857,14 +785,12 @@ a.dashboard-kpi-card:focus-visible {
     --dashboard-kpi-end:#075fd3 !important;
 }
 
-{{-- /* VIOLET — institutional accounts awaiting email verification */ --}}
 .dashboard-kpi-card.dashboard-kpi-pending-verification {
     --dashboard-kpi-start:#5968f4 !important;
     --dashboard-kpi-mid:#5148e8 !important;
     --dashboard-kpi-end:#4032cb !important;
 }
 
-{{-- /* GREEN — active / ongoing / ready */ --}}
 .dashboard-kpi-card.dashboard-kpi-active-custodies,
 .dashboard-kpi-card.dashboard-kpi-for-release,
 .dashboard-kpi-card.dashboard-kpi-upcoming-pickup,
@@ -874,7 +800,6 @@ a.dashboard-kpi-card:focus-visible {
     --dashboard-kpi-end:#087b69 !important;
 }
 
-{{-- /* RED — accountability / unresolved obligation / failure */ --}}
 .dashboard-kpi-card.dashboard-kpi-open-accountability-cases,
 .dashboard-kpi-card.dashboard-kpi-accountability-cases,
 .dashboard-kpi-card.dashboard-kpi-active-obligations,
@@ -884,7 +809,6 @@ a.dashboard-kpi-card:focus-visible {
     --dashboard-kpi-end:#c92525 !important;
 }
 
-{{-- /* AMBER — restriction / return due / warning */ --}}
 .dashboard-kpi-card.dashboard-kpi-active-restrictions,
 .dashboard-kpi-card.dashboard-kpi-for-return,
 .dashboard-kpi-card.dashboard-kpi-returns-due,
@@ -894,18 +818,14 @@ a.dashboard-kpi-card:focus-visible {
     --dashboard-kpi-end:#dc7b00 !important;
 }
 
-{{-- /* DASHBOARD FINAL SEMANTIC COLORS END */ --}}
-
-{{-- /* DASHBOARD KPI ANALYTICS VISUAL V3 END */ --}}
-
     html[data-theme="dark"] .dashboard-kpi-card,
     html[data-theme="dark"] .dashboard-balanced-grid > .card,
     html[data-theme="dark"] .dashboard-recent-card { box-shadow:var(--shadow-sm); }
-    {{-- /* SPMU_BORROWER_COMPACT_GRID_START */ --}}
+
     .is-borrower-dashboard .borrower-dashboard-priority-stack {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 16px;
+        gap: 12px;
         align-items: stretch;
     }
 
@@ -947,12 +867,11 @@ a.dashboard-kpi-card:focus-visible {
         white-space: nowrap;
     }
 
-    {{-- /* Existing action rows, sized for a half-width card. */ --}}
     .is-borrower-dashboard .borrower-dashboard-priority-stack .queue-list .borrower-next-row {
         display: grid;
         grid-template-columns: 38px minmax(0, 1fr) auto;
         gap: 8px 10px;
-        padding: 12px 14px;
+        padding: 12px 12px;
         align-items: center;
     }
 
@@ -985,7 +904,6 @@ a.dashboard-kpi-card:focus-visible {
         display: none;
     }
 
-    {{-- /* Existing Current Requests table displayed as compact records. */ --}}
     .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-scroll {
         width: 100%;
         overflow: visible;
@@ -1006,7 +924,7 @@ a.dashboard-kpi-card:focus-visible {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(100px, 38%);
         gap: 4px 10px;
-        padding: 12px 14px;
+        padding: 12px 12px;
         border-bottom: 1px solid var(--row-border);
         align-items: center;
     }
@@ -1079,13 +997,11 @@ a.dashboard-kpi-card:focus-visible {
         }
     }
 
-    {{-- /* SPMU_BORROWER_DASHBOARD_COMPACT_ALIGN_START */ --}}
-    {{-- /* SPMU_BORROWER_ROWS_V2: borrower-only, presentation-only adjustments. */ --}}
     .is-borrower-dashboard .borrower-dashboard-priority-stack > #borrower-actions .card-header,
     .is-borrower-dashboard .borrower-dashboard-priority-stack > .borrower-current-requests > .card-header,
     .is-borrower-dashboard .borrower-dashboard-priority-stack > .dashboard-recent-card > .card-header {
         min-height: 54px;
-        padding: 10px 16px;
+        padding: 10px 12px;
         align-items: center;
     }
     .is-borrower-dashboard .borrower-dashboard-priority-stack .card-header h2 {
@@ -1093,11 +1009,10 @@ a.dashboard-kpi-card:focus-visible {
         line-height: 1.3;
     }
 
-    {{-- /* Both cards have the same row baseline, minimum height and inset. */ --}}
     .is-borrower-dashboard .borrower-dashboard-priority-stack .queue-list .borrower-next-row,
     .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table tbody tr {
         min-height: 94px;
-        padding: 10px 14px;
+        padding: 10px 12px;
         row-gap: 3px;
         align-content: start;
         box-sizing: border-box;
@@ -1117,7 +1032,6 @@ a.dashboard-kpi-card:focus-visible {
         min-width: 0;
     }
 
-    {{-- /* Consistent type scale while keeping full IDs and essential instructions. */ --}}
     .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-next-copy strong,
     .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-id {
         font-size: 12px;
@@ -1161,7 +1075,6 @@ a.dashboard-kpi-card:focus-visible {
         font-size: 11px;
     }
 
-    {{-- /* Keep compact rows usable when the two panels stack on small screens. */ --}}
     @media (max-width: 760px) {
         .is-borrower-dashboard .borrower-dashboard-priority-stack .queue-list .borrower-next-row,
         .is-borrower-dashboard .borrower-dashboard-priority-stack .borrower-active-table tbody tr {
@@ -1169,8 +1082,7 @@ a.dashboard-kpi-card:focus-visible {
             padding: 12px;
         }
     }
-{{-- /* SPMU_BORROWER_DASHBOARD_COMPACT_ALIGN_END */ --}}
-    {{-- /* SPMU_BORROWER_COMPACT_GRID_END */ --}}
+
 </style>
 
 @php
@@ -1282,7 +1194,7 @@ a.dashboard-kpi-card:focus-visible {
 
 <section class="stat-grid dashboard-stat-grid" aria-label="Current totals">
     @foreach($statistics as $label => $value)
-        @php
+@php
             [$icon, $tone, $link, $note] = $statMeta[$label] ?? [
                 'dashboard',
                 'neutral',
@@ -1309,9 +1221,6 @@ a.dashboard-kpi-card:focus-visible {
     @endforeach
 </section>
 
-{{--
-SPMU_BORROWER_ADVISORY_AFTER_KPIS_V1
-: dashboard overview before operational notice. --}}
 {{-- SPMU_ADVISORY_ALL_DASHBOARDS_AFTER_KPI_V3: Welcome > KPIs > advisory > operational cards. --}}
 @if(in_array($dashboardMode, ['BORROWER', 'SPMU_OFFICER', 'SPMU_HEAD'], true))
     @include('shared.operational-advisory', ['compact' => $dashboardMode !== 'BORROWER'])
@@ -1377,7 +1286,7 @@ SPMU_BORROWER_ADVISORY_AFTER_KPIS_V1
         <div class="queue-list {{ $dashboardMode === 'BORROWER' ? 'borrower-next-list' : '' }}">
             @forelse($borrowerDashboardActionRows as $record)
                 @if($dashboardMode === 'BORROWER')
-                    @php
+@php
                         $custody = $record->custody;
                         $laundry = $custody?->laundryJob;
                         $hasOutstandingProperty = $custody?->hasOutstandingProperty() ?? false;
@@ -1582,7 +1491,7 @@ SPMU_BORROWER_ADVISORY_AFTER_KPIS_V1
 
             <div class="dashboard-watch-list">
                 @foreach($nextCustodies as $watchCustody)
-                    @php
+@php
                         $watchWorkflow = $watchCustody->workflowStatus();
                         $watchDateLabel = null;
                         $watchDateValue = null;
@@ -1641,7 +1550,7 @@ SPMU_BORROWER_ADVISORY_AFTER_KPIS_V1
 
                     <tbody>
                 @foreach($activeRequestBars->take(3) as $activeRequest)
-                    @php
+@php
                         $activeCustody = $activeRequest->custody;
                         $activeCustodyStatus = strtoupper((string) ($activeCustody?->status ?? ''));
                         $activeAccountability = $activeCustody?->activeAccountabilityIndicator();
@@ -1775,7 +1684,7 @@ SPMU_BORROWER_ADVISORY_AFTER_KPIS_V1
         @else
             <div class="dashboard-recent-list">
                 @foreach($recentBorrowerActivity->take(3) as $recentRequest)
-                    @php
+@php
                         $recentWorkflow = $recentRequest->custody?->workflowStatus();
                         $recentGatePassOnlyPending = $recentRequest->custody?->isGatePassOnlyPending() ?? false;
                         $recentStatusKey = $recentGatePassOnlyPending ? 'GATE_PASS_PROCESSING' : ($recentWorkflow['key'] ?? $recentRequest->status->value);

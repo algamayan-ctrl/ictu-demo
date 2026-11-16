@@ -171,7 +171,7 @@
                         <strong>{{ $row['next_action'] }}</strong>
                     </div>
 
-                    @php
+@php
                         /*
                          * One obligation = one obvious primary action: View
                          * Obligation. Every document/reference action this row
@@ -194,7 +194,7 @@
                                         <p class="ob-detail-section-heading">Documents</p>
                                         <div class="ob-document-list">
                                             @foreach($documentActions as $documentAction)
-                                                @php
+@php
                                                     [$label, $url, $newTab, $buttonTone] = $documentAction;
                                                     $documentName = $documentAction[5] ?? 'Document';
                                                 @endphp

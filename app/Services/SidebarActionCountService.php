@@ -13,6 +13,7 @@ use App\Models\OverdueCase;
 use App\Models\User;
 
 /** Read-only badge totals. These never affect workflow or database state. */
+// This is the service for sidebar record counts visible to each user type.
 class SidebarActionCountService
 {
     /** @return array<string,int> Counts keyed by the existing sidebar route name. */

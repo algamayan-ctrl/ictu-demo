@@ -405,24 +405,21 @@ class AnalyticsPeriodComparisonTest extends TestCase
         $this->assertStringNotContainsString('still in progress', $line);
     }
 
-    public function test_an_unfinished_previous_period_is_not_compared_on_the_page(): void
+    public function test_an_explicit_future_period_does_not_compare_an_unfinished_previous_window(): void
     {
-        /*
-         * An academic period marked ACTIVE ahead of its start: the previous
-         * window ends the day before June, which is still in the future.
-         */
-        AcademicPeriod::query()->create([
+        // This is an explicit period link; automatic current selection excludes future terms.
+        $futurePeriod = AcademicPeriod::query()->create([
             'academic_year' => '2026-2027',
             'term_code' => 'SUMMER',
             'term_name' => 'Summer Term',
             'start_date' => '2026-06-01',
             'end_date' => '2026-06-30',
-            'status' => 'ACTIVE',
+            'status' => 'UPCOMING',
         ]);
 
         $page = $this->actingAs($this->spmuHead())->get(route('analytics.index', [
             'section' => 'demand',
-            'academic_period' => 'semester',
+            'academic_period' => (string) $futurePeriod->id,
         ]));
 
         $page->assertOk();

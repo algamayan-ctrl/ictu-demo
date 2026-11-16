@@ -1,12 +1,5 @@
 @php
-    /*
-     * Defensive release-schedule state.
-     *
-     * Some release routes already provide $hasPickupSchedule and
-     * $pickupWindowPassed, while older/current view paths may not provide the
-     * newer $hasSystemPickupWindow variable. Derive the missing values here so
-     * this partial can render safely without changing the pickup workflow.
-     */
+    // This is the fallback for pickup-schedule values missing from older release views.
     $hasSystemPickupWindow = isset($hasSystemPickupWindow)
         ? (bool) $hasSystemPickupWindow
         : ((bool) $custody->scheduled_release_at && (bool) $custody->pickup_expires_at);
@@ -79,7 +72,7 @@
 </section>
 
 @if($releaseScheduleAttention)
-    {{-- pickup-schedule-form.blade.php already carries id="pickup-schedule" internally. --}}
+
     <section class="content-area">
         <article class="card release-schedule-exception-card" role="alert">
             <div class="release-card-title"><x-icon name="warning" size="21" /><h2>{{ $pickupHeldForPreparationIssue ? 'Item Review' : ($pickupMissed ? 'Pickup Missed' : (($pickupScheduleReviewPending ?? false) ? 'Pickup Confirmation' : 'Pickup Schedule')) }}</h2></div>
@@ -100,7 +93,7 @@
                 <thead><tr><th scope="col">Item</th><th scope="col">Approved Quantity</th><th scope="col">Preparation</th></tr></thead>
                 <tbody>
                     @forelse($custody->lines as $line)
-                        @php
+@php
                             $openLineIssue = $openPreparationIssues->firstWhere('custody_line_id', $line->id);
                             $latestLineIssue = $releasePreparationIssues->firstWhere('custody_line_id', $line->id);
                             $lineStatus = $preparationComplete

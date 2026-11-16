@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => 'Reset Password'])
 
 @section('content')
+{{-- This is the Password Reset UI for the verified account holder. --}}
 
 @include('auth.partials.public-auth-background')
 

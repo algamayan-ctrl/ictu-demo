@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => 'Analytics Records'])
 
 @section('content')
+{{-- This is the Analytics Record Details UI for authorized SPMU users. --}}
 @include('reports.partials.workspace-styles')
 
 @php
@@ -137,8 +138,8 @@
 @endphp
 
 <style>
-.analytics-records-page { display: grid; gap: 18px; }
-.analytics-records-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+.analytics-records-page { display: grid; gap: 16px; }
+.analytics-records-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .analytics-records-heading h1 { margin: 3px 0 5px; font-size: clamp(21px, 1.65vw, 25px); color: var(--heading); }
 .analytics-records-heading p { margin: 0; color: var(--text-muted); font-size: 12.5px; line-height: 1.4; }
 .analytics-records-eyebrow { margin: 0 !important; color: var(--text-muted) !important; font-size: 9.5px !important; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
@@ -152,13 +153,13 @@
 .analytics-records-chip { display: inline-flex; align-items: center; min-height: 30px; padding: 5px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-elevated); color: var(--text-secondary); font-size: 11px; font-weight: 650; }
 .analytics-records-card { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-elevated); box-shadow: var(--shadow-sm); }
 .analytics-records-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border-top: 1px solid var(--border); }
-.analytics-records-stat { min-width: 0; padding: 15px 17px; border-right: 1px solid var(--border); transition: background-color var(--motion) ease; }
+.analytics-records-stat { min-width: 0; padding: 12px 12px; border-right: 1px solid var(--border); transition: background-color var(--motion) ease; }
 .analytics-records-stat:last-child { border-right: 0; }
 .analytics-records-stat:hover { background: var(--surface-subtle); }
 .analytics-records-stat strong { display: block; color: var(--heading); font-size: 21px; font-weight: 750; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .analytics-records-stat span { display: block; margin-top: 5px; color: var(--text-secondary); font-size: 11.5px; font-weight: 650; line-height: 1.4; }
-.analytics-records-note { padding: 13px 17px; color: var(--text-secondary); font-size: 12px; line-height: 1.55; }
-.analytics-records-card-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 17px 18px; border-bottom: 1px solid var(--border); }
+.analytics-records-note { padding: 13px 12px; color: var(--text-secondary); font-size: 12px; line-height: 1.55; }
+.analytics-records-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--border); }
 .analytics-records-card-head h2 { margin: 0; color: var(--heading); font-size: 15px; }
 .analytics-records-search { width: min(300px, 100%); min-height: 38px; }
 .analytics-records-table-wrap { overflow-x: auto; }
@@ -170,11 +171,6 @@
 .analytics-records-table tbody tr:hover { background: var(--surface-subtle); }
 .analytics-records-table tbody tr[hidden] { display: none; }
 
-{{-- /*
-| Universal Analytics Records table language.
-| Columns stay context-specific, while every drilldown keeps the same
-| typography, row rhythm, hover treatment and status-pill behavior.
-*/ --}}
 .analytics-records-table td:first-child {
  font-weight: 750;
 }
@@ -241,12 +237,12 @@
  border-color: color-mix(in srgb, var(--interactive) 24%, var(--border));
 }
 
-.analytics-records-footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 18px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 11px; }
+.analytics-records-footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 11px; }
 .analytics-records-empty {
  display: grid;
  place-items: center;
  min-height: 270px;
- padding: 34px 24px;
+ padding: 34px 16px;
  border: 1px solid var(--border);
  border-radius: var(--radius);
  background: var(--surface-elevated);
@@ -309,7 +305,7 @@
 }
 .analytics-records-empty.is-compact {
  min-height: 270px;
- padding: 34px 24px;
+ padding: 34px 16px;
 }
 
 .analytics-records-empty.is-compact .analytics-records-empty-icon {
@@ -327,7 +323,6 @@
  max-width: 620px;
  color: var(--text-secondary) !important;
 }
-
 
 .analytics-records-empty.is-compact .analytics-records-empty-icon {
  width: 48px;
@@ -356,7 +351,6 @@
  .analytics-records-actions .button { flex: 1; justify-content: center; }
 }
 
-{{-- /* RETURN PERFORMANCE TREND RECORDS UI */ --}}
 .analytics-records-page.is-return-trend {
  gap: 14px;
 }
@@ -442,20 +436,15 @@
  }
 }
 
-
-{{-- /* RETURN TREND CLEANUP */ --}}
 .analytics-records-page.is-return-trend .analytics-records-note,
 .analytics-records-page.is-return-trend .analytics-records-footer {
  display: none !important;
 }
 
-
-{{-- /* UNIVERSAL ANALYTICS DISTRIBUTION */ --}}
-
 .analytics-records-distribution {
  display: grid;
- gap: 14px;
- padding: 17px 18px 18px;
+ gap: 12px;
+ padding: 12px 16px 16px;
 }
 
 .analytics-records-distribution-bar {
@@ -498,7 +487,7 @@
  display: grid;
  grid-template-columns: minmax(0, 1fr) auto auto;
  align-items: center;
- gap: 14px;
+ gap: 12px;
  min-height: 42px;
  border-bottom: 1px solid var(--border);
 }
@@ -563,7 +552,6 @@
  <div>
  <p class="analytics-records-eyebrow">Analytics records</p>
  <h1>{{ $detail['title'] ?? 'Analytics Records' }}</h1>
-
 
  <p>
  {{ $isReturnTrendDetail
@@ -640,7 +628,6 @@
  </section>
  @endif
 
- {{-- UNIVERSAL DISTRIBUTION RENDERER --}}
  @if(! $isEmptyResult && $distribution !== [])
  <section class="analytics-records-card" aria-label="Analytics distribution">
  <div class="analytics-records-card-head">
@@ -662,7 +649,7 @@
  )->implode(', ') }}"
  >
  @foreach($distribution as $segment)
- @php
+@php
  $segmentShare = max(
  0,
  min(100, (int) ($segment['share'] ?? 0))
@@ -689,7 +676,7 @@
 
  <div class="analytics-records-distribution-list">
  @foreach($distribution as $segment)
- @php
+@php
  $segmentTone = in_array(
  ($segment['tone'] ?? 'info'),
  ['positive', 'warning', 'danger', 'info'],
@@ -736,17 +723,11 @@
  <h2>{{ $detail['table_title'] ?? (($detail['title'] ?? 'Analytics').' Records') }}</h2>
  </div>
 
- <input
- class="analytics-records-search"
- type="search"
- placeholder="Search records..."
- aria-label="Search analytics records"
- data-analytics-record-search
- >
+
  </div>
 
  <div class="analytics-records-table-wrap">
- <table class="analytics-records-table" data-analytics-record-table>
+ <table class="analytics-records-table" data-analytics-record-table data-record-table="Analytics records">
  <thead>
  <tr>
  @foreach($columns as $column)
@@ -758,7 +739,7 @@
  @foreach($rows as $row)
  <tr data-analytics-record-row>
  @foreach($row as $cellIndex => $cell)
- @php
+@php
  $columnLabel = (string) ($columns[$cellIndex] ?? '');
  $isStatusColumn = in_array(
  str($columnLabel)->lower()->toString(),
@@ -796,24 +777,7 @@
  </table>
  </div>
 
- @unless($hideRecordsFooter)
- <div class="analytics-records-footer">
- <span><strong data-analytics-visible-count>{{ count($rows) }}</strong> visible</span>
- @if($detailKey === 'requests' && is_numeric($detail['value'] ?? null))
- <span>
- Showing {{ count($rows) }} of {{ number_format((int) $detail['value']) }}
- {{ (int) $detail['value'] === 1 ? 'request' : 'requests' }}
- </span>
- @elseif(($detail['table_title'] ?? null) === 'Inventory Records' && isset($detail['record_count']))
- <span>
- Showing {{ count($rows) }} of {{ number_format((int) $detail['record_count']) }}
- inventory {{ (int) $detail['record_count'] === 1 ? 'item type' : 'item types' }}
- </span>
- @else
- <span>{{ count($rows) }} supporting {{ count($rows) === 1 ? 'record' : 'records' }} loaded</span>
- @endif
- </div>
- @endunless
+
  </section>
  @elseif($bars !== [])
  <section class="analytics-records-card">
@@ -907,36 +871,6 @@
 
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
- const input = document.querySelector('[data-analytics-record-search]');
- const rows = [...document.querySelectorAll('[data-analytics-record-row]')];
- const count = document.querySelector('[data-analytics-visible-count]');
-
- if (!input || rows.length === 0) return;
-
- const applySearch = () => {
- const query = input.value.trim().toLocaleLowerCase();
- let visible = 0;
-
- rows.forEach((row) => {
- const matches = query === '' || row.textContent.toLocaleLowerCase().includes(query);
- row.hidden = !matches;
- if (matches) visible++;
- });
-
- if (count) count.textContent = String(visible);
- };
-
- input.addEventListener('input', applySearch);
-});
-</script>
-
-
-
-
-
-{{-- UNIVERSAL ANALYTICS DRILLDOWN V3 START --}}
 
 @php
     /*
@@ -968,11 +902,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 @endphp
 
-
 <style>
-{{-- /* ==========================================================
-   UNIVERSAL ANALYTICS DETAIL
-   ========================================================== */ --}}
 
 .analytics-universal-insight {
     display: grid;
@@ -980,8 +910,8 @@ document.addEventListener('DOMContentLoaded', () => {
     gap: 10px;
     align-items: start;
 
-    margin-top: 16px;
-    padding: 13px 14px;
+    margin-top: 12px;
+    padding: 13px 12px;
 
     border-radius: 11px;
 }
@@ -1037,11 +967,6 @@ document.addEventListener('DOMContentLoaded', () => {
     line-height: 1.45;
 }
 
-
-{{-- /* ==========================================================
-   EQUIPMENT COVERAGE
-   ========================================================== */ --}}
-
 .analytics-equipment-capacity {
     display: grid;
     grid-template-columns:
@@ -1094,7 +1019,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tabular-nums;
 }
 
-
 .analytics-detail-status {
     display: inline-flex;
     align-items: center;
@@ -1133,7 +1057,6 @@ document.addEventListener('DOMContentLoaded', () => {
     background: #fff1f0;
 }
 
-
 html[data-theme="dark"]
 .analytics-equipment-capacity-track {
     background:
@@ -1146,13 +1069,11 @@ html[data-theme="dark"]
 }
 </style>
 
-
 <script>
 (() => {
 
     const detail =
         @json($analyticsUniversal);
-
 
     const normalize = (value) =>
         String(value || '')
@@ -1160,15 +1081,10 @@ html[data-theme="dark"]
             .trim()
             .toLowerCase();
 
-
     const title =
         normalize(
             detail.title
         );
-
-
-
-
 
     const supportingNames = {
 
@@ -1203,7 +1119,6 @@ html[data-theme="dark"]
             'Issue Breakdown'
     };
 
-
     const supportingTitle =
         String(
             detail.supportingTitle
@@ -1212,11 +1127,6 @@ html[data-theme="dark"]
             ||
             'Supporting Data'
         );
-
-
-
-
-
 
     if (detail.summaryTitle) {
 
@@ -1248,11 +1158,6 @@ html[data-theme="dark"]
         });
     }
 
-
-
-
-
-
     Array.from(
         document.querySelectorAll(
             'p, span, h2, h3'
@@ -1283,7 +1188,6 @@ html[data-theme="dark"]
             supportingTitle.toUpperCase();
     });
 
-
     Array.from(
         document.querySelectorAll(
             'h2, h3'
@@ -1305,16 +1209,10 @@ html[data-theme="dark"]
             supportingTitle;
     });
 
-
-
-
-
-
     if (detail.displayPeriod) {
 
         const rangePattern =
             /^\d{2}\s+[a-z]{3}\s+\d{4}\s*[–—-]\s*\d{2}\s+[a-z]{3}\s+\d{4}$/i;
-
 
         const candidate =
             Array.from(
@@ -1336,7 +1234,6 @@ html[data-theme="dark"]
                 );
             });
 
-
         if (candidate) {
 
             candidate.textContent =
@@ -1348,16 +1245,10 @@ html[data-theme="dark"]
         }
     }
 
-
-
-
-
-
     const fillerTexts = [
         'this analytics result is summarized above and has no additional transaction-level records for the selected scope.',
         'this result is an aggregate, not one record type'
     ];
-
 
     Array.from(
         document.querySelectorAll(
@@ -1382,13 +1273,7 @@ html[data-theme="dark"]
             'none';
     });
 
-
-
-
-
-
     let supportingCard = null;
-
 
     if (
         title ===
@@ -1415,7 +1300,6 @@ html[data-theme="dark"]
                         )
                     );
 
-
                 return (
                     headers.includes(
                         'equipment'
@@ -1435,7 +1319,6 @@ html[data-theme="dark"]
                 );
             });
 
-
         if (table) {
 
             supportingCard =
@@ -1444,7 +1327,6 @@ html[data-theme="dark"]
                 )
                 ||
                 table.parentElement;
-
 
             Array.from(
                 table.querySelectorAll(
@@ -1458,15 +1340,12 @@ html[data-theme="dark"]
                         'td'
                     );
 
-
                 if (cells.length < 6) {
                     return;
                 }
 
-
                 const requiredCell =
                     cells[3];
-
 
                 const percent =
                     Math.max(
@@ -1484,10 +1363,8 @@ html[data-theme="dark"]
                         || 0
                     );
 
-
                 const statusCell =
                     cells[5];
-
 
                 const originalStatus =
                     String(
@@ -1495,16 +1372,13 @@ html[data-theme="dark"]
                         || ''
                     ).trim();
 
-
                 const status =
                     normalize(
                         originalStatus
                     );
 
-
                 let state =
                     'sufficient';
-
 
                 if (
                     status ===
@@ -1522,7 +1396,6 @@ html[data-theme="dark"]
                     state =
                         'capacity';
                 }
-
 
                 requiredCell.innerHTML = `
                     <div class="analytics-equipment-capacity">
@@ -1545,26 +1418,21 @@ html[data-theme="dark"]
                     </div>
                 `;
 
-
                 statusCell.innerHTML =
                     '';
-
 
                 const badge =
                     document.createElement(
                         'span'
                     );
 
-
                 badge.className =
                     'analytics-detail-status '
                     +
                     `is-${state}`;
 
-
                 badge.textContent =
                     originalStatus;
-
 
                 statusCell.appendChild(
                     badge
@@ -1573,14 +1441,8 @@ html[data-theme="dark"]
         }
     }
 
-
-
-
-
-
     const insight =
         detail.statusInsight;
-
 
     if (
         insight
@@ -1607,7 +1469,6 @@ html[data-theme="dark"]
                 );
             });
 
-
         if (!alreadyVisible) {
 
             const warning =
@@ -1617,12 +1478,10 @@ html[data-theme="dark"]
                 ===
                 'warning';
 
-
             const box =
                 document.createElement(
                     'div'
                 );
-
 
             box.className =
                 'analytics-universal-insight '
@@ -1633,10 +1492,8 @@ html[data-theme="dark"]
                         : 'is-positive'
                 );
 
-
             box.dataset.analyticsUniversalInsight =
                 '1';
-
 
             box.innerHTML = `
                 <span
@@ -1654,7 +1511,6 @@ html[data-theme="dark"]
                 </div>
             `;
 
-
             box
                 .querySelector(
                     'strong'
@@ -1663,7 +1519,6 @@ html[data-theme="dark"]
                     String(
                         insight.title
                     );
-
 
             box
                 .querySelector(
@@ -1674,7 +1529,6 @@ html[data-theme="dark"]
                         insight.message
                         || ''
                     );
-
 
             if (
                 supportingCard
@@ -1697,14 +1551,12 @@ html[data-theme="dark"]
                         )
                     );
 
-
                 const lastTable =
                     tables.length > 0
                         ? tables[
                             tables.length - 1
                         ]
                         : null;
-
 
                 const tableCard =
                     lastTable
@@ -1716,7 +1568,6 @@ html[data-theme="dark"]
                             lastTable.parentElement
                         )
                         : null;
-
 
                 if (
                     tableCard
@@ -1736,10 +1587,6 @@ html[data-theme="dark"]
 
 })();
 </script>
-
-{{-- UNIVERSAL ANALYTICS DRILLDOWN V3 END --}}
-
-{{-- UNIVERSAL TIME SERIES DRILLDOWN V4 START --}}
 
 @php
     /*
@@ -1814,7 +1661,6 @@ html[data-theme="dark"]
         );
 @endphp
 
-
 @if(
     $universalVisualization === 'time-columns'
     && $universalSeries->isNotEmpty()
@@ -1840,7 +1686,6 @@ html[data-theme="dark"]
 
         </header>
 
-
         <div class="universal-time-series-content">
 
             <div class="universal-time-series-chart">
@@ -1861,7 +1706,6 @@ html[data-theme="dark"]
 
                 </div>
 
-
                 <div class="universal-time-series-main">
 
                     <div class="universal-time-series-plot">
@@ -1881,12 +1725,11 @@ html[data-theme="dark"]
                             aria-hidden="true"
                         ></span>
 
-
                         <div class="universal-time-series-columns">
 
                             @foreach($universalSeries as $row)
 
-                                @php
+@php
                                     $value =
                                         max(
                                             0,
@@ -1917,7 +1760,6 @@ html[data-theme="dark"]
                                             : 0;
                                 @endphp
 
-
                                 <div
                                     class="
                                         universal-time-series-item
@@ -1937,7 +1779,6 @@ html[data-theme="dark"]
                                     >
                                         {{ $value }}
                                     </strong>
-
 
                                     <div
                                         class="universal-time-series-bar-area"
@@ -1973,7 +1814,6 @@ html[data-theme="dark"]
 
                     </div>
 
-
                     <div class="universal-time-series-labels">
 
                         @foreach($universalSeries as $row)
@@ -1991,7 +1831,6 @@ html[data-theme="dark"]
 
                     </div>
 
-
                     <div class="universal-time-series-axis-title">
                         {{ $universalAxisLabel }}
                     </div>
@@ -1999,7 +1838,6 @@ html[data-theme="dark"]
                 </div>
 
             </div>
-
 
             @if($universalInsightText)
 
@@ -2034,7 +1872,6 @@ html[data-theme="dark"]
                         </svg>
                     </span>
 
-
                     <div>
 
                         @if($universalInsightTitle)
@@ -2061,16 +1898,12 @@ html[data-theme="dark"]
 
 @endif
 
-
 <style>
-{{-- /* ==========================================================
-   UNIVERSAL ANALYTICS TIME-SERIES CARD
-   ========================================================== */ --}}
 
 .universal-time-series-card {
     overflow: hidden;
 
-    margin-top: 18px;
+    margin-top: 12px;
 
     border:
         1px solid
@@ -2085,17 +1918,15 @@ html[data-theme="dark"]
         );
 }
 
-
 .universal-time-series-head {
     padding:
-        15px
-        18px;
+        12px
+        16px;
 
     border-bottom:
         1px solid
         var(--border);
 }
-
 
 .universal-time-series-eyebrow {
     display: block;
@@ -2111,7 +1942,6 @@ html[data-theme="dark"]
     letter-spacing: 0.08em;
 }
 
-
 .universal-time-series-head h2 {
     margin: 0;
 
@@ -2122,18 +1952,12 @@ html[data-theme="dark"]
     font-weight: 800;
 }
 
-
-{{-- /* ==========================================================
-   CHART
-   ========================================================== */ --}}
-
 .universal-time-series-content {
     padding:
-        15px
-        18px
-        17px;
+        12px
+        16px
+        12px;
 }
-
 
 .universal-time-series-chart {
     display: grid;
@@ -2144,7 +1968,6 @@ html[data-theme="dark"]
 
     gap: 10px;
 }
-
 
 .universal-time-series-yaxis {
     position: relative;
@@ -2160,18 +1983,15 @@ html[data-theme="dark"]
         tabular-nums;
 }
 
-
 .universal-time-series-yaxis span {
     position: absolute;
 
     right: 0;
 }
 
-
 .universal-time-series-yaxis .is-top {
     top: 0;
 }
-
 
 .universal-time-series-yaxis .is-middle {
     top: 50%;
@@ -2180,23 +2000,19 @@ html[data-theme="dark"]
         translateY(-50%);
 }
 
-
 .universal-time-series-yaxis .is-bottom {
     bottom: 0;
 }
 
-
 .universal-time-series-main {
     min-width: 0;
 }
-
 
 .universal-time-series-plot {
     position: relative;
 
     height: 190px;
 }
-
 
 .universal-time-series-gridline {
     position: absolute;
@@ -2209,21 +2025,17 @@ html[data-theme="dark"]
         var(--border);
 }
 
-
 .universal-time-series-gridline.is-top {
     top: 0;
 }
-
 
 .universal-time-series-gridline.is-middle {
     top: 50%;
 }
 
-
 .universal-time-series-gridline.is-bottom {
     bottom: 0;
 }
-
 
 .universal-time-series-columns {
     position: absolute;
@@ -2245,7 +2057,6 @@ html[data-theme="dark"]
         );
 }
 
-
 .universal-time-series-item {
     position: relative;
 
@@ -2257,7 +2068,6 @@ html[data-theme="dark"]
     min-width: 52px;
     max-width: 105px;
 }
-
 
 .universal-time-series-value {
     position: absolute;
@@ -2279,26 +2089,16 @@ html[data-theme="dark"]
         tabular-nums;
 }
 
-
-{{-- /*
- * Non-zero values are positioned by JS
- * directly above their rendered column.
- */ --}}
 .universal-time-series-item:not(.is-zero)
 .universal-time-series-value {
     top: 0;
 }
 
-
-{{-- /*
- * Zero belongs at the baseline.
- */ --}}
 .universal-time-series-item.is-zero
 .universal-time-series-value {
     top: auto;
     bottom: 3px;
 }
-
 
 .universal-time-series-bar-area {
     position: absolute;
@@ -2313,7 +2113,6 @@ html[data-theme="dark"]
     align-items: flex-end;
     justify-content: center;
 }
-
 
 .universal-time-series-bar {
     position: relative;
@@ -2341,7 +2140,6 @@ html[data-theme="dark"]
         );
 }
 
-
 .universal-time-series-bar.is-peak {
     background:
         linear-gradient(
@@ -2351,7 +2149,6 @@ html[data-theme="dark"]
         );
 }
 
-
 .universal-time-series-item.is-zero
 .universal-time-series-bar {
     height: 0 !important;
@@ -2359,11 +2156,6 @@ html[data-theme="dark"]
     background:
         transparent;
 }
-
-
-{{-- /* ==========================================================
-   PEAK BADGE
-   ========================================================== */ --}}
 
 .universal-time-series-peak {
     position: absolute;
@@ -2409,11 +2201,6 @@ html[data-theme="dark"]
     white-space: nowrap;
 }
 
-
-{{-- /* ==========================================================
-   X AXIS
-   ========================================================== */ --}}
-
 .universal-time-series-labels {
     display: flex;
 
@@ -2428,10 +2215,9 @@ html[data-theme="dark"]
 
     padding:
         8px
-        14px
+        12px
         0;
 }
-
 
 .universal-time-series-label {
     flex:
@@ -2451,13 +2237,11 @@ html[data-theme="dark"]
     text-align: center;
 }
 
-
 .universal-time-series-label.is-peak {
     color: #08765f;
 
     font-weight: 850;
 }
-
 
 .universal-time-series-axis-title {
     margin-top: 11px;
@@ -2470,11 +2254,6 @@ html[data-theme="dark"]
     text-align: center;
 }
 
-
-{{-- /* ==========================================================
-   INSIGHT
-   ========================================================== */ --}}
-
 .universal-time-series-insight {
     display: grid;
 
@@ -2486,7 +2265,7 @@ html[data-theme="dark"]
 
     align-items: center;
 
-    margin-top: 15px;
+    margin-top: 12px;
 
     padding:
         11px
@@ -2501,7 +2280,6 @@ html[data-theme="dark"]
     background:
         #edf9f5;
 }
-
 
 .universal-time-series-insight-icon {
     display: grid;
@@ -2523,7 +2301,6 @@ html[data-theme="dark"]
         #bce5d8;
 }
 
-
 .universal-time-series-insight-icon svg {
     width: 13px;
     height: 13px;
@@ -2539,7 +2316,6 @@ html[data-theme="dark"]
     stroke-linejoin: round;
 }
 
-
 .universal-time-series-insight strong {
     display: block;
 
@@ -2549,7 +2325,6 @@ html[data-theme="dark"]
     font-size: 10.5px;
     font-weight: 800;
 }
-
 
 .universal-time-series-insight p {
     margin:
@@ -2563,11 +2338,6 @@ html[data-theme="dark"]
     font-size: 9.5px;
     line-height: 1.4;
 }
-
-
-{{-- /* ==========================================================
-   RESPONSIVE
-   ========================================================== */ --}}
 
 @media (max-width: 680px) {
 
@@ -2592,7 +2362,6 @@ html[data-theme="dark"]
 }
 </style>
 
-
 <script>
 (() => {
 
@@ -2613,17 +2382,11 @@ html[data-theme="dark"]
             @json($universalContext)
     };
 
-
     const normalize = (value) =>
         String(value || '')
             .replace(/\s+/g, ' ')
             .trim()
             .toLowerCase();
-
-
-
-
-
 
     if (
         configuration.displayPeriod
@@ -2634,10 +2397,8 @@ html[data-theme="dark"]
                 ? 'Scheduled Period'
                 : 'Reporting Period';
 
-
         const dateRangePattern =
             /^\d{2}\s+[a-z]{3}\s+\d{4}\s*[–—-]\s*\d{2}\s+[a-z]{3}\s+\d{4}$/i;
-
 
         const currentRange =
             Array.from(
@@ -2661,18 +2422,12 @@ html[data-theme="dark"]
                 );
             });
 
-
         if (currentRange) {
 
             currentRange.textContent =
                 `${periodLabel}: ${configuration.displayPeriod}`;
         }
     }
-
-
-
-
-
 
     if (
         configuration.headerChip
@@ -2720,7 +2475,6 @@ html[data-theme="dark"]
                 );
             });
 
-
         if (
             candidates.length > 0
         ) {
@@ -2729,11 +2483,6 @@ html[data-theme="dark"]
                 configuration.headerChip;
         }
     }
-
-
-
-
-
 
     if (
         configuration.context
@@ -2764,11 +2513,6 @@ html[data-theme="dark"]
                 );
             });
 
-
-
-
-
-
         matches
             .slice(1)
             .forEach((element) => {
@@ -2778,16 +2522,10 @@ html[data-theme="dark"]
             });
     }
 
-
-
-
-
-
     const chart =
         document.getElementById(
             'universal-time-series-detail'
         );
-
 
     if (
         configuration.visualization === 'time-columns'
@@ -2818,7 +2556,6 @@ html[data-theme="dark"]
                 );
             });
 
-
         if (metricLabel) {
 
             let summaryCard =
@@ -2826,16 +2563,10 @@ html[data-theme="dark"]
                     'section, article'
                 );
 
-
             if (!summaryCard) {
 
                 summaryCard =
                     metricLabel.parentElement;
-
-
-
-
-
 
                 while (
                     summaryCard
@@ -2857,7 +2588,6 @@ html[data-theme="dark"]
                 }
             }
 
-
             if (
                 summaryCard
                 &&
@@ -2871,22 +2601,15 @@ html[data-theme="dark"]
             }
         }
 
-
         chart.hidden =
             false;
     }
-
-
-
-
-
 
     const positionValues = () => {
 
         if (!chart) {
             return;
         }
-
 
         chart
             .querySelectorAll(
@@ -2904,7 +2627,6 @@ html[data-theme="dark"]
                         '.universal-time-series-bar'
                     );
 
-
                 if (
                     !value
                     ||
@@ -2913,14 +2635,12 @@ html[data-theme="dark"]
                     return;
                 }
 
-
                 const numericValue =
                     Number.parseInt(
                         value.textContent,
                         10
                     )
                     || 0;
-
 
                 if (
                     numericValue === 0
@@ -2935,21 +2655,17 @@ html[data-theme="dark"]
                     return;
                 }
 
-
                 const barHeight =
                     bar.getBoundingClientRect()
                         .height;
-
 
                 const itemHeight =
                     item.getBoundingClientRect()
                         .height;
 
-
                 const valueHeight =
                     value.getBoundingClientRect()
                         .height;
-
 
                 const bottom =
                     Math.min(
@@ -2962,7 +2678,6 @@ html[data-theme="dark"]
                         )
                     );
 
-
                 value.style.top =
                     'auto';
 
@@ -2970,7 +2685,6 @@ html[data-theme="dark"]
                     `${bottom}px`;
             });
     };
-
 
     requestAnimationFrame(() => {
 
@@ -2981,12 +2695,10 @@ html[data-theme="dark"]
         );
     });
 
-
     setTimeout(
         positionValues,
         100
     );
-
 
     window.addEventListener(
         'resize',
@@ -2999,18 +2711,11 @@ html[data-theme="dark"]
 })();
 </script>
 
-{{-- UNIVERSAL TIME SERIES DRILLDOWN V4 END --}}
-
-
-
-{{-- UNIVERSAL ANALYTICS FOOTER CLEANUP V2 START --}}
-
 <script>
 (() => {
 
     const TARGET =
         'this analytics result is summarized above and has no additional transaction-level records for the selected scope.';
-
 
     const normalize = (value) =>
         String(value || '')
@@ -3018,12 +2723,7 @@ html[data-theme="dark"]
             .trim()
             .toLowerCase();
 
-
     const removeGenericAnalyticsFooter = () => {
-
-
-
-
 
         const hasSupportingContent =
             document.querySelector(
@@ -3035,15 +2735,9 @@ html[data-theme="dark"]
                 '.analytics-detail-bars'
             );
 
-
         if (!hasSupportingContent) {
             return false;
         }
-
-
-
-
-
 
         const walker =
             document.createTreeWalker(
@@ -3051,9 +2745,7 @@ html[data-theme="dark"]
                 NodeFilter.SHOW_TEXT
             );
 
-
         let node = null;
-
 
         while (
             (node = walker.nextNode())
@@ -3066,18 +2758,12 @@ html[data-theme="dark"]
                 continue;
             }
 
-
             let element =
                 node.parentElement;
-
 
             if (!element) {
                 continue;
             }
-
-
-
-
 
             const semanticCard =
                 element.closest(
@@ -3088,7 +2774,6 @@ html[data-theme="dark"]
                     '.content-card, ' +
                     '.card'
                 );
-
 
             if (
                 semanticCard
@@ -3103,14 +2788,8 @@ html[data-theme="dark"]
                 return true;
             }
 
-
-
-
-
-
             let candidate =
                 element;
-
 
             while (
                 candidate
@@ -3127,15 +2806,12 @@ html[data-theme="dark"]
                         candidate
                     );
 
-
                 const rect =
                     candidate.getBoundingClientRect();
-
 
                 const parentRect =
                     candidate.parentElement
                         .getBoundingClientRect();
-
 
                 const hasCardShape =
                     parseFloat(
@@ -3150,14 +2826,12 @@ html[data-theme="dark"]
                         style.borderRadius
                     ) >= 6;
 
-
                 const isWideEnough =
                     parentRect.width > 0
                     &&
                     rect.width
                     >=
                     parentRect.width * 0.72;
-
 
                 if (
                     hasCardShape
@@ -3170,48 +2844,36 @@ html[data-theme="dark"]
                     return true;
                 }
 
-
                 candidate =
                     candidate.parentElement;
             }
-
-
-
-
-
 
             element.remove();
 
             return true;
         }
 
-
         return false;
     };
-
 
     const run = () => {
 
         removeGenericAnalyticsFooter();
 
-
         requestAnimationFrame(
             removeGenericAnalyticsFooter
         );
-
 
         setTimeout(
             removeGenericAnalyticsFooter,
             100
         );
 
-
         setTimeout(
             removeGenericAnalyticsFooter,
             300
         );
     };
-
 
     if (
         document.readyState === 'loading'
@@ -3230,10 +2892,6 @@ html[data-theme="dark"]
         run();
     }
 
-
-
-
-
     const observer =
         new MutationObserver(() => {
 
@@ -3244,7 +2902,6 @@ html[data-theme="dark"]
                 observer.disconnect();
             }
         });
-
 
     const startObserver = () => {
 
@@ -3260,13 +2917,11 @@ html[data-theme="dark"]
             }
         );
 
-
         setTimeout(
             () => observer.disconnect(),
             3000
         );
     };
-
 
     if (
         document.readyState === 'loading'
@@ -3287,12 +2942,6 @@ html[data-theme="dark"]
 
 })();
 </script>
-
-{{-- UNIVERSAL ANALYTICS FOOTER CLEANUP V2 END --}}
-
-
-
-{{-- UNIVERSAL ANALYTICS SIGNAL LIST V3 START --}}
 
 @php
     /*
@@ -3357,7 +3006,6 @@ html[data-theme="dark"]
         $signalRows->count();
 @endphp
 
-
 @if($signalMode)
 
     <div
@@ -3366,7 +3014,6 @@ html[data-theme="dark"]
         hidden
     >
 
-        {{-- CHIPS ========================================== --}}
         <div class="analytics-signal-v3-chips">
 
             @if($signalPeriod !== '')
@@ -3383,7 +3030,6 @@ html[data-theme="dark"]
 
             @endif
 
-
             <span class="analytics-signal-v3-chip">
 
                 {{ $signalCount }}
@@ -3397,8 +3043,6 @@ html[data-theme="dark"]
 
         </div>
 
-
-        {{-- SUMMARY ======================================== --}}
         @if($signalStats->isNotEmpty())
 
             <section class="analytics-signal-v3-card">
@@ -3410,7 +3054,6 @@ html[data-theme="dark"]
                     </span>
 
                 </header>
-
 
                 <div
                     class="analytics-signal-v3-summary"
@@ -3448,8 +3091,6 @@ html[data-theme="dark"]
 
         @endif
 
-
-        {{-- SIGNALS ======================================== --}}
         <section class="analytics-signal-v3-card">
 
             <header class="analytics-signal-v3-head">
@@ -3464,12 +3105,11 @@ html[data-theme="dark"]
 
             </header>
 
-
             <div class="analytics-signal-v3-list">
 
                 @forelse($signalRows as $signal)
 
-                    @php
+@php
                         $tone =
                             (string) (
                                 $signal['tone']
@@ -3482,7 +3122,6 @@ html[data-theme="dark"]
                                 ?? 'information'
                             );
                     @endphp
-
 
                     <article
                         class="
@@ -3501,13 +3140,11 @@ html[data-theme="dark"]
                             />
                         </span>
 
-
                         <div class="analytics-signal-v3-copy">
 
                             <strong>
                                 {{ $signal['title'] ?? 'Signal' }}
                             </strong>
-
 
                             @if(! empty($signal['description']))
 
@@ -3518,7 +3155,6 @@ html[data-theme="dark"]
                             @endif
 
                         </div>
-
 
                         @if(
                             array_key_exists(
@@ -3555,24 +3191,15 @@ html[data-theme="dark"]
 
 @endif
 
-
 <style>
-{{-- /* ==========================================================
-   UNIVERSAL SIGNAL DETAIL V3
-   ========================================================== */ --}}
 
 .analytics-signal-v3 {
     display: grid;
 
-    gap: 18px;
+    gap: 16px;
 
-    margin-top: 18px;
+    margin-top: 12px;
 }
-
-
-{{-- /* ==========================================================
-   CHIPS
-   ========================================================== */ --}}
 
 .analytics-signal-v3-chips {
     display: flex;
@@ -3581,7 +3208,6 @@ html[data-theme="dark"]
 
     gap: 8px;
 }
-
 
 .analytics-signal-v3-chip {
     display: inline-flex;
@@ -3615,11 +3241,6 @@ html[data-theme="dark"]
     line-height: 1.25;
 }
 
-
-{{-- /* ==========================================================
-   CARD
-   ========================================================== */ --}}
-
 .analytics-signal-v3-card {
     overflow: hidden;
 
@@ -3645,17 +3266,15 @@ html[data-theme="dark"]
         );
 }
 
-
 .analytics-signal-v3-head {
     padding:
-        15px
-        18px;
+        12px
+        16px;
 
     border-bottom:
         1px solid
         var(--border);
 }
-
 
 .analytics-signal-v3-eyebrow {
     display: block;
@@ -3668,7 +3287,6 @@ html[data-theme="dark"]
 
     letter-spacing: 0.08em;
 }
-
 
 .analytics-signal-v3-head h2 {
     margin:
@@ -3685,11 +3303,6 @@ html[data-theme="dark"]
     line-height: 1.3;
 }
 
-
-{{-- /* ==========================================================
-   SUMMARY
-   ========================================================== */ --}}
-
 .analytics-signal-v3-summary {
     display: grid;
 
@@ -3700,24 +3313,21 @@ html[data-theme="dark"]
         );
 }
 
-
 .analytics-signal-v3-stat {
     min-width: 0;
 
     padding:
-        17px
-        18px;
+        12px
+        16px;
 
     border-right:
         1px solid
         var(--border);
 }
 
-
 .analytics-signal-v3-stat:last-child {
     border-right: 0;
 }
-
 
 .analytics-signal-v3-stat strong {
     display: block;
@@ -3733,7 +3343,6 @@ html[data-theme="dark"]
     line-height: 1.15;
 }
 
-
 .analytics-signal-v3-stat span {
     display: block;
 
@@ -3748,15 +3357,9 @@ html[data-theme="dark"]
     line-height: 1.35;
 }
 
-
-{{-- /* ==========================================================
-   SIGNAL LIST
-   ========================================================== */ --}}
-
 .analytics-signal-v3-list {
     display: grid;
 }
-
 
 .analytics-signal-v3-row {
     display: grid;
@@ -3773,23 +3376,17 @@ html[data-theme="dark"]
     min-height: 78px;
 
     padding:
-        14px
-        16px;
+        12px
+        12px;
 
     border-bottom:
         1px solid
         var(--border);
 }
 
-
 .analytics-signal-v3-row:last-child {
     border-bottom: 0;
 }
-
-
-{{-- /* ==========================================================
-   ICON
-   ========================================================== */ --}}
 
 .analytics-signal-v3-icon {
     display: grid;
@@ -3806,14 +3403,12 @@ html[data-theme="dark"]
     background: #edf6fd;
 }
 
-
 .analytics-signal-v3-row.tone-success
 .analytics-signal-v3-icon {
     color: #087f68;
 
     background: #e4f7f1;
 }
-
 
 .analytics-signal-v3-row.tone-warning
 .analytics-signal-v3-icon {
@@ -3822,7 +3417,6 @@ html[data-theme="dark"]
     background: #fff5e5;
 }
 
-
 .analytics-signal-v3-row.tone-neutral
 .analytics-signal-v3-icon {
     color: #64748b;
@@ -3830,15 +3424,9 @@ html[data-theme="dark"]
     background: #f1f5f9;
 }
 
-
-{{-- /* ==========================================================
-   COPY
-   ========================================================== */ --}}
-
 .analytics-signal-v3-copy {
     min-width: 0;
 }
-
 
 .analytics-signal-v3-copy strong {
     display: block;
@@ -3851,7 +3439,6 @@ html[data-theme="dark"]
 
     line-height: 1.3;
 }
-
 
 .analytics-signal-v3-copy p {
     margin:
@@ -3866,11 +3453,6 @@ html[data-theme="dark"]
 
     line-height: 1.45;
 }
-
-
-{{-- /* ==========================================================
-   VALUE
-   ========================================================== */ --}}
 
 .analytics-signal-v3-value {
     display: inline-flex;
@@ -3908,18 +3490,12 @@ html[data-theme="dark"]
     text-align: center;
 }
 
-
-{{-- /* ==========================================================
-   MOBILE
-   ========================================================== */ --}}
-
 @media (max-width: 760px) {
 
     .analytics-signal-v3-summary {
         grid-template-columns:
             1fr;
     }
-
 
     .analytics-signal-v3-stat {
         border-right: 0;
@@ -3929,18 +3505,15 @@ html[data-theme="dark"]
             var(--border);
     }
 
-
     .analytics-signal-v3-stat:last-child {
         border-bottom: 0;
     }
-
 
     .analytics-signal-v3-row {
         grid-template-columns:
             34px
             minmax(0, 1fr);
     }
-
 
     .analytics-signal-v3-value {
         grid-column: 2;
@@ -3951,18 +3524,15 @@ html[data-theme="dark"]
 
 </style>
 
-
 <script>
 (() => {
 
     const enabled =
         @json($signalMode);
 
-
     if (!enabled) {
         return;
     }
-
 
     const normalize = (value) =>
         String(value || '')
@@ -3970,29 +3540,19 @@ html[data-theme="dark"]
             .trim()
             .toLowerCase();
 
-
     const root =
         document.getElementById(
             'analytics-signal-v3'
         );
 
-
     if (!root) {
         return;
     }
-
-
-
-
-
-
-
 
     const detailTitle =
         normalize(
             @json($detail['title'] ?? '')
         );
-
 
     const heading =
         Array.from(
@@ -4009,10 +3569,6 @@ html[data-theme="dark"]
                 detailTitle
         );
 
-
-
-
-
     let main =
         heading
             ? heading.closest(
@@ -4020,23 +3576,12 @@ html[data-theme="dark"]
             )
             : null;
 
-
     if (!main) {
         main = document.body;
     }
 
-
-
-
-
-
-
-
-
-
     const datePattern =
         /\d{2}\s+[A-Za-z]{3}\s+\d{4}\s*[–—-]\s*\d{2}\s+[A-Za-z]{3}\s+\d{4}/;
-
 
     Array.from(
         main.querySelectorAll(
@@ -4053,7 +3598,6 @@ html[data-theme="dark"]
             return;
         }
 
-
         const text =
             String(
                 element.textContent
@@ -4061,10 +3605,8 @@ html[data-theme="dark"]
             )
             .trim();
 
-
         const normalized =
             normalize(text);
-
 
         const isOldDateChip =
             datePattern.test(text)
@@ -4077,12 +3619,10 @@ html[data-theme="dark"]
                 'reporting period:'
             );
 
-
         const isOldSignalChip =
             normalized.includes(
                 'planning signal'
             );
-
 
         if (
             isOldDateChip
@@ -4097,17 +3637,9 @@ html[data-theme="dark"]
                 ||
                 element;
 
-
             chip.remove();
         }
     });
-
-
-
-
-
-
-
 
     Array.from(
         main.querySelectorAll(
@@ -4124,12 +3656,10 @@ html[data-theme="dark"]
             return;
         }
 
-
         const text =
             normalize(
                 element.textContent
             );
-
 
         const hasSummaryHeading =
             text.startsWith(
@@ -4139,11 +3669,6 @@ html[data-theme="dark"]
             text.startsWith(
                 'metric summary'
             );
-
-
-
-
-
 
         const hasKnownSignal =
             text.includes(
@@ -4162,15 +3687,11 @@ html[data-theme="dark"]
                 'scheduled demand'
             );
 
-
         if (
             hasSummaryHeading
             &&
             hasKnownSignal
         ) {
-
-
-
 
             const card =
                 element.closest(
@@ -4178,7 +3699,6 @@ html[data-theme="dark"]
                 )
                 ||
                 element;
-
 
             if (
                 card !== main
@@ -4191,16 +3711,8 @@ html[data-theme="dark"]
         }
     });
 
-
-
-
-
-
-
-
     const fallbackText =
         'this analytics result is summarized above and has no additional transaction-level records for the selected scope.';
-
 
     Array.from(
         main.querySelectorAll(
@@ -4217,7 +3729,6 @@ html[data-theme="dark"]
             return;
         }
 
-
         if (
             normalize(
                 element.textContent
@@ -4228,12 +3739,10 @@ html[data-theme="dark"]
             return;
         }
 
-
         const card =
             element.closest(
                 'section, article, .card'
             );
-
 
         if (card) {
             card.remove();
@@ -4250,22 +3759,10 @@ html[data-theme="dark"]
         }
     });
 
-
-
-
-
-
-
-
     if (heading) {
-
-
-
-
 
         let headerBlock =
             heading.parentElement;
-
 
         while (
             headerBlock
@@ -4284,7 +3781,6 @@ html[data-theme="dark"]
                     .parentElement
                     .getBoundingClientRect();
 
-
             if (
                 parentRect.width > 0
                 &&
@@ -4295,11 +3791,9 @@ html[data-theme="dark"]
                 break;
             }
 
-
             headerBlock =
                 headerBlock.parentElement;
         }
-
 
         if (
             headerBlock
@@ -4315,35 +3809,19 @@ html[data-theme="dark"]
         }
     }
 
-
     root.hidden =
         false;
 
 })();
 </script>
 
-{{-- UNIVERSAL ANALYTICS SIGNAL LIST V3 END --}}
-
-{{-- UNIVERSAL SIGNAL SPACING POLISH V4 START --}}
-
 <style>
-{{-- /* ==========================================================
-   UNIVERSAL SIGNAL-LIST SPACING POLISH
-   Applies to all Analytics signal-list detail pages.
-   ========================================================== */ --}}
 
-
-{{-- /* Whole detail stack */ --}}
 .analytics-signal-v3 {
-    gap: 14px !important;
+    gap: 12px !important;
 
     margin-top: 12px !important;
 }
-
-
-{{-- /* ==========================================================
-   CHIPS
-   ========================================================== */ --}}
 
 .analytics-signal-v3-chips {
     gap: 7px !important;
@@ -4353,7 +3831,6 @@ html[data-theme="dark"]
         0
         2px !important;
 }
-
 
 .analytics-signal-v3-chip {
     min-height: 28px !important;
@@ -4365,22 +3842,15 @@ html[data-theme="dark"]
     font-size: 9.5px !important;
 }
 
-
-{{-- /* ==========================================================
-   CARD HEADERS
-   ========================================================== */ --}}
-
 .analytics-signal-v3-head {
     padding:
         12px
-        16px !important;
+        12px !important;
 }
-
 
 .analytics-signal-v3-eyebrow {
     font-size: 8.5px !important;
 }
-
 
 .analytics-signal-v3-head h2 {
     margin-top: 3px !important;
@@ -4388,17 +3858,11 @@ html[data-theme="dark"]
     font-size: 13.5px !important;
 }
 
-
-{{-- /* ==========================================================
-   SUMMARY
-   ========================================================== */ --}}
-
 .analytics-signal-v3-stat {
     padding:
-        14px
-        17px !important;
+        12px
+        12px !important;
 }
-
 
 .analytics-signal-v3-stat strong {
     font-size: 19px !important;
@@ -4406,17 +3870,11 @@ html[data-theme="dark"]
     line-height: 1.1 !important;
 }
 
-
 .analytics-signal-v3-stat span {
     margin-top: 4px !important;
 
     font-size: 10px !important;
 }
-
-
-{{-- /* ==========================================================
-   SIGNAL ROWS
-   ========================================================== */ --}}
 
 .analytics-signal-v3-row {
     min-height: 68px !important;
@@ -4425,24 +3883,19 @@ html[data-theme="dark"]
 
     padding:
         11px
-        15px !important;
+        12px !important;
 }
 
-
-{{-- /* Slightly smaller icon box so the row feels tighter */ --}}
 .analytics-signal-v3-icon {
     width: 30px !important;
     height: 30px !important;
 }
 
-
-{{-- /* Keep titles readable */ --}}
 .analytics-signal-v3-copy strong {
     font-size: 11.5px !important;
 
     line-height: 1.25 !important;
 }
-
 
 .analytics-signal-v3-copy p {
     margin-top: 3px !important;
@@ -4452,8 +3905,6 @@ html[data-theme="dark"]
     line-height: 1.4 !important;
 }
 
-
-{{-- /* Value chip */ --}}
 .analytics-signal-v3-value {
     min-height: 26px !important;
 
@@ -4464,17 +3915,11 @@ html[data-theme="dark"]
     font-size: 9.5px !important;
 }
 
-
-{{-- /* ==========================================================
-   MOBILE
-   ========================================================== */ --}}
-
 @media (max-width: 760px) {
 
     .analytics-signal-v3 {
         gap: 12px !important;
     }
-
 
     .analytics-signal-v3-row {
         min-height: 64px !important;
@@ -4484,15 +3929,13 @@ html[data-theme="dark"]
             13px !important;
     }
 
-
     .analytics-signal-v3-stat {
         padding:
             12px
-            15px !important;
+            12px !important;
     }
 }
 </style>
-
 
 <script>
 (() => {
@@ -4502,11 +3945,9 @@ html[data-theme="dark"]
             'analytics-signal-v3'
         );
 
-
     if (!root) {
         return;
     }
-
 
     const normalize = (value) =>
         String(value || '')
@@ -4514,15 +3955,8 @@ html[data-theme="dark"]
             .trim()
             .toLowerCase();
 
-
     const fallback =
         'this analytics result is summarized above and has no additional transaction-level records for the selected scope.';
-
-
-
-
-
-
 
     const removeFallback = () => {
 
@@ -4532,9 +3966,7 @@ html[data-theme="dark"]
                 NodeFilter.SHOW_TEXT
             );
 
-
         let node;
-
 
         while (
             (node = walker.nextNode())
@@ -4548,22 +3980,15 @@ html[data-theme="dark"]
                 continue;
             }
 
-
             const leaf =
                 node.parentElement;
-
 
             if (!leaf) {
                 continue;
             }
 
-
-
-
-
             let candidate =
                 leaf;
-
 
             while (
                 candidate
@@ -4578,15 +4003,12 @@ html[data-theme="dark"]
                         candidate
                     );
 
-
                 const rect =
                     candidate.getBoundingClientRect();
-
 
                 const parentRect =
                     candidate.parentElement
                         .getBoundingClientRect();
-
 
                 const cardLike =
                     parseFloat(
@@ -4601,14 +4023,12 @@ html[data-theme="dark"]
                         style.borderRadius
                     ) >= 6;
 
-
                 const wide =
                     parentRect.width > 0
                     &&
                     rect.width
                     >=
                     parentRect.width * 0.70;
-
 
                 if (
                     cardLike
@@ -4621,11 +4041,9 @@ html[data-theme="dark"]
                     return;
                 }
 
-
                 candidate =
                     candidate.parentElement;
             }
-
 
             leaf.remove();
 
@@ -4633,14 +4051,11 @@ html[data-theme="dark"]
         }
     };
 
-
     removeFallback();
-
 
     requestAnimationFrame(
         removeFallback
     );
-
 
     setTimeout(
         removeFallback,
@@ -4650,27 +4065,7 @@ html[data-theme="dark"]
 })();
 </script>
 
-{{-- UNIVERSAL SIGNAL SPACING POLISH V4 END --}}
-
-
-
-
-
-
-
-
-
-
-
-
-{{-- UNIVERSAL ANALYTICS RECORDS HEADER START --}}
-
 <style>
-{{-- /*
-|--------------------------------------------------------------------------
-| Universal Analytics Records detail header
-|--------------------------------------------------------------------------
-*/ --}}
 
 .analytics-records-universal-subtitle {
     margin: 5px 0 0 !important;
@@ -4683,42 +4078,24 @@ html[data-theme="dark"]
     line-height: 1.45 !important;
 }
 
-
-{{-- /*
- * Signal-list details must use the same title → subtitle → chips
- * rhythm as the other Analytics Records detail pages.
- */ --}}
 #analytics-signal-v3 {
-    margin-top: 18px !important;
+    margin-top: 12px !important;
 }
 
-
-{{-- /*
- * Do not add another artificial margin around the chips.
- */ --}}
 #analytics-signal-v3 .analytics-signal-v3-chips {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
 }
 
-
-{{-- /*
- * Chips → first detail card.
- */ --}}
 #analytics-signal-v3 {
-    gap: 14px !important;
+    gap: 12px !important;
 }
 
-
-{{-- /*
- * Keep Planning Notes cards unchanged.
- */ --}}
 #analytics-signal-v3 .analytics-signal-v3-card {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
 }
 </style>
-
 
 <script>
 (() => {
@@ -4729,24 +4106,17 @@ html[data-theme="dark"]
             .trim()
             .toLowerCase();
 
-
     const detailTitle =
         @json($detail['title'] ?? '');
 
-
     const detailContext =
         @json($detail['context'] ?? '');
-
 
     const applyUniversalHeader = () => {
 
         if (!detailTitle) {
             return;
         }
-
-
-
-
 
         const heading =
             Array.from(
@@ -4781,20 +4151,11 @@ html[data-theme="dark"]
                 );
             });
 
-
         if (!heading) {
             return;
         }
 
-
-
-
-
-
-
-
         let subtitle = null;
-
 
         if (detailContext) {
 
@@ -4807,7 +4168,6 @@ html[data-theme="dark"]
                     ===
                     normalize(detailContext)
                 );
-
 
             if (!subtitle) {
 
@@ -4833,16 +4193,10 @@ html[data-theme="dark"]
             }
         }
 
-
-
-
-
-
         const signalRoot =
             document.getElementById(
                 'analytics-signal-v3'
             );
-
 
         if (signalRoot) {
 
@@ -4852,12 +4206,10 @@ html[data-theme="dark"]
                 'important'
             );
 
-
             const chips =
                 signalRoot.querySelector(
                     '.analytics-signal-v3-chips'
                 );
-
 
             if (chips) {
 
@@ -4876,7 +4228,6 @@ html[data-theme="dark"]
         }
     };
 
-
     if (
         document.readyState === 'loading'
     ) {
@@ -4891,7 +4242,6 @@ html[data-theme="dark"]
 
         applyUniversalHeader();
     }
-
 
     requestAnimationFrame(
         applyUniversalHeader
@@ -4910,48 +4260,24 @@ html[data-theme="dark"]
 })();
 </script>
 
-{{-- UNIVERSAL ANALYTICS RECORDS HEADER END --}}
-
-
-
-{{-- ANALYTICS SIGNAL HEADER SPACING FINAL START --}}
-
 <style>
-{{-- /*
-|--------------------------------------------------------------------------
-| Signal-list header spacing
-|--------------------------------------------------------------------------
-|
-| The normal Analytics Records header already provides spacing below the
-| subtitle. Signal-list pages must not add another 18px on top of that.
-|
-*/ --}}
 
 #analytics-signal-v3 {
     margin-top: 0 !important;
 }
 
-
-{{-- /* Keep title and subtitle compact like the other Analytics detail pages. */ --}}
 .analytics-records-universal-subtitle {
     margin-top: 4px !important;
     margin-bottom: 0 !important;
 }
 
-
-{{-- /* Chips themselves should not introduce extra outer spacing. */ --}}
 #analytics-signal-v3 .analytics-signal-v3-chips {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
 }
 
-
-{{-- /*
- * Maintain the standard detail rhythm below the chips:
- * chips → summary → signals.
- */ --}}
 #analytics-signal-v3 {
-    gap: 14px !important;
+    gap: 12px !important;
 }
 
 #analytics-signal-v3 .analytics-signal-v3-card {
@@ -4959,7 +4285,6 @@ html[data-theme="dark"]
     margin-bottom: 0 !important;
 }
 </style>
-
 
 <script>
 (() => {
@@ -4973,12 +4298,6 @@ html[data-theme="dark"]
         return;
     }
 
-
-
-
-
-
-
     const normalizeSpacing = () => {
 
         root.style.setProperty(
@@ -4987,12 +4306,10 @@ html[data-theme="dark"]
             'important'
         );
 
-
         const chips =
             root.querySelector(
                 '.analytics-signal-v3-chips'
             );
-
 
         if (chips) {
 
@@ -5009,7 +4326,6 @@ html[data-theme="dark"]
             );
         }
 
-
         const subtitle =
             Array.from(
                 document.querySelectorAll(
@@ -5019,7 +4335,6 @@ html[data-theme="dark"]
             .find((element) =>
                 element.offsetParent !== null
             );
-
 
         if (subtitle) {
 
@@ -5036,7 +4351,6 @@ html[data-theme="dark"]
             );
         }
     };
-
 
     normalizeSpacing();
 
@@ -5056,7 +4370,5 @@ html[data-theme="dark"]
 
 })();
 </script>
-
-{{-- ANALYTICS SIGNAL HEADER SPACING FINAL END --}}
 
 @endsection

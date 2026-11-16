@@ -23,6 +23,7 @@ use Illuminate\View\View;
  * the executive snapshot without duplicating each tab's full rankings or
  * tables.
  */
+// This is the controller for SPMU analytics and performance summaries.
 class AnalyticsController extends Controller
 {
  /** The sections offered in the sub-navigation, in display order. */
@@ -72,13 +73,10 @@ class AnalyticsController extends Controller
  \App\Support\AnalyticsFilters::validate($request);
 
  $academicPeriods = AcademicPeriod::query()
- ->orderByRaw("CASE WHEN status = 'ACTIVE' THEN 0 ELSE 1 END")
  ->orderByDesc('start_date')
  ->get();
 
- $activeAcademicPeriod = $academicPeriods->first(
- fn (AcademicPeriod $period): bool => $period->status === 'ACTIVE'
- );
+ $activeAcademicPeriod = app(\App\Services\AcademicPeriodResolver::class)->current(periods: $academicPeriods);
 
  [$from, $to, $selectedAcademicPeriod, $periodSelection] = $periods->resolve(
  $request,
@@ -143,7 +141,7 @@ class AnalyticsController extends Controller
  strtolower((string) $request->input('academic_period', '')),
  ['semester', 'academic_year'],
  true
- ) && $activeAcademicPeriod === null;
+ ) && $periodSelection === 'month';
 
  /*
  * A detail is an internal Analytics view of one figure, opened over

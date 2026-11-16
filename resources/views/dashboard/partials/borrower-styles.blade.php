@@ -1,23 +1,10 @@
 <style>
-{{-- /*
-|--------------------------------------------------------------------------
-| Borrower dashboard
-|--------------------------------------------------------------------------
-|
-| Scoped to .is-borrower-dashboard so the SPMU, Head, and ICTU dashboards
-| keep the shared two-column layout and equal-height panels.
-|
-*/ --}}
 
 .is-borrower-dashboard { --borrower-dash-blue: var(--interactive); }
 
-{{-- /* 1. Summary cards -------------------------------------------------------- */ --}}
-
-{{-- /* Compact and equal height. The count leads, the label follows; these are
-   summary reading, not primary navigation, so no arrow affordance. */ --}}
 .is-borrower-dashboard .dashboard-stat-grid .dashboard-kpi-card {
     min-height: 0;
-    padding: 16px 18px;
+    padding: 12px 16px;
     border-radius: 10px;
     row-gap: 8px;
 }
@@ -39,11 +26,9 @@
     font-weight: 700;
 }
 
-{{-- /* 2. Shared card shell ---------------------------------------------------- */ --}}
-
 .borrower-dash-card {
     min-width: 0;
-    margin-bottom: 18px;
+    margin-bottom: 12px;
     padding: 0;
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -52,10 +37,6 @@
     overflow: hidden;
 }
 
-{{-- /*
- * Content-driven height, and one radius for both sections. The specificity
- * has to clear .dashboard-balanced-grid > .card, which sets 12px.
- */ --}}
 .is-borrower-dashboard .dashboard-panel-equal,
 .is-borrower-dashboard .dashboard-balanced-grid > .borrower-dash-card,
 .borrower-dash-card {
@@ -69,9 +50,9 @@
     align-items: flex-start;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 10px 20px;
+    gap: 10px 16px;
     margin: 0;
-    padding: 17px 20px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--border);
     background: transparent;
 }
@@ -95,11 +76,7 @@
     flex: 0 0 auto;
 }
 
-{{-- /* Inline accountability flag shown inside the Current Borrowing Requests
-   table's Status cell - not a standalone summary card. */ --}}
 .borrower-active-obligation { display: block; margin-top: 4px; color: var(--warning); font-size: 10.5px; font-weight: 700; white-space: nowrap; }
-
-{{-- /* 3. Active requests table ------------------------------------------------ */ --}}
 
 .borrower-active-scroll {
     width: 100%;
@@ -115,7 +92,7 @@
 }
 
 .is-borrower-dashboard .borrower-active-table th {
-    padding: 11px 20px;
+    padding: 11px 16px;
     border-bottom: 1px solid var(--border);
     background: var(--table-heading-bg);
     color: var(--text-secondary);
@@ -128,7 +105,7 @@
 }
 
 .is-borrower-dashboard .borrower-active-table td {
-    padding: 12px 20px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--row-border);
     color: var(--text-secondary);
     font-size: 12.5px;
@@ -138,11 +115,6 @@
 .borrower-active-table tbody tr:last-child td { border-bottom: 0; }
 .borrower-active-table tbody tr:hover td { background: var(--row-hover); }
 
-{{-- /*
- * The last two columns are sized so the schedule text and the View button
- * land on the same vertical lines as the Your-next-actions grid below:
- * 236px = 196 content + 2x20 cell padding, 128px = 88 button + 2x20.
- */ --}}
 .is-borrower-dashboard .borrower-active-table th:nth-child(4),
 .is-borrower-dashboard .borrower-active-table td:nth-child(4) { width: 236px; }
 .is-borrower-dashboard .borrower-active-table th:nth-child(5),
@@ -203,34 +175,21 @@
 
 .borrower-active-overflow {
     margin: 0;
-    padding: 12px 20px;
+    padding: 12px 16px;
     border-top: 1px solid var(--row-border);
     color: var(--text-muted);
     font-size: 12px;
 }
 
-{{-- /* 4. Next actions --------------------------------------------------------- */ --}}
-
 .borrower-next-list { display: grid; }
 
-{{-- /*
- * .queue-list article is a flex row with space-between, which pushed the icon
- * away from the details and let the button reach the card edge. These rules
- * need the extra class to outrank it.
- */ --}}
 .is-borrower-dashboard .queue-list .borrower-next-row {
     display: grid;
-    {{-- /*
-     * The action column fits whichever control this row renders - the
-     * bespoke-width borrower-active-action pill or a plain universal
-     * button sized to its own label (View Obligations is longer than
-     * Continue/View) - so a longer label never overflows past a fixed
-     * track and strands its icon outside the visible control.
-     */ --}}
+
     grid-template-columns: 44px minmax(0, 1fr) 220px minmax(88px, max-content);
     align-items: center;
-    gap: 16px;
-    padding: 14px 20px;
+    gap: 12px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--row-border);
 }
 
@@ -305,20 +264,15 @@
     text-align: left;
 }
 
-{{-- /* Targets the action control by structure, not by skin class, so this
-   positioning applies the same way whether the row renders the bespoke
-   borrower-active-action pill or a plain universal button. */ --}}
 .is-borrower-dashboard .queue-list .borrower-next-row > a.button {
     justify-self: center;
 }
-
-{{-- /* 5. Empty states --------------------------------------------------------- */ --}}
 
 .borrower-dash-empty {
     display: grid;
     justify-items: center;
     gap: 5px;
-    padding: 34px 20px;
+    padding: 34px 16px;
     text-align: center;
 }
 
@@ -339,12 +293,6 @@ html[data-theme="dark"] .is-borrower-dashboard { --borrower-dash-blue: var(--int
 html[data-theme="dark"] .is-borrower-dashboard .borrower-active-action:hover,
 html[data-theme="dark"] .is-borrower-dashboard .borrower-active-action:focus-visible { color: var(--navy-950); }
 
-{{-- /* 6. Responsive ----------------------------------------------------------- */ --}}
-
-{{-- /*
- * Below the desktop grid the date and the button drop under the details
- * column rather than squeezing four tracks into a narrow card.
- */ --}}
 @media (max-width: 1000px) {
     .is-borrower-dashboard .queue-list .borrower-next-row {
         grid-template-columns: 44px minmax(0, 1fr);
@@ -359,21 +307,19 @@ html[data-theme="dark"] .is-borrower-dashboard .borrower-active-action:focus-vis
         text-align: left;
     }
 
-    {{-- /* The empty placeholder span collapses when there is no date. */ --}}
     .is-borrower-dashboard .queue-list .borrower-next-row > span:empty { display: none; }
 }
 
 @media (max-width: 760px) {
-    .is-borrower-dashboard .borrower-dash-card > .card-header { padding: 14px; }
+    .is-borrower-dashboard .borrower-dash-card > .card-header { padding: 12px; }
 
-    {{-- /* Table rows become stacked blocks so the page never scrolls sideways. */ --}}
     .borrower-active-scroll { overflow-x: visible; }
     .is-borrower-dashboard .borrower-active-table { min-width: 0; }
     .is-borrower-dashboard .borrower-active-table thead { display: none; }
     .is-borrower-dashboard .borrower-active-table tbody tr {
         display: grid;
         gap: 6px;
-        padding: 14px;
+        padding: 12px;
         border-bottom: 1px solid var(--row-border);
     }
     .is-borrower-dashboard .borrower-active-table td {
@@ -398,6 +344,6 @@ html[data-theme="dark"] .is-borrower-dashboard .borrower-active-action:focus-vis
     .is-borrower-dashboard .borrower-active-table th:nth-child(5),
     .is-borrower-dashboard .borrower-active-table td:nth-child(5) { width: auto; }
 
-    .is-borrower-dashboard .queue-list .borrower-next-row { padding: 14px; }
+    .is-borrower-dashboard .queue-list .borrower-next-row { padding: 12px; }
 }
 </style>

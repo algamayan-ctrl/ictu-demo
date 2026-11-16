@@ -54,7 +54,7 @@
 
             <label class="late-fee-field">
                 Reason for change <span class="late-fee-optional">(optional)</span>
-                <textarea
+<textarea
                     name="reason"
                     rows="3"
                     maxlength="1000"
@@ -95,8 +95,8 @@
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap:20px;
-    padding:18px 22px;
+    gap:16px;
+    padding:16px 16px;
     border-bottom:1px solid var(--border);
 }
 
@@ -141,8 +141,8 @@
 
 .late-fee-body {
     display:grid;
-    gap:16px;
-    padding:20px 22px 22px;
+    gap:12px;
+    padding:16px 16px 16px;
 }
 
 .late-fee-page label.late-fee-field {
@@ -190,7 +190,7 @@
     align-items:center;
     gap:8px;
     min-height:42px;
-    padding:9px 18px;
+    padding:9px 16px;
     font-size:13px;
     font-weight:700;
 }

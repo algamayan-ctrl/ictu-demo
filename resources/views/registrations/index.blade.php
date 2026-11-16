@@ -1,16 +1,17 @@
 @extends('layouts.app', ['title' => 'Borrower registrations'])
 @section('content')
+{{-- This is the Borrower Registration Queue UI for SPMU Action Officer. --}}
 @include('administration.users.partials.ui-styles')
 <style>
 .registration-records .ictu-users-table { min-width: 850px; table-layout: auto; }
-.registration-records .ictu-users-table td { height: auto; padding: 9px 15px; }
+.registration-records .ictu-users-table td { height: auto; padding: 9px 12px; }
 .registration-records .registration-applicant strong, .registration-records .registration-applicant span, .registration-records .registration-affiliation span { display: block; }
 .registration-records .registration-applicant strong { color: var(--heading); font-size: 13px; }
 .registration-records .registration-applicant span, .registration-records .registration-affiliation span { margin-top: 3px; color: var(--text-muted); font-size: 12px; }
 .registration-records .registration-review-cell { width: 70px; text-align: center; }
-.registration-records .registration-pagination { padding: 16px 24px; }
+.registration-records .registration-pagination { padding: 12px 16px; }
 .registration-records .registration-pagination .pagination { margin: 0; }
-#registration-records-area { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+#registration-records-area { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 #registration-records-area > .ictu-users-filter-card { flex: 0 0 auto; }
 #registration-results { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 320px; }
 #registration-results > .ictu-users-list-toolbar { flex: 0 0 auto; }

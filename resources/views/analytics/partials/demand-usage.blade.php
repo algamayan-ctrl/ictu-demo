@@ -221,7 +221,6 @@
  : 'Number of borrowing requests filed per '.($trend['granularity'] ?? 'period').'.';
 @endphp
 
-{{-- Headline figures --------------------------------------------------- --}}
 <div class="analytics-kpis analytics-kpis-demand">
  {{--
  Requests Filed opens the record-backed Requests detail. The three
@@ -273,7 +272,6 @@
  </a>
 </div>
 
-{{-- Trend and composition ---------------------------------------------- --}}
 @if($detail)
  @include('analytics.partials.detail-panel')
 @endif
@@ -300,7 +298,7 @@
  </div>
  @else
  @if($trendMode === 'single')
- @php $onlyPoint = $trend['points'][0]; @endphp
+@php $onlyPoint = $trend['points'][0]; @endphp
 
  <div class="analytics-card-body analytics-trend-single">
  <a
@@ -414,7 +412,6 @@
  </section>
 </div>
 
-{{-- What became of the requests ----------------------------------------- --}}
 @php
  /*
  | Request Outcomes is a cohort: requests FILED in the period, in the
@@ -523,7 +520,6 @@
  @endif
 </section>
 
-{{-- What was asked for -------------------------------------------------- --}}
 <div class="analytics-demand-pair">
  <section id="equipment-demand-usage"
  data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.requested-items']) }}"
@@ -662,19 +658,18 @@
 {{-- Top Released Items is consolidated into Equipment Demand & Actual Usage above. --}}
 
 <style>
-{{-- /* Demand analytics layout refinement: preserve the existing visual language,
- but let wide metric cards breathe and wrap instead of being compressed. */ --}}
+
 .analytics-processing-strip {
  display: grid;
  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
- gap: 16px;
+ gap: 12px;
  align-items: stretch;
- padding: 16px;
+ padding: 12px;
 }
 
 .analytics-processing-strip .analytics-lifecycle-stage {
  min-height: 112px;
- padding: 14px 16px 15px;
+ padding: 12px 12px 12px;
 }
 
 .analytics-processing-strip .analytics-lifecycle-link {
@@ -699,7 +694,7 @@
  .analytics-processing-strip {
  grid-template-columns: minmax(0, 1fr);
  gap: 12px;
- padding: 14px;
+ padding: 12px;
  }
 
  .analytics-peak-heat {
@@ -708,8 +703,6 @@
 }
 </style>
 
-{{-- Operational processing --------------------------------------------- --}}
-{{-- When requests are filed ---------------------------------------------- --}}
 <section
  data-card-detail="{{ App\Support\AnalyticsDetailLink::to('card', 'demand', $periodSelection, $selectedDivision === 'all' ? null : $selectedDivision, $selectedUnit === 'all' ? null : $selectedUnit, ['for' => 'demand.peak']) }}"
  class="analytics-card">
@@ -733,7 +726,7 @@
  <div class="analytics-card-body">
  <div class="analytics-peak-heat" role="list" aria-label="Borrowing requests by weekday">
  @foreach($peak['days'] as $day)
- @php
+@php
  $heat = $peakHighest > 0 ? max(0, min(5, (int) ceil($day['count'] / $peakHighest * 5))) : 0;
  @endphp
  <div

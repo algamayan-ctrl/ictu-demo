@@ -1,11 +1,5 @@
 @php
-    /*
-    | One formal report sheet.
-    |
-    | The preview, the print view and the PDF all compose the document from
-    | this single partial, which is what keeps the three looking identical.
-    | `$options` toggles only presentation â€” never the records.
-    */
+    // This is the shared formal report sheet for preview and printing.
     $options = $options ?? [];
 @endphp
 
@@ -27,6 +21,8 @@
     <div class="doc-table-scroll">
         @include('reports.document.table')
     </div>
+
+    @include('reports.document.signatories')
 
     @if($options['footer'] ?? true)
         @include('reports.document.footer')

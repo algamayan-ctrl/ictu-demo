@@ -4,23 +4,20 @@
     width: 100%;
     min-width: 0;
     font-size: 13px;
-    {{-- /* Lets the empty-state card below grow to fill leftover height when the
-       toolbar above it is the only other content on the page; existing
-       child margins already provide the spacing, so no gap is added here. */ --}}
+
     display: flex;
     flex-direction: column;
 }
 .my-borrowings [hidden] { display: none !important; }
 .my-borrowings > .my-borrowings-card { flex: 1 1 auto; }
 
-{{-- /* Use the same Search + Status + Sort pattern as the other transaction lists. */ --}}
 .borrowings-toolbar {
     display: grid;
     grid-template-columns: minmax(280px, 1fr) minmax(190px, 230px) minmax(150px, 190px);
     gap: 12px;
     align-items: end;
-    margin-bottom: 16px;
-    padding: 14px;
+    margin-bottom: 12px;
+    padding: 12px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--surface-elevated);
@@ -42,8 +39,7 @@
     background: var(--surface-elevated);
     box-shadow: var(--shadow-sm);
     overflow: hidden;
-    {{-- /* Lets .borrowings-empty below fill and center within this card's own
-       (now possibly stretched) height. */ --}}
+
     display: flex;
     flex-direction: column;
 }
@@ -54,17 +50,16 @@
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 10px 16px;
-    margin: 14px 2px 0;
+    gap: 10px 12px;
+    margin: 12px 2px 0;
 }
 .borrowings-footer > p { margin: 0; color: var(--text-muted); font-size: 11px; }
 .borrowings-footer .app-pagination { margin-top: 0; margin-left: auto; }
 
-{{-- /* Empty state */ --}}
 .my-borrowings-card > .borrowings-empty { flex: 1 1 auto; }
-.borrowings-empty { display: flex; min-height: 300px; align-items: center; justify-content: center; padding: 40px 20px 44px; text-align: center; }
+.borrowings-empty { display: flex; min-height: 300px; align-items: center; justify-content: center; padding: 40px 16px 44px; text-align: center; }
 .borrowings-empty-content { display: flex; flex-direction: column; align-items: center; max-width: 500px; }
-.borrowings-empty-illustration { display: block; width: 100%; max-width: 205px; height: auto; margin-bottom: 18px; }
+.borrowings-empty-illustration { display: block; width: 100%; max-width: 205px; height: auto; margin-bottom: 12px; }
 .borrowings-empty-backdrop { fill: #e8f0fa; }
 .borrowings-empty-box { stroke: #2f74d0; fill: none; }
 .borrowings-empty-clipboard { stroke: #1f6bd4; fill: #ffffff; }
@@ -88,7 +83,7 @@ html[data-theme="dark"] .borrowings-empty-sparkles { fill: #2f4a68; }
 }
 @media (max-width: 620px) {
     .borrowings-toolbar { padding: 12px; }
-    .borrowings-empty { min-height: 280px; padding: 28px 12px; }
+    .borrowings-empty { min-height: 280px; padding: 20px 12px; }
     .borrowings-empty-illustration { max-width: 175px; }
     .my-borrowings .borrowings-empty h2 { font-size: 18px; }
     .borrowings-empty p br { display: none; }

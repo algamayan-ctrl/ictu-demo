@@ -6,12 +6,11 @@
     semantic token so the dark theme stays correct.
 --}}
 <style>
-{{-- /* Page header ------------------------------------------------------------ */ --}}
-.accountability-page-heading { align-items: flex-start; margin-bottom: 16px; }
+
+.accountability-page-heading { align-items: flex-start; margin-bottom: 12px; }
 .accountability-page-heading h1 { margin: 2px 0 4px; font-size: clamp(20px, 1.6vw, 24px); }
 .accountability-page-heading p:not(.eyebrow) { max-width: 680px; font-size: 12px; line-height: 1.5; }
 
-{{-- /* Section headings ------------------------------------------------------- */ --}}
 .accountability-section-heading { align-items: flex-start; margin-bottom: 12px; }
 .accountability-section-heading > div { min-width: 0; }
 .accountability-section-heading h2 { margin: 0 0 3px; font-size: 15.5px; }
@@ -19,8 +18,7 @@
 .accountability-section-heading .eyebrow { margin-bottom: 3px; }
 .accountability-section-heading .status-badge { flex: 0 0 auto; }
 
-{{-- /* Case cards ------------------------------------------------------------- */ --}}
-.accountability-case-card { padding: 15px 17px; }
+.accountability-case-card { padding: 12px 12px; }
 .accountability-case-card > .card-header { margin-bottom: 0; gap: 12px; }
 .accountability-case-card > .card-header h3 { margin: 2px 0 0; font-size: 14px; }
 .accountability-case-card > .card-header strong { color: var(--interactive); font-size: 10.5px; font-weight: 800; letter-spacing: .04em; }
@@ -41,15 +39,12 @@
 .accountability-case-facts dd { margin: 0; color: var(--heading); font-size: 12.5px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
 .accountability-case-facts dd small { display: block; margin-top: 2px; color: var(--text-muted); font-size: 10px; font-weight: 600; }
 
-{{-- /* Compact inline alert: one bold line plus at most a short explanation. */ --}}
 .accountability-alert { margin-top: 12px; padding: 9px 12px; font-size: 11.5px; line-height: 1.5; }
 .accountability-alert strong { display: block; color: inherit; font-size: 12px; }
 .accountability-alert p { margin: 2px 0 0; color: var(--text-secondary); }
 
 .accountability-case-meta { margin: 10px 0 0; color: var(--text-muted); font-size: 10.5px; line-height: 1.5; }
 
-{{-- /* Shown where a stage has no control for this role, so the card never ends
-   in blank space. */ --}}
 .accountability-case-state {
     display: inline-flex;
     width: max-content;
@@ -73,22 +68,20 @@
     background: var(--text-soft);
 }
 
-{{-- /* Compact empty states --------------------------------------------------- */ --}}
 .accountability-empty {
     display: flex;
     align-items: baseline;
     flex-wrap: wrap;
     gap: 3px 10px;
     min-height: 0;
-    padding: 12px 16px;
+    padding: 12px 12px;
     line-height: 1.45;
 }
 
 .accountability-empty strong { color: var(--heading); font-size: 12.5px; }
 .accountability-empty span { color: var(--text-muted); font-size: 11.5px; line-height: 1.5; }
 
-{{-- /* Compact list bodies ---------------------------------------------------- */ --}}
-.accountability-list-card { padding: 15px 17px; }
+.accountability-list-card { padding: 12px 12px; }
 .accountability-list-card > .card-header { margin-bottom: 12px; }
 .accountability-list-card .head-case-summary { margin-top: 12px; }
 .accountability-list-card .head-case-summary > div { padding: 9px 11px; }
@@ -100,11 +93,10 @@
 .accountability-list-card .table-wrap table { min-width: 620px; }
 .accountability-list-card .table-wrap td { padding: 8px 12px; font-size: 12px; }
 
-.accountability-table-card { padding: 15px 17px; }
+.accountability-table-card { padding: 12px 12px; }
 .accountability-table-card > .card-header { margin-bottom: 12px; }
 .accountability-table-card td { padding: 8px 13px; font-size: 12px; }
 
-{{-- /* Responsive ------------------------------------------------------------- */ --}}
 @media (max-width: 900px) {
     .accountability-case-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -114,15 +106,6 @@
     .accountability-section-heading { flex-direction: column; gap: 8px; }
 }
 
-{{-- /* ========================================================================
-   Option B — structured oversight layout.
-
-   The page keeps its four counters and its tab row, and states the active
-   caseload as a table: one row per case, with the key detail directly under
-   the row it explains.
-   ======================================================================== */ --}}
-
-{{-- /* "As of" stamp ---------------------------------------------------------- */ --}}
 .accountability-asof {
     display: inline-flex;
     flex: 0 0 auto;
@@ -137,7 +120,6 @@
 
 .accountability-asof .ui-icon { flex: 0 0 auto; color: var(--text-soft); }
 
-{{-- /* A fourth counter tone, so Restrictions does not repeat the review amber. */ --}}
 .kpi-accent-restriction {
     --kpi-accent: #6d4bb4;
     --kpi-icon-bg: #f0ebfb;
@@ -151,16 +133,15 @@ html[data-theme="dark"] .kpi-accent-restriction {
     --kpi-icon-border: #3b2f57;
 }
 
-{{-- /* Active caseload -------------------------------------------------------- */ --}}
 .accountability-cases-card { padding: 0; overflow: hidden; }
 
 .accountability-cases-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
+    gap: 12px;
     flex-wrap: wrap;
-    padding: 15px 17px;
+    padding: 12px 12px;
     border-bottom: 1px solid var(--border);
 }
 
@@ -186,18 +167,15 @@ html[data-theme="dark"] .kpi-accent-restriction {
 
 .accountability-case-workspace {
     display: grid;
-    gap: 14px;
+    gap: 12px;
 }
 
-{{-- /* Compact record controls live inside the Active Cases card. They appear
-   only when they can actually narrow the list, so a three-row queue does not
-   waste a full card on filters. */ --}}
 .accountability-browser-toolbar {
     display: flex;
     align-items: end;
     flex-wrap: wrap;
     gap: 10px;
-    padding: 10px 16px 11px;
+    padding: 10px 12px 11px;
     border-bottom: 1px solid var(--border);
     background: var(--surface-subtle);
 }
@@ -231,17 +209,14 @@ html[data-theme="dark"] .kpi-accent-restriction {
 
 .accountability-browser-toolbar .search-input-shell { width: 100%; }
 
-{{-- /* Case table ------------------------------------------------------------- */ --}}
 .accountability-cases-table table { min-width: 800px; }
 .accountability-cases-table th { padding-top: 9px; padding-bottom: 9px; white-space: nowrap; }
 .accountability-cases-table td { padding-top: 10px; padding-bottom: 10px; line-height: 1.35; }
 .accountability-cases-table .is-numeric { text-align: right; font-variant-numeric: tabular-nums; }
 
-{{-- /* Inherits the universal .table-wrap th/td padding and font-size instead of a page-specific shrink. */ --}}
 .accountability-case-row > td { vertical-align: middle; }
 .accountability-case-row > td:first-child { min-width: 188px; }
 
-{{-- /* Reference above the person it belongs to, as one identity block. */ --}}
 .accountability-case-ref {
     display: block;
     color: var(--heading);
@@ -257,7 +232,6 @@ html[data-theme="dark"] .kpi-accent-restriction {
     font-size: 11px;
 }
 
-{{-- /* A dot carries the tone at cell size, where a long label would not fit. */ --}}
 .accountability-status-pill {
     display: inline-flex;
     align-items: center;
@@ -274,7 +248,6 @@ html[data-theme="dark"] .kpi-accent-restriction {
     background: currentColor;
 }
 
-{{-- /* The qualifier sits under the amount it belongs to, not beside it. */ --}}
 .accountability-case-row > td > small {
     display: block;
     margin-top: 2px;
@@ -292,8 +265,6 @@ html[data-theme="dark"] .kpi-accent-restriction {
     line-height: 1;
 }
 
-{{-- /* Waiting is a state, not a fake button. Only the role that can act gets a
-   clickable control in the Next Action column. */ --}}
 .accountability-next-state {
     display: inline-flex;
     align-items: center;
@@ -314,11 +285,9 @@ html[data-theme="dark"] .kpi-accent-restriction {
 
 .accountability-row-none { color: var(--text-soft); }
 .accountability-row-note { color: var(--text-muted); font-size: 11px; font-weight: 700; }
-.accountability-row-action { min-height: 30px; padding: 0 14px; font-size: 11.5px; }
+.accountability-row-action { min-height: 30px; padding: 0 12px; font-size: 11.5px; }
 
-{{-- /* Row detail ------------------------------------------------------------- */ --}}
-{{-- /* No bottom rule: the detail belongs to the row above, not beside it. */ --}}
-.accountability-case-detail-row > td { padding: 0 14px 14px; border-bottom: 1px solid var(--row-border); }
+.accountability-case-detail-row > td { padding: 0 12px 12px; border-bottom: 1px solid var(--row-border); }
 .accountability-cases-table tbody tr:last-child > td { border-bottom: 0; }
 .accountability-case-row > td { border-bottom: 0; }
 .accountability-cases-table tbody tr:hover { background: transparent; }
@@ -422,11 +391,10 @@ html[data-theme="dark"] .kpi-accent-restriction {
     font-size: 10.75px;
 }
 
-{{-- /* The Head's decision forms, kept out of the Action cell. */ --}}
 .accountability-detail-forms {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
+    gap: 12px;
     margin-top: 12px;
     padding: 13px;
     border: 1px solid var(--border);
@@ -437,18 +405,14 @@ html[data-theme="dark"] .kpi-accent-restriction {
 .accountability-detail-forms .form-grid { margin: 0; }
 .accountability-detail-forms textarea { min-height: 66px; }
 
-{{-- /* Filtered-to-empty state ------------------------------------------------ */ --}}
 .accountability-cases-none {
     margin: 0;
-    padding: 14px 17px;
+    padding: 12px 12px;
     border-top: 1px solid var(--border);
     color: var(--text-muted);
     font-size: 12px;
 }
 
-{{-- /* Scope hint --------------------------------------------------------------
-   Subtle helper text, not a second callout: the tabs already say where the
-   completed cases went, so this only needs to be legible, not prominent. */ --}}
 .accountability-scope-hint {
     margin: 12px 0 0;
     color: var(--text-muted);
@@ -456,20 +420,10 @@ html[data-theme="dark"] .kpi-accent-restriction {
     line-height: 1.55;
 }
 
-{{-- /* Responsive ------------------------------------------------------------- */ --}}
 @media (max-width: 900px) {
     .accountability-detail-forms { grid-template-columns: minmax(0, 1fr); }
     .accountability-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
-    {{-- /*
-     | Below the table's 860px minimum the row area scrolls sideways, and the
-     | detail panel was scrolling with it: measured on a 390px screen, its text
-     | wrapped at the table width and was cut mid-sentence.
-     |
-     | The panel explains the row rather than extending it, so it stays put
-     | while the columns move. 100cqi is the scroller's visible width, which is
-     | what the reader actually has, unlike 100vw.
-     */ --}}
     .accountability-cases-table { container-type: inline-size; }
     .accountability-case-detail-row > td { padding-left: 0; padding-right: 0; }
 
@@ -491,10 +445,7 @@ html[data-theme="dark"] .kpi-accent-restriction {
     .accountability-detail-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
-
-{{-- /* Sanction history -------------------------------------------------------
-   Uses the same card/header/table rhythm as Active and Resolved cases. */ --}}
-.accountability-sanctions-section { margin-top: 14px; }
+.accountability-sanctions-section { margin-top: 12px; }
 .accountability-sanctions-table table { min-width: 850px; }
 .accountability-sanctions-table th,
 .accountability-sanctions-table td { vertical-align: middle; }
@@ -542,23 +493,11 @@ html[data-theme="dark"] .kpi-accent-restriction {
     .accountability-sanctions-table table { min-width: 760px; }
 }
 
-{{-- /* ========================================================================
-   Accountability overview row.
-
-   Four universal summary cards: white surface, colored top accent, a
-   softly tinted icon tile, the reading name, figure, and one line of context.
-   Navigation stays in the lists and explicit controls below.
-
-   Named -overview rather than -summary because public/css/app.css already
-   owns .accountability-summary for an older four-cell strip, and its
-   descendant selectors would win over these class-level rules.
-   ======================================================================== */ --}}
-
 .accountability-overview {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
-    margin-bottom: 14px;
+    gap: 12px;
+    margin-bottom: 12px;
 }
 
 .accountability-overview-card {
@@ -571,7 +510,7 @@ html[data-theme="dark"] .kpi-accent-restriction {
     gap: 0;
     align-content: start;
     min-width: 0;
-    padding: 18px 20px 20px;
+    padding: 16px 16px 16px;
     border: 0;
     border-radius: 14px;
     overflow: hidden;
@@ -618,7 +557,7 @@ html[data-theme="dark"] .kpi-accent-restriction {
     width: 52px;
     height: 52px;
     place-items: center;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
     border-radius: 50%;
     color: #fff;
     background: rgba(255, 255, 255, .12);
@@ -649,7 +588,6 @@ html[data-theme="dark"] .kpi-accent-restriction {
     line-height: 1.4;
 }
 
-{{-- /* Tones ------------------------------------------------------------------ */ --}}
 .accountability-overview-card.tone-open {
     --tone-from: #1d4ed8;
     --tone-to: #38bdf8;
@@ -679,24 +617,19 @@ html[data-theme="dark"] .accountability-overview-card.tone-overdue { --tone-from
 html[data-theme="dark"] .accountability-overview-card.tone-balance { --tone-from: #b45309; --tone-to: #d97706; --tone-glow: rgba(0, 0, 0, .42); }
 html[data-theme="dark"] .accountability-overview-card.tone-resolved { --tone-from: #115e59; --tone-to: #059669; --tone-glow: rgba(0, 0, 0, .42); }
 
-{{-- /* A peso amount is a longer string than a case count, so it takes less size. */ --}}
 .accountability-overview-card.tone-balance .accountability-overview-value { font-size: 27px; }
 
-{{-- /* Responsive ------------------------------------------------------------- */ --}}
 @media (max-width: 1180px) {
     .accountability-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 620px) {
     .accountability-overview { grid-template-columns: minmax(0, 1fr); }
-    .accountability-overview-card { padding: 16px 18px 18px; }
+    .accountability-overview-card { padding: 12px 16px 16px; }
     .accountability-overview-icon { width: 46px; height: 46px; margin-bottom: 12px; }
     .accountability-overview-value { font-size: 27px; }
 }
 
-
-{{-- /* Accountability tables always consume the available content width, even
-   when there are only one or two rows. Text follows the shared table scale. */ --}}
 .accountability-case-workspace,
 .accountability-cases-card,
 .accountability-cases-table,

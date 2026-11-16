@@ -6,14 +6,7 @@ use App\Models\AcademicPeriod;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
-/**
- * Reporting period resolution shared by Reports and Analytics.
- *
- * Both modules must answer "which dates does 'This Semester' mean?" the same
- * way, otherwise the same filter would produce different numbers on the two
- * pages. This is the single answer; the logic is unchanged from the version
- * that previously lived inside ReportController.
- */
+// This is the reporting period resolver shared by Reports and Analytics.
 class ReportingPeriodService
 {
     public const REPORT_PERIODS = [
@@ -161,10 +154,13 @@ class ReportingPeriodService
             ];
         }
 
-        if ($selection === 'academic_year' && $activeAcademicPeriod) {
-            $yearPeriods = $academicPeriods->where('academic_year', $activeAcademicPeriod->academic_year);
-            $fromDate = $yearPeriods->min('start_date') ?: $activeAcademicPeriod->start_date;
-            $toDate = $yearPeriods->max('end_date') ?: $activeAcademicPeriod->end_date;
+        $academicYear = $selection === 'academic_year'
+            ? app(AcademicPeriodResolver::class)->academicYear(periods: $academicPeriods)
+            : null;
+        if ($academicYear !== null) {
+            $yearPeriods = $academicPeriods->where('academic_year', $academicYear);
+            $fromDate = $yearPeriods->min('start_date');
+            $toDate = $yearPeriods->max('end_date');
 
             return [
                 Carbon::parse($fromDate)->startOfDay(),
@@ -174,8 +170,7 @@ class ReportingPeriodService
             ];
         }
 
-        // When no active period is configured, semester/year safely fall back
-        // to the current calendar month instead of exposing arbitrary dates.
+        // This is the existing calendar-month fallback when the requested academic scope is unavailable.
         return [now()->startOfMonth()->startOfDay(), now()->endOfMonth()->endOfDay(), null, 'month'];
     }
 }

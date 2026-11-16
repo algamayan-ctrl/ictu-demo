@@ -13,6 +13,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Http\Exceptions\PostTooLargeException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -45,6 +46,17 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // This is the upload-size response before PHP can pass an oversized form to validation.
+        $exceptions->render(function (PostTooLargeException $exception, Request $request) {
+            $message = 'The combined upload exceeds the server limit. Please choose smaller files and try again. No submission was saved.';
+
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json(['message' => $message], 413);
+            }
+
+            return response()->view('errors.413', ['message' => $message], 413);
+        });
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

@@ -25,10 +25,10 @@ final class ReportExportOptions
 
     /** The primary button label changes with the chosen format. */
     public const ACTION_LABELS = [
-        'pdf' => 'Export PDF',
-        'docx' => 'Export Word',
-        'xlsx' => 'Export Excel',
-        'csv' => 'Export CSV',
+        'pdf' => 'Generate PDF',
+        'docx' => 'Generate Word',
+        'xlsx' => 'Generate Excel',
+        'csv' => 'Generate CSV',
         'print' => 'Open Print Preview',
     ];
 

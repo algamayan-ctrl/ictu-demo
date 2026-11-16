@@ -1,9 +1,9 @@
 @extends('layouts.app', ['title' => ($auditMode ?? 'technical') === 'operational' ? 'Operational Audit Trail' : 'Technical Audit Trail'])
 
 @section('content')
+{{-- This is the Operational Audit Trail UI for SPMU Admin. --}}
 @php
-    // The controller scopes, filters and paginates in the database; this view
-    // only renders the current page of AuditEvent rows.
+    // This is the current page of authorized audit records and its filter controls.
     $actorOptions = $actorOptions ?? collect();
     $hasSystemActor = $hasSystemActor ?? false;
     $recordNames = $recordNames ?? [];
@@ -28,6 +28,13 @@
         : null;
 
     $categoryOptions = $categoryOptions ?? [];
+    $eventCategoryLabels = $eventCategoryLabels ?? $categoryOptions;
+    $actorChoices = $actorChoices ?? $actorOptions->map(fn ($label, $value) => ['value' => (string) $value, 'label' => $label, 'detail' => ''])->values();
+    $selectedActorLabel = match ($filters['actor']) {
+        'ALL' => 'All actors',
+        'SYSTEM' => 'System',
+        default => $actorOptions->get($filters['actor'], 'Actor #'.$filters['actor'].' (historical filter)'),
+    };
     $isOperationalAudit = ($auditMode ?? 'technical') === 'operational';
 
     // Labels here describe the work a user performed, rather than exposing
@@ -433,22 +440,24 @@
                 </select>
             </div>
             <div class="ictu-audit-filter-field">
-                <label for="audit-actor-filter">Actor</label>
-                <div class="ictu-audit-actor-actions">
-                    <select id="audit-actor-filter" name="actor" form="audit-filter-form">
-                        <option value="ALL">All actors</option>
-                        @foreach($actorOptions as $actorOptionId => $actorOption)
-                            <option value="{{ $actorOptionId }}" @selected($filters['actor'] === (string) $actorOptionId)>{{ $actorOption }}</option>
-                        @endforeach
-                        @if($hasSystemActor)
-                            <option value="SYSTEM" @selected($filters['actor'] === 'SYSTEM')>System</option>
-                        @endif
-                    </select>
-                    <button class="button secondary ictu-audit-reset" id="audit-reset" hidden aria-hidden="true" tabindex="-1"
-                            type="button" title="Clear all filters">
-                        <x-icon name="cycle" size="17" />
-                        <span>Reset</span>
-                    </button>
+                <label for="audit-actor-search">Actor</label>
+                <div class="ictu-audit-actor-picker" data-audit-actor-picker data-system-actor="{{ $hasSystemActor ? '1' : '0' }}">
+                    <input type="hidden" id="audit-actor-filter" name="actor" form="audit-filter-form" value="{{ $filters['actor'] }}">
+                    <div class="ictu-audit-actor-input">
+                        <x-icon name="search" size="17" />
+                        <input id="audit-actor-search" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false"
+                               aria-controls="audit-actor-results" autocomplete="off" spellcheck="false" maxlength="200"
+                               value="{{ $selectedActorLabel }}" placeholder="Search actor…" data-audit-actor-search>
+                        <button class="icon-button ictu-audit-actor-clear" type="button" aria-label="Clear Actor filter" data-audit-actor-clear @if($filters['actor'] === 'ALL') hidden @endif>
+                            <x-icon name="close" size="14" />
+                        </button>
+                    </div>
+                    <div class="ictu-audit-actor-panel" data-audit-actor-panel hidden>
+                        <p class="ictu-audit-actor-status" data-audit-actor-status role="status" aria-live="polite"></p>
+                        <div id="audit-actor-results" role="listbox" aria-label="Matching actors" data-audit-actor-results></div>
+                    </div>
+                    <p class="ictu-audit-actor-error" data-audit-actor-error role="alert" hidden>Actor search is unavailable. Reload the page to retry.</p>
+                    <script type="application/json" data-audit-actor-options>{!! json_encode($actorChoices, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
                 </div>
             </div>
         </div>
@@ -497,7 +506,7 @@
         </header>
 
         @if($filters['record_type'] !== null)
-            @php
+@php
                 $historyRecordBase = class_basename($filters['record_type']);
                 $historyRecordTypeKey = collect(array_keys($recordNames))
                     ->first(fn (string $recordType): bool => class_basename($recordType) === $historyRecordBase);
@@ -536,7 +545,7 @@
                 </thead>
                 <tbody>
                     @forelse($events as $event)
-                        @php
+@php
                             $actionCode = strtolower((string) $event->action_code);
                             $baseActionLabel = $operationalActionLabels[$actionCode]
                                 ?? $humanizeAuditAction($actionCode);
@@ -603,7 +612,7 @@
                             $canViewRecordHistory = $event->record_id !== null
                                 && preg_match('/^[A-Za-z][A-Za-z0-9_]{0,79}$/', $recordBase) === 1;
                             $category = (string) ($event->audit_category ?? 'OTHER');
-                            $categoryLabel = $categoryOptions[$category] ?? 'Other';
+                            $categoryLabel = $eventCategoryLabels[$category] ?? 'Other';
                             $decision = strtoupper((string) (is_array($event->after_json) ? ($event->after_json['decision'] ?? '') : ''));
                             $requestReference = filled($requestNo) ? ' for '.$requestNo : '';
                             $actionLabel = match ($actionCode) {
@@ -696,7 +705,7 @@
                         <tr class="ictu-audit-expanded-row" id="audit-detail-{{ $event->id }}"
                             data-audit-detail-row hidden>
                             <td colspan="5">
-                                @php
+@php
                                     $beforeSnapshot = is_array($event->before_json) ? $flattenAuditSnapshot($event->before_json) : [];
                                     $afterSnapshot = is_array($event->after_json) ? $flattenAuditSnapshot($event->after_json) : [];
                                     $changeRows = collect(array_values(array_unique(array_merge(array_keys($beforeSnapshot), array_keys($afterSnapshot)))))
@@ -853,7 +862,7 @@
                                         </section>
                                     @endif
 
-                                    @php
+@php
                                         $recovery = $event->getAttributes()['recovery'] ?? null;
                                     @endphp
                                     @if(is_array($recovery))
@@ -904,7 +913,7 @@
                                                         <label for="audit-revert-reason-{{ $event->id }}" style="display: block; margin-top: 10px;">
                                                             Reason for reverting (required)
                                                         </label>
-                                                        <textarea id="audit-revert-reason-{{ $event->id }}" name="revert_reason" rows="2"
+<textarea id="audit-revert-reason-{{ $event->id }}" name="revert_reason" rows="2"
                                                                   required minlength="10" maxlength="1000" style="width: 100%;"></textarea>
                                                         <label style="display: block; margin: 8px 0;">
                                                             <input type="checkbox" name="confirm_revert" value="1" required>
@@ -933,13 +942,9 @@
     </section>
 </section>
 
+<script src="/js/audit-filters.js?v={{ filemtime(public_path('js/audit-filters.js')) }}" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-
-
-
-
-
 
     const form = document.getElementById('audit-filter-form');
     const search = document.getElementById('audit-search');
@@ -982,16 +987,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-{{-- AUDIT DETAIL UX ENHANCEMENT START --}}
 <script>
 document.addEventListener('click', (event) => {
     const selectedToggle = event.target.closest('[data-audit-details-toggle]');
     if (!selectedToggle) return;
-
-
-
-
-
 
     window.requestAnimationFrame(() => {
         const toggles = Array.from(
@@ -1026,5 +1025,5 @@ document.addEventListener('click', (event) => {
     });
 });
 </script>
-{{-- AUDIT DETAIL UX ENHANCEMENT END --}}
+
 @endsection

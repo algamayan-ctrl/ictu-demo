@@ -1,5 +1,6 @@
 @extends('layouts.app', ['title' => 'Laundry Operations'])
 @section('content')
+{{-- This is the Laundry Operations UI for SPMU Action Officer. --}}
 @php
     // Read-only display relations, batch-loaded for the existing paginated results.
     $jobs->getCollection()->loadMissing([
@@ -61,28 +62,7 @@
             <button type="button" class="link-button laundry-tab" id="laundry-tab-completed" role="tab" aria-controls="laundry-panel-completed" aria-selected="false" tabindex="-1" data-laundry-tab="completed">Completed <span class="laundry-tab-count">{{ $completedJobs->total() }}</span></button>
         </div>
         <div id="laundry-panel-active" role="tabpanel" aria-labelledby="laundry-tab-active" data-laundry-panel="active">
-        <section class="card record-browser-toolbar laundry-toolbar" aria-label="Active laundry case filters">
-            <label class="record-browser-search" for="laundry-search">Search
-                <span class="search-input-shell">
-                    <span class="search-input-icon" aria-hidden="true"><x-icon name="search" size="17" /></span>
-                    <input id="laundry-search" type="search" placeholder="Search borrower, request no., custody no., or event..." data-laundry-search autocomplete="off">
-                </span>
-            </label>
-            <label for="laundry-status">Status
-                <select id="laundry-status" data-laundry-status>
-                    <option value="">All statuses</option>
-                    @foreach($laundryStatuses as $status)
-                        <option value="{{ $status['key'] }}">{{ $status['label'] }}</option>
-                    @endforeach
-                </select>
-            </label>
-            <label for="laundry-sort">Sort
-                <select id="laundry-sort" data-laundry-sort>
-                    <option value="newest">Newest first</option>
-                    <option value="oldest">Oldest first</option>
-                </select>
-            </label>
-        </section>
+        @include('laundry.partials.record-filters', ['completed' => false, 'records' => $jobs])
 
     <section class="card laundry-cases-card {{ $hasLaundryCases ? '' : 'is-empty' }}" aria-label="Active Laundry Cases">
         @if($hasLaundryCases)
@@ -106,7 +86,7 @@
                     </thead>
                     <tbody data-laundry-list>
                         @foreach($jobs as $job)
-                            @php
+@php
                                 $caseCustody = $job->custody;
                                 $caseBorrower = $caseCustody?->borrower;
                                 $caseRequest = $caseCustody?->request;
@@ -142,20 +122,12 @@
                     </tbody>
                 </table>
             </div>
-            <div class="laundry-filter-empty" data-laundry-filter-empty hidden>
-                <x-icon name="search" size="27" />
-                <strong>No laundry cases match your filters.</strong>
-                <p>Try another search or status.</p>
-                <button class="button secondary small ui-pressable" type="button" data-laundry-reset>Clear filters</button>
-            </div>
-            @if($jobs->hasPages())
-                <div class="laundry-pagination">{{ $jobs->links('partials.pagination') }}</div>
-            @endif
+            <x-record-table-footer :records="$jobs" label="Active laundry pages" />
         @else
             <div class="laundry-inline-empty">
                 <span class="laundry-empty-icon"><x-icon name="success" size="30" /></span>
                 <div>
-                    <strong>No active laundry cases need action.</strong>
+                    <strong>{{ request()->filled('active_q') || request('active_status', 'ALL') !== 'ALL' ? 'No active cases match your filters.' : 'No active laundry cases need action.' }}</strong>
                     <p>New linen cases will appear here after physical release.</p>
                 </div>
             </div>
@@ -165,27 +137,7 @@
         </div>
         <div id="laundry-panel-completed" role="tabpanel" aria-labelledby="laundry-tab-completed" data-laundry-panel="completed" hidden>
     <div class="laundry-completed-block" id="completed-laundry-cases" data-completed-laundry>
-            <section class="card record-browser-toolbar laundry-toolbar laundry-completed-toolbar" aria-label="Completed laundry case filters">
-                <label class="record-browser-search" for="completed-laundry-search">Search
-                    <span class="search-input-shell">
-                        <span class="search-input-icon" aria-hidden="true"><x-icon name="search" size="17" /></span>
-                        <input id="completed-laundry-search" type="search" placeholder="Search borrower, request no., custody no., or items..." data-completed-search autocomplete="off">
-                    </span>
-                </label>
-                <label for="completed-laundry-outcome">Return Result
-                    <select id="completed-laundry-outcome" data-completed-outcome>
-                        <option value="">All results</option>
-                        <option value="available">Available for Borrowing</option>
-                        <option value="accountability">With Return Findings</option>
-                    </select>
-                </label>
-                <label for="completed-laundry-sort">Sort
-                    <select id="completed-laundry-sort" data-completed-sort>
-                        <option value="newest">Newest first</option>
-                        <option value="oldest">Oldest first</option>
-                    </select>
-                </label>
-            </section>
+            @include('laundry.partials.record-filters', ['completed' => true, 'records' => $completedJobs])
 
         <section class="card laundry-cases-card laundry-completed-card {{ $hasCompletedCases ? '' : 'is-empty' }}" aria-label="Completed Laundry Cases">
             @if($hasCompletedCases)
@@ -215,7 +167,7 @@
                         </thead>
                         <tbody data-completed-list>
                             @foreach($completedJobs as $job)
-                                @php
+@php
                                     $completedBorrower = $job->custody?->borrower;
                                     $completedRequest = $job->custody?->request;
                                     $serviceableQuantity = (int) $job->lines->sum('completed_quantity');
@@ -315,20 +267,12 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="laundry-filter-empty" data-completed-empty hidden>
-                    <x-icon name="search" size="27" />
-                    <strong>No completed cases match your filters.</strong>
-                    <p>Try another search or result.</p>
-                    <button class="button secondary small ui-pressable" type="button" data-completed-reset>Clear filters</button>
-                </div>
-                @if($completedJobs->hasPages())
-                    <div class="laundry-pagination">{{ $completedJobs->links('partials.pagination') }}</div>
-                @endif
+                <x-record-table-footer :records="$completedJobs" label="Completed laundry pages" />
             @else
                 <div class="laundry-inline-empty is-completed">
                     <span class="laundry-empty-icon"><x-icon name="check-circle" size="30" /></span>
                     <div>
-                        <strong>No completed laundry cases yet.</strong>
+                        <strong>{{ request()->filled('completed_q') || request('completed_outcome', 'ALL') !== 'ALL' ? 'No completed cases match your filters.' : 'No completed laundry cases yet.' }}</strong>
                         <p>Finished cases will stay visible here for record review.</p>
                     </div>
                 </div>

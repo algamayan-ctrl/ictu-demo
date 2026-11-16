@@ -88,9 +88,7 @@ class AnalyticsCardDetailService
  };
  }
 
- /* ------------------------------------------------------------------ */
  /* Shared shapes */
- /* ------------------------------------------------------------------ */
 
  /** A period-scoped reading states its window; a current one states today. */
  private function periodNote(array $scope): string
@@ -150,9 +148,7 @@ class AnalyticsCardDetailService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Overview */
- /* ------------------------------------------------------------------ */
 
  /** @return array<string, mixed> */
  private function trend(array $scope, string $title): array
@@ -468,9 +464,7 @@ class AnalyticsCardDetailService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Demand & Utilization */
- /* ------------------------------------------------------------------ */
 
  /** @return array<string, mixed> */
  private function requestedQuantity(array $scope): array
@@ -789,9 +783,7 @@ class AnalyticsCardDetailService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Inventory Health */
- /* ------------------------------------------------------------------ */
 
  /** @return array<string, mixed> */
  private function inventoryState(array $scope, string $facet): array
@@ -983,10 +975,7 @@ class AnalyticsCardDetailService
 
  /** @return array<string, mixed> */
 
-
- /* ------------------------------------------------------------------ */
  /* Borrowing & Return Performance */
- /* ------------------------------------------------------------------ */
 
  /** @return array<string, mixed> */
  private function returnTrend(array $scope): array
@@ -1511,38 +1500,19 @@ class AnalyticsCardDetailService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Forecast & Planning */
- /* ------------------------------------------------------------------ */
 
  /** @return array<string, mixed> */
 
-
+ /** @return array<string, mixed> */
 
  /** @return array<string, mixed> */
 
-
-
-
-
-
-
-
-
-
+ /** @return array<string, mixed> */
 
  /** @return array<string, mixed> */
 
-
  /** @return array<string, mixed> */
-
-
- /** @return array<string, mixed> */
-
-
-
- /** @return array<string, mixed> */
-
 
  // Pulled-main descriptive stock/release history; no projected values.
  private function coverage(array $scope): array

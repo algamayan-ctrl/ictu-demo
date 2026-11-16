@@ -1,5 +1,5 @@
 <style>
-{{-- /* Only the approved SPMU request detail uses this compact presentation. */ --}}
+
 .request-operational-page {
     --request-blue: #0863db;
     --request-green: #00a20b;
@@ -8,13 +8,13 @@
 .request-operational-page .request-operational-heading {
     align-items: center;
     flex-direction: row;
-    gap: 20px;
+    gap: 16px;
     margin-bottom: 22px;
 }
 .request-operational-page .request-operational-title-row {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 16px;
     flex-wrap: wrap;
 }
 .request-operational-page .request-operational-title-row h1 {
@@ -38,9 +38,9 @@
 .request-operational-page .request-operational-next-action {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 16px;
     flex-shrink: 0;
-    padding: 7px 12px 7px 16px;
+    padding: 7px 12px 7px 12px;
     border: 1px solid var(--row-border);
     border-radius: 9px;
     background: var(--surface-elevated);
@@ -57,7 +57,7 @@
     justify-content: center;
     gap: 10px;
     min-height: 42px;
-    padding: 10px 14px;
+    padding: 10px 12px;
     border-color: var(--request-blue);
     border-radius: 8px;
     color: #fff;
@@ -75,7 +75,7 @@
 }
 .request-operational-page .request-tracker-card { margin-top: 0; }
 .request-operational-page .request-tracker {
-    padding: 18px 16px;
+    padding: 16px 12px;
     border-radius: 11px;
 }
 .request-operational-page .request-tracker__scroll { padding: 8px 2px 6px; }
@@ -118,9 +118,9 @@
 .request-operational-page .request-tracker__pending-label { font-size: 11px; }
 .request-operational-page .request-operational-grid {
     grid-template-columns: minmax(0, .97fr) minmax(0, 1.03fr);
-    gap: 20px;
+    gap: 16px;
     align-items: stretch;
-    margin-top: 18px;
+    margin-top: 12px;
 }
 .request-operational-page .request-information-card,
 .request-operational-page .request-documents-card {
@@ -150,13 +150,13 @@
     color: var(--text-muted);
 }
 .request-operational-page .request-operational-grid .card-header {
-    padding: 13px 20px 11px;
+    padding: 13px 16px 11px;
     border-bottom: 1px solid var(--row-border);
     background: transparent;
 }
 .request-operational-page .request-information-list {
     grid-template-columns: minmax(150px, .65fr) minmax(0, 1fr);
-    margin: 6px 18px 7px;
+    margin: 6px 12px 7px;
 }
 .request-operational-page .request-information-list dt,
 .request-operational-page .request-information-list dd {
@@ -169,14 +169,14 @@
 .request-operational-page .request-information-list dt { padding-right: 12px; }
 .request-operational-page .request-information-list dt:last-of-type,
 .request-operational-page .request-information-list dd:last-of-type { border-bottom: 0; }
-.request-operational-page .request-operational-document-list { padding: 0 16px 14px; }
+.request-operational-page .request-operational-document-list { padding: 0 12px 12px; }
 .request-operational-page .request-operational-document {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
+    gap: 16px;
     min-height: 70px;
-    padding: 15px 6px;
+    padding: 12px 6px;
     border-bottom: 1px solid var(--row-border);
 }
 .request-operational-page .request-operational-document:last-child { border-bottom: 0; }
@@ -184,7 +184,7 @@
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 5px 16px;
+    gap: 5px 12px;
     min-width: 0;
 }
 .request-operational-document-copy strong { font-size: 12px; font-weight: 700; }
@@ -211,7 +211,7 @@
     font-weight: 500;
 }
 .request-operational-page .request-document-group-label {
-    margin: 14px 6px 0;
+    margin: 12px 6px 0;
     color: var(--text-muted);
     font-size: 10px;
     font-weight: 750;
@@ -242,7 +242,7 @@
     min-width: 64px;
     white-space: nowrap;
 }
-.request-operational-page .request-items-card { padding: 12px 17px 7px; }
+.request-operational-page .request-items-card { padding: 12px 12px 7px; }
 .request-operational-page .request-items-card .card-header {
     padding: 0 3px 10px;
     border: 0;
@@ -251,13 +251,13 @@
 .request-operational-page .table-wrap { overflow-x: auto; box-shadow: none; }
 .request-operational-page .request-operational-items { min-width: 590px; }
 .request-operational-page .request-operational-items th {
-    padding: 7px 14px;
+    padding: 7px 12px;
     font-size: 11px;
     letter-spacing: 0;
     text-transform: none;
 }
 .request-operational-page .request-operational-items td {
-    padding: 6px 14px;
+    padding: 6px 12px;
     font-size: 13px;
     line-height: 1.4;
 }
@@ -269,16 +269,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
-    padding: 13px 20px;
+    gap: 16px;
+    padding: 13px 16px;
     border-radius: inherit;
     cursor: pointer;
     list-style: none;
 }
-{{-- /* Base accordion styling lives in requests/partials/audit-history.blade.php,
-   which both this layout and the SPMU review layout include. Only the
-   operational-page spacing overrides remain here. */ --}}
-.request-operational-page .request-activity-history > .table-wrap { margin: 0 18px 18px; }
+
+.request-operational-page .request-activity-history > .table-wrap { margin: 0 12px 12px; }
 html[data-theme="dark"] .request-operational-page { --request-blue: #72b7f4; }
 html[data-theme="dark"] .request-operational-page .request-custody-link { background: #0863db; border-color: #0863db; }
 @media (max-width: 1280px) {
@@ -315,4 +313,3 @@ html[data-theme="dark"] .request-operational-page .request-custody-link { backgr
     .request-operational-page *, .request-operational-page *::after { transition: none !important; }
 }
 </style>
-

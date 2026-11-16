@@ -322,7 +322,7 @@ class AccountabilityDocumentLabelingTest extends TestCase
 
         $this->withSession(['active_workspace' => 'SPMU'])
             ->actingAs($head)
-            ->post(route('overdue.bill', $case), ['basis' => 'Three late calendar days at the configured tariff.'])
+            ->post(route('overdue.bill', $case), ['basis' => 'Three late calendar days at the configured tariff.', 'confirm_e_signature' => '1'])
             ->assertSessionHasNoErrors();
 
         $billing = BillingStatement::query()->where('borrower_user_id', $borrower->id)->firstOrFail();

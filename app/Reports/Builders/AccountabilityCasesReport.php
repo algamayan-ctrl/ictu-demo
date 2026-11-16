@@ -175,13 +175,7 @@ class AccountabilityCasesReport implements ReportBuilder
             ->when(
                 $status !== null,
                 fn (Collection $rows): Collection => $rows->filter(function (array $row) use ($status): bool {
-                    if ($status !== 'OPEN_CURRENT') {
-                        return $row['_status_code'] === $status;
-                    }
-
-                    return $row['_case_type_code'] === 'LATE_RETURN'
-                        ? $row['_status_code'] !== 'RESOLVED'
-                        : ! in_array($row['_status_code'], ['RESOLVED', 'CLOSED', 'VOID_CORRECTION'], true);
+                    return \App\Reports\AccountabilityStatusGroups::matches($status, $row['_status_code'], $row['_case_type_code']);
                 })
             )
             ->sortByDesc('_date_reported_raw')

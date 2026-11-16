@@ -4,7 +4,9 @@
 <article class="card sao-stock-card" id="stock-card">
     <div class="sao-stock-card-heading">
         <div><h2>Stock Card</h2></div>
-        <a class="button secondary small" href="{{ route('inventory.stock-card.print', array_merge(['inventory' => $item->id], $printQuery)) }}" target="_blank" rel="noopener"><x-icon name="printer" size="17" /> Print Stock Card</a>
+        @if($isActionOfficer)
+            <a class="button secondary small" href="{{ route('inventory.stock-card.print', array_merge(['inventory' => $item->id], $printQuery)) }}" target="_blank" rel="noopener"><x-icon name="printer" size="17" /> Print Stock Card</a>
+        @endif
     </div>
     @if($card['warning'])<p class="sao-stock-card-warning" role="alert">{{ $card['warning'] }}</p>@endif
     <form method="GET" action="{{ route('inventory.show', $item) }}" id="sao-stock-card-filters">

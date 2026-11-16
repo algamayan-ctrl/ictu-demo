@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
+// This is the service for borrowing request verification, approval, and workflow transitions.
 class RequestWorkflowService
 {
     public function __construct(
@@ -145,11 +146,14 @@ class RequestWorkflowService
 
         $this->assertEligibleToBorrow($borrower);
 
+        $academicNumbering = app(AcademicYearRequestNumbers::class)->enabled();
         DB::transaction(
             function () use (
                 $request,
-                $borrower
+                $borrower,
+                $academicNumbering
             ): void {
+                if ($academicNumbering) app(AcademicYearRequestNumbers::class)->lockSubmission($request);
                 // A route-bound or preloaded draft may be stale after another submit/edit.
                 // Serialize the signing action on the request header and reload its version.
                 $request = BorrowingRequest::query()->lockForUpdate()->findOrFail($request->id);
@@ -256,6 +260,10 @@ class RequestWorkflowService
                 $this->validateRequiredSupportingDocuments(
                     $version
                 );
+
+                if ($academicNumbering) {
+                    $request->request_no = app(AcademicYearRequestNumbers::class)->assign($request, now('Asia/Manila'));
+                }
 
                 $signatureSnapshot = $this->signatures->snapshot(
                     $borrower,
@@ -1434,7 +1442,6 @@ class RequestWorkflowService
             3
         );
     }
-
 
     /**
      * Borrower cancellation rules.

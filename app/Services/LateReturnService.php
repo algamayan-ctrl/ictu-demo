@@ -86,9 +86,7 @@ class LateReturnService
         return self::LABELS[(string) $status] ?? (string) $status;
     }
 
-    /* ------------------------------------------------------------------ */
     /* The authoritative physical return date                              */
-    /* ------------------------------------------------------------------ */
 
     /**
      * When the property physically came back, and which workflow said so.
@@ -253,9 +251,7 @@ class LateReturnService
         return $custody->due_at ? Carbon::parse($custody->due_at)->startOfDay() : null;
     }
 
-    /* ------------------------------------------------------------------ */
     /* Chargeable late days                                                */
-    /* ------------------------------------------------------------------ */
 
     /**
      * The dates on which this custody is chargeably late.
@@ -379,9 +375,7 @@ class LateReturnService
             : null;
     }
 
-    /* ------------------------------------------------------------------ */
     /* Linen return state                                                  */
-    /* ------------------------------------------------------------------ */
 
     /** No linen on this custody. */
     public const LINEN_NOT_APPLICABLE = 'NOT_APPLICABLE';
@@ -504,9 +498,7 @@ class LateReturnService
         );
     }
 
-    /* ------------------------------------------------------------------ */
     /* Classification                                                      */
-    /* ------------------------------------------------------------------ */
 
     /**
      * Classify a custody once its physical return has been recorded.
@@ -638,9 +630,7 @@ class LateReturnService
         return $case;
     }
 
-    /* ------------------------------------------------------------------ */
     /* Presentation helpers                                                */
-    /* ------------------------------------------------------------------ */
 
     /**
      * What the case is worth right now.
@@ -700,9 +690,7 @@ class LateReturnService
         ];
     }
 
-    /* ------------------------------------------------------------------ */
     /* Recipients                                                          */
-    /* ------------------------------------------------------------------ */
 
     /** @return \Illuminate\Support\Collection<int, User> */
     private function actionOfficers()

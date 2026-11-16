@@ -4,6 +4,7 @@
 ])
 
 @section('content')
+{{-- This is the Inventory Details UI for authorized Borrower and SPMU users. --}}
 
 @php
     $total = (float) ($balance['total'] ?? 0);
@@ -50,9 +51,6 @@
     $writeOffSources = collect($eligibleWriteOffSources ?? []);
 
     $requestedInventoryTab = (string) request('tab', 'overview');
-    if ($isActionOfficer && $requestedInventoryTab === 'item-information') {
-        $requestedInventoryTab = 'overview';
-    }
     $activeInventoryTab = in_array($requestedInventoryTab, [
         'overview',
         'stock-card',
@@ -60,9 +58,7 @@
         'item-information',
     ], true) ? $requestedInventoryTab : 'overview';
 
-    // Reuse the read-only Stock Card as the provenance source for the detail
-    // page. This adds context without inventing another inventory audit trail.
-    $lastStockEntry = collect($stockCard)->first();
+    // This is the latest movement reference, independent of table filters.
     $lastStockReference = $lastStockEntry
         ? ($stockCardReferences[(int) $lastStockEntry->id] ?? null)
         : null;
@@ -179,35 +175,35 @@
         </div>
     @else
         <section class="inventory-admin-summary" aria-label="Current inventory summary">
-            <div class="inventory-admin-summary-item is-total" title="Recorded physical quantity for this inventory item.">
+            <div class="inventory-admin-summary-item is-total" role="button" tabindex="0" aria-haspopup="dialog" data-inventory-summary="total" title="Recorded physical quantity for this inventory item.">
                 <span class="inventory-summary-icon" aria-hidden="true"><x-icon name="box" size="18" /></span>
                 <div class="inventory-summary-copy">
                     <span>Total Stock</span>
                     <strong>{{ $total + 0 }}</strong>
                 </div>
             </div>
-            <div class="inventory-admin-summary-item is-available" title="{{ $isActionOfficer ? 'Usable items not already allocated to approved requests.' : 'Serviceable units currently free for a new allocation; approved reservations are already excluded.' }}">
+            <div class="inventory-admin-summary-item is-available" role="button" tabindex="0" aria-haspopup="dialog" data-inventory-summary="available" title="{{ $isActionOfficer ? 'Usable items not already allocated to approved requests.' : 'Serviceable units currently free for a new allocation; approved reservations are already excluded.' }}">
                 <span class="inventory-summary-icon" aria-hidden="true"><x-icon name="success" size="18" /></span>
                 <div class="inventory-summary-copy">
                     <span>Available</span>
                     <strong>{{ $available + 0 }}</strong>
                 </div>
             </div>
-            <div class="inventory-admin-summary-item is-reserved" title="Units allocated to approved requests and awaiting physical release.">
+            <div class="inventory-admin-summary-item is-reserved" role="button" tabindex="0" aria-haspopup="dialog" data-inventory-summary="reserved" title="Units allocated to approved requests and awaiting physical release.">
                 <span class="inventory-summary-icon" aria-hidden="true"><x-icon name="bookmark" size="18" /></span>
                 <div class="inventory-summary-copy">
                     <span>{{ $isActionOfficer ? 'Allocated' : 'Reserved' }}</span>
                     <strong>{{ $reserved + 0 }}</strong>
                 </div>
             </div>
-            <div class="inventory-admin-summary-item is-custody" title="Units physically released to borrowers and not yet returned.">
+            <div class="inventory-admin-summary-item is-custody" role="button" tabindex="0" aria-haspopup="dialog" data-inventory-summary="custody" title="Units physically released to borrowers and not yet returned.">
                 <span class="inventory-summary-icon" aria-hidden="true"><x-icon name="profile" size="18" /></span>
                 <div class="inventory-summary-copy">
                     <span>On Custody</span>
                     <strong>{{ $issued + 0 }}</strong>
                 </div>
             </div>
-            <div class="inventory-admin-summary-item is-unavailable" title="Units excluded from allocation by laundry, incident, or physical-condition state.">
+            <div class="inventory-admin-summary-item is-unavailable" role="button" tabindex="0" aria-haspopup="dialog" data-inventory-summary="unavailable" title="Units excluded from allocation by laundry, incident, or physical-condition state.">
                 <span class="inventory-summary-icon" aria-hidden="true"><x-icon name="warning" size="18" /></span>
                 <div class="inventory-summary-copy">
                     <span>Unavailable</span>
@@ -248,9 +244,7 @@
             <button type="button" class="{{ $isActionOfficer ? 'link-button ' : '' }}inventory-detail-tab {{ $activeInventoryTab === 'overview' ? 'is-active' : '' }}" data-inventory-tab="overview" role="tab" aria-selected="{{ $activeInventoryTab === 'overview' ? 'true' : 'false' }}">Overview</button>
             <button type="button" class="{{ $isActionOfficer ? 'link-button ' : '' }}inventory-detail-tab {{ $activeInventoryTab === 'stock-card' ? 'is-active' : '' }}" data-inventory-tab="stock-card" role="tab" aria-selected="{{ $activeInventoryTab === 'stock-card' ? 'true' : 'false' }}">Stock Card</button>
             <button type="button" class="{{ $isActionOfficer ? 'link-button ' : '' }}inventory-detail-tab {{ $activeInventoryTab === 'borrowing-history' ? 'is-active' : '' }}" data-inventory-tab="borrowing-history" role="tab" aria-selected="{{ $activeInventoryTab === 'borrowing-history' ? 'true' : 'false' }}">Borrowing History</button>
-            @unless($isActionOfficer)
-                <button type="button" class="inventory-detail-tab {{ $activeInventoryTab === 'item-information' ? 'is-active' : '' }}" data-inventory-tab="item-information" role="tab" aria-selected="{{ $activeInventoryTab === 'item-information' ? 'true' : 'false' }}">Item Information</button>
-            @endunless
+            <button type="button" class="inventory-detail-tab {{ $activeInventoryTab === 'item-information' ? 'is-active' : '' }}" data-inventory-tab="item-information" role="tab" aria-selected="{{ $activeInventoryTab === 'item-information' ? 'true' : 'false' }}">Item Description</button>
         </nav>
 
         <section class="inventory-tab-panel inventory-tab-overview" data-inventory-panel="overview" role="tabpanel" @if($activeInventoryTab !== 'overview') hidden @endif>
@@ -339,7 +333,7 @@
 
                             <label class="inventory-adjustment-reason" data-inventory-reason-field hidden>
                                 <span data-inventory-reason-label>Reason / reference</span>
-                                <textarea
+<textarea
                                     name="reason"
                                     rows="3"
                                     data-inventory-reason-input
@@ -507,24 +501,25 @@
         </section>
 
         <section class="inventory-tab-panel" data-inventory-panel="stock-card" role="tabpanel" @if($activeInventoryTab !== 'stock-card') hidden @endif>
-        @if($isActionOfficer)
-            @include('inventory.partials.sao-stock-card', ['card' => $saoStockCard])
-        @else
-        <article class="card inventory-borrowing-history-card" id="stock-card">
+        @include('inventory.partials.sao-stock-card', ['card' => $saoStockCard])
+        @unless($isActionOfficer)
+        <details class="inventory-movement-details" @if(request()->hasAny(['movement_q', 'movement_type', 'movement_from', 'movement_to', 'movement_page', 'movement_per_page'])) open @endif><summary>Movement details</summary>
+        <article class="card inventory-borrowing-history-card" id="inventory-movement-details">
             <div class="card-header inventory-history-header">
                 <div>
                     <p class="eyebrow">Read-only inventory ledger</p>
-                    <h2>Stock Card</h2>
-                    <p class="meta">System-generated inventory movement history for {{ 'INV-'.str_pad((string) $item->id, 4, '0', STR_PAD_LEFT) }}. Records cannot be edited from this page. The latest up to 100 movements are shown.</p>
+                    <h2>Inventory movement details</h2>
+                    <p class="meta">System-generated inventory movement history for {{ 'INV-'.str_pad((string) $item->id, 4, '0', STR_PAD_LEFT) }}. Records cannot be edited from this page.</p>
                 </div>
             </div>
+            @include('inventory.partials.movement-filters')
             <div class="table-wrap inventory-history-table-wrap">
                 <table class="inventory-history-table inventory-ledger-table">
                     <thead>
                         <tr><th>Date</th><th>Transaction</th><th>From</th><th>To</th><th>Quantity</th><th>Reference</th><th>Actor / Reason</th></tr>
                     </thead>
                     <tbody>
-                    @forelse($stockCard as $entry)
+                    @forelse($movementPage as $entry)
                         @php($sourceReference = $stockCardReferences[(int) $entry->id] ?? null)
                         <tr>
                             <td>{{ \Illuminate\Support\Carbon::parse($entry->occurred_at)->format('d M Y, g:i A') }}</td>
@@ -556,8 +551,10 @@
                     </tbody>
                 </table>
             </div>
+                    <x-record-table-footer :records="$movementPage" label="Inventory movement pages" />
         </article>
-        @endif
+        </details>
+        @endunless
         </section>
 
         <section class="inventory-tab-panel" data-inventory-panel="borrowing-history" role="tabpanel" @if($activeInventoryTab !== 'borrowing-history') hidden @endif>
@@ -579,7 +576,7 @@
             <form
                 method="get"
                 action="{{ route('inventory.show', $item) }}"
-                class="inventory-history-filter"
+                class="inventory-history-filter record-table-toolbar"
             >
                 <input type="hidden" name="tab" value="borrowing-history">
 
@@ -628,6 +625,7 @@
                     </span>
                 </label>
 
+                <x-record-page-size name="history_per_page" :value="$saoBorrowingHistory['per_page']" :sizes="[10, 30, 50, 100]" />
                 <div class="inventory-history-filter-actions">
                     <button class="button primary ui-pressable" type="submit">
                         Apply Filter
@@ -698,7 +696,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($borrowingHistory as $row)
+                        @forelse($saoBorrowingHistory['page'] as $row)
                             <tr>
                                 <td data-label="Borrower / Office">
                                     <strong>{{ $row['borrower']?->full_name ?: 'Unknown borrower' }}</strong>
@@ -795,17 +793,17 @@
                     </tbody>
                 </table>
             </div>
+                    <x-record-table-footer :records="$saoBorrowingHistory['page']" label="Borrowing history pages" />
         </article>
         @endif
         </section>
 
-        @unless($isActionOfficer)
         <section class="inventory-tab-panel" data-inventory-panel="item-information" role="tabpanel" @if($activeInventoryTab !== 'item-information') hidden @endif>
         <article class="card inventory-master-detail-card">
             <div class="card-header">
                 <div>
                     <p class="eyebrow">Inventory master record</p>
-                    <h2>Item information</h2>
+                    <h2>Item Description</h2>
                 </div>
 
                 @if($canEditInventory)
@@ -846,17 +844,16 @@
             </dl>
         </article>
         </section>
-        @endunless
+        @include('inventory.partials.summary-dialog')
     @endif
 </section>
-
 
 <style>
 .inventory-admin-summary {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 14px;
-    margin-bottom: 18px;
+    gap: 12px;
+    margin-bottom: 12px;
 }
 
 .inventory-admin-summary-item {
@@ -866,7 +863,7 @@
     gap: 12px;
     min-width: 0;
     min-height: 96px;
-    padding: 15px 16px;
+    padding: 12px 12px;
     border: 1px solid var(--border);
     border-top: 3px solid var(--inventory-summary-accent);
     border-radius: 12px;
@@ -944,8 +941,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin: 0 0 20px;
-    padding: 13px 15px;
+    margin: 0 0 16px;
+    padding: 13px 12px;
     border: 1px solid var(--border);
     border-radius: 11px;
     background: var(--surface-subtle, #f7f9fc);
@@ -996,17 +993,17 @@
 
 .inventory-overview-grid { align-items: stretch; }
 .inventory-overview-card { min-width: 0; height: 100%; overflow: hidden; }
-.inventory-overview-card .card-header { min-height: 98px; padding: 20px 22px 16px; }
+.inventory-overview-card .card-header { min-height: 98px; padding: 16px 16px 12px; }
 .inventory-overview-card .card-header .meta { margin: 5px 0 0; max-width: 620px; line-height: 1.45; }
-.inventory-overview-card .inventory-ops-list { padding: 6px 22px 20px; }
-.inventory-overview-empty { margin: -2px 22px 20px; color: var(--text-muted); font-size: .83rem; }
+.inventory-overview-card .inventory-ops-list { padding: 6px 16px 16px; }
+.inventory-overview-empty { margin: -2px 22px 16px; color: var(--text-muted); font-size: .83rem; }
 
 .inventory-source-records-card {
-    margin-top: 24px;
+    margin-top: 16px;
     overflow: hidden;
 }
 .inventory-source-records-card .card-header {
-    padding: 20px 22px 18px;
+    padding: 16px 16px 16px;
 }
 .inventory-source-records-card .card-header .meta {
     margin: 5px 0 0;
@@ -1017,7 +1014,7 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 18px;
+    gap: 16px;
 }
 .inventory-source-header-actions {
     display: flex;
@@ -1040,8 +1037,8 @@
 }
 .inventory-source-groups {
     display: grid;
-    gap: 16px;
-    padding: 18px 22px 16px;
+    gap: 12px;
+    padding: 16px 16px 12px;
 }
 .inventory-source-group {
     overflow: hidden;
@@ -1053,8 +1050,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    padding: 13px 16px;
+    gap: 12px;
+    padding: 13px 12px;
     border-bottom: 1px solid var(--border);
     background: var(--surface-subtle, #f8fafc);
 }
@@ -1087,9 +1084,9 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(140px, .42fr) auto;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
     min-width: 0;
-    padding: 15px 16px;
+    padding: 12px 12px;
     border-bottom: 1px solid var(--border);
 }
 .inventory-source-record:last-child {
@@ -1137,7 +1134,7 @@
 }
 .inventory-source-note {
     margin: 0;
-    padding: 0 22px 20px;
+    padding: 0 16px 16px;
     color: var(--text-muted);
     font-size: .8rem;
     line-height: 1.45;
@@ -1145,8 +1142,8 @@
 .inventory-source-empty-state {
     display: grid;
     gap: 4px;
-    margin: 18px 22px 22px;
-    padding: 15px 16px;
+    margin: 12px 22px 22px;
+    padding: 12px 12px;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--surface-subtle, #f8fafc);
@@ -1177,7 +1174,7 @@
 @media (max-width: 900px) {
     .inventory-source-record {
         grid-template-columns: minmax(0, 1fr) auto;
-        gap: 12px 16px;
+        gap: 12px 12px;
     }
     .inventory-source-record-state {
         text-align: right;
@@ -1213,7 +1210,7 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
-    margin: 18px 0 22px;
+    margin: 12px 0 22px;
     padding: 0;
     border: 0;
     background: transparent;
@@ -1224,7 +1221,7 @@
     position: relative;
     min-width: 0;
     min-height: 48px;
-    padding: 11px 16px;
+    padding: 11px 12px;
     border: 1px solid #c7d5e4;
     border-radius: 10px;
     background: #fff;
@@ -1316,7 +1313,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
+    gap: 16px;
     min-height: 52px;
     padding: 13px 0;
     border-bottom: 1px solid var(--border);
@@ -1344,7 +1341,6 @@
     font-weight: 700;
 }
 
-
 .inventory-info-pill {
     display: inline-block;
     padding: 3px 11px;
@@ -1365,7 +1361,7 @@
 
 .inventory-borrowing-history-card {
     display: grid;
-    gap: 20px;
+    gap: 16px;
     overflow: hidden;
 }
 .inventory-borrowing-history-card > .inventory-history-filter,
@@ -1431,7 +1427,7 @@
     align-items: baseline;
     gap: 7px;
     min-width: 0;
-    padding: 12px 14px;
+    padding: 12px 12px;
     border-right: 1px solid var(--border);
 }
 
@@ -1450,7 +1446,7 @@
 
 .inventory-history-table-wrap {
     max-height: 560px;
-    margin: 0 18px 18px;
+    margin: 0 12px 12px;
     overflow: auto;
     overscroll-behavior: contain;
     border: 1px solid var(--border);
@@ -1532,12 +1528,10 @@
     }
 }
 
-{{-- /* Keep Unavailable Breakdown and Physical Condition on one desktop row.
-   Stack only when the content area is genuinely narrow. */ --}}
 @media (max-width: 860px) {
     .inventory-tab-overview .inventory-detail-grid {
         grid-template-columns: 1fr;
-        gap: 18px;
+        gap: 16px;
     }
 }
 
@@ -1596,16 +1590,15 @@
     }
 }
 
-
-.inventory-adjustment-card { margin-bottom: 18px; }
-.inventory-adjustment-header { display: flex; align-items: center; justify-content: space-between; gap: 16px 22px; flex-wrap: wrap; }
+.inventory-adjustment-card { margin-bottom: 12px; }
+.inventory-adjustment-header { display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap; }
 .inventory-adjustment-header h2 { margin: 0; }
 .inventory-adjustment-header .meta { margin: 5px 0 0; }
 .inventory-adjustment-toggle { flex-shrink: 0; }
 .inventory-adjustment-toggle .ui-icon { transition: transform .18s ease; }
 .inventory-adjustment-toggle[aria-expanded="true"] .ui-icon { transform: rotate(180deg); }
-.inventory-adjustment-panel { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
-.inventory-adjustment-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px 18px; }
+.inventory-adjustment-panel { margin-top: 12px; padding-top: 18px; border-top: 1px solid var(--border); }
+.inventory-adjustment-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px 16px; }
 .inventory-adjustment-form > label {
     display: grid;
     align-self: start;
@@ -1641,7 +1634,6 @@
     }
 }
 </style>
-
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -1689,7 +1681,6 @@ document.addEventListener('DOMContentLoaded', () => {
     activateTab(initialTab, false);
 });
 </script>
-
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -1815,7 +1806,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-{{-- BORROWER_INVENTORY_POLISH_V3_START --}}
 <style>
     .borrower-inventory-polished {
         overflow: hidden;
@@ -1830,9 +1820,9 @@ document.addEventListener('DOMContentLoaded', () => {
     .borrower-availability-highlight {
         display: flex;
         align-items: center;
-        gap: 18px;
-        margin: 18px 0 20px;
-        padding: 18px 20px;
+        gap: 16px;
+        margin: 12px 0 16px;
+        padding: 16px 16px;
         border: 1px solid var(--border);
         border-radius: var(--radius);
         background: var(--surface-subtle, var(--surface));
@@ -1887,7 +1877,7 @@ document.addEventListener('DOMContentLoaded', () => {
         display: grid;
         gap: 6px;
         min-width: 0;
-        padding: 16px 18px;
+        padding: 12px 16px;
         border-bottom: 1px solid var(--border);
     }
 
@@ -1922,7 +1912,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     .borrower-reference-note {
-        margin-top: 14px;
+        margin-top: 12px;
     }
 
     @media (max-width: 700px) {
@@ -1954,7 +1944,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 </style>
-{{-- BORROWER_INVENTORY_POLISH_V3_END --}}
 
 @if($isActionOfficer)
     @include('inventory.partials.sao-detail-styles')

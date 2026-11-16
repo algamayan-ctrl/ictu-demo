@@ -11,6 +11,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class BorrowingRequest extends Model
 {
+    public function getRequestNoAttribute(?string $value): string
+    {
+        return str_starts_with($value ?? '', 'PENDING-') ? 'Control No. pending submission' : ($value ?? '');
+    }
+
     use HasFactory;
 
     protected $fillable = [
@@ -37,6 +42,17 @@ class BorrowingRequest extends Model
     public function borrower(): BelongsTo
     {
         return $this->belongsTo(User::class, 'borrower_user_id');
+    }
+
+    public function numberAliases(): HasMany
+    {
+        return $this->hasMany(RequestNumberAlias::class, 'request_id');
+    }
+
+    public function previousControlNumbers(): array
+    {
+        if ($this->relationLoaded('numberAliases')) return $this->numberAliases->pluck('alias')->all();
+        return app(\App\Services\AcademicYearRequestNumbers::class)->previousNumbers($this);
     }
 
     public function versions(): HasMany

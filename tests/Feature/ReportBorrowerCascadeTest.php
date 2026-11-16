@@ -51,12 +51,11 @@ class ReportBorrowerCascadeTest extends TestCase
             ->get(route('reports.index', ['report' => 'borrowing']));
 
         $response->assertOk();
-        $response->assertSee('data-borrower-picker', false);
-        $response->assertSee('data-borrower-trigger', false);
-        $response->assertSee('data-borrower-current', false);
-        $response->assertSee('All borrowers', false);
-        $response->assertSee('Search borrower by name or email...', false);
-        $response->assertSee('data-borrower-menu hidden', false);
+        $response->assertSee('data-report-picker="borrower"', false);
+        $response->assertSee('data-picker-input', false);
+        $response->assertSee('Search borrower…', false);
+        $response->assertSee('data-report-more-panel', false);
+        $response->assertDontSee('<select name="borrower"', false);
     }
 
     public function test_borrower_picker_builds_a_fresh_scope_url_instead_of_appending_to_form_action(): void
@@ -71,9 +70,10 @@ class ReportBorrowerCascadeTest extends TestCase
             ]));
 
         $response->assertOk();
-        $response->assertSee("previewForm.getAttribute('action') || window.location.pathname", false);
-        $response->assertSee('endpoint.search = params.toString();', false);
-        $response->assertDontSee('`${previewForm.action || window.location.pathname}?${params.toString()}`', false);
+        $response->assertSee('/js/reports-compact.js', false);
+        $source = file_get_contents(public_path('js/reports-compact.js'));
+        $this->assertStringContainsString('new URL(form.action, window.location.href)', $source);
+        $this->assertStringContainsString("url.searchParams.set('borrower_options','1')", $source);
     }
 
     public function test_borrower_options_are_scoped_by_division_and_office(): void

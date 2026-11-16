@@ -82,7 +82,6 @@ class AnalyticsService
  ];
  }
 
-
  /**
  * Requests needed before a weekday or hour peak is reported.
  *
@@ -91,15 +90,12 @@ class AnalyticsService
  */
  public const PEAK_MINIMUM_OBSERVATIONS = 10;
 
-
  public function __construct(
  private readonly ReturnMetricsService $returnMetrics,
  private readonly OperationalCalendarService $operationalCalendar,
  ) {}
 
- /* ------------------------------------------------------------------ */
  /* Borrower Type */
- /* ------------------------------------------------------------------ */
 
  /**
  * Borrower Type selected for this request: null (All Types), EMPLOYEE or
@@ -382,7 +378,6 @@ class AnalyticsService
  ->groupBy('division_code')
  ->map(fn ($rows): array => $rows->pluck('office_unit')->filter()->unique()->sort()->values()->all());
  }
-
 
  /**
  * Custody transactions belonging to requests filed inside the period.
@@ -935,9 +930,7 @@ class AnalyticsService
  });
  }
 
- /* ------------------------------------------------------------------ */
  /* Section A - Overview */
- /* ------------------------------------------------------------------ */
 
  /** @return array<string, mixed> */
  public function overview(
@@ -992,9 +985,7 @@ class AnalyticsService
  return $sentence;
  }
 
- /* ------------------------------------------------------------------ */
  /* Section B - Borrower distribution */
- /* ------------------------------------------------------------------ */
 
  /** @return array<string, mixed> */
  public function borrowerGroups(
@@ -1061,9 +1052,7 @@ class AnalyticsService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Section C - Academic & administrative units */
- /* ------------------------------------------------------------------ */
 
  /** @return array<string, mixed> */
  public function unitRankings(
@@ -1120,9 +1109,7 @@ class AnalyticsService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Section D - Most borrowed assets */
- /* ------------------------------------------------------------------ */
 
  /**
  * Ranked by quantity physically released, not by how many requests
@@ -1517,9 +1504,7 @@ class AnalyticsService
  return $query;
  }
 
- /* ------------------------------------------------------------------ */
  /* Period-over-period comparison */
- /* ------------------------------------------------------------------ */
 
  /**
  * The equal-length period immediately before the selected one.
@@ -1675,9 +1660,7 @@ class AnalyticsService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Section D2 - Request outcomes */
- /* ------------------------------------------------------------------ */
 
  /**
  * Filed requests needed before a leading outcome is stated as an
@@ -1835,9 +1818,7 @@ class AnalyticsService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Section E - Borrowing trends */
- /* ------------------------------------------------------------------ */
 
  /**
  * Grouping follows the selected period: a week reads by day, a month by
@@ -1951,9 +1932,7 @@ class AnalyticsService
  };
  }
 
- /* ------------------------------------------------------------------ */
  /* Section F - Returns & accountability */
- /* ------------------------------------------------------------------ */
 
  /** @return array<string, mixed> */
  public function returns(
@@ -2022,9 +2001,7 @@ class AnalyticsService
  return implode(' ', $parts);
  }
 
- /* ------------------------------------------------------------------ */
  /* Section G - Inventory status */
- /* ------------------------------------------------------------------ */
 
  /**
  * A summary only. Inventory Overview stays the operational module.
@@ -2269,9 +2246,7 @@ class AnalyticsService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Section H - Movement */
- /* ------------------------------------------------------------------ */
 
  /**
  * Equipment that moved least, including equipment that never moved.
@@ -2412,9 +2387,7 @@ class AnalyticsService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Section I - Borrower behaviour */
- /* ------------------------------------------------------------------ */
 
  /**
  * The borrowers who filed the most requests in the period.
@@ -2631,9 +2604,7 @@ class AnalyticsService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Section F2 - Return performance detail */
- /* ------------------------------------------------------------------ */
 
  /**
  * Late-return share among completed returns, by division or by unit.
@@ -3299,9 +3270,7 @@ class AnalyticsService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Filter options */
- /* ------------------------------------------------------------------ */
 
  /**
  * Units offered in the Unit filter, grouped by division.

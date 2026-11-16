@@ -1,5 +1,5 @@
 <style>
-{{-- /* Release-only scope: borrower records, return inspection and oversight stay unchanged. */ --}}
+
 .release-flow-page {
     --release-blue: #0863db;
     --release-green: #08a536;
@@ -11,12 +11,10 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(330px, .95fr);
     align-items: center;
-    gap: 18px;
-    margin-bottom: 14px;
+    gap: 16px;
+    margin-bottom: 12px;
 }
-{{-- /* The global heading utility uses display:contents so actions align to the title
-   row. This release header is a true two-column summary; keep its copy grouped
-   so the status card cannot create a tall empty row between the title and ID. */ --}}
+
 .release-flow-page .release-page-heading > div:first-child {
     display: block;
     min-width: 0;
@@ -48,7 +46,7 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    padding: 14px 16px;
+    padding: 12px 12px;
     border-bottom: 1px solid var(--row-border);
 }
 .release-status-heading > .ui-icon { flex-shrink: 0; margin-top: 1px; }
@@ -61,7 +59,7 @@
 .release-status-dates {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    padding: 13px 16px;
+    padding: 13px 12px;
 }
 .release-status-dates > div { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
 .release-status-dates > div + div { margin-left: 12px; padding-left: 14px; border-left: 1px solid var(--row-border); }
@@ -85,10 +83,10 @@
 .release-flow-page .request-tracker__pending-label { display: none; }
 .release-flow-page .request-tracker__step.is-pending .request-tracker__copy { opacity: 1; }
 .release-flow-page .request-tracker__step.is-pending .request-tracker__copy strong { color: var(--text-muted); }
-.release-flow-page .content-area, .release-flow-page .content-grid { margin-top: 16px; }
-.release-flow-page .release-overview-grid { grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); gap: 16px; align-items: stretch; }
-.release-flow-page .release-context-card { padding: 15px 14px 12px; }
-.release-flow-page .release-details-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.release-flow-page .content-area, .release-flow-page .content-grid { margin-top: 12px; }
+.release-flow-page .release-overview-grid { grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); gap: 12px; align-items: stretch; }
+.release-flow-page .release-context-card { padding: 12px 12px 12px; }
+.release-flow-page .release-details-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .release-flow-page .release-detail-group { min-width: 0; }
 .release-flow-page .release-detail-group h3 { margin: 0 8px 5px; color: var(--text-muted); font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .release-flow-page .release-card-title { display: flex; align-items: center; gap: 9px; margin-bottom: 13px; }
@@ -104,7 +102,7 @@
 .release-flow-page .release-approved-card,
 .release-flow-page .release-schedule-exception-card,
 .release-flow-page .release-documents-card,
-.release-flow-page .release-physical-card { padding: 15px 14px 13px; }
+.release-flow-page .release-physical-card { padding: 12px 12px 13px; }
 .release-flow-page .release-documents-card { min-width: 0; }
 .release-flow-page .table-wrap { overflow-x: auto; box-shadow: none; }
 .release-flow-page .release-approved-table { min-width: 480px; }
@@ -116,12 +114,12 @@
 .release-approved-table td > strong, .release-approved-table td > small { display: block; }
 .release-approved-table td > strong { font-size: 12px; color: var(--heading); }
 .release-approved-table td > small { margin-top: 2px; font-size: 11px; }
-.release-approved-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
-.release-flow-page .release-schedule-fields { margin-top: 0; gap: 16px; }
+.release-approved-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+.release-flow-page .release-schedule-fields { margin-top: 0; gap: 12px; }
 .release-flow-page .release-schedule-form { margin: 0; }
 .release-flow-page .release-schedule-form > .meta { margin: 0 0 12px; color: var(--text-muted); font-size: 12px; line-height: 1.55; }
 .release-flow-page .release-schedule-details { display: grid; gap: 8px; margin: 0; padding: 0; }
-.release-flow-page .release-schedule-detail-row { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); align-items: baseline; gap: 14px; padding: 10px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.release-flow-page .release-schedule-detail-row { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); align-items: baseline; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .release-flow-page .release-schedule-detail-label { color: var(--text-muted); font-size: 11.5px; font-weight: 700; }
 .release-flow-page .release-schedule-detail-value { color: var(--heading); font-size: 12px; font-weight: 700; }
 .release-flow-page .release-schedule-detail-help { margin: 0; color: var(--text-muted); font-size: 11.5px; line-height: 1.55; }
@@ -131,11 +129,11 @@
 .release-flow-page .release-schedule-exception .meta { color: var(--text-muted); }
 .release-flow-page .release-schedule-exception-note { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .release-flow-page .release-delayed-review { margin: 0; padding: 0; border: 0; }
-.release-flow-page .release-schedule-review-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; padding-right: 0; margin-top: 14px; }
+.release-flow-page .release-schedule-review-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; padding-right: 0; margin-top: 12px; }
 .release-flow-page .release-schedule-review-form { display: flex; align-items: center; gap: 12px; margin: 0; }
 .release-flow-page .release-schedule-exception-card .release-card-title { padding-bottom: 12px; border-bottom: 1px solid var(--row-border); margin-bottom: 12px; }
 .release-flow-page .release-compact-pickup { margin: 0; padding: 0; border: 0; }
-.release-flow-page .release-compact-pickup > div { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.release-flow-page .release-compact-pickup > div { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
 .release-flow-page .release-compact-pickup > div > p { flex: 1 1 300px; margin: 0; }
 .release-flow-page .release-compact-pickup .release-form-actions { flex: 0 0 auto; margin: 0 0 0 auto; padding-right: 0; }
 .release-flow-page .release-compact-pickup > div > .release-pickup-notice,
@@ -144,14 +142,14 @@
 @media (max-width: 640px) {
     .release-flow-page .release-compact-pickup .release-form-actions { flex: 1 0 100%; margin-left: 0; }
 }
-.release-pickup-dialog { position: fixed; top: 50%; left: 50%; right: auto; bottom: auto; transform: translate(-50%, -50%); width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); margin: 0; padding: 22px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-elevated); color: var(--heading); box-shadow: var(--shadow-md); }
+.release-pickup-dialog { position: fixed; top: 50%; left: 50%; right: auto; bottom: auto; transform: translate(-50%, -50%); width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); margin: 0; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-elevated); color: var(--heading); box-shadow: var(--shadow-md); }
 .release-pickup-dialog::backdrop { background: rgba(10, 27, 47, .48); }
 .release-pickup-dialog h2 { margin: 0 0 10px; font-size: 19px; line-height: 1.4; }
 .release-pickup-dialog p { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
 .release-pickup-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 [data-pickup-confirmation] .button.primary:not(:disabled) { color: #fff !important; background: #0863db !important; border-color: #0863db !important; }
 [data-pickup-confirmation] .button.primary:not(:disabled):is(:hover, :focus-visible) { background: #0452bc !important; border-color: #0452bc !important; }
-.release-flow-page .release-schedule-history { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 12px; }
+.release-flow-page .release-schedule-history { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 12px; }
 .release-flow-page .release-schedule-history summary { cursor: pointer; }
 .release-preparation-status { display: inline-flex; align-items: center; justify-content: center; min-height: 24px; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 750; line-height: 1.3; white-space: nowrap; }
 .release-preparation-status.is-pending { color: var(--text-muted); background: var(--surface-muted); }
@@ -172,18 +170,18 @@
 .release-flow-page .release-handover-form .checkbox { align-items: flex-start; gap: 10px; margin: 0; font-size: 12px; font-weight: 400; line-height: 1.45; color: var(--heading); }
 .release-handover-form .checkbox > span { max-width: 960px; }
 .release-handover-form input[type="checkbox"] { flex: 0 0 14px; width: 14px; height: 14px; min-height: 14px; margin-top: 2px; accent-color: var(--release-blue); }
-.release-handover-footer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 14px; }
+.release-handover-footer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; }
 .release-flow-page .release-handover-footer label { gap: 8px; color: var(--heading); font-size: 12px; font-weight: 700; line-height: 1.4; }
 .release-flow-page .release-handover-footer textarea { min-height: 62px; padding: 10px 12px; border-color: var(--border); resize: vertical; font-size: 12px; }
 .release-flow-page .release-handover-footer textarea:focus { border-color: var(--release-blue); }
-.release-flow-page #confirm-physical-release-button { justify-self: end; width: auto; min-width: 190px; min-height: 42px; margin-top: 0; padding: 9px 16px; border-radius: 7px; color: #fff; border-color: #0863db; background: #0863db; font-size: 12px; }
+.release-flow-page #confirm-physical-release-button { justify-self: end; width: auto; min-width: 190px; min-height: 42px; margin-top: 0; padding: 9px 12px; border-radius: 7px; color: #fff; border-color: #0863db; background: #0863db; font-size: 12px; }
 .release-flow-page #confirm-physical-release-button:disabled { color: var(--text-soft); border-color: var(--border); background: var(--surface-elevated); opacity: 1; box-shadow: none; transform: none; }
-.release-flow-page .button.release-primary { display: inline-flex; align-items: center; justify-content: center; gap: 9px; justify-self: end; min-height: 37px; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+.release-flow-page .button.release-primary { display: inline-flex; align-items: center; justify-content: center; gap: 9px; justify-self: end; min-height: 37px; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; }
 .release-flow-page .button.ui-pressable.release-primary:not(:disabled) { border-color: #0863db; background: #0863db; color: #fff; cursor: pointer; }
 .release-flow-page .button.ui-pressable.release-primary:not(:disabled):hover,
 .release-flow-page .button.ui-pressable.release-primary:not(:disabled):focus-visible { border-color: #0452bc !important; background: #0452bc !important; color: #fff !important; }
 .release-flow-page .button.release-primary .ui-icon { color: inherit; flex-shrink: 0; }
-.release-flow-page .button.release-outline { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 37px; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+.release-flow-page .button.release-outline { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 37px; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; }
 .release-flow-page .button.ui-pressable.release-outline:not(:disabled) { border-color: var(--interactive); background: transparent; color: var(--interactive); cursor: pointer; }
 .release-flow-page .button.ui-pressable.release-outline:not(:disabled):hover,
 .release-flow-page .button.ui-pressable.release-outline:not(:disabled):focus-visible { border-color: var(--interactive) !important; background: var(--blue-50) !important; color: var(--interactive) !important; }

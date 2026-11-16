@@ -259,6 +259,41 @@ class ReportAccountabilityBillingTest extends TestCase
         $this->assertSame($dataset->records()[0], $record);
     }
 
+    public function test_ledger_accountability_group_includes_all_four_sources_and_keeps_legacy_filters(): void
+    {
+        [$custody] = $this->custody('ACADEMIC', 'College of Computer Studies', 'Ledger fixture', 1, 0);
+        $head = User::factory()->create(['access_classification' => AccessClassification::SpmuHead]);
+        Incident::create([
+            'incident_no' => 'INC-GROUP-001', 'custody_transaction_id' => $custody->id,
+            'borrower_user_id' => $custody->borrower_user_id, 'reported_by_user_id' => $head->id,
+            'incident_type' => 'DAMAGED', 'reported_at' => now(), 'status' => 'OPEN',
+        ]);
+        Penalty::create([
+            'borrower_user_id' => $custody->borrower_user_id, 'custody_transaction_id' => $custody->id,
+            'assessed_by_user_id' => $head->id, 'penalty_type' => 'LATE_RETURN',
+            'offense_level' => 1, 'basis' => 'Recorded fixture', 'rate_snapshot' => 10,
+            'amount' => 10, 'status' => 'ASSESSED', 'assessed_at' => now(),
+        ]);
+        $billing = BillingStatement::create([
+            'billing_no' => 'BILL-GROUP-001', 'borrower_user_id' => $custody->borrower_user_id,
+            'responsible_spmu_user_id' => $head->id, 'issued_at' => now(),
+            'due_at' => now()->addDay(), 'total_amount' => 10, 'status' => 'ISSUED',
+        ]);
+        Payment::create([
+            'billing_statement_id' => $billing->id, 'recorded_by_user_id' => $head->id,
+            'official_receipt_no' => 'OR-GROUP-001', 'receipt_date' => now()->toDateString(),
+            'amount' => 10, 'status' => 'VERIFIED', 'submitted_at' => now(),
+        ]);
+        $this->actingAs($head)->withSession(['active_workspace' => 'SPMU']);
+        $group = $this->get(route('reports.index', ['report' => 'all-transactions', 'type' => 'Accountability']))->assertOk();
+        $types = $group->viewData('records')->getCollection()->pluck('transaction_type')->sort()->values()->all();
+        $this->assertSame(['Billing', 'Incident', 'Payment', 'Penalty'], $types);
+        $legacy = $this->get(route('reports.index', ['report' => 'all-transactions', 'type' => 'Incident']))->assertOk();
+        $this->assertSame(['Incident'], $legacy->viewData('records')->getCollection()->pluck('transaction_type')->all());
+        $all = $this->get(route('reports.index', ['report' => 'all-transactions', 'view' => 'events']))->assertOk();
+        $this->assertGreaterThan(4, $all->viewData('records')->total());
+    }
+
     private function generate(string $report, array $input = []): ReportDataset
     {
         return app(ReportService::class)->generate(

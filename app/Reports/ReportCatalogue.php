@@ -31,6 +31,14 @@ final class ReportCatalogue
     public static function filterDefinitions(): array
     {
         return [
+            'category' => [
+                'label' => 'Category', 'type' => 'select', 'placeholder' => 'All Categories',
+                'options' => fn (): array => ['FURNITURE' => 'Furniture', 'EQUIPMENT' => 'Equipment', 'LINEN' => 'Linen', 'SAFETY_TRAFFIC' => 'Safety and Traffic Control'],
+            ],
+            'request_status' => [
+                'label' => 'Status', 'type' => 'select', 'placeholder' => 'All statuses',
+                'options' => fn (): array => RequestOverviewStatus::OPTIONS + ['CANCELLED' => 'Cancelled', 'EXPIRED' => 'Expired', 'RETURNED_FOR_REVISION' => 'Returned for Revision'],
+            ],
             'division' => [
                 'label' => 'Division',
                 'type' => 'select',
@@ -257,7 +265,7 @@ final class ReportCatalogue
                 'type' => 'select',
                 'placeholder' => 'All statuses',
                 'options' => fn (): array => [
-                    'OPEN_CURRENT' => 'Open / Unresolved',
+                    ...AccountabilityStatusGroups::OPTIONS,
                     // Current - property accountability (Incident)
                     'OPEN' => 'Open',
                     'COMPLIANCE_REQUIRED' => 'Compliance Required',
@@ -270,7 +278,6 @@ final class ReportCatalogue
                     'RSLDDP_COMPLIANCE_VERIFICATION' => 'Compliance Verification',
                     'RSLDDP_FOR_RESOLUTION' => 'For Final Review',
                     'CLOSED' => 'Closed',
-                    'VOID_CORRECTION' => 'Void Correction',
                     // Current - late return (OverdueCase)
                     'OVERDUE' => 'Overdue',
                     'FOR_HEAD_APPROVAL' => 'For Head/Admin Decision',
@@ -311,36 +318,47 @@ final class ReportCatalogue
             'availability_status' => [
                 'label' => 'Availability Status',
                 'type' => 'select',
-                'placeholder' => 'All availability states',
+                'placeholder' => 'All Availability Statuses',
                 'options' => fn (): array => [
-                    'AVAILABLE' => 'Has available stock',
-                    'LOW_AVAILABILITY' => 'Low availability (25% or below)',
-                    'FULLY_COMMITTED' => 'Nothing available',
+                    'AVAILABLE' => 'Stock Available',
+                    'LOW_AVAILABILITY' => 'Low Stock Availability',
+                    'FULLY_COMMITTED' => 'Out of Stock',
                     'ALLOCATED' => 'Has allocated stock',
-                    'ON_CUSTODY' => 'Has stock on custody',
-                    'IN_LAUNDRY' => 'Has stock in laundry',
-                    'UNSERVICEABLE' => 'Has unserviceable stock',
+                    'ON_CUSTODY' => 'Stock on Custody',
+                    'IN_LAUNDRY' => 'Stock on Laundry',
+                    'UNSERVICEABLE' => 'Unserviceable Stock',
                 ],
             ],
         ];
     }
 
     /**
-     * Every report type the module offers, in builder display order.
-     *
-     * @return array<string, array{label:string, description:string, filters:list<string>, builder:?class-string<ReportBuilder>, export:?string, legacy:bool}>
-     */
-    /**
-     * The eight formal report types, grouped as the builder presents them.
-     *
-     * Every entry is backed by an authoritative data source; no report type
-     * exists here that the workflow tables cannot answer.
+     * This is the catalogue for current reports and compatible historical report links.
      *
      * @return array<string, array<string, mixed>>
      */
     public static function all(): array
     {
         return [
+            'all-transactions' => [
+                'label' => 'All Transactions (General Overview)', 'group' => 'General',
+                'description' => 'One row per submitted borrowing request with recorded review and operational status.',
+                'filters' => ['division', 'unit', 'borrower', 'request_status'],
+                'builder' => Builders\RequestOverviewReport::class, 'export' => 'all-transactions',
+                'empty' => 'No submitted requests matched the selected reporting criteria.',
+                'period_mode' => 'range', 'orientation' => 'landscape',
+            ],
+            'summary' => [
+                'label' => 'Summary Report',
+                'group' => 'General',
+                'description' => 'Requests for the selected dates based on the latest submitted version and recorded physical release.',
+                'filters' => ['division', 'unit', 'borrower'],
+                'builder' => Builders\SummaryReport::class,
+                'export' => 'summary',
+                'empty' => 'No submitted requests matched the selected reporting criteria.',
+                'period_mode' => 'range',
+                'orientation' => 'landscape',
+            ],
             'borrowing' => [
                 'label' => 'Borrowing Activity Report',
                 'group' => 'Borrowing',
@@ -453,7 +471,7 @@ final class ReportCatalogue
                 'label' => 'Inventory Status Report',
                 'group' => 'Assets',
                 'description' => 'Official operational inventory snapshot taken from the authoritative inventory service.',
-                'filters' => ['equipment', 'availability_status'],
+                'filters' => ['category', 'availability_status', 'equipment'],
                 'builder' => Builders\InventoryStatusReport::class,
                 'export' => 'inventory',
                 'empty' => 'No inventory records matched the selected filters.',
@@ -581,13 +599,11 @@ final class ReportCatalogue
      */
     public static function grouped(): array
     {
-        $grouped = [];
-
-        foreach (self::all() as $key => $definition) {
-            $grouped[$definition['group']][$key] = $definition['label'];
-        }
-
-        return $grouped;
+        return [
+            'General' => ['all-transactions' => 'All Transactions (General Overview)', 'summary' => 'Summary Report'],
+            'Asset' => ['inventory' => 'Inventory Status Report', 'utilization' => 'Equipment Utilization Report'],
+            'Accountability' => ['accountability-cases' => 'Accountability Cases Report', 'billing-settlement' => 'Billing Settlement Report'],
+        ];
     }
 
     /** Report keys in display order. */

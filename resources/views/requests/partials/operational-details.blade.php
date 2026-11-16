@@ -20,7 +20,7 @@
         </dl>
     </article>
 
-    @php
+@php
         $laundryAccomplishedFile = $custody?->laundryJob?->latestEvidence?->file;
         $laundryAccomplishedVerified = (bool) $custody?->laundryJob?->form_verified_at;
         $gatePassAccomplishedFile = $custody?->gatePass?->accomplishedFile;

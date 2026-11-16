@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
+// This is the service for inventory availability, reservations, and stock calculations.
 class InventoryService
 {
     /**
@@ -162,7 +163,6 @@ class InventoryService
             ->when($lockCurrentBalances, fn ($query) => $query->lockForUpdate())
             ->value('quantity');
 
-
         /*
         |--------------------------------------------------------------------------
         | CURRENT PHYSICAL CUSTODY
@@ -212,7 +212,7 @@ class InventoryService
                     'ACTIVE',
                     'RETURN_PROCESSING',
                     'OVERDUE',
-                    
+
                     'INCIDENT_OPEN',
                     'OBLIGATION_OPEN',
                 ]
@@ -239,7 +239,6 @@ class InventoryService
             )
             ->when($lockCurrentBalances, fn ($query) => $query->lockForUpdate())
             ->value('quantity');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -283,7 +282,7 @@ class InventoryService
                     'ACTIVE',
                     'RETURN_PROCESSING',
                     'OVERDUE',
-                    
+
                     'INCIDENT_OPEN',
                     'OBLIGATION_OPEN',
                 ]
@@ -320,7 +319,6 @@ class InventoryService
             )
             ->when($lockCurrentBalances, fn ($query) => $query->lockForUpdate())
             ->value('quantity');
-
 
         /*
         |--------------------------------------------------------------------------
@@ -462,7 +460,6 @@ class InventoryService
 
         $laundry = $legacyLaundry + $currentLaundry;
 
-
         /*
         |--------------------------------------------------------------------------
         | INCIDENT QUANTITIES
@@ -548,7 +545,6 @@ class InventoryService
 
         $conditionHold = $this->conditionHoldTotals([$item->id], $lockCurrentBalances)[$item->id] ?? 0.0;
 
-
         /*
         |--------------------------------------------------------------------------
         | TOTAL SERVICEABLE INVENTORY
@@ -562,7 +558,6 @@ class InventoryService
             && $item->condition_code === 'SERVICEABLE'
                 ? $total
                 : 0.0;
-
 
         /*
         |--------------------------------------------------------------------------
@@ -615,7 +610,6 @@ class InventoryService
             - $incident
             - $conditionHold
         );
-
 
         /*
         |--------------------------------------------------------------------------
@@ -713,7 +707,6 @@ class InventoryService
             'available' => $available,
         ];
     }
-
 
     /**
      * The same balance as availability(), for many items at once.
@@ -1610,7 +1603,6 @@ class InventoryService
                 'updated_at' => now(),
             ]);
 
-
             // Concurrent approvals lock shared stock in a consistent order.
             foreach ($version->items->sortBy('inventory_item_id') as $requestItem) {
                 /*
@@ -1622,7 +1614,6 @@ class InventoryService
                     ->findOrFail(
                         $requestItem->inventory_item_id
                     );
-
 
                 /*
                  * Recalculate availability using the exact requested
@@ -1638,9 +1629,7 @@ class InventoryService
                     lockCurrentBalances: true
                 );
 
-
                 $requested = (float) $requestItem->requested_quantity;
-
 
                 /*
                  * Prevent allocation when:
@@ -1664,7 +1653,6 @@ class InventoryService
                     ]);
                 }
 
-
                 /*
                  * Approved quantity remains exactly the quantity in the verified approved request.
                  * SPMU does not silently reduce it to match stock.
@@ -1673,7 +1661,6 @@ class InventoryService
                     'approved_quantity' =>
                         $requestItem->requested_quantity,
                 ]);
-
 
                 /*
                  * Create active reservation. Internal ALLOCATED terminology is retained
@@ -1691,9 +1678,7 @@ class InventoryService
                     'allocated_at' => now(),
                 ]);
 
-
                 $allocations[] = $allocation;
-
 
                 /*
                  * Record inventory ledger movement:
@@ -1738,11 +1723,9 @@ class InventoryService
                 ]);
             }
 
-
             return $allocations;
         }, 3);
     }
-
 
     /**
      * Restore an allocation when an approved but unreleased request
@@ -1762,7 +1745,6 @@ class InventoryService
                 $request->loadMissing(
                     'currentVersion.items.allocation'
                 );
-
 
                 /*
                  * Create one inventory transaction header for this
@@ -1799,14 +1781,12 @@ class InventoryService
                         now(),
                 ]);
 
-
                 foreach (
                     $request->currentVersion->items
                     as $requestItem
                 ) {
                     $allocation =
                         $requestItem->allocation;
-
 
                     /*
                      * Ignore allocations that are already released,
@@ -1826,7 +1806,6 @@ class InventoryService
                         continue;
                     }
 
-
                     /*
                      * Calculate only the portion still reserved.
                      */
@@ -1837,11 +1816,9 @@ class InventoryService
                         - (float) $allocation->restored_quantity
                     );
 
-
                     if ($remaining <= 0) {
                         continue;
                     }
-
 
                     /*
                      * Restore the remaining reservation.
@@ -1854,7 +1831,6 @@ class InventoryService
                         'status' =>
                             $status,
                     ]);
-
 
                     /*
                      * Record inventory ledger movement:

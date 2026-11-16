@@ -35,6 +35,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
+// This is the controller for borrowing request forms, records, and borrower actions.
 class BorrowingRequestController extends Controller
 {
     private const MAX_UPLOAD_MB = 64;
@@ -165,6 +166,7 @@ class BorrowingRequestController extends Controller
             (string) $request->session()->get('active_workspace')
         );
 
+        if (\Illuminate\Support\Facades\Schema::hasTable('request_number_aliases')) $query->with('numberAliases');
         if ($workspace === 'BORROWER') {
             $query->where(
                 'borrower_user_id',
@@ -389,6 +391,9 @@ class BorrowingRequestController extends Controller
                 ))
                 ->orWhereHas('currentVersion.items', fn ($item) => $item
                     ->where('description_snapshot', 'like', $term));
+            if (\Illuminate\Support\Facades\Schema::hasTable('request_number_aliases')) {
+                $match->orWhereHas('numberAliases', fn ($aliases) => $aliases->where('alias', 'like', $term));
+            }
         });
     }
 
@@ -1146,7 +1151,6 @@ class BorrowingRequestController extends Controller
             ]);
         }
     }
-
 
     public function cancel(
         Request $request,

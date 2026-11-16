@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
+// This is the service for the generation and preservation of controlled borrowing documents.
 class DocumentService
 {
     private const NOTHING_FOLLOWS_MARKER = '— NOTHING FOLLOWS —';
@@ -36,14 +37,7 @@ class DocumentService
     ) {}
 
     /**
-     * Every production document that has an uploaded custom template renders
-     * through this one seam. A DOCX/XLSX Active layout renders through the
-     * exact same Office Draft compiler its own preview used before
-     * activation - the same compile() -> compileWorkingSource() path,
-     * against the same immutable uploaded source - so activation can never
-     * change what the document looks like. Anything else (PDF, or the
-     * built-in system layout) keeps using the existing production renderer
-     * completely unchanged.
+     * This is the function that renders a saved document template through its matching Office or PDF renderer.
      *
      * @param array<string,mixed> $data
      */
@@ -58,6 +52,7 @@ class DocumentService
         return $this->templateRenderer->render($customTemplate, $data);
     }
 
+    // This is the function for the generation of Borrower Slip after final SPMU Head approval.
     public function borrowerSlip(CustodyTransaction $custody): GeneratedDocument
     {
         $this->assertFinalApprovalForOperationalDocument($custody);
@@ -113,7 +108,7 @@ class DocumentService
         );
     }
 
-    /** Render current operational facts without replacing the original pickup document. */
+    // This is the function that displays current Borrower Slip records without replacing the original pickup document.
     public function borrowerSlipRecordHtml(GeneratedDocument $document): string
     {
         abort_unless($document->document_type === 'BORROWER_SLIP'
@@ -179,6 +174,7 @@ class DocumentService
         return $this->borrowerSlipHtml($custody, recordFields: $record);
     }
 
+    // This is the function that renders the current Borrower Slip system record as a PDF.
     public function borrowerSlipRecordPdf(GeneratedDocument $document): string
     {
         return $this->pdf->html($this->borrowerSlipRecordHtml($document));
@@ -688,8 +684,6 @@ CSS;
             .$body
             .'</body></html>';
     }
-
-
 
     public function conditionalForm(CustodyTransaction $custody, string $type): GeneratedDocument
     {
@@ -2583,14 +2577,7 @@ CSS;
      * its existing blank handwritten-signature space. Historical records that
      * predate role-based E-signature capture therefore render unchanged.
      */
-    /**
-     * A signature image that centres reliably in Dompdf.
-     *
-     * Dompdf supports neither flexbox nor `margin:0 auto` on a replaced
-     * element whose width stays auto, so the image is rendered inline-level
-     * and centred by the container's text-align. Aspect ratio is preserved by
-     * constraining both max dimensions and leaving width/height auto.
-     */
+    // This is the function that centers a signature image for Dompdf while preserving its proportions.
     private function centeredSignatureImage(
         ?SignatureSnapshot $snapshot,
         int $maxWidthPt = 150,
@@ -2609,6 +2596,7 @@ CSS;
         );
     }
 
+    // This is the function that displays an immutable signature snapshot and leaves unreadable signatures blank.
     private function signatureImage(
         ?SignatureSnapshot $snapshot,
         int $maxWidthPt = 150,
@@ -2660,9 +2648,7 @@ CSS;
     }
 
     /**
-     * Supply the uploaded-template renderer with one immutable signature
-     * snapshot. Missing or unreadable snapshots deliberately remain blank;
-     * rendering a controlled document must never manufacture a signature.
+     * This is the function that supplies a saved signature snapshot to the template renderer without manufacturing a signature.
      *
      * @return array{kind:'signature_image',bytes:string,mime_type:string}|null
      */
@@ -2699,12 +2685,7 @@ CSS;
     }
 
     /**
-     * Resolve the SPMU Head (or formally delegated officer) who approved this
-     * request version, together with the immutable approval snapshot.
-     *
-     * This is the single approval action that authorizes the borrowing, the
-     * off-campus movement, and the linen processing, so it is the correct
-     * "Approved By" signatory on the Borrower Slip, Gate Pass, and Laundry Form.
+     * This is the function that retrieves the final approver and signed snapshot for the current request version.
      *
      * @return array{name: string, designation: string, snapshot: ?SignatureSnapshot, signed_at: ?CarbonInterface}
      */
@@ -2728,10 +2709,7 @@ CSS;
     }
 
     /**
-     * Resolve the SPMU Action Officer who physically issued the property.
-     *
-     * This is deliberately separate from the approval signatory above and from
-     * the borrower's handwritten receipt signature.
+     * This is the function that retrieves the Action Officer who physically released the property.
      *
      * @return array{name: string, designation: string, snapshot: ?SignatureSnapshot, signed_at: ?CarbonInterface}
      */
@@ -2749,18 +2727,7 @@ CSS;
     }
 
     /**
-     * Resolve the most recent physical-return inspection recorded for this
-     * custody transaction, for Borrower's Slip rendering. Return existence is
-     * established by the persisted ReturnTransaction record itself — Return
-     * Inspection does not capture any Action Officer E-signature, so this
-     * never depends on a signature snapshot. Findings are filtered to actual
-     * adverse conditions only (Fine/Good quantities are omitted); EARLY/
-     * NORMAL/OVERDUE remains a system/audit classification and is not part of
-     * this rendering data.
-     *
-     * ReturnTransaction.remarks (the Action Officer's generic free-text note)
-     * is deliberately excluded from this return value — it stays persisted
-     * for internal/audit use but is never printed on the Borrower's Slip.
+     * This is the function that reads persisted return inspections for Borrower Slip rendering without adding an Action Officer signature.
      *
      * @return array{
      *     exists: bool,
@@ -2773,18 +2740,8 @@ CSS;
      */
     private function returnInspectionData(CustodyTransaction $custody, bool $includeSignature = true): array
     {
-        /*
-         * A mixed custody may be returned in more than one real inspection
-         * (for example, non-linen items received immediately and a
-         * laundry-required line accounted for separately once its
-         * accomplished Laundry Form arrives - see LinenReturnInspectionForm
-         * "Mixed custody records non linen and linen as separate complete
-         * return branches"). Every earlier adverse finding must keep
-         * printing after a later, unrelated, clean return -- so findings
-         * are aggregated across every recorded ReturnTransaction, not just
-         * the most recent one. "Received by" / signature still reflect the
-         * latest inspection, since only one signer can be shown there.
-         */
+        // This is the finding history across all return inspections; a later clean return preserves earlier adverse findings.
+        // This is the latest inspection used for the single Received by field.
         $return = $custody->returns
             ->sortByDesc(fn ($candidate) => $candidate->received_at?->getTimestamp() ?? 0)
             ->first();

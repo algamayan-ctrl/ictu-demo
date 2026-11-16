@@ -1,8 +1,11 @@
 @extends('layouts.app', ['title' => 'Reports'])
 
 @section('content')
+{{-- This is the Detailed Reports UI for authorized SPMU users. --}}
 @include('reports.partials.workspace-styles')
 @include('reports.partials.detail-styles')
+<link rel="stylesheet" href="/css/reports-compact.css?v={{ filemtime(public_path('css/reports-compact.css')) }}">
+<script src="/js/reports-compact.js?v={{ filemtime(public_path('js/reports-compact.js')) }}" defer></script>
 
 @php
     $reportCount = ($showPreview && $dataset !== null) ? $dataset->count() : 0;
@@ -109,11 +112,11 @@
         ? 'As of '.($dataset->meta['as_of_long'] ?? $to->format('d F Y'))
         : $from->format('d M Y').' – '.$to->format('d M Y');
 
-    /* Print and export receive the report scope only — never the table's search or sort. */
+    // This is the shared report scope for screen, print and downloads.
     $printUrl = route('reports.print', array_merge(['type' => $selectedReport], $reportFilters->toQuery()));
 @endphp
 
-<div class="reporting-workspace reporting-detail">
+<div class="reporting-workspace reporting-detail {{ $selectedReport === 'summary' ? 'summary-report-page' : '' }}">
     <section class="page-heading">
         <div>
             <p class="eyebrow">Formal reporting</p>
@@ -124,8 +127,12 @@
 
     <div class="reports-detail-page">
         {{-- Rebuilt in place only when the report type changes: each report has its own filters. --}}
-        <div data-report-live="builder" style="display: contents;">
-            @include('reports.partials.report-builder')
+        <div id="report-builder" data-report-live="builder" style="display: contents;">
+            @if($selectedReport === 'summary')
+                @include('reports.partials.summary-builder')
+            @else
+                @include('reports.partials.report-builder')
+            @endif
         </div>
 
         <section class="content-area report-results" data-report-results aria-live="polite">
@@ -150,10 +157,11 @@
                     </div>
                 </section>
             @else
+                @if($dataset?->notice)<p class="report-filter-warning" role="status">{{ $dataset->notice }}</p>@endif
                 <div class="report-preview-bar">
                     <div>
                         <p class="report-preview-label">Report records</p>
-                        <h2 class="report-preview-title">{{ $selectedReportMeta['label'] }}</h2>
+                        <h2 class="report-preview-title">{{ $selectedReport === 'summary' ? $dataset?->label : $selectedReportMeta['label'] }}</h2>
                         <div class="report-preview-meta">
                             <span>
                                 @if($reportPeriodUnavailable)
@@ -174,15 +182,15 @@
                         @endif
                     </div>
 
-                    @if($reportCount > 0)
+                    @if($dataset !== null && ! $reportPeriodUnavailable)
                         <div class="report-preview-actions">
                             <a class="button secondary ui-pressable" href="{{ $printUrl }}" target="_blank" rel="noopener">
-                                <x-icon name="report-document" size="16" />
+                                <x-icon name="printer" size="16" />
                                 Print
                             </a>
                             <button class="button primary ui-pressable" type="button" data-open-export-options>
-                                <x-icon name="upload" size="16" />
-                                Generate Report
+                                <x-icon name="download" size="16" />
+                                Generate
                             </button>
                         </div>
                     @endif
@@ -201,10 +209,9 @@
                 @if($reportCount > 0)
                     <div class="report-system-preview" data-report-system-preview data-report-count="{{ $reportCount }}">
 
-
                         @include('reports.partials.system-records', [
                             'table' => $table,
-                            'heading' => $selectedReportMeta['label'].' Records',
+                            'heading' => $selectedReport === 'all-transactions' ? 'Transaction Records' : $selectedReportMeta['label'].' Records',
                         ])
 
                         <p class="report-output-note">
@@ -218,7 +225,7 @@
                 @else
                     <section class="report-no-results {{ $reportPeriodUnavailable ? 'is-period-unavailable' : '' }}" aria-labelledby="report-no-results-title">
 
-    @php
+@php
         $emptyReportContext = strtolower(
             ($selectedReportMeta['label'] ?? '') . ' ' . ($selectedReport ?? '')
         );
@@ -384,7 +391,7 @@
                 @endif
             @endif
 
-            @if($reportCount > 0 && ! $previewFailed)
+            @if($dataset !== null && ! $reportPeriodUnavailable && ! $previewFailed)
                 <p class="report-boundary-note">
                     <x-icon name="information" size="18" />
                     <span>
@@ -404,18 +411,6 @@
 
 <script>
 (() => {
-
-
-
-
-
-
-
-
-
-
-
-
 
     const page = document.querySelector('.reports-detail-page');
     const results = document.querySelector('[data-report-results]');
@@ -441,9 +436,9 @@
         if (loading) loading.hidden = !busy;
     };
 
-
     const runScripts = (region) => {
         region.querySelectorAll('script').forEach((stale) => {
+            if (stale.type && !['text/javascript','application/javascript'].includes(stale.type)) return;
             const fresh = document.createElement('script');
             fresh.textContent = stale.textContent;
             stale.replaceWith(fresh);
@@ -470,7 +465,9 @@
 
             if (!response.ok) throw new Error(`Report preview request failed (${response.status})`);
 
-            const fetched = new DOMParser().parseFromString(await response.text(), 'text/html');
+            const markup = await response.text();
+            if (request.signal.aborted || controller !== request) return;
+            const fetched = new DOMParser().parseFromString(markup, 'text/html');
 
             if (!fetched.querySelector('[data-report-live="results"]')) {
                 throw new Error('Report preview response had no records region');
@@ -493,6 +490,7 @@
 
             currentUrl = target;
             window.history.replaceState(window.history.state, '', target);
+            page.dispatchEvent(new CustomEvent('report:loaded', {detail: {url: target}}));
             if (rebuild) document.querySelector('[data-report-type]')?.focus({ preventScroll: true });
         } catch (error) {
             if (error.name === 'AbortError') return;
@@ -507,7 +505,6 @@
             }
         }
     };
-
 
     const builderUrl = () => {
         const form = builderForm();
@@ -532,7 +529,6 @@
         return /^\d{4}-\d{2}-\d{2}$/.test(start) && /^\d{4}-\d{2}-\d{2}$/.test(end) && end >= start;
     };
 
-
     const schedule = ({ force = false } = {}) => {
         window.clearTimeout(timer);
         timer = window.setTimeout(() => {
@@ -542,6 +538,7 @@
 
     page.addEventListener('change', (event) => {
         if (!event.target.closest('[data-report-preview-form]')) return;
+        if (event.target.closest('[data-report-compact-builder]')) return;
 
         if (event.target.matches('[data-report-type], [data-borrower-search]')) return;
         schedule();
@@ -552,7 +549,6 @@
         window.clearTimeout(timer);
         load(event.detail.url, { rebuild: true });
     });
-
 
     results.addEventListener('click', (event) => {
         const link = event.target.closest('a[data-report-table-nav], .report-pagination a');
@@ -572,7 +568,6 @@
         load(`${tableForm.getAttribute('action') || window.location.pathname}?${params.toString()}`);
     });
 
-
     results.addEventListener('click', (event) => {
         if (!event.target.closest('[data-focus-report-builder]')) return;
         const builder = document.getElementById('report-builder');
@@ -585,7 +580,6 @@
 </script>
 
 <style>
-{{-- /* ACADEMIC PERIOD EMPTY STATE ICON FINAL */ --}}
 
 .report-period-unavailable-icon {
     display: none;
@@ -614,10 +608,6 @@
     height: 62px;
 }
 
-{{-- /*
- * When the problem is the academic-period configuration,
- * use the academic/calendar icon instead of the report-type icon.
- */ --}}
 .report-no-results.is-period-unavailable
 .report-no-results-illustration,
 

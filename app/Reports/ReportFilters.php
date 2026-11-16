@@ -98,6 +98,11 @@ final class ReportFilters
             $rejected[$key] = $submitted;
         }
 
+        $search = $request->input('search');
+        if ((is_string($search) || is_numeric($search)) && trim((string) $search) !== '') {
+            $values['search'] = mb_substr(trim((string) $search), 0, 100);
+        }
+
         return new self(
             $reportKey,
             $from,
@@ -168,6 +173,10 @@ final class ReportFilters
         $described = [];
 
         foreach ($this->values as $key => $value) {
+            if ($key === 'search') {
+                $described['Search'] = $value;
+                continue;
+            }
             if (! isset($definitions[$key])) {
                 continue;
             }
@@ -191,6 +200,10 @@ final class ReportFilters
             $this->periodSelection === 'custom' ? [
                 'start_date' => $this->from->toDateString(),
                 'end_date' => $this->to->toDateString(),
+            ] : [],
+            $this->reportKey === 'summary' && $this->periodSelection === 'month' ? [
+                'summary_month' => $this->from->month,
+                'summary_year' => $this->from->year,
             ] : [],
             $this->values
         );

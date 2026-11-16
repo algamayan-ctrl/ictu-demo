@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
+// This is the controller for SPMU verification and final approval of borrowing requests.
 class ApprovalController extends Controller
 {
     public function verificationIndex(Request $request): View

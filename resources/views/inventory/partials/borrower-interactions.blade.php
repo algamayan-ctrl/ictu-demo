@@ -144,7 +144,6 @@
                 row.hidden = true;
             });
 
-
             matches.slice(firstIndex, lastIndex).forEach((row, index) => {
                 row.hidden = false;
 
@@ -190,8 +189,6 @@
             currentPage = 1;
             render();
         });
-
-
 
         pageSizes.forEach((control) => {
             control.addEventListener('change', () => {

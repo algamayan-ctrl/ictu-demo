@@ -154,9 +154,7 @@ class AnalyticsDetailService
  return $from->format('d M Y').' – '.$to->format('d M Y');
  }
 
- /* ------------------------------------------------------------------ */
  /* Overview figures */
- /* ------------------------------------------------------------------ */
 
  /** @param array<string, mixed> $scope */
  private function requests(array $scope): array
@@ -383,9 +381,7 @@ class AnalyticsDetailService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Equipment */
- /* ------------------------------------------------------------------ */
 
  /** @param array<string, mixed> $scope */
  private function equipment(array $scope, string $itemId): ?array
@@ -529,10 +525,7 @@ class AnalyticsDetailService
 
  /** @param array<string, mixed> $scope */
 
-
- /* ------------------------------------------------------------------ */
  /* Organisation */
- /* ------------------------------------------------------------------ */
 
  /** @param array<string, mixed> $scope */
  private function division(array $scope, string $code): ?array
@@ -647,9 +640,7 @@ class AnalyticsDetailService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Returns */
- /* ------------------------------------------------------------------ */
 
  /** @param array<string, mixed> $scope */
  private function returns(array $scope, string $state): array
@@ -804,18 +795,13 @@ class AnalyticsDetailService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Predictive */
- /* ------------------------------------------------------------------ */
 
  /** @param array<string, mixed> $scope */
 
-
  /** @param array<string, mixed> $scope */
 
-
  /** @param array<string, mixed> $scope */
-
 
  /** @param array<string, mixed> $scope */
  private function trend(array $scope, int $bucket): ?array
@@ -929,9 +915,7 @@ class AnalyticsDetailService
  return [$start, $end];
  }
 
- /* ------------------------------------------------------------------ */
  /* Request outcomes */
- /* ------------------------------------------------------------------ */
 
  /**
  * The Request Outcomes cohort, whole or narrowed to one outcome group.
@@ -1056,9 +1040,7 @@ class AnalyticsDetailService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Overdue aging */
- /* ------------------------------------------------------------------ */
 
  /**
  * The current overdue backlog by age, whole or one aging band.
@@ -1158,9 +1140,7 @@ class AnalyticsDetailService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Late-return rate by organisation */
- /* ------------------------------------------------------------------ */
 
  /**
  * Late-return share of completed returns, by division or unit, whole or
@@ -1286,12 +1266,9 @@ class AnalyticsDetailService
  ];
  }
 
- /* ------------------------------------------------------------------ */
  /* Helpers */
- /* ------------------------------------------------------------------ */
 
  /** @param list<array<string, mixed>> $history */
-
 
  private function quantity(CustodyTransaction $custody): string
  {

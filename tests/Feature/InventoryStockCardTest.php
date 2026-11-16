@@ -262,7 +262,7 @@ class InventoryStockCardTest extends TestCase
 
         foreach (['inventory.show', 'inventory.stock-card.print'] as $route) {
             $response = $this->get(route($route, ['inventory' => $item->id, 'tab' => 'stock-card']))
-                ->assertOk()->assertSeeText('No. of Days to consume')->assertSeeText('10-28-2026');
+                ->assertOk()->assertDontSeeText('No. of Days to consume')->assertSeeText('Receipt Qty.')->assertSeeText('Issue Qty.')->assertSeeText('Issued Office')->assertSeeText('Balance Qty.')->assertSeeText('10-28-2026');
             $document = new \DOMDocument;
             @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
             $xpath = new \DOMXPath($document);
@@ -272,7 +272,7 @@ class InventoryStockCardTest extends TestCase
                 $this->assertSame('', trim($value->item(0)->textContent));
             }
             $consumptionCells = $xpath->query('//td[@class="stock-consumption"]');
-            $this->assertSame(3, $consumptionCells->length);
+            $this->assertSame(0, $consumptionCells->length);
             foreach ($consumptionCells as $cell) {
                 $this->assertSame('', trim($cell->textContent));
             }

@@ -1,5 +1,6 @@
 @extends('layouts.app', ['title' => 'User Accounts'])
 @section('content')
+{{-- This is the User Accounts UI for SPMU Admin. --}}
 @php
     $classificationOptions = $users->map(fn ($user) => $user->access_classification?->label())->filter()->unique()->sort()->values();
     $statusOptions = $users->map(fn ($user) => $user->account_status?->value ?? 'ACTIVE')->filter()->unique()->sort()->values();
@@ -111,7 +112,7 @@
                 </thead>
                 <tbody>
                 @forelse($users as $user)
-                    @php
+@php
                         $classificationLabel = $user->access_classification?->label() ?? 'Not assigned';
                         $accountStatus = $user->account_status?->value ?? 'ACTIVE';
                         $isOwnAccount = auth()->id() === $user->id;
@@ -303,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="user-deactivation-dialog-actions"><button id="cancel-user-deactivation" class="button secondary" type="button" autofocus>Cancel</button><button id="confirm-user-deactivation" class="button danger" type="button">Confirm deactivation</button></div>
 </dialog>
 <style>
-.user-deactivation-dialog { width: min(480px, calc(100vw - 36px)); padding: 24px; color: var(--text); background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+.user-deactivation-dialog { width: min(480px, calc(100vw - 36px)); padding: 16px; color: var(--text); background: var(--surface-elevated); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
 .user-deactivation-dialog::backdrop { background: rgba(7, 27, 53, .45); }
 .user-deactivation-dialog h2 { margin: 0 0 12px; color: var(--heading); font-size: 18px; }
 .user-deactivation-dialog p { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }

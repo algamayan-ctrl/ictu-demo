@@ -1,23 +1,11 @@
 <style>
-{{-- /* UNIVERSAL PASSWORD RECOVERY UI START */ --}}
 
-{{-- /*
- * Forgot Password and Reset Password belong to the same public
- * authentication experience as the normal Sign in page.
- *
- * Hide the generic guest header and global notice because recovery
- * feedback is rendered inside the card itself.
- */ --}}
 body:has(.auth-recovery-page) .site-header,
 body:has(.auth-recovery-page) .app-main > .notice,
 body:has(.auth-recovery-page) > footer {
     display: none !important;
 }
 
-{{-- /*
- * Remove normal application-page spacing so the recovery card occupies
- * the same position as the login card.
- */ --}}
 body:has(.auth-recovery-page) .app-main {
     width: 100% !important;
     max-width: none !important;
@@ -25,10 +13,6 @@ body:has(.auth-recovery-page) .app-main {
     padding: 0 !important;
 }
 
-{{-- /*
- * Same placement as the existing login card:
- * top-left with a small page margin rather than centered.
- */ --}}
 .auth-recovery-page {
     width: 100%;
     min-height: 100vh;
@@ -37,7 +21,7 @@ body:has(.auth-recovery-page) .app-main {
     align-items: flex-start;
     justify-content: flex-start;
 
-    padding: 24px 0 44px 22px;
+    padding: 16px 0 44px 16px;
     box-sizing: border-box;
 }
 
@@ -45,7 +29,7 @@ body:has(.auth-recovery-page) .app-main {
     width: min(100%, 420px);
     box-sizing: border-box;
 
-    padding: 24px 28px 26px;
+    padding: 16px 20px 20px;
 
     border: 1px solid #d3dfec;
     border-radius: 18px;
@@ -93,7 +77,7 @@ body:has(.auth-recovery-page) .app-main {
 }
 
 .auth-recovery-status {
-    margin: 0 0 18px;
+    margin: 0 0 12px;
     padding: 12px 13px;
 
     border: 1px solid #a8dbc1;
@@ -108,7 +92,7 @@ body:has(.auth-recovery-page) .app-main {
 
 .auth-recovery-form {
     display: grid;
-    gap: 16px;
+    gap: 12px;
 }
 
 .auth-recovery-field {
@@ -134,7 +118,7 @@ body:has(.auth-recovery-page) .app-main {
 
     box-sizing: border-box;
 
-    padding: 12px 14px;
+    padding: 12px 12px;
 
     border: 1px solid #c7d5e6;
     border-radius: 9px;
@@ -189,7 +173,7 @@ body:has(.auth-recovery-page) .app-main {
     min-height: 49px;
 
     margin-top: 2px;
-    padding: 10px 18px;
+    padding: 10px 16px;
 
     border: 1px solid #2879ef !important;
     border-radius: 9px;
@@ -235,7 +219,7 @@ body:has(.auth-recovery-page) .app-main {
     align-items: center;
     justify-content: center;
 
-    margin-top: 18px;
+    margin-top: 12px;
 }
 
 .auth-recovery-back a {
@@ -294,7 +278,7 @@ body:has(.auth-recovery-page) .app-main {
 
 @media (max-width: 720px) {
     .auth-recovery-page {
-        padding: 20px 16px 36px;
+        padding: 16px 12px 36px;
     }
 
     .auth-recovery-card {
@@ -303,9 +287,8 @@ body:has(.auth-recovery-page) .app-main {
 
         margin: 0 auto;
 
-        padding: 22px 22px 24px;
+        padding: 16px 16px 16px;
     }
 }
 
-{{-- /* UNIVERSAL PASSWORD RECOVERY UI END */ --}}
 </style>

@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         // Intentionally non-destructive.
-        //
+
         // Do not shrink this field again because valid workflow
         // statuses may exceed the previous column length.
     }

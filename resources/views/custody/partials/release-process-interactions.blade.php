@@ -29,7 +29,6 @@
         workspace.querySelector('[data-release-schedule-edit]')?.focus();
     });
 
-
     const preparationForm = workspace.querySelector('[data-item-preparation-form]');
     if (preparationForm) {
         const issueType = preparationForm.querySelector('[data-preparation-issue-type]');

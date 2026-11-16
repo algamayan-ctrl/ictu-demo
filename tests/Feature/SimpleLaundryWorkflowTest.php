@@ -123,6 +123,62 @@ class SimpleLaundryWorkflowTest extends TestCase
             ->assertDontSeeText('Received by:');
     }
 
+    public function test_laundry_search_and_results_filter_reach_records_beyond_the_first_page(): void
+    {
+        [$original, $line, $borrower, $custody] = $this->outstandingLaundryCase(quantity: 2);
+        $custody->update(['custody_no' => 'CUS-ARCHIVED-TARGET', 'original_due_at' => $custody->due_at]);
+        $original->forceFill(['updated_at' => now()->subDays(30)])->save();
+        for ($number = 1; $number <= 22; $number++) {
+            $requestCopy = $custody->request->replicate();
+            $requestCopy->request_no = 'BR-TABLE-'.$number;
+            $requestCopy->save();
+            $versionCopy = $custody->requestVersion->replicate();
+            $versionCopy->request_id = $requestCopy->id;
+            $versionCopy->save();
+            $copy = $custody->replicate();
+            $copy->custody_no = 'CUS-TABLE-'.$number;
+            $copy->request_id = $requestCopy->id;
+            $copy->request_version_id = $versionCopy->id;
+            $copy->save();
+            LaundryJob::create(['custody_transaction_id' => $copy->id, 'status' => 'FOR_LAUNDRY']);
+        }
+        $officer = $this->classificationUser(AccessClassification::SpmuOfficer);
+        $this->actingAs($officer);
+        $all = $this->get(route('laundry.index'))->assertOk()->viewData('jobs');
+        $this->assertSame(23, $all->total());
+        $this->assertCount(20, $all->items());
+        $this->assertFalse($all->contains('id', $original->id));
+        $matched = $this->get(route('laundry.index', ['active_q' => 'CUS-ARCHIVED-TARGET']))->assertOk()->viewData('jobs');
+        $this->assertSame(1, $matched->total());
+        $this->assertSame($original->id, $matched->first()->id);
+        $noMatch = $this->get(route('laundry.index', ['active_q' => 'CUS-ARCHIVED-TARGET', 'active_status' => 'READY_FOR_SPMU_ENCODING']))->assertOk()->viewData('jobs');
+        $this->assertSame(0, $noMatch->total());
+        $larger = $this->get(route('laundry.index', ['active_per_page' => 50]))->assertOk()->viewData('jobs');
+        $this->assertCount(23, $larger->items());
+        $ascending = $this->get(route('laundry.index', ['active_sort' => 'oldest']))->assertOk()->viewData('jobs');
+        $this->assertSame($original->id, $ascending->first()->id);
+        $this->assertStringContainsString('active_sort=oldest', $ascending->nextPageUrl());
+
+        LaundryJob::query()->update(['status' => 'LAUNDRY_COMPLETED', 'completed_at' => now()]);
+        $original->update(['completed_at' => now()->subDays(20), 'worker_received_at' => now()->addDays(2)]);
+        $line->update(['completed_quantity' => 2, 'received_quantity' => 2]);
+        $completed = $this->get(route('laundry.index', ['completed_outcome' => 'available']))->assertOk()->viewData('completedJobs');
+        $this->assertSame(1, $completed->total());
+        $this->assertSame($original->id, $completed->first()->id);
+        $mixed = $this->get(route('laundry.index', ['completed_outcome' => 'accountability', 'completed_q' => '  archived target  ']))->assertOk()->viewData('completedJobs');
+        $this->assertSame(1, $mixed->total());
+        $cleared = $this->get(route('laundry.index', ['completed_per_page' => 10, 'completed_page' => 99]))->assertOk()->viewData('completedJobs');
+        $this->assertSame(23, $cleared->total());
+        $this->assertSame(3, $cleared->currentPage());
+        $this->assertCount(3, $cleared->items());
+        $legacy = $this->get(route('laundry.completed', ['completed_q' => 'CUS-ARCHIVED-TARGET']))->assertOk()->viewData('jobs');
+        $this->assertSame(1, $legacy->total());
+        $legacyPage = $this->get(route('laundry.completed', ['page' => 2]))->assertOk()->viewData('jobs');
+        $this->assertSame(2, $legacyPage->currentPage());
+        $this->assertCount(3, $legacyPage->items());
+        $this->assertDatabaseCount('laundry_jobs', 23);
+    }
+
     public function test_adverse_linen_findings_keep_accountability_while_serviceable_linen_becomes_available(): void
     {
         [$job, $jobLine, $borrower, $custody] = $this->outstandingLaundryCase(quantity: 2);

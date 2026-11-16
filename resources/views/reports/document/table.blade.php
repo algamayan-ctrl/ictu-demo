@@ -26,6 +26,7 @@
         && $rows->contains(fn (array $row): bool => filled($row['_link'] ?? null));
 @endphp
 
+@if($dataset->reportKey === 'summary')<style>.doc-table td{white-space:pre-line}</style>@endif
 <table class="doc-table">
     <thead>
         <tr>

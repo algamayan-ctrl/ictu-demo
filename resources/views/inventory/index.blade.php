@@ -5,6 +5,7 @@
 ])
 
 @section('content')
+{{-- This is the Inventory UI for Borrower, SPMU Action Officer, and SPMU Admin. --}}
 
 @php
     $isBorrower = session('active_workspace') === 'BORROWER';
@@ -34,6 +35,7 @@
             @elseif($isInventoryAdmin)
                 Monitor stock, availability, reservations, custody, laundry, condition, and inventory records.
             @elseif($isActionOfficer)
+                {{-- This is the Inventory UI for SPMU Action Officer. --}}
                 Check current stock, allocations, custody, returns, laundry, and item condition.
             @else
                 Check current stock, reservations, custody, returns, laundry, and item condition.
@@ -64,10 +66,9 @@
     @include('inventory.partials.operations-styles')
 @endunless
 
-
 @if($isBorrower)
 
-    @php
+@php
         $borrowerCategories = $items
             ->map(fn ($item) => $item->category?->category_name)
             ->filter()
@@ -209,7 +210,7 @@
 
 @else
 
-    @php
+@php
         $spmuCategories = $items
             ->map(fn ($item) => $item->category?->category_name)
             ->filter()
@@ -248,9 +249,9 @@
                     @endforeach
                 </select>
             </label>
-            <label>Borrowing eligibility
+            <label>Premises
                 <select id="spmu-inventory-eligibility">
-                    <option value="">All borrowing locations</option>
+                    <option value="">All Premises</option>
                     <option value="off-campus">Off-campus eligible</option>
                     <option value="on-campus">On-campus only</option>
                 </select>
@@ -362,7 +363,7 @@
                 <p>Are you sure you want to delete <strong id="spmu-inventory-delete-name"></strong>? This action cannot be undone.</p>
                 <p class="spmu-inventory-delete-warning">Only unused items can be deleted. Items with transaction history must be deactivated instead.</p>
                 <label for="spmu-inventory-delete-reason">Reason for deletion <span aria-hidden="true">*</span></label>
-                <textarea id="spmu-inventory-delete-reason" name="delete_reason" required minlength="10" maxlength="1000" rows="2" placeholder="Briefly explain the deletion reason."></textarea>
+<textarea id="spmu-inventory-delete-reason" name="delete_reason" required minlength="10" maxlength="1000" rows="2" placeholder="Briefly explain the deletion reason."></textarea>
                 <div class="spmu-inventory-delete-buttons">
                     <button type="button" class="button" data-inventory-delete-cancel>Cancel</button>
                     <button type="submit" class="button spmu-inventory-delete-confirm">Delete Item</button>

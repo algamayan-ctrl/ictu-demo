@@ -7,6 +7,7 @@ use App\Models\GatePass;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
+// This is the controller for Gate Pass processing by SPMU Action Officer.
 class GatePassController extends Controller
 {
     public function index(Request $request): View

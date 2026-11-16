@@ -1,19 +1,9 @@
 <style>
-{{-- /*
-|--------------------------------------------------------------------------
-| Borrower workspace - My Requests
-|--------------------------------------------------------------------------
-|
-| Keep this page on the shared record-list design used by My Borrowings and
-| SPMU operational queues. The toolbar comes from .universal-record-toolbar;
-| rows come from .operational-record; statuses use the shared status-badge component.
-|
-*/ --}}
+
 .my-requests {
     width: 100%;
     min-width: 0;
-    {{-- /* Lets .mr-empty below grow to fill leftover height when it is the only
-       content on the page (an empty request list). */ --}}
+
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -22,8 +12,7 @@
 .my-requests [hidden] { display: none !important; }
 .my-requests > .mr-empty { flex: 1 1 auto; }
 
-{{-- /* The shared toolbar already owns sizing, radius, spacing, and field height. */ --}}
-.my-requests .mr-toolbar { margin-bottom: 16px; }
+.my-requests .mr-toolbar { margin-bottom: 12px; }
 
 .mr-results {
     min-width: 0;
@@ -44,24 +33,20 @@
     font-weight: 800;
 }
 
-{{-- /* Use the same row density as My Borrowings / Release / Return records. */ --}}
 .mr-list { gap: 10px; }
 
-{{-- /* Request-specific emphasis only; geometry remains the universal record row. */ --}}
 .mr-list .operational-record-primary > strong { overflow-wrap: anywhere; }
 .mr-list .operational-record-primary > span,
 .mr-list .operational-record-primary > small { overflow-wrap: anywhere; }
 .mr-list .operational-record-facts strong { overflow-wrap: anywhere; }
 
-{{-- /* Shared pagination styling, with a lightweight results footer rather than a
-   second floating card. */ --}}
 .mr-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 12px;
-    margin-top: 16px;
+    margin-top: 12px;
     padding-top: 14px;
     border-top: 1px solid var(--border);
 }
@@ -79,14 +64,13 @@
 
 .mr-page-previous { transform: rotate(180deg); }
 
-{{-- /* Empty states keep the same card shell and spacing language used elsewhere. */ --}}
 .mr-empty {
     display: grid;
     justify-items: center;
     align-content: center;
-    gap: 16px;
+    gap: 12px;
     min-height: 300px;
-    padding: 40px 20px 44px;
+    padding: 40px 16px 44px;
     background: var(--surface-elevated);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -116,7 +100,7 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
 .mr-filter-empty {
     min-height: 260px;
     margin-top: 10px;
-    padding: 32px 20px;
+    padding: 24px 16px;
 }
 
 .mr-filter-empty .mr-empty-art { width: 112px; height: 104px; }
@@ -128,17 +112,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
 </style>
 
 <style>
-{{-- /* MY REQUESTS TOOLBAR FINAL LAYOUT START */ --}}
-
-{{-- /*
- | Borrower My Requests
- | Force the same desktop Search | Status | Sort layout
- | used by the universal record-browser toolbar reference.
- */ --}}
-
-{{-- /* =========================================================
-   TOOLBAR CARD
-   ========================================================= */ --}}
 
 .mr-toolbar.record-browser-toolbar {
     display:grid !important;
@@ -154,8 +127,8 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
 
     width:100% !important;
 
-    margin:0 0 16px !important;
-    padding:14px !important;
+    margin:0 0 12px !important;
+    padding:12px !important;
 
     border:1px solid var(--border) !important;
     border-radius:12px !important;
@@ -165,11 +138,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
     box-shadow:
         0 1px 2px rgba(15,23,42,.04) !important;
 }
-
-
-{{-- /* =========================================================
-   FIELDS
-   ========================================================= */ --}}
 
 .mr-toolbar.record-browser-toolbar > label {
     display:flex !important;
@@ -188,18 +156,11 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
     line-height:1.3 !important;
 }
 
-
-{{-- /* Search column must consume remaining width */ --}}
 .mr-toolbar.record-browser-toolbar
 > .record-browser-search {
     width:100% !important;
     min-width:0 !important;
 }
-
-
-{{-- /* =========================================================
-   SEARCH
-   ========================================================= */ --}}
 
 .mr-toolbar.record-browser-toolbar
 .search-input-shell {
@@ -223,7 +184,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
     box-shadow:none !important;
 }
 
-
 .mr-toolbar.record-browser-toolbar
 .search-input-icon {
     display:grid !important;
@@ -236,7 +196,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
 
     color:var(--text-muted) !important;
 }
-
 
 .mr-toolbar.record-browser-toolbar
 #request-search {
@@ -265,11 +224,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
 
     box-shadow:none !important;
 }
-
-
-{{-- /* =========================================================
-   STATUS / SORT
-   ========================================================= */ --}}
 
 .mr-toolbar.record-browser-toolbar
 #request-status-filter,
@@ -303,11 +257,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
     cursor:pointer !important;
 }
 
-
-{{-- /* =========================================================
-   FOCUS
-   ========================================================= */ --}}
-
 .mr-toolbar.record-browser-toolbar
 .search-input-shell:focus-within,
 
@@ -324,11 +273,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
         0 0 0 3px rgba(23,105,224,.10) !important;
 }
 
-
-{{-- /* =========================================================
-   TABLET
-   ========================================================= */ --}}
-
 @media (max-width:850px) {
 
     .mr-toolbar.record-browser-toolbar {
@@ -342,11 +286,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
         grid-column:1 / -1 !important;
     }
 }
-
-
-{{-- /* =========================================================
-   MOBILE
-   ========================================================= */ --}}
 
 @media (max-width:600px) {
 
@@ -364,20 +303,10 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
     }
 }
 
-{{-- /* MY REQUESTS TOOLBAR FINAL LAYOUT END */ --}}
 </style>
 
 <style>
-{{-- /* MY REQUESTS SEARCH ICON FIX START */ --}}
 
-{{-- /*
- | Fix inherited/global search icon positioning.
- | My Requests uses a flex search shell:
- |
- | [ icon ][ input text ]
- */ --}}
-
-{{-- /* Search shell */ --}}
 .mr-toolbar.record-browser-toolbar
 .search-input-shell {
     position:relative !important;
@@ -397,11 +326,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
 
     overflow:hidden !important;
 }
-
-
-{{-- /* ---------------------------------------------------------
-   ICON
-   --------------------------------------------------------- */ --}}
 
 .mr-toolbar.record-browser-toolbar
 .search-input-icon {
@@ -433,7 +357,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
     pointer-events:none !important;
 }
 
-
 .mr-toolbar.record-browser-toolbar
 .search-input-icon svg,
 .mr-toolbar.record-browser-toolbar
@@ -450,11 +373,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
     transform:none !important;
 }
 
-
-{{-- /* ---------------------------------------------------------
-   INPUT
-   --------------------------------------------------------- */ --}}
-
 .mr-toolbar.record-browser-toolbar
 #request-search {
     position:static !important;
@@ -467,10 +385,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
 
     margin:0 !important;
 
-    {{-- /*
-     | Important: remove any global left padding/text indent
-     | intended for absolutely-positioned search icons.
-     */ --}}
     padding:
         0 !important;
 
@@ -487,16 +401,12 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
     appearance:none !important;
 }
 
-
-{{-- /* Placeholder starts after the flex icon */ --}}
 .mr-toolbar.record-browser-toolbar
 #request-search::placeholder {
     color:var(--text-muted) !important;
     opacity:1 !important;
 }
 
-
-{{-- /* Remove WebKit search decorations that can affect spacing */ --}}
 .mr-toolbar.record-browser-toolbar
 #request-search::-webkit-search-decoration {
     -webkit-appearance:none !important;
@@ -507,19 +417,9 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
     cursor:pointer;
 }
 
-
-{{-- /* MY REQUESTS SEARCH ICON FIX END */ --}}
 </style>
 
 <style>
-{{-- /* MY REQUESTS STATUS BESIDE NUMBER START */ --}}
-
-{{-- /*
- | Request identity:
- | BR-XXXXXXXXXX   [Status]
- | Event / purpose
- | Office / College / Unit
- */ --}}
 
 .mr-request-identity-line {
     display:flex !important;
@@ -532,8 +432,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
     margin:0 0 2px !important;
 }
 
-
-{{-- /* Request number */ --}}
 .mr-request-identity-line > strong {
     min-width:0 !important;
 
@@ -548,8 +446,6 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
     white-space:nowrap !important;
 }
 
-
-{{-- /* Status badge stays compact beside the request number */ --}}
 .mr-request-identity-line > .status-badge {
     flex:0 0 auto !important;
 
@@ -563,34 +459,14 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
     white-space:nowrap !important;
 }
 
-
-{{-- /* ========================================================
-   RIGHT ACTION
-   ======================================================== */ --}}
-
-{{-- /*
- | Status no longer belongs here.
- | Right side is now action-only.
- */ --}}
-
 .operational-record-action {
     justify-content:center !important;
     align-items:flex-end !important;
 }
 
-
-{{-- /*
- | Retain existing button visual for
- | Resume Draft / View Request.
- */ --}}
 .operational-record-action > strong {
     margin:0 !important;
 }
-
-
-{{-- /* ========================================================
-   MOBILE
-   ======================================================== */ --}}
 
 @media (max-width:680px) {
 
@@ -602,11 +478,9 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
 
 }
 
-{{-- /* MY REQUESTS STATUS BESIDE NUMBER END */ --}}
 </style>
 
 <style>
-{{-- /* MY REQUESTS ACTION ICONS START */ --}}
 
 .operational-record-action
 .mr-request-action-label {
@@ -628,5 +502,4 @@ html[data-theme="dark"] .mr-empty-line rect { fill: #2c455f; }
     margin:0 !important;
 }
 
-{{-- /* MY REQUESTS ACTION ICONS END */ --}}
 </style>

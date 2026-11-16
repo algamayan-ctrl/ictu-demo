@@ -92,5 +92,5 @@ test('resolved accountability expansion stays compact and omits unavailable late
   assert.match(detail, /@if\(\$case->late_days !== null\)/);
   assert.doesNotMatch(detail, /class="accountability-case-facts top-gap"/);
   assert.match(resolvedHistory, /\.resolved-history-facts\s*\{[\s\S]*?grid-template-columns:\s*repeat\(auto-fit, minmax\(170px, 1fr\)\)/);
-  assert.match(resolvedHistory, /\.accountability-history-embedded \.accountability-case-detail-row > td\s*\{[\s\S]*?padding:\s*10px 16px 12px/);
+  assert.match(resolvedHistory, /\.accountability-history-embedded \.accountability-case-detail-row > td\s*\{[\s\S]*?padding:\s*10px 12px 12px/);
 });

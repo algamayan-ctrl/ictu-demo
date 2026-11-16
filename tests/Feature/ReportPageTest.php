@@ -67,11 +67,11 @@ class ReportPageTest extends TestCase
             ->get(route('reports.index', ['report' => 'borrowing']));
 
         $response->assertOk();
-        $response->assertSee('Report builder', false);
+        $response->assertSee('data-report-compact-builder', false);
         $response->assertSee('View operational records, apply filters, then print or export the selected report.', false);
         $response->assertSee('Apply filters', false);
-        $response->assertSee('Filters', false);
-        $response->assertDontSee('More Filters', false);
+        $response->assertSee('More filters', false);
+        $response->assertSee('data-report-more-panel', false);
     }
 
     public function test_reports_page_starts_with_actual_scoped_records(): void
@@ -117,8 +117,8 @@ class ReportPageTest extends TestCase
             ]));
 
         $response->assertOk();
-        $response->assertSee('1 applied', false);
-        $response->assertSee('Clear filters', false);
+        $response->assertSee('data-report-more-count> (1)</span>', false);
+        $response->assertSee('>Clear</a>', false);
         $response->assertDontSee('Applied filters:', false);
     }
 
@@ -128,7 +128,7 @@ class ReportPageTest extends TestCase
             ->withSession(['active_workspace' => 'SPMU'])
             ->get(route('reports.index', ['report' => 'borrowing']));
 
-        foreach (['Borrowing', 'Custody &amp; Return', 'Assets', 'Special Operations'] as $group) {
+        foreach (['General', 'Asset', 'Accountability'] as $group) {
             $response->assertSee('<optgroup label="'.$group.'">', false);
         }
     }
@@ -140,9 +140,9 @@ class ReportPageTest extends TestCase
             ->get(route('reports.index', ['report' => 'borrowing', 'academic_period' => 'month']));
 
         $response->assertOk();
-        $response->assertSee('Date Range', false);
-        $response->assertSee('<strong data-applied-start-label>'.now()->startOfMonth()->format('d M Y').'</strong>', false)
-            ->assertSee('<strong data-applied-end-label>'.now()->endOfMonth()->format('d M Y').'</strong>', false);
+        $response->assertSee('Reporting Period', false);
+        $response->assertSee('value="'.now()->startOfMonth()->toDateString().'"', false)
+            ->assertSee('value="'.now()->endOfMonth()->toDateString().'"', false);
     }
 
     public function test_generated_reports_page_shows_the_analytics_boundary_note(): void
@@ -384,10 +384,10 @@ class ReportPageTest extends TestCase
         $response->assertSee('Automatic (Recommended)', false);
         $response->assertSee('Advanced Print Settings', false);
         $response->assertSee('Included automatically in printed and exported reports', false);
-        $response->assertSee('Export PDF', false);
-        $response->assertSee('Export Word', false);
-        $response->assertSee('Export Excel', false);
-        $response->assertSee('Export CSV', false);
+        $response->assertSee('Generate PDF', false);
+        $response->assertSee('Generate Word', false);
+        $response->assertSee('Generate Excel', false);
+        $response->assertSee('Generate CSV', false);
         $response->assertSee('Open Print Preview', false);
         $response->assertDontSee('Include generated-by information', false);
         $response->assertDontSee('Include system-generated footer', false);
@@ -406,7 +406,7 @@ class ReportPageTest extends TestCase
         $response->assertSee('No records yet.', false);
         $response->assertSee('No released/custody records were found for this period.', false);
         $response->assertSee('Change Period or Filters', false);
-        $response->assertDontSee('Export / Print', false);
+        $response->assertSee('Export / Print', false);
         $response->assertDontSee('<article class="doc-sheet">', false);
         $response->assertDontSee('<table class="report-table">', false);
     }
@@ -494,7 +494,8 @@ class ReportPageTest extends TestCase
         $response->assertDontSee((string) $otherRequest->request_no, false);
         $response->assertSee('Borrower:', false);
         $response->assertSee('Target Borrower', false);
-        $response->assertDontSee('target.borrower@cspc.edu.ph', false);
+        $response->assertSee('target.borrower@cspc.edu.ph', false);
+        $response->assertDontSee('other.borrower@cspc.edu.ph', false);
         $response->assertSee('name="borrower" value="'.$target->id.'"', false);
     }
 
@@ -704,7 +705,7 @@ class ReportPageTest extends TestCase
         $response->assertDontSee('report-preview-empty', false);
         $response->assertDontSee('CAMARINES SUR POLYTECHNIC COLLEGES', false);
         $response->assertDontSee('Republic of the Philippines', false);
-        $response->assertDontSee('Export / Print', false);
+        $response->assertSee('Export / Print', false);
     }
 
     public function test_spmu_administration_page_shows_no_audit_evidence_only_the_operational_trail_link(): void

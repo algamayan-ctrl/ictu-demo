@@ -15,7 +15,6 @@
 (() => {
  const CARD = '[data-card-detail]';
 
-
  const INNER = 'a, button, select, input, textarea, label, summary, details, [role="button"], [role="link"], [data-chart-tip]';
 
  const open = (card) => {
@@ -33,20 +32,13 @@
  const card = event.target.closest(CARD);
  if (!card) return;
 
-
  if (event.target.closest(INNER)) return;
-
 
  const selection = window.getSelection();
  if (selection && selection.type === 'Range' && String(selection).trim() !== '') return;
 
  open(card);
  });
-
-
-
-
-
 
  document.addEventListener('keydown', (event) => {
  if (event.key !== ' ' && event.key !== 'Spacebar') return;

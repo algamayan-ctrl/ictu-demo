@@ -51,7 +51,7 @@
     </div>
     <ol class="laundry-progress-rail">
         @foreach($steps as $step)
-            @php
+@php
                 $state = $step['state'];
                 $stateLabel = $state === 'complete' ? 'Completed' : ucfirst($state);
             @endphp

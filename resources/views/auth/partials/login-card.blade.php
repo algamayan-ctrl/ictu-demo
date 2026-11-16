@@ -1,11 +1,11 @@
 <style>
-{{-- /* SHARED LOGIN CARD TYPOGRAPHY AND SPACING START */ --}}
+
 .spmu-shared-login-card {
     width: 100%;
 }
 
 .spmu-shared-login-card .google-auth-error {
-    margin-top: -4px; {{-- /* The form's 14px grid gap leaves 10px below Google. */ --}}
+    margin-top: -4px;
     color: #c62828;
     font-size: 13px;
     line-height: 1.45;
@@ -16,7 +16,7 @@
     width: min(100%, 185px) !important;
     max-width: 185px !important;
     height: auto !important;
-    margin: 0 auto 14px !important;
+    margin: 0 auto 12px !important;
 }
 
 .spmu-shared-login-card h1,
@@ -33,7 +33,7 @@
 
 .spmu-shared-login-card p,
 .spmu-shared-login-card .login-card-subtitle {
-    margin: 0 0 18px !important;
+    margin: 0 0 12px !important;
     font-size: 13px !important;
     line-height: 1.55 !important;
     text-align: center !important;
@@ -42,7 +42,7 @@
 
 .spmu-shared-login-card form {
     display: grid !important;
-    row-gap: 14px !important;
+    row-gap: 12px !important;
 }
 
 .spmu-shared-login-card label {
@@ -151,28 +151,27 @@
     .spmu-shared-login-card p,
     .spmu-shared-login-card .login-card-subtitle {
         font-size: 12.5px !important;
-        margin-bottom: 16px !important;
+        margin-bottom: 12px !important;
     }
 
     .spmu-shared-login-card .card,
     .spmu-shared-login-card .login-card-panel,
     .spmu-shared-login-card > div:first-child {
-        padding: 22px 20px !important;
+        padding: 16px 16px !important;
     }
 
     .spmu-shared-login-card form {
         row-gap: 12px !important;
     }
 }
-{{-- /* SHARED LOGIN CARD TYPOGRAPHY AND SPACING END */ --}}
+
 </style>
 
 <div class="spmu-shared-login-card">
 <div class="login-card">
 
-
         <div class="login-heading">
-                    {{-- <!-- LOGIN CARD LOGO SWAP START --> --}}
+
         <div class="landing-login-badge landing-login-badge--logo">
             <img
                 src="{{ \App\Support\StaticAsset::url('images/spmu-acpmp-logo.png') }}"
@@ -180,12 +179,11 @@
                 class="landing-login-badge-logo"
             >
         </div>
-        {{-- <!-- LOGIN CARD LOGO SWAP END --> --}}
+
 <h1 id="landing-login-title">Welcome to SPMU-ACPMP</h1>
 
             <p>Sign in using your authorized SPMU-ACPMP account.</p>
         </div>
-
 
         <form method="POST" action="{{ route('login') }}" class="login-form" data-preserve-submit-label="true">
             @csrf
@@ -203,7 +201,7 @@
                     @endforeach
                 @endunless
             @endforeach
-            {{-- EMAIL --}}
+
             <div class="login-field">
 
                 <label for="email">
@@ -228,16 +226,12 @@
 
                 </div>
 
-
-
                 @error('email')
                     <div class="login-error" role="alert">{{ $message }}</div>
                 @enderror
 
             </div>
 
-
-            {{-- PASSWORD --}}
             <div class="login-field">
 
                 <div class="login-label-row">
@@ -254,7 +248,6 @@
                         </a>
                     @endif
                 </div>
-
 
                 <div class="login-input-wrap @error('password') has-error @enderror">
 
@@ -282,16 +275,12 @@
 
                 </div>
 
-
-
                 @error('password')
                     <div class="login-error" role="alert">{{ $message }}</div>
                 @enderror
 
             </div>
 
-
-            {{-- REMEMBER ME --}}
             @error('registration')<div class="login-error" role="alert">{{ $message }}</div>@enderror
             <label class="login-remember">
                 <input
@@ -306,8 +295,6 @@
                 </span>
             </label>
 
-
-            {{-- SIGN IN --}}
             <button
                 type="submit"
                 class="login-submit"
@@ -318,7 +305,6 @@
                 </span>
 
             </button>
-
 
             {{-- Keep the requested Google action visible; the route reports missing configuration honestly. --}}
                 <div class="login-alt-divider">
@@ -344,12 +330,10 @@
                 </a>
             <p class="mt-3"><a href="{{ route('register') }}">Don't have an account yet? Sign up</a></p>
 
-
             @error('google')
                 <div class="google-auth-error" role="alert">{{ $message }}</div>
             @enderror
 
-            {{-- HELP --}}
             <div class="login-help">
 
                 <div class="login-help-divider">
@@ -380,7 +364,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-
 
     const googleError = document.querySelector('.google-auth-error');
     const sharedCard = googleError?.closest('.spmu-shared-login-card');
@@ -418,19 +401,12 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
 
 <style>
-{{-- /* SPMU REMEMBER CHECKBOX ALIGNMENT START */ --}}
-
-{{-- /*
- * Align the Remember checkbox and its text on one clean baseline.
- * Scoped only to the SPMU login card.
- */ --}}
 
 .spmu-shared-login-card *:has(> input[type="checkbox"][name="remember"]) {
     display: flex !important;
     align-items: center !important;
 }
 
-{{-- /* Checkbox */ --}}
 .spmu-shared-login-card input[type="checkbox"][name="remember"],
 .spmu-shared-login-card #remember {
     width: 17px !important;
@@ -451,7 +427,6 @@ document.addEventListener('DOMContentLoaded', function () {
     top: 0 !important;
 }
 
-{{-- /* "Keep me signed in" text */ --}}
 .spmu-shared-login-card label[for="remember"] {
     margin: 0 !important;
     padding: 0 !important;
@@ -467,7 +442,6 @@ document.addEventListener('DOMContentLoaded', function () {
     cursor: pointer;
 }
 
-{{-- /* Bootstrap form-check compatibility */ --}}
 .spmu-shared-login-card .form-check:has(input[name="remember"]) {
     display: flex !important;
     align-items: center !important;
@@ -492,14 +466,12 @@ document.addEventListener('DOMContentLoaded', function () {
     line-height: 1.2 !important;
 }
 
-{{-- /* SPMU REMEMBER CHECKBOX ALIGNMENT END */ --}}
 </style>
 
 <style>
-{{-- /* LOGIN OTP VERIFICATION FINAL */ --}}
 
 .spmu-shared-login-card .login-help .login-otp-verification {
-    margin-top: 14px;
+    margin-top: 12px;
     padding-top: 14px;
     border-top: 1px solid #d8e2ee;
     text-align: center;

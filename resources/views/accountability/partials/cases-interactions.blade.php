@@ -57,8 +57,6 @@ document.addEventListener('click', (event) => {
         return row.dataset.caseType === type;
     };
 
-
-
     function syncStatusOptions() {
         if (!statusSelect) return;
 
@@ -109,8 +107,6 @@ document.addEventListener('click', (event) => {
         empty.hidden = visible > 0;
         if (count) count.textContent = String(visible);
     }
-
-
 
     if (focus === 'overdue') {
         if (typeSelect && [...typeSelect.options].some(option => option.value === 'LATE_RETURN')) {

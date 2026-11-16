@@ -8,7 +8,7 @@
     and $row to already be set by the caller.
 --}}
 @if($incident)
-    @php
+@php
         /*
          * Only what was actually recorded with the Head's decision is shown.
          * A record that carries no decision line keeps its plain final status;

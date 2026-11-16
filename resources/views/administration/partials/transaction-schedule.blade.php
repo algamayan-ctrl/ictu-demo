@@ -29,7 +29,7 @@
                 </div>
 
                 @foreach($weekdayLabels as $weekday => $weekdayLabel)
-                    @php
+@php
                         $weekly = $weeklySchedules->get($weekday);
 
                         $isOpen = (bool) old("schedule.{$weekday}.is_open", $weekly?->is_open ?? ($weekday <= 5));
@@ -105,7 +105,7 @@
                                 type="time"
                                 name="schedule[{{ $weekday }}][open_time]"
                                 value="{{ $isOpen ? $openTime : '' }}"
-                                data-weekday-time
+                                data-weekday-time data-operational-time-picker
                                 @disabled(!$isOpen)
                                 @error("schedule.{$weekday}.open_time") aria-invalid="true" @enderror
                             >
@@ -119,7 +119,7 @@
                                 type="time"
                                 name="schedule[{{ $weekday }}][close_time]"
                                 value="{{ $isOpen ? $closeTime : '' }}"
-                                data-weekday-time
+                                data-weekday-time data-operational-time-picker
                                 @disabled(!$isOpen)
                                 @error("schedule.{$weekday}.close_time") aria-invalid="true" @enderror
                             >
@@ -158,7 +158,7 @@
     align-items: center;
     justify-content: flex-end;
     gap: 12px;
-    margin-top: 14px;
+    margin-top: 12px;
 }
 
 .txn-schedule-toolbar .button {
@@ -166,7 +166,7 @@
     align-items: center;
     gap: 9px;
     min-height: 44px;
-    padding: 11px 20px;
+    padding: 11px 16px;
     font-size: 13px;
     font-weight: 700;
     white-space: nowrap;
@@ -183,18 +183,14 @@
 
 .txn-schedule-note {
     margin: 0;
-    padding: 18px 28px 0;
+    padding: 16px 20px 0;
 }
 
 .txn-schedule-grid {
     display: grid;
-    padding: 18px 28px 26px;
+    padding: 16px 20px 20px;
 }
 
-{{-- /*
- * Minimums total 732px, plus 4 x 14px gaps and the grid's 56px side padding =
- * 844px of card width. The stacked layout below takes over before that runs out.
- */ --}}
 .txn-schedule-head,
 .txn-schedule-row {
     display: grid;
@@ -204,7 +200,7 @@
         minmax(300px, 2.6fr)
         minmax(110px, .8fr)
         minmax(110px, .8fr);
-    gap: 14px;
+    gap: 12px;
     align-items: center;
 }
 
@@ -320,7 +316,6 @@
     transform: translateY(-50%);
 }
 
-{{-- /* Keep the native picker clickable while our own clock icon is the visible one. */ --}}
 .txn-time-field input::-webkit-calendar-picker-indicator {
     position: absolute;
     top: 0;
@@ -341,10 +336,6 @@
     font-weight: 600;
 }
 
-{{-- /*
- * The caption repeats the column header, so it only appears once the header
- * row is dropped on narrow screens.
- */ --}}
 .txn-availability-title {
     display: none;
     grid-column: 1 / -1;
@@ -417,7 +408,6 @@
     color: var(--success);
 }
 
-{{-- /* A closed day's permissions and hours are locked, not merely dimmed. */ --}}
 .txn-schedule-row.is-closed .txn-check,
 .txn-schedule-row.is-closed .txn-time-field input {
     color: var(--text-soft) !important;
@@ -463,7 +453,7 @@ html[data-theme="dark"] .txn-schedule-card {
     .txn-schedule-row {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         row-gap: 12px;
-        padding: 16px 0;
+        padding: 12px 0;
     }
 
     .txn-day,
@@ -525,10 +515,6 @@ html[data-theme="dark"] .txn-schedule-card {
             stateLabel.textContent = open.checked ? 'OPEN' : 'CLOSED';
         }
 
-
-
-
-
         lockedFields(row).forEach((field) => {
             field.disabled = !open.checked;
         });
@@ -541,7 +527,6 @@ html[data-theme="dark"] .txn-schedule-card {
             input.required = physicalEnabled;
         });
     };
-
 
     const clearRow = (row) => {
         row.querySelectorAll('[data-weekday-capability]').forEach((input) => {
@@ -568,11 +553,6 @@ html[data-theme="dark"] .txn-schedule-card {
             input.addEventListener('change', () => syncRow(row));
         });
     });
-
-
-
-
-
 
     form.addEventListener('reset', () => {
         window.setTimeout(() => rows.forEach(syncRow), 0);

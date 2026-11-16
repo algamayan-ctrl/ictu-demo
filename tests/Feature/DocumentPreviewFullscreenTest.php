@@ -22,7 +22,7 @@ class DocumentPreviewFullscreenTest extends TestCase
     use RefreshDatabase;
 
     // The button's own markup (the script also mentions the attribute name).
-    private const TOGGLE = 'data-document-fullscreen-label>Full screen</span>';
+    private const TOGGLE = 'data-document-fullscreen-toggle aria-expanded="false">Full Screen</button>';
 
     protected function setUp(): void
     {
@@ -103,8 +103,8 @@ class DocumentPreviewFullscreenTest extends TestCase
             ->get(route('files.preview', $file))
             ->assertOk()
             ->assertSee(self::TOGGLE, false)
-            ->assertSee('aria-pressed="false"', false)
-            ->assertSeeText('Full screen')
+            ->assertSee('aria-expanded="false"', false)
+            ->assertSeeText('Full Screen')
             // The existing embedded viewer is unchanged.
             ->assertSee(route('files.show', $file, false), false);
     }
@@ -135,7 +135,7 @@ class DocumentPreviewFullscreenTest extends TestCase
             ->assertDontSee(self::TOGGLE, false);
     }
 
-    public function test_staff_preview_of_the_same_document_is_unchanged(): void
+    public function test_authorized_staff_preview_also_has_the_full_screen_control(): void
     {
         $borrower = $this->user(AccessClassification::BorrowerOnly);
         $file = $this->requestLetter($borrower);
@@ -145,9 +145,7 @@ class DocumentPreviewFullscreenTest extends TestCase
             ->get(route('files.preview', $file))
             ->assertOk()
             ->assertSee(route('files.show', $file, false), false)
-            ->assertDontSee(self::TOGGLE, false)
-            // No full-screen styles or script are added to staff pages at all.
-            ->assertDontSee('data-document-fullscreen-toggle', false);
+            ->assertSee(self::TOGGLE, false);
     }
 
     public function test_full_screen_does_not_change_file_access(): void

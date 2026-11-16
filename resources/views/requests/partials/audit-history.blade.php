@@ -454,7 +454,7 @@
         }
 
         // 10) Final lifecycle closure.
-        //
+
         // A normally fulfilled borrowing transaction is shown as completed.
         // A cancelled request is shown as closed instead so the history does
         // not imply that physical borrowing was successfully completed.
@@ -544,7 +544,7 @@
     </summary>
 
     <div class="table-wrap request-history-table-wrap">
-        <table class="request-history-table">
+        <table class="request-history-table" data-record-table="Transaction history" data-record-filter-column="1" data-record-filter-label="Stage" data-record-dates>
             <colgroup>
                 <col class="request-history-col-when">
                 <col class="request-history-col-event">
@@ -559,7 +559,7 @@
             </thead>
             <tbody>
             @forelse($historyEvents as $history)
-                <tr>
+                <tr data-record-filter="{{ $history['stage'] }}" data-record-date="{{ $history['when']->format('Y-m-d') }}">
                     <td data-label="Date &amp; Time">{{ $history['when']->format('d M Y, g:i A') }}</td>
                     <td data-label="Activity" class="request-history-event">
                         {{ $history['event'] }}
@@ -584,11 +584,7 @@
 
 @once
 <style>
-    {{-- /*
-     * <details> supplies native accordion semantics and keyboard handling.
-     * The card itself clips accidental visual overflow; the table wrapper owns
-     * horizontal scrolling only when the viewport genuinely becomes narrow.
-     */ --}}
+
     .request-activity-history {
         padding: 0;
         overflow: hidden;
@@ -598,8 +594,8 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 16px;
-        padding: 15px 18px;
+        gap: 12px;
+        padding: 12px 16px;
         cursor: pointer;
         list-style: none;
     }
@@ -663,7 +659,7 @@
         box-sizing: border-box;
         width: calc(100% - 36px);
         max-width: calc(100% - 36px);
-        margin: 0 18px 18px;
+        margin: 0 12px 12px;
         overflow-x: auto;
         overscroll-behavior-inline: contain;
         border: 1px solid var(--border);
@@ -690,7 +686,7 @@
     }
 
     .request-history-table td {
-        padding: 12px 16px;
+        padding: 12px 12px;
         line-height: 1.45;
     }
 
@@ -709,7 +705,7 @@
     }
 
     .request-history-empty {
-        padding: 20px !important;
+        padding: 16px !important;
         text-align: center;
         color: var(--text-muted);
     }

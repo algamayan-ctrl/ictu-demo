@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => 'Reports'])
 
 @section('content')
+{{-- This is the Transaction Records UI for authorized SPMU users. --}}
 @include('reports.partials.workspace-styles')
 @include('reports.partials.detail-styles')
 
@@ -26,7 +27,7 @@
                 <label class="all-transactions-field">
                     <span>Report Type</span>
                     <select name="report" id="all-transactions-report-type">
-                        <option value="all-transactions" selected>All Transactions</option>
+                        <option value="all-transactions" selected>All Transactions (General Overview)</option>
                         @foreach(\App\Reports\ReportCatalogue::grouped() as $group => $types)
                             <optgroup label="{{ $group }}">
                                 @foreach($types as $key => $label)
@@ -39,8 +40,11 @@
                 <label class="all-transactions-field">
                     <span>Transaction Type</span>
                     <select name="type">
-                        <option value="">All transaction types</option>
-                        @foreach(\App\Services\AllTransactionsService::TYPES as $type)
+                        <option value="">All</option>
+                        @if($selectedType && ! in_array($selectedType, \App\Services\AllTransactionsService::VISIBLE_TYPES, true))
+                            <option value="{{ $selectedType }}" selected>{{ $selectedType }} (saved filter)</option>
+                        @endif
+                        @foreach(\App\Services\AllTransactionsService::VISIBLE_TYPES as $type)
                             <option value="{{ $type }}" @selected($selectedType === $type)>{{ $type }}</option>
                         @endforeach
                     </select>
@@ -55,7 +59,7 @@
                 </label>
                 <div class="all-transactions-filter-actions">
                     <button type="submit" class="button primary">Apply Filters</button>
-                    <a href="{{ route('reports.index') }}" class="button secondary">Clear</a>
+                    <a href="{{ route('reports.index', ['report' => 'all-transactions']) }}" class="button secondary">Clear</a>
                 </div>
             </div>
             <p class="all-transactions-filter-note">All dates and all transaction types are included by default. Each recorded event appears separately.</p>
@@ -179,14 +183,14 @@
 </script>
 
 <style>
-.all-transactions-page .all-transactions-filters { padding: 15px 17px; }
+.all-transactions-page .all-transactions-filters { padding: 12px 12px; }
 .all-transactions-filter-row { display: grid; grid-template-columns: minmax(190px, 1.5fr) minmax(175px, 1.15fr) minmax(125px, .8fr) minmax(125px, .8fr) auto; gap: 12px; align-items: end; }
 .all-transactions-field { display: grid; gap: 7px; min-width: 0; color: var(--heading); font-size: 11px; font-weight: 650; }
 .all-transactions-page .all-transactions-field input { background: var(--surface-elevated); color: var(--heading); border: 1px solid var(--border); border-radius: 7px; height: 42px; padding: 8px; width: 100%; font: inherit; }
 .all-transactions-page .all-transactions-field select { height: 42px; border-radius: 7px; }
 .all-transactions-filter-actions { display: flex; gap: 7px; align-items: center; }
 .all-transactions-filter-note { margin: 9px 0 0; color: var(--text-muted); font-size: 11px; }
-.all-transactions-results { margin-top: 16px !important; }
+.all-transactions-results { margin-top: 12px !important; }
 .all-transactions-page .report-system-records-card { margin-top: 8px; }
 .all-transactions-page .report-system-table th { white-space: nowrap; min-width: 120px; }
 .all-transactions-page .report-system-table td { white-space: nowrap; padding: 11px 12px; line-height: 1.35; }

@@ -1,5 +1,6 @@
 @extends('layouts.app', ['title' => 'Laundry Operations'])
 @section('content')
+{{-- This is the Laundry Record Details UI for authorized SPMU users. --}}
 @php
     $formArchived = $job->hasVerifiedAccomplishedForm();
     $isCompleted = $job->status === 'LAUNDRY_COMPLETED';
@@ -71,7 +72,7 @@
                     <thead><tr><th scope="col">Item</th><th scope="col" class="is-numeric">Quantity Issued</th><th scope="col" class="is-numeric">Quantity Returned</th><th scope="col">Condition</th></tr></thead>
                     <tbody>
                         @forelse($job->lines as $line)
-                            @php
+@php
                                 $requestItem = $line->custodyLine?->requestItem;
                                 $returnFindings = ($line->custodyLine?->returnLines ?? collect())
                                     ->filter(fn ($finding) => (int) $finding->quantity_received > 0);

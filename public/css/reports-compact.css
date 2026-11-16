@@ -1,0 +1,33 @@
+/* This is the shared compact toolbar and anchored More filters UI for Reports. */
+.reporting-workspace .report-compact-toolbar{display:flex;flex-direction:row;align-items:end;align-content:start;flex-wrap:wrap;gap:8px;padding:12px;margin:0 0 16px;position:relative;overflow:visible;min-width:0;max-width:100%;min-height:0;height:auto;box-sizing:border-box}
+.report-compact-field{display:flex;flex-direction:column;gap:4px;min-width:min(100%,100px);flex:1 1 100px}
+.report-compact-field>label{font-size:12px;font-weight:600;line-height:1.3;color:var(--text-primary,var(--heading));margin:0}
+.report-compact-toolbar .report-type-field{flex:1.6 1 200px;min-width:min(100%,200px)}.report-compact-toolbar .report-period-field{flex:1 1 110px;min-width:min(100%,110px)}
+.report-compact-toolbar .report-year-field{flex:.6 1 76px;min-width:min(100%,76px)}.report-compact-toolbar .report-record-search{flex:1.2 1 110px;min-width:min(100%,110px)}
+.report-compact-toolbar input,.report-compact-toolbar select,.report-more-panel input,.report-more-panel select{width:100%;min-width:0;box-sizing:border-box;min-height:38px;height:38px;padding:7px 10px;font-size:14px;line-height:1.3;background:var(--surface-elevated,var(--surface,#fff));color:var(--text-primary,var(--text));border:1px solid var(--border)}
+.report-compact-toolbar .button,.report-more-panel .button{min-height:38px;padding:7px 12px;font-size:14px;white-space:nowrap}
+.report-compact-toolbar .button{min-height:38px!important;height:38px;line-height:1.3;box-sizing:border-box}
+.report-compact-actions{display:flex;gap:8px;flex-shrink:0;align-items:center}.report-more-trigger{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.report-custom-range{display:contents}.report-custom-range .report-compact-field{flex:1 1 128px;min-width:min(100%,128px)}
+.report-search-choice{position:relative;min-width:0;width:100%}.report-picker-search-icon{position:absolute;left:9px;top:11px;color:var(--text-muted);pointer-events:none}.report-search-choice [data-picker-input]{padding-left:31px}
+.report-search-choice .field-error{display:block;margin-top:4px}
+.report-more-panel{position:fixed;z-index:21500;width:min(540px,calc(100vw - 16px));padding:16px;border:1px solid var(--border);border-radius:var(--radius,12px);background:var(--surface-elevated,var(--surface,#fff));color:var(--text-primary,var(--text));box-shadow:0 12px 30px rgba(15,35,65,.2);max-height:calc(100dvh - 16px);overflow:auto}
+.report-more-panel header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.report-more-panel h2{font-size:18px;margin:0}
+.report-more-panel .report-more-fields{display:grid;gap:12px}.report-more-panel .report-compact-field{display:grid;grid-template-columns:155px minmax(0,1fr);align-items:center;gap:12px;min-width:0}
+.report-more-panel footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:14px;margin-top:14px;border-top:1px solid var(--border)}.report-more-panel footer>div{display:flex;gap:8px}
+.report-more-panel :is(input,select,button):focus-visible,.report-compact-toolbar :is(input,select,button,a):focus-visible{outline:2px solid var(--interactive,#0865df);outline-offset:2px}
+.report-compact-toolbar [hidden],.report-more-panel[hidden],.report-more-panel [hidden]{display:none!important}
+.reporting-workspace .report-system-table{font-size:14px}.reporting-workspace .report-system-table td{padding-block:9px;white-space:pre-line}
+.reporting-workspace .report-preview-bar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
+.reporting-workspace .report-preview-bar>div:first-child{min-width:0}
+.reporting-workspace .report-preview-title{overflow-wrap:anywhere}
+.reporting-workspace .report-preview-actions{justify-self:end;flex-wrap:nowrap;width:auto;margin-left:auto}
+.reporting-workspace .report-preview-actions .button{width:auto}
+.reporting-workspace .report-system-table .report-cell-nowrap{white-space:nowrap}.reporting-workspace .report-system-search{display:none}
+.reporting-workspace .report-overview-eye{padding:8px;min-width:36px;display:inline-flex;align-items:center;justify-content:center}
+.reporting-workspace .report-options-section{margin-block:12px}.reporting-workspace .report-options-body{padding:16px}.reporting-workspace .report-options-field{font-size:13px}
+.reporting-workspace .report-options-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:600px){.reporting-workspace .report-compact-toolbar{gap:8px}.report-compact-toolbar .report-type-field,.report-compact-toolbar .report-record-search{flex-basis:100%}.report-compact-actions{margin-left:auto}.report-more-panel .report-compact-field{display:flex;align-items:stretch;gap:5px}.report-more-panel footer{flex-wrap:wrap}.report-custom-range .report-compact-field{flex:1 1 128px}}
+@media print{.report-compact-toolbar,.report-more-panel{display:none!important}}
+@media(max-width:600px){.reporting-workspace .report-options-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.reporting-workspace .report-preview-bar{grid-template-columns:minmax(0,1fr)}}

@@ -1,5 +1,6 @@
 @extends('layouts.app', ['title' => $user->exists ? ($isExternalAccount ? 'Edit external borrower account' : 'Edit institutional account') : 'Register a CSPC account'])
 @section('content')
+{{-- This is the User Account form for SPMU Admin. --}}
 @php
     $isSelfProtected = auth()->check() && auth()->id() === $user->id;
     $selectedUnitId = old('organizational_unit_id', $user->organizational_unit_id);
@@ -145,7 +146,7 @@
                             </option>
                         @endif
                         @foreach($units as $unit)
-                            @php $unitDivision = $unit->divisionCode(); @endphp
+@php $unitDivision = $unit->divisionCode(); @endphp
                             @if(!$unitDivision) @continue @endif
                             <option value="{{ $unit->id }}" data-division="{{ $unitDivision }}"
                                     @selected(!$addingNewUnit && (string) $selectedUnitId === (string) $unit->id)>{{ $unit->unit_name }}</option>
@@ -170,7 +171,7 @@
                     <select name="employment_type" id="ictu-personnel-type" required>
                         <option value="">Select personnel type</option>
                         @foreach($employmentTypes as $type)
-                            @php
+@php
                                 $personnelTypeLabel = match ($type->value) {
                                     'FACULTY' => 'Faculty', 'EMPLOYEE' => 'Employee', 'STAFF' => 'Staff', default => $type->value,
                                 };
@@ -215,7 +216,7 @@
                     <select id="ictu-additional-unit-picker" disabled>
                         <option value="">Select Office / College / Unit</option>
                         @foreach($units as $additionalUnit)
-                            @php $additionalDivisionCode = $additionalUnit->divisionCode(); @endphp
+@php $additionalDivisionCode = $additionalUnit->divisionCode(); @endphp
                             @if(!$additionalDivisionCode) @continue @endif
                             <option value="{{ $additionalUnit->id }}"
                                 data-division="{{ $additionalDivisionCode }}"
@@ -281,7 +282,7 @@
                     <label for="ictu-account-status">Account status</label>
                     <select name="account_status" id="ictu-account-status" required @disabled($isSelfProtected)>
                         @foreach($accountStatuses as $status)
-                            @php
+@php
                                 $accountStatusLabel = match ($status->value) {
                                     'ACTIVE' => 'Active', 'INACTIVE' => 'Inactive', 'SUSPENDED' => 'Suspended', default => $status->value,
                                 };
@@ -382,7 +383,6 @@
             @method('DELETE')
         </form>
     @endif
-
 
     @if($canMaintainAccount && $user->exists && !$user->hasVerifiedInstitutionalEmail())
         <form id="ictu-resend-email-verification-form" method="post" action="{{ route('administration.users.email-verification.resend', $user) }}" data-preserve-submit-label="true" hidden>@csrf</form>
@@ -543,17 +543,9 @@ document.addEventListener('DOMContentLoaded', () => {
     addAdditionalButton?.addEventListener('click', addAdditionalUnit);
     syncUnits();
 
-
-
 });
 </script>
 <style>
-{{-- /* ADMIN PASSWORD LIVE HELP START */ --}}
-
-
-{{-- /* =========================================================
-   PASSWORD INPUT + EYE ICON
-   ========================================================= */ --}}
 
 .ictu-password-input-wrap {
     position: relative !important;
@@ -631,11 +623,6 @@ document.addEventListener('DOMContentLoaded', () => {
     display: none !important;
 }
 
-
-{{-- /* =========================================================
-   INVALID / VALID FIELD STATE
-   ========================================================= */ --}}
-
 .ictu-password-input-wrap.password-is-invalid > input {
     border-color: #dc3545 !important;
 
@@ -663,11 +650,6 @@ document.addEventListener('DOMContentLoaded', () => {
 > .ictu-password-toggle {
     color: #1a9b65 !important;
 }
-
-
-{{-- /* =========================================================
-   PASSWORD GUIDANCE
-   ========================================================= */ --}}
 
 .password-guidance-block {
     display: grid;
@@ -728,18 +710,13 @@ document.addEventListener('DOMContentLoaded', () => {
     font-size: 12px;
 }
 
-
-{{-- /* =========================================================
-   REQUIREMENT LIST
-   ========================================================= */ --}}
-
 .password-requirements {
     display: grid;
 
     grid-template-columns:
         repeat(2, minmax(0, max-content));
 
-    gap: 3px 18px;
+    gap: 3px 16px;
 
     margin: 1px 0 0;
     padding: 0;
@@ -793,11 +770,6 @@ document.addEventListener('DOMContentLoaded', () => {
     color: #19b866;
 }
 
-
-{{-- /* =========================================================
-   CONFIRM PASSWORD FEEDBACK
-   ========================================================= */ --}}
-
 .password-confirm-feedback {
     display: inline-flex;
     align-items: center;
@@ -839,11 +811,6 @@ document.addEventListener('DOMContentLoaded', () => {
     display: none !important;
 }
 
-
-{{-- /* =========================================================
-   MOBILE
-   ========================================================= */ --}}
-
 @media (max-width: 720px) {
     .password-requirements {
         grid-template-columns: 1fr;
@@ -851,9 +818,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 }
 
-{{-- /* ADMIN PASSWORD LIVE HELP END */ --}}
 </style>
-
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -869,7 +834,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!passwordInput) {
         return;
     }
-
 
     const passwordWrap = passwordInput.closest(
         '.ictu-password-input-wrap'
@@ -894,7 +858,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-
     passwordInput.minLength = 12;
     passwordInput.removeAttribute('maxlength');
 
@@ -903,10 +866,6 @@ document.addEventListener('DOMContentLoaded', function () {
         confirmInput.removeAttribute('maxlength');
     }
 
-
-
-
-
     passwordField
         .querySelectorAll('[data-password-guidance]')
         .forEach((element) => element.remove());
@@ -914,10 +873,6 @@ document.addEventListener('DOMContentLoaded', function () {
     confirmField
         ?.querySelectorAll('[data-password-confirm-feedback]')
         .forEach((element) => element.remove());
-
-
-
-
 
     const guidance = document.createElement('div');
 
@@ -969,14 +924,9 @@ document.addEventListener('DOMContentLoaded', function () {
         guidance
     );
 
-
     const mainFeedback = guidance.querySelector(
         '[data-password-main-feedback]'
     );
-
-
-
-
 
     let confirmFeedback = null;
 
@@ -1003,7 +953,6 @@ document.addEventListener('DOMContentLoaded', function () {
             confirmFeedback
         );
     }
-
 
     const rules = {
         length: {
@@ -1044,14 +993,12 @@ document.addEventListener('DOMContentLoaded', function () {
         },
     };
 
-
     const clearFieldState = (wrap) => {
         wrap?.classList.remove(
             'password-is-invalid',
             'password-is-valid'
         );
     };
-
 
     const setFieldState = (
         wrap,
@@ -1073,7 +1020,6 @@ document.addEventListener('DOMContentLoaded', function () {
         );
     };
 
-
     const updateRequirement = (
         ruleName,
         met
@@ -1087,7 +1033,6 @@ document.addEventListener('DOMContentLoaded', function () {
             met
         );
     };
-
 
     const hideFeedback = (element) => {
         if (!element) {
@@ -1105,7 +1050,6 @@ document.addEventListener('DOMContentLoaded', function () {
             'password-live-hidden'
         );
     };
-
 
     const showFeedback = (
         element,
@@ -1131,7 +1075,6 @@ document.addEventListener('DOMContentLoaded', function () {
         );
     };
 
-
     const validateConfirmation = () => {
 
         if (
@@ -1147,13 +1090,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const password =
             passwordInput.value;
 
-
         if (confirmation === '') {
             clearFieldState(confirmWrap);
             hideFeedback(confirmFeedback);
             return;
         }
-
 
         if (
             confirmation !== password ||
@@ -1173,7 +1114,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-
         setFieldState(
             confirmWrap,
             true
@@ -1186,16 +1126,10 @@ document.addEventListener('DOMContentLoaded', function () {
         );
     };
 
-
     const validatePassword = () => {
 
         const value =
             passwordInput.value;
-
-
-
-
-
 
         if (value === '') {
 
@@ -1217,7 +1151,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-
         const results = {};
 
         Object.entries(rules).forEach(
@@ -1233,17 +1166,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         );
 
-
         const valid =
             Object.values(results)
                 .every(Boolean);
-
 
         setFieldState(
             passwordWrap,
             valid
         );
-
 
         if (valid) {
 
@@ -1254,10 +1184,6 @@ document.addEventListener('DOMContentLoaded', function () {
             );
         }
         else {
-
-
-
-
 
             const firstInvalid =
                 Object.keys(rules)
@@ -1271,7 +1197,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     ? rules[firstInvalid].error(value)
                     : 'Password does not meet the requirements.';
 
-
             showFeedback(
                 mainFeedback,
                 message,
@@ -1279,22 +1204,18 @@ document.addEventListener('DOMContentLoaded', function () {
             );
         }
 
-
         validateConfirmation();
     };
-
 
     passwordInput.addEventListener(
         'input',
         validatePassword
     );
 
-
     confirmInput?.addEventListener(
         'input',
         validateConfirmation
     );
-
 
     validatePassword();
 });

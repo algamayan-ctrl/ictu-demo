@@ -62,8 +62,8 @@ class ReportDateRangeTest extends TestCase
         $this->assertSame($end, $response->viewData('to')->toDateString());
         $this->assertSame('00:00:00.000000', $response->viewData('from')->format('H:i:s.u'));
         $this->assertSame('23:59:59.999999', $response->viewData('to')->format('H:i:s.u'));
-        $this->assertMatchesRegularExpression('/<button[^>]+data-report-date-trigger="start"[^>]+tabindex="-1"[^>]+aria-disabled="true"/s', $response->getContent());
-        $this->assertMatchesRegularExpression('/<button[^>]+data-report-date-trigger="end"[^>]+tabindex="-1"[^>]+aria-disabled="true"/s', $response->getContent());
+        $this->assertMatchesRegularExpression('/<input[^>]+name="start_date"[^>]+value="'.$start.'"[^>]+disabled/', $response->getContent());
+        $this->assertMatchesRegularExpression('/<input[^>]+name="end_date"[^>]+value="'.$end.'"[^>]+disabled/', $response->getContent());
     }
 
     public function test_builder_keeps_existing_options_and_exposes_server_resolved_presets(): void
@@ -72,13 +72,13 @@ class ReportDateRangeTest extends TestCase
         $presets = $response->viewData('reportingPeriods');
         $this->assertSame([
             'This Week', 'This Month', 'Current Semester', 'Previous Semester', 'Current Academic Year',
-            'Last Month', 'This Quarter', 'This Year', 'Custom Range',
+            'Previous Month', 'This Quarter', 'This Year', 'Custom Range',
         ], array_column($presets, 'label'));
         $this->assertSame('2026-09-01', $presets['last_month']['start_date']);
         $this->assertSame('2026-12-31', $presets['quarter']['end_date']);
         $this->assertSame('2026-10-01', $presets['semester']['start_date']);
-        $response->assertSee('<strong data-applied-start-label>01 Oct 2026</strong>', false)
-            ->assertSee('<strong data-applied-end-label>31 Oct 2026</strong>', false);
+        $response->assertSee('value="2026-10-01"', false)
+            ->assertSee('value="2026-10-31"', false);
 
         // Optional rendered fixture for real-browser interaction and visual QA.
         if ($fixture = getenv('REPORT_BUILDER_HTML')) {
@@ -146,8 +146,8 @@ class ReportDateRangeTest extends TestCase
 
         $response = $this->get(route('reports.index', ['report' => 'borrowing', 'generated' => 1, ...$range]))->assertOk();
         $this->assertSame(2, $response->viewData('dataset')->count());
-        $response->assertSee('<strong data-applied-start-label>05 Oct 2026</strong>', false)
-            ->assertSee('<strong data-applied-end-label>20 Oct 2026</strong>', false)
+        $response->assertSee('value="2026-10-05"', false)
+            ->assertSee('value="2026-10-20"', false)
             ->assertSee('Inside start')->assertSee('Inside end')
             ->assertDontSee('Outside before')->assertDontSee('Outside after');
         $this->assertSame(['report' => 'borrowing', ...$range], $response->viewData('reportFilters')->toQuery());

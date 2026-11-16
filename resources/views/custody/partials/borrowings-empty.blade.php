@@ -13,7 +13,7 @@
             aria-hidden="true"
             focusable="false"
         >
-            {{-- Soft circular backdrop --}}
+
             <circle class="borrowings-empty-backdrop" cx="98" cy="80" r="70" />
 
             {{-- Open box: flaps, rim, then the two front faces --}}
@@ -25,7 +25,6 @@
                 <path d="M146 84v32l-46 22v-32Z" />
             </g>
 
-            {{-- Checklist resting against the box --}}
             <g class="borrowings-empty-clipboard" stroke-width="2.2" stroke-linejoin="round">
                 <rect x="120" y="90" width="46" height="56" rx="5" />
                 <rect class="borrowings-empty-clip" x="134" y="84" width="18" height="10" rx="3" />
@@ -40,7 +39,6 @@
                 <path d="M144 128h15" />
             </g>
 
-            {{-- Sparkles --}}
             <g class="borrowings-empty-sparkles">
                 <path d="M45 44c.4 4 1.2 4.8 5.2 5.2-4 .4-4.8 1.2-5.2 5.2-.4-4-1.2-4.8-5.2-5.2 4-.4 4.8-1.2 5.2-5.2Z" />
                 <path d="M160 41c.3 3.1 1 3.8 4.1 4.1-3.1.3-3.8 1-4.1 4.1-.3-3.1-1-3.8-4.1-4.1 3.1-.3 3.8-1 4.1-4.1Z" />

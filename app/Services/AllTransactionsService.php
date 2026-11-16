@@ -25,11 +25,13 @@ final class AllTransactionsService
         'Inventory Adjustment',
     ];
 
+    public const VISIBLE_TYPES = ['Borrowing', 'Issuance', 'Return', 'Accountability', 'Inventory Adjustment'];
+
     /** @return array{records:LengthAwarePaginator, filters:array<string, string>} */
     public function page(Request $request, User $viewer): array
     {
         $data = $request->validate([
-            'type' => 'nullable|string|in:'.implode(',', self::TYPES),
+            'type' => 'nullable|string|in:'.implode(',', [...self::TYPES, 'Accountability']),
             'from' => 'nullable|date_format:Y-m-d',
             'to' => 'nullable|date_format:Y-m-d',
             'search' => 'nullable|string|max:100',
@@ -50,7 +52,9 @@ final class AllTransactionsService
 
         $query = $this->query();
 
-        if ($filters['type'] !== '') {
+        if ($filters['type'] === 'Accountability') {
+            $query->whereIn('events.transaction_type', ['Incident', 'Penalty', 'Billing', 'Payment']);
+        } elseif ($filters['type'] !== '') {
             $query->where('events.transaction_type', $filters['type']);
         }
         if ($filters['from'] !== '') {

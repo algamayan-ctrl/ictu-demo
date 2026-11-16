@@ -84,7 +84,7 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
-    padding: 14px;
+    padding: 12px;
 }
 
 .analytics-page .overview-leader-card {
@@ -92,7 +92,7 @@
     flex-direction: column;
     gap: 9px;
     min-width: 0;
-    padding: 15px;
+    padding: 12px;
     border: 1px solid var(--border);
     border-radius: 11px;
     background: var(--surface-elevated, #fff);
@@ -141,7 +141,7 @@
 }
 
 .analytics-page .overview-leader-scope {
-    padding: 0 14px 12px;
+    padding: 0 12px 12px;
     margin: 0;
     font-size: 10px;
     line-height: 1.5;

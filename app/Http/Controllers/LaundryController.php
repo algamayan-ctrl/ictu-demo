@@ -20,65 +20,28 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
+// This is the controller for Laundry Operations managed by SPMU Action Officer.
 class LaundryController extends Controller
 {
     public function index(Request $request): View
     {
         $this->authorizeSpmuActionOfficer($request);
 
-        $activeJobs = LaundryJob::query()
-            ->with([
-                'custody.borrower',
-                'custody.request',
-                'latestEvidence.file',
-                'lines.custodyLine.requestItem.inventoryItem.unit',
-            ])
-            ->where('status', '!=', 'LAUNDRY_COMPLETED')
-            ->orderByRaw(
-                "CASE
-                    WHEN status = 'FOR_LAUNDRY' THEN 1
-                    WHEN status = 'TURNED_OVER_TO_LAUNDRY' THEN 2
-                    ELSE 3
-                END"
-            )
-            ->latest('updated_at')
-            ->paginate(20, ['*'], 'active_page');
-
-        $completedJobs = LaundryJob::query()
-            ->with([
-                'custody.borrower.organizationalUnit',
-                'custody.request',
-                'latestEvidence.file',
-                'lines.custodyLine.requestItem.inventoryItem.unit',
-                'lines.custodyLine.returnLines',
-            ])
-            ->where('status', 'LAUNDRY_COMPLETED')
-            ->latest('completed_at')
-            ->paginate(20, ['*'], 'completed_page')
-            ->fragment('completed-laundry-cases');
-
         return view('laundry.index', [
-            'jobs' => $activeJobs,
-            'completedJobs' => $completedJobs,
+            'jobs' => \App\Support\LaundryRecordTable::forRequest($request, false),
+            'completedJobs' => \App\Support\LaundryRecordTable::forRequest($request, true)->fragment('completed-laundry-cases'),
         ]);
     }
 
     public function completed(Request $request): View
     {
         $this->authorizeSpmuActionOfficer($request);
+        if ($request->has('page') && ! $request->has('completed_page')) {
+            $request->merge(['completed_page' => $request->input('page')]);
+        }
 
         return view('laundry.completed', [
-            'jobs' => LaundryJob::query()
-                ->with([
-                    'custody.borrower',
-                    'custody.request',
-                    'latestEvidence.file',
-                    'lines.custodyLine.requestItem.inventoryItem.unit',
-                    'lines.custodyLine.returnLines',
-                ])
-                ->where('status', 'LAUNDRY_COMPLETED')
-                ->latest('completed_at')
-                ->paginate(20),
+            'jobs' => \App\Support\LaundryRecordTable::forRequest($request, true),
         ]);
     }
 

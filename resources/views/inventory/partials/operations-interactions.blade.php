@@ -231,7 +231,6 @@
             render();
         });
 
-
         pageSizes.forEach((control) => {
             control.addEventListener('change', () => {
                 pageSizes.forEach((other) => {

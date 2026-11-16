@@ -1,19 +1,4 @@
 <style>
-{{-- /*
-|--------------------------------------------------------------------------
-| Borrower - My Borrowing detail
-|--------------------------------------------------------------------------
-|
-| One stylesheet for the borrower view of a custody transaction. The page is
-| a record, not a dashboard: thin borders, one accent per state, and figures
-| that line up so the borrower can check quantities at a glance.
-|
-| Sections: 1. Stack  2. Status  3. Summary  4. Items  5. Processing
-|           6. Early return  7. Responsive
-|
-*/ --}}
-
-{{-- /* 0. Back link ------------------------------------------------------------ */ --}}
 
 .borrower-custody-back {
     display: inline-flex;
@@ -31,11 +16,9 @@
 
 .borrower-custody-back .ui-icon { transform: rotate(180deg); }
 
-{{-- /* 1. Stack ---------------------------------------------------------------- */ --}}
-
 .borrower-custody-stack {
     display: grid;
-    gap: 20px;
+    gap: 16px;
 }
 
 .borrower-custody-stack .card { padding: 0; }
@@ -43,7 +26,7 @@
 .borrower-custody-stack .card-header {
     align-items: center;
     margin: 0;
-    padding: 14px 20px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--border);
 }
 
@@ -73,17 +56,11 @@
     white-space: nowrap;
 }
 
-{{-- /* 2. Status --------------------------------------------------------------- */ --}}
-
-{{-- /*
- * A single accented line carries the state. No callout box: the state is
- * already the loudest thing on the page and does not need a second frame.
- */ --}}
 .borrower-custody-status {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 16px 20px;
+    gap: 12px;
+    padding: 12px 16px;
     background: var(--surface-elevated);
     border: 1px solid var(--border);
     border-left: 3px solid var(--interactive);
@@ -170,8 +147,6 @@
 
 .borrower-custody-status .button { flex: 0 0 auto; }
 
-{{-- /* 3. Summary -------------------------------------------------------------- */ --}}
-
 .borrower-summary-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -179,13 +154,11 @@
 
 .borrower-summary-fact {
     min-width: 0;
-    padding: 13px 20px;
+    padding: 13px 16px;
     border-right: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
 }
 
-{{-- /* Three evenly sized facts per row on desktop. The grid draws internal
-   separators without relying on a specific number of available facts. */ --}}
 .borrower-summary-grid { gap: 1px; background: var(--border); }
 .borrower-summary-fact { border: 0; background: var(--surface-elevated); }
 .borrower-summary-fact:nth-child(3n + 1):last-child { grid-column: span 3; }
@@ -219,15 +192,8 @@
     line-height: 1.35;
 }
 
-{{-- /* 4. Items ---------------------------------------------------------------- */ --}}
-
-{{-- /*
- * The table is as long as the borrowing is. No fixed height and no inner
- * scrollbar: a borrower checking quantities should not have to scroll a
- * box inside a page.
- */ --}}
 .borrower-items-table th,
-.borrower-items-table td { padding: 10px 20px; }
+.borrower-items-table td { padding: 10px 16px; }
 
 .borrower-items-table th {
     color: var(--text-muted);
@@ -252,7 +218,6 @@
     font-size: 11px;
 }
 
-{{-- /* Quantities read as a column of figures. */ --}}
 .borrower-items-table th:not(:first-child),
 .borrower-items-table td:not(:first-child) {
     width: 14%;
@@ -269,14 +234,12 @@
 
 .borrower-items-table td.is-muted { color: var(--text-muted); }
 
-{{-- /* 5. Processing ----------------------------------------------------------- */ --}}
-
 .borrower-processing-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;
-    gap: 16px;
+    gap: 12px;
     align-items: center;
-    padding: 13px 20px;
+    padding: 13px 16px;
     border-bottom: 1px solid var(--border);
 }
 
@@ -299,19 +262,13 @@
     line-height: 1.45;
 }
 
-{{-- /* 6. Early return --------------------------------------------------------- */ --}}
-
-{{-- /*
- * Optional coordination, so it stays folded away until asked for. <details>
- * carries the keyboard behaviour and expanded state natively.
- */ --}}
 .borrower-early-return { padding: 0; }
 
 .borrower-early-return-summary {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 15px 20px;
+    gap: 12px;
+    padding: 12px 16px;
     cursor: pointer;
     list-style: none;
 }
@@ -359,8 +316,8 @@
 
 .borrower-early-return-body {
     display: grid;
-    gap: 14px;
-    padding: 16px 20px 18px;
+    gap: 12px;
+    padding: 12px 16px 16px;
     border-top: 1px solid var(--border);
 }
 
@@ -406,7 +363,7 @@
 
 .borrower-early-return-outstanding th,
 .borrower-early-return-outstanding td {
-    padding: 12px 14px;
+    padding: 12px 12px;
     border-bottom: 1px solid var(--border);
     font-size: 12.5px;
     line-height: 1.5;
@@ -447,13 +404,12 @@
     gap: 12px;
 }
 
-{{-- /* Active coordination notice */ --}}
 .borrower-early-return-notice {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
-    padding: 13px 20px;
+    gap: 16px;
+    padding: 13px 16px;
     background: var(--surface-elevated);
     border: 1px solid var(--border);
     border-left: 3px solid var(--info);
@@ -474,8 +430,6 @@
     font-size: 12px;
     line-height: 1.45;
 }
-
-{{-- /* 7. Responsive ----------------------------------------------------------- */ --}}
 
 @media (max-width: 1050px) {
     .borrower-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -514,12 +468,8 @@
     }
 
     .borrower-items-table th,
-    .borrower-items-table td { padding: 10px 14px; }
+    .borrower-items-table td { padding: 10px 12px; }
 }
-
-{{-- /* ==========================================================
-   BORROWER TRANSACTION TIMELINE STYLE START
-   ========================================================== */ --}}
 
 .borrower-activity-list {
     display: grid;
@@ -530,7 +480,7 @@
     grid-template-columns: 14px minmax(0, 1fr) auto;
     gap: 12px;
     align-items: start;
-    padding: 12px 20px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--border);
 }
 
@@ -589,12 +539,6 @@
     }
 }
 
-{{-- /* ==========================================================
-   BORROWER TRANSACTION TIMELINE STYLE END
-   ========================================================== */ --}}
-
-{{-- /* BORROWER TIMELINE DISCLOSURE STYLE START */ --}}
-
 .borrower-activity-disclosure {
     overflow: hidden;
 }
@@ -603,7 +547,7 @@
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    gap: 16px;
+    gap: 12px;
     width: 100%;
     cursor: pointer;
     list-style: none;
@@ -677,12 +621,6 @@
     }
 }
 
-{{-- /* BORROWER TIMELINE DISCLOSURE STYLE END */ --}}
-
-{{-- /* ==========================================================
-   BORROWER TRANSACTION DOCUMENT HEADER START
-   ========================================================== */ --}}
-
 .borrower-document-card .card-header {
     display: flex;
     align-items: center;
@@ -719,7 +657,4 @@
     }
 }
 
-{{-- /* ==========================================================
-   BORROWER TRANSACTION DOCUMENT HEADER END
-   ========================================================== */ --}}
 </style>

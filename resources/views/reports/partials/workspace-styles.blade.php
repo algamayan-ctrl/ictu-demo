@@ -1,16 +1,13 @@
 <style>
 .reporting-workspace { --report-blue: #065df0; --report-green: #008647; --report-line: var(--border); --report-muted: var(--text-muted); min-width: 0; font-size: 13px; }
 .reporting-workspace *, .reporting-workspace *::before, .reporting-workspace *::after { box-sizing: border-box; }
-.reporting-workspace .page-heading { margin-bottom: 16px; }
+.reporting-workspace .page-heading { margin-bottom: 12px; }
 .reporting-workspace .page-heading h1 { font-size: clamp(21px, 1.65vw, 25px); margin: 5px 0 7px; }
 .reporting-workspace .page-heading p:not(.eyebrow) { font-size: 12.5px; line-height: 1.4; max-width: none; }
 .reporting-workspace .card { min-width: 0; background: var(--surface-elevated); border: 1px solid var(--report-line); border-radius: 9px; box-shadow: 0 1px 4px rgba(21, 49, 84, .045); }
 .reporting-workspace .content-area { margin: 0; min-width: 0; }
-{{-- /* Layout only - color/hover comes from the shared global .button contract
-   (public/css/app.css) so this page's buttons stay visually consistent with
-   the rest of the app. Disclosure triggers keep their own separate contract
-   and are excluded here. */ --}}
-.reporting-workspace .button:not(.disclosure-trigger) { min-height: 38px; padding: 8px 16px; font-size: 12px; border-radius: 6px; gap: 9px; white-space: nowrap; }
+
+.reporting-workspace .button:not(.disclosure-trigger) { min-height: 38px; padding: 8px 12px; font-size: 12px; border-radius: 6px; gap: 9px; white-space: nowrap; }
 .reporting-workspace .button.secondary:not(.disclosure-trigger) { color: var(--interactive); border-color: var(--interactive); background: transparent; }
 .reporting-workspace :is(a, button, select):not(.disclosure-trigger):focus-visible { outline: 2px solid var(--interactive); outline-offset: 3px; }
 .reporting-heading-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; }
@@ -32,7 +29,7 @@
 .reporting-icon.tone-amber { --icon-color: #ba7a06; }
 [data-theme="dark"] .reporting-workspace { --report-blue: #75aaff; --report-green: #6bd5a1; }
 @media (max-width: 650px) {
-    .reporting-workspace .page-heading { align-items: flex-start; gap: 14px; }
+    .reporting-workspace .page-heading { align-items: flex-start; gap: 12px; }
     .reporting-heading-actions { justify-content: flex-start; }
 }
 @media print {

@@ -44,16 +44,7 @@ class PolicyService
 
     public function activePeriodFor(CarbonInterface|string|null $date = null): ?AcademicPeriod
     {
-        $date = $date instanceof CarbonInterface
-            ? CarbonImmutable::instance($date)
-            : CarbonImmutable::parse($date ?: now());
-
-        return AcademicPeriod::query()
-            ->where('status', 'ACTIVE')
-            ->whereDate('start_date', '<=', $date->toDateString())
-            ->whereDate('end_date', '>=', $date->toDateString())
-            ->orderByDesc('start_date')
-            ->first();
+        return app(AcademicPeriodResolver::class)->current($date);
     }
 
     /**
@@ -520,7 +511,7 @@ class PolicyService
 
         if (! $preview['academic_period']) {
             throw ValidationException::withMessages([
-                'academic_period' => 'Configure and activate the applicable academic period before confirming this case as an offense.',
+                'academic_period' => 'Configure non-overlapping academic period dates covering this case before confirming it as an offense.',
             ]);
         }
 
@@ -856,7 +847,7 @@ class PolicyService
         $period = $locked->academicPeriod ?: $this->activePeriodFor($locked->detected_at);
         if (! $period) {
             throw ValidationException::withMessages([
-                'academic_period' => 'Configure and activate the applicable academic period before confirming this violation.',
+                'academic_period' => 'Configure non-overlapping academic period dates covering this violation before confirming it.',
             ]);
         }
 

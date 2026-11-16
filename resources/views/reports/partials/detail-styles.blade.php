@@ -1,42 +1,42 @@
 <style>
-.reporting-detail .page-heading { margin-bottom: 24px; }
-.reporting-detail .reports-navigation-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 16px; min-width: 0; }
+.reporting-detail .page-heading { margin-bottom: 16px; }
+.reporting-detail .reports-navigation-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 12px; min-width: 0; }
 .reporting-detail .reports-navigation-row .reporting-heading-actions { flex-shrink: 0; }
-.reporting-detail .reporting-heading-actions .button { min-height: 43px; padding: 10px 18px; }
-.reports-detail-page { display: grid; gap: 18px; min-width: 0; }
-.reporting-workspace .report-generator-card { padding: 22px 24px; }
-.report-generator-grid { display: grid; grid-template-columns: minmax(200px, 1.05fr) minmax(190px, 1.08fr) minmax(185px, 1.1fr) auto; align-items: end; gap: 24px; }
+.reporting-detail .reporting-heading-actions .button { min-height: 43px; padding: 10px 16px; }
+.reports-detail-page { display: grid; gap: 16px; min-width: 0; }
+.reporting-workspace .report-generator-card { padding: 16px 16px; }
+.report-generator-grid { display: grid; grid-template-columns: minmax(200px, 1.05fr) minmax(190px, 1.08fr) minmax(185px, 1.1fr) auto; align-items: end; gap: 16px; }
 .reporting-workspace .report-generator-grid > label { display: grid; gap: 9px; min-width: 0; margin: 0; color: var(--heading); font-size: 12px; font-weight: 700; }
 .reporting-workspace .report-generator-grid select { height: 45px; font-size: 13px; }
 .reporting-detail .report-period-control > .ui-icon { left: auto; right: 13px; }
 .reporting-detail .report-period-control select { appearance: none; background-image: none; padding-left: 13px; padding-right: 38px; }
 .reporting-detail .report-period-context { min-height: 45px; font-size: 12px; }
 .reporting-detail .report-period-context > .ui-icon { display: none; }
-.reporting-workspace .report-generate-button { min-height: 45px; padding: 11px 20px; font-size: 13px; }
-.report-period-helper, .report-description { margin: 16px 0 0; font-size: 11px; color: var(--report-muted); line-height: 1.5; }
+.reporting-workspace .report-generate-button { min-height: 45px; padding: 11px 16px; font-size: 13px; }
+.report-period-helper, .report-description { margin: 12px 0 0; font-size: 11px; color: var(--report-muted); line-height: 1.5; }
 .report-description { margin-top: 6px; }
-.report-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+.report-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 .report-summary-grid.report-primary-summaries { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.reporting-workspace .report-summary-item { display: flex; flex-direction: row; align-items: flex-start; gap: 22px; padding: 24px 22px; min-height: 126px; }
+.reporting-workspace .report-summary-item { display: flex; flex-direction: row; align-items: flex-start; gap: 16px; padding: 16px 16px; min-height: 126px; }
 .report-summary-item .reporting-icon { width: 48px; height: 48px; border-radius: 10px; }
 .report-summary-item strong { display: block; color: var(--heading); font-size: 30px; font-weight: 750; line-height: 1.15; }
 .reporting-workspace .report-summary-item h2 { margin: 8px 0 6px; color: var(--heading); font-size: 13px; font-weight: 650; }
 .report-summary-item p { margin: 0; font-size: 11px; color: var(--report-muted); line-height: 1.5; }
-.report-additional-summary { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 11px; color: var(--text-secondary); }
+.report-additional-summary { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 11px; color: var(--text-secondary); }
 .report-additional-summary > span { padding: 6px 10px; border: 1px solid var(--report-line); border-radius: 5px; background: var(--surface-elevated); }
 .report-additional-summary strong { margin-left: 6px; }
-.reporting-workspace .report-output-card { padding: 24px; }
-.report-output-header { display: flex; justify-content: space-between; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 24px; border: 0; background: transparent; padding: 0; }
+.reporting-workspace .report-output-card { padding: 16px; }
+.report-output-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; border: 0; background: transparent; padding: 0; }
 .reporting-workspace .report-output-header .eyebrow { margin: 0 0 6px; color: var(--text-secondary); font-size: 10px; }
 .report-output-header h2 { margin: 0 0 5px; font-size: 17px; font-weight: 650; }
 .report-output-header p:not(.eyebrow) { margin: 0; color: var(--report-muted); font-size: 13px; }
 .report-output-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.reporting-workspace .report-output-actions .button { min-height: 40px; padding: 9px 14px; }
+.reporting-workspace .report-output-actions .button { min-height: 40px; padding: 9px 12px; }
 .report-download-icon { transform: rotate(180deg); }
 .report-output-body { padding: 0; min-width: 0; }
 .report-table-scroll { overflow-x: auto; border: 1px solid var(--report-line); border-radius: 8px; }
 .reporting-workspace .report-table { width: 100%; min-width: 960px; margin: 0; border-collapse: collapse; }
-.reporting-workspace .report-table th { padding: 15px 10px; color: var(--heading); background: var(--surface-subtle); font-size: 10px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; border-bottom: 1px solid var(--report-line); }
+.reporting-workspace .report-table th { padding: 12px 10px; color: var(--heading); background: var(--surface-subtle); font-size: 10px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; border-bottom: 1px solid var(--report-line); }
 .reporting-workspace .report-table td { padding: 13px 10px; color: var(--heading); font-size: 12px; line-height: 1.65; border-bottom: 1px solid var(--report-line); vertical-align: middle; }
 .reporting-workspace .report-table tr:last-child td { border-bottom: 0; }
 .reporting-workspace .report-table .numeric { text-align: right; }
@@ -44,17 +44,17 @@
 .reporting-workspace .report-request-link, .reporting-workspace .report-table .table-action { color: var(--report-blue); text-decoration: none; font-weight: 700; }
 .report-request-link { white-space: nowrap; }
 .reporting-workspace .report-table .table-action { font-size: 11px; padding: 5px; }
-.reporting-workspace .report-table .empty-state { padding: 30px 16px; text-align: center; color: var(--report-muted); }
+.reporting-workspace .report-table .empty-state { padding: 24px 12px; text-align: center; color: var(--report-muted); }
 .report-note { margin: 22px 0 0; color: var(--report-muted); font-size: 11px; line-height: 1.7; }
-.report-section-subheading { margin: 20px 0 10px; font-size: 14px; }
+.report-section-subheading { margin: 16px 0 10px; font-size: 14px; }
 @media (max-width: 1300px) {
- .report-generator-grid { grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(170px, auto); gap: 16px; }
+ .report-generator-grid { grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(170px, auto); gap: 12px; }
  .report-generator-grid .report-period-context { grid-column: 1 / 3; grid-row: 2; }
  .report-generator-grid .report-generate-button { grid-column: 3; grid-row: 1; }
- .reporting-workspace .report-summary-item { padding: 20px 16px; gap: 14px; }
+ .reporting-workspace .report-summary-item { padding: 16px 12px; gap: 12px; }
 }
 @media (max-width: 900px) {
- .reporting-detail .page-heading { align-items: flex-start; flex-direction: column; gap: 16px; }
+ .reporting-detail .page-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
  .reporting-workspace .report-summary-item { gap: 12px; }
  .report-summary-item .reporting-icon { width: 36px; height: 36px; }
  .report-summary-item .reporting-icon svg { width: 21px; }
@@ -62,8 +62,8 @@
 @media (max-width: 700px) {
  .report-generator-grid, .report-summary-grid.report-primary-summaries { grid-template-columns: 1fr; }
  .report-generator-grid .report-period-context, .report-generator-grid .report-generate-button { grid-column: auto; grid-row: auto; }
- .reporting-workspace .report-generator-card, .reporting-workspace .report-output-card { padding: 18px 15px; }
- .report-output-header { margin-bottom: 18px; }
+ .reporting-workspace .report-generator-card, .reporting-workspace .report-output-card { padding: 16px 12px; }
+ .report-output-header { margin-bottom: 12px; }
  .reporting-workspace .report-summary-item { min-height: 100px; }
 }
 @media print {
@@ -79,17 +79,9 @@
 </style>
 
 <style>
-{{-- /*
-| Reports chrome.
-|
-| The builder is interface; everything below it is a document. The two are
-| deliberately styled apart so the preview reads as a sheet of paper sitting
-| on the application, not as another panel of it.
-*/ --}}
 
-{{-- /* Report builder */ --}}
-.reporting-workspace .report-builder-card { display: grid; gap: 0; padding: 26px; border-radius: 12px; }
-.report-builder-primary { display: grid; grid-template-columns: minmax(0, 30fr) minmax(0, 25fr) minmax(0, 27fr) auto; gap: 18px; align-items: start; margin-top: 14px; }
+.reporting-workspace .report-builder-card { display: grid; gap: 0; padding: 20px; border-radius: 12px; }
+.report-builder-primary { display: grid; grid-template-columns: minmax(0, 30fr) minmax(0, 25fr) minmax(0, 27fr) auto; gap: 16px; align-items: start; margin-top: 12px; }
 .report-builder-field { display: grid; gap: 7px; align-content: start; min-width: 0; margin: 0; font-size: 11.5px; font-weight: 750; letter-spacing: .02em; color: var(--text-secondary); }
 .report-builder-field > span { min-height: 16px; line-height: 16px; }
 .report-builder-field select { min-height: 42px; width: 100%; font-size: 13px; }
@@ -98,28 +90,25 @@
 .report-resolved-period .ui-icon { color: var(--text-soft); flex: 0 0 auto; }
 .report-resolved-period small { color: var(--text-muted); font-size: 11px; font-weight: 500; }
 
-{{-- /* The primary action shares the top row, so opening the filters never moves it. */ --}}
-.reporting-workspace .report-generate-button { min-height: 42px; padding: 10px 18px; font-size: 12.5px; }
-.report-no-filters { display: block; margin: 18px 0 0; color: var(--text-muted); font-size: 12px; }
+.reporting-workspace .report-generate-button { min-height: 42px; padding: 10px 16px; font-size: 12.5px; }
+.report-no-filters { display: block; margin: 12px 0 0; color: var(--text-muted); font-size: 12px; }
 
-.report-filters-panel { display: grid; gap: 14px; margin-top: 18px; padding: 15px 16px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-subtle); }
+.report-filters-panel { display: grid; gap: 12px; margin-top: 12px; padding: 12px 12px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-subtle); }
 .report-filters-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .report-filters-title { display: flex; align-items: center; gap: 7px; margin: 0; color: var(--heading); font-size: 12.5px; font-weight: 750; }
 .report-filters-title .ui-icon { color: var(--text-soft); }
 .report-filters-help { margin: 4px 0 0; color: var(--text-muted); font-size: 11.5px; line-height: 1.4; }
 .report-filter-count { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 8px; border-radius: 999px; background: var(--info-bg); color: var(--info); font-size: 11px; font-weight: 700; white-space: nowrap; }
-.report-filter-grid { display: grid; grid-template-columns: repeat(var(--report-filter-columns, 3), minmax(0, 1fr)); gap: 16px; }
+.report-filter-grid { display: grid; grid-template-columns: repeat(var(--report-filter-columns, 3), minmax(0, 1fr)); gap: 12px; }
 .report-builder-card .report-description { margin: 22px 0 0; }
 
-{{-- /* Preview */ --}}
 .report-preview-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin: 0 0 10px; }
 .report-preview-label { margin: 0; color: var(--text-muted); font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .report-preview-title { margin: 3px 0 0; color: var(--heading); font-size: 16px; font-weight: 750; }
 .report-preview-context { margin: 3px 0 0; color: var(--text-muted); font-size: 11px; line-height: 1.35; }
 .report-filter-warning { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 12px; color: var(--warning); font-size: 12px; }
 
-{{-- /* Records footer and pagination */ --}}
-.report-records-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+.report-records-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
 .report-records-footer > p { margin: 0; color: var(--text-secondary); font-size: 12px; }
 .report-records-label { display: grid; gap: 2px; }
 .report-records-label strong { color: var(--heading); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
@@ -130,15 +119,14 @@
 .report-page-link[aria-disabled="true"] { color: var(--text-soft); background: var(--surface-subtle); cursor: not-allowed; }
 .report-page-ellipsis { padding: 0 2px; color: var(--text-muted); }
 
-.report-boundary-note { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-subtle); color: var(--text-muted); font-size: 12px; line-height: 1.55; }
+.report-boundary-note { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 12px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-subtle); color: var(--text-muted); font-size: 12px; line-height: 1.55; }
 .report-boundary-note .ui-icon { flex: 0 0 auto; color: var(--info); margin-top: 1px; }
 
-{{-- /* Report Options dialog */ --}}
 .report-options-dialog { width: min(560px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-elevated); color: var(--text); box-shadow: var(--shadow); }
 .report-options-dialog::backdrop { background: rgba(7, 27, 53, .45); }
-.report-options-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--border); }
+.report-options-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 12px; border-bottom: 1px solid var(--border); }
 .report-options-header h2 { margin: 0; font-size: 15px; font-weight: 750; color: var(--heading); }
-.report-options-body { display: grid; gap: 12px; padding: 14px 16px; max-height: min(64vh, 520px); overflow-y: auto; }
+.report-options-body { display: grid; gap: 12px; padding: 12px 12px; max-height: min(64vh, 520px); overflow-y: auto; }
 .report-options-scope { display: grid; gap: 3px; margin: 0; padding: 11px 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-subtle); }
 .report-options-scope > span { color: var(--heading); font-size: 13px; font-weight: 750; }
 .report-options-scope small { color: var(--text-muted); font-size: 11.5px; }
@@ -153,7 +141,7 @@
 .report-options-advanced > div { display: grid; gap: 8px; padding: 0 13px 13px; }
 .report-options-advanced p { margin: 0; color: var(--text-muted); font-size: 11.5px; }
 .report-options-error { margin: 0; color: var(--danger); font-size: 12px; }
-.report-options-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--border); }
+.report-options-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 12px 12px; border-top: 1px solid var(--border); }
 
 @media (max-width: 1180px) {
  .report-builder-primary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -161,8 +149,8 @@
 }
 
 @media (max-width: 620px) {
- .reporting-workspace .report-builder-card { padding: 18px 16px; }
- .report-builder-primary { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+ .reporting-workspace .report-builder-card { padding: 16px 12px; }
+ .report-builder-primary { grid-template-columns: minmax(0, 1fr); gap: 12px; }
  .report-filter-grid { grid-template-columns: minmax(0, 1fr); }
  .report-builder-submit > span { display: none; }
  .reporting-workspace .report-generate-button { width: 100%; justify-content: center; }
@@ -178,7 +166,7 @@
 </style>
 
 <style>
-{{-- /* Universal Reports UX refinements shared by every formal report type. */ --}}
+
 .report-filter-actions { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .report-clear-filters { color: var(--primary-action); font-size: 11px; font-weight: 750; text-decoration: none; }
 .report-clear-filters:hover { text-decoration: underline; }
@@ -187,11 +175,11 @@
 .report-preview-meta > span + span::before { content: 'ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢'; margin-right: 7px; color: var(--text-soft); }
 .report-preview-filters { margin: 6px 0 0; color: var(--text-secondary); font-size: 11px; line-height: 1.45; }
 .report-preview-filters strong { color: var(--heading); }
-.report-no-results { display: flex; align-items: flex-start; gap: 14px; padding: 22px; border: 1px dashed var(--border); border-radius: var(--radius); background: var(--surface-subtle); }
+.report-no-results { display: flex; align-items: flex-start; gap: 12px; padding: 16px; border: 1px dashed var(--border); border-radius: var(--radius); background: var(--surface-subtle); }
 .report-no-results-icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; flex: 0 0 42px; border-radius: 10px; color: var(--info); background: var(--info-bg); }
 .report-no-results h3 { margin: 4px 0 5px; color: var(--heading); font-size: 15px; }
 .report-no-results p:not(.report-preview-label) { margin: 0; color: var(--text-muted); font-size: 12px; line-height: 1.5; }
-.report-no-results-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.report-no-results-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
 .report-options-dialog [hidden] { display: none !important; }
 .report-options-eyebrow { margin: 0 0 2px; color: var(--text-muted); font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
@@ -212,18 +200,11 @@
  .report-options-section-heading { display: grid; }
  .report-options-advanced-body { grid-template-columns: minmax(0, 1fr); }
  .report-preview-meta > span + span::before { display: none; }
- .report-no-results { padding: 18px 16px; }
+ .report-no-results { padding: 16px 12px; }
 }
 </style>
 
-
-
 <style>
-{{-- /* ============================================================
- SYSTEM REPORT PREVIEW
- Normal browser view = application UI.
- Print/export source = formal paper document.
- ============================================================ */ --}}
 
 .report-print-view {
  display: none !important;
@@ -238,15 +219,15 @@
 .report-system-summary-grid {
  display: grid;
  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
- gap: 14px;
+ gap: 12px;
 }
 
 .report-system-summary-card {
  display: flex;
  align-items: center;
- gap: 14px;
+ gap: 12px;
  min-height: 92px;
- padding: 16px 18px;
+ padding: 12px 16px;
  border: 1px solid var(--border);
  border-radius: 10px;
  background: var(--surface-elevated);
@@ -289,7 +270,7 @@
 
 .report-system-records-card {
  min-width: 0;
- padding: 18px;
+ padding: 16px;
  border: 1px solid var(--border);
  border-radius: 10px;
  background: var(--surface-elevated);
@@ -300,8 +281,8 @@
  display: flex;
  align-items: center;
  justify-content: space-between;
- gap: 16px;
- margin-bottom: 16px;
+ gap: 12px;
+ margin-bottom: 12px;
 }
 
 .report-system-records-eyebrow {
@@ -457,7 +438,6 @@
  font-size: 11px;
 }
 
-{{-- /* The preview header is application chrome, not part of the paper. */ --}}
 .reporting-detail .report-preview-bar {
  margin-bottom: 16px;
  padding: 0;
@@ -485,18 +465,12 @@
 </style>
 
 <style>
-{{-- /* =========================================================
- SYSTEM REPORT PREVIEW — server-rendered records table
- The on-screen preview is application UI only. The formal
- document exists only in Print and the exported files.
- ========================================================= */ --}}
-
 
 .report-preview-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .report-preview-filters { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 
 .report-results { position: relative; }
-.report-results-loading { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-subtle); color: var(--text-secondary); font-size: 12px; font-weight: 650; }
+.report-results-loading { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 12px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-subtle); color: var(--text-secondary); font-size: 12px; font-weight: 650; }
 .report-results-loading[hidden] { display: none; }
 .report-results-spinner, .report-system-records-card.is-loading::after { width: 16px; height: 16px; border: 2px solid color-mix(in srgb, var(--primary-action) 25%, transparent); border-top-color: var(--primary-action); border-radius: 50%; animation: report-spin .8s linear infinite; }
 .report-results.is-loading .report-system-preview, .report-results.is-loading .report-no-results { opacity: .45; pointer-events: none; transition: opacity .15s ease; }
@@ -515,13 +489,13 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
 .report-system-table .status-badge { font-size: 10px; font-weight: 650; padding: 3px 8px; white-space: nowrap; }
 .report-system-table .report-system-action-column { width: 1%; white-space: nowrap !important; text-align: right !important; }
 .report-system-table .report-record-restricted { color: var(--text-muted); font-size: 11px; cursor: help; }
-.report-system-table .report-system-table-empty { padding: 26px 12px !important; color: var(--text-muted) !important; text-align: center !important; }
+.report-system-table .report-system-table-empty { padding: 20px 12px !important; color: var(--text-muted) !important; text-align: center !important; }
 
 .report-system-search-note { margin: -4px 0 12px; color: var(--text-secondary); font-size: 11.5px; line-height: 1.5; }
 .report-system-search-note a { margin-left: 4px; color: var(--primary-action); font-weight: 700; }
 
 .report-records-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-left: auto; }
-.report-per-page-control select { min-height: 32px; padding: 4px 28px 4px 10px; font-size: 11.5px; }
+.report-per-page-control select { min-height: 32px; padding: 4px 20px 4px 10px; font-size: 11.5px; }
 .report-records-summary { margin: 0; color: var(--text-secondary); font-size: 12px; }
 
 .report-output-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; color: var(--text-muted); font-size: 11.5px; line-height: 1.5; }
@@ -540,11 +514,7 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
 }
 </style>
 
-
 <style>
-{{-- /* =========================================================
- SYSTEM REPORT PREVIEW V2
- ========================================================= */ --}}
 
 @media screen {
 
@@ -559,22 +529,19 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
  min-width: 0;
  }
 
-
- {{-- /* Summary cards */ --}}
-
  .report-system-summary-grid {
  display: grid;
  grid-template-columns:
  repeat(auto-fit, minmax(210px, 1fr));
- gap: 14px;
+ gap: 12px;
  }
 
  .report-system-summary-card {
  display: flex;
  align-items: center;
- gap: 14px;
+ gap: 12px;
  min-height: 90px;
- padding: 16px 18px;
+ padding: 12px 16px;
  border: 1px solid var(--border);
  border-radius: 10px;
  background: var(--surface-elevated);
@@ -624,13 +591,10 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
  line-height: 1.1;
  }
 
-
- {{-- /* Records card */ --}}
-
  .report-system-records-card {
  width: 100%;
  min-width: 0;
- padding: 18px;
+ padding: 16px;
  border: 1px solid var(--border);
  border-radius: 10px;
  background: var(--surface-elevated);
@@ -642,8 +606,8 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
  display: flex;
  align-items: center;
  justify-content: space-between;
- gap: 16px;
- margin-bottom: 16px;
+ gap: 12px;
+ margin-bottom: 12px;
  }
 
  .report-system-records-eyebrow {
@@ -661,9 +625,6 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
  font-size: 15px;
  font-weight: 750;
  }
-
-
- {{-- /* Search */ --}}
 
  .report-system-search {
  position: relative;
@@ -706,9 +667,6 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
  );
  outline-offset: 1px;
  }
-
-
- {{-- /* System table */ --}}
 
  .report-system-table-scroll {
  width: 100%;
@@ -826,9 +784,6 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
  font-size: 11px;
  }
 
-
- {{-- /* Preview heading remains application UI */ --}}
-
  .reporting-detail .report-preview-bar {
  margin-bottom: 16px;
  }
@@ -837,7 +792,6 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
  font-size: 18px;
  }
 }
-
 
 @media (max-width: 760px) {
 
@@ -855,11 +809,9 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
  }
 }
 
-
 </style>
 
 <style>
-{{-- /* REMOVE SUMMARY LETTER ICONS + CORRUPTED PREVIEW SEPARATOR */ --}}
 
 .report-system-summary-icon {
  display: none !important;
@@ -876,13 +828,12 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
 
 </style>
 <style>
-{{-- /* REPORT UNIVERSAL EMPTY STATE FINAL */ --}}
 
 .report-no-results {
  display: grid !important;
  place-items: center !important;
  min-height: 275px;
- padding: 38px 24px !important;
+ padding: 38px 16px !important;
 
  border: 1px solid var(--border) !important;
  border-radius: 10px !important;
@@ -975,7 +926,7 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
 @media (max-width: 620px) {
  .report-no-results {
  min-height: 230px;
- padding: 30px 18px !important;
+ padding: 24px 16px !important;
  }
 
  .report-no-results-illustration {
@@ -991,16 +942,8 @@ th[aria-sort="ascending"] .report-sort-indicator, th[aria-sort="descending"] .re
 
 </style>
 
-
-
 <style>
-{{-- /* EXPORT PRINT MODAL CANONICAL FINAL */ --}}
 
-{{-- /*
- * IMPORTANT:
- * The dialog must shrink to the real form content.
- * Do not let dialog/form inherit a stretched height.
- */ --}}
 dialog.report-options-dialog[open] {
  display: block !important;
 
@@ -1023,10 +966,6 @@ dialog.report-options-dialog[open] {
  border-radius: 13px !important;
 }
 
-{{-- /*
- * This is the important part:
- * force the FORM itself to shrink to its contents.
- */ --}}
 dialog.report-options-dialog[open] > form {
  display: grid !important;
 
@@ -1051,9 +990,8 @@ dialog.report-options-dialog[open] > form {
  padding: 0 !important;
 }
 
-{{-- /* Header */ --}}
 .report-options-header {
- padding: 11px 15px !important;
+ padding: 11px 12px !important;
 }
 
 .report-options-header h2 {
@@ -1061,7 +999,6 @@ dialog.report-options-dialog[open] > form {
  font-size: 15px !important;
 }
 
-{{-- /* Actual modal content */ --}}
 .report-options-body {
  display: grid !important;
 
@@ -1074,13 +1011,12 @@ dialog.report-options-dialog[open] > form {
 
  max-height: calc(100dvh - 150px) !important;
 
- padding: 11px 15px 10px !important;
+ padding: 11px 12px 10px !important;
 
  overflow-x: hidden !important;
  overflow-y: auto !important;
 }
 
-{{-- /* Compact report identity */ --}}
 .report-options-scope {
  display: grid !important;
  gap: 2px !important;
@@ -1102,7 +1038,6 @@ dialog.report-options-dialog[open] > form {
  line-height: 1.35 !important;
 }
 
-{{-- /* Export format */ --}}
 .report-options-format {
  padding: 0 !important;
 }
@@ -1119,7 +1054,6 @@ dialog.report-options-dialog[open] > form {
  font-size: 12.5px !important;
 }
 
-{{-- /* Page layout */ --}}
 .report-options-section {
  gap: 8px !important;
 
@@ -1132,7 +1066,6 @@ dialog.report-options-dialog[open] > form {
  font-size: 10.5px !important;
 }
 
-{{-- /* Helper sentence not needed */ --}}
 .report-options-section-heading small {
  display: none !important;
 }
@@ -1146,7 +1079,6 @@ dialog.report-options-dialog[open] > form {
  gap: 10px !important;
 }
 
-{{-- /* Include report summary */ --}}
 .report-options-content {
  display: flex !important;
 
@@ -1170,12 +1102,10 @@ dialog.report-options-dialog[open] > form {
  margin: 0 !important;
 }
 
-{{-- /* Remove large automatic-info box */ --}}
 .report-options-auto-note {
  display: none !important;
 }
 
-{{-- /* Advanced settings */ --}}
 .report-options-advanced {
  margin: 0 !important;
 
@@ -1210,7 +1140,6 @@ dialog.report-options-dialog[open] > form {
  padding: 9px !important;
 }
 
-{{-- /* Footer MUST sit directly after form content */ --}}
 .report-options-footer {
  position: static !important;
 
@@ -1230,7 +1159,7 @@ dialog.report-options-dialog[open] > form {
 
  margin: 0 !important;
 
- padding: 9px 15px 11px !important;
+ padding: 9px 12px 11px !important;
 
  border-top: 1px solid var(--border) !important;
 
@@ -1241,10 +1170,9 @@ dialog.report-options-dialog[open] > form {
  height: 36px !important;
  min-height: 36px !important;
 
- padding: 0 14px !important;
+ padding: 0 12px !important;
 }
 
-{{-- /* Nothing should create phantom space after footer */ --}}
 .report-options-footer:last-child {
  margin-bottom: 0 !important;
 }
@@ -1254,7 +1182,6 @@ dialog.report-options-dialog[open] > form::after {
  content: none !important;
 }
 
-{{-- /* Mobile */ --}}
 @media (max-width: 620px) {
 
  dialog.report-options-dialog[open] {
@@ -1273,15 +1200,9 @@ dialog.report-options-dialog[open] > form::after {
 
 </style>
 
-
 <style>
-{{-- /* INVENTORY STYLE REPORT TABLES FINAL */ --}}
 
 @media screen {
-
- {{-- /* =====================================================
- TABLE WRAPPER
- ===================================================== */ --}}
 
  .report-system-table-scroll {
  width: 100%;
@@ -1294,11 +1215,6 @@ dialog.report-options-dialog[open] > form::after {
 
  background: var(--surface-elevated) !important;
  }
-
-
- {{-- /* =====================================================
- TABLE BASE
- ===================================================== */ --}}
 
  [data-report-system-table] table {
  width: max-content !important;
@@ -1313,12 +1229,6 @@ dialog.report-options-dialog[open] > form::after {
 
  background: var(--surface-elevated) !important;
  }
-
-
- {{-- /* =====================================================
- HEADER
- Similar to Inventory table
- ===================================================== */ --}}
 
  [data-report-system-table] thead th {
  padding: 10px 12px !important;
@@ -1357,11 +1267,6 @@ dialog.report-options-dialog[open] > form::after {
  border-right: 0 !important;
  }
 
-
- {{-- /* =====================================================
- BODY
- ===================================================== */ --}}
-
  [data-report-system-table] tbody td {
  padding: 11px 12px !important;
 
@@ -1394,9 +1299,6 @@ dialog.report-options-dialog[open] > form::after {
  border-bottom: 0 !important;
  }
 
- {{-- /*
- * Clean row hover similar to inventory list.
- */ --}}
  [data-report-system-table] tbody tr:hover td {
  background:
  color-mix(
@@ -1406,15 +1308,6 @@ dialog.report-options-dialog[open] > form::after {
  ) !important;
  }
 
-
- {{-- /* =====================================================
- COLUMN SIZING
- Compact and based on content
- ===================================================== */ --}}
-
- {{-- /*
- * Request / transaction IDs
- */ --}}
  [data-report-system-table] .report-col-id {
  width: 1% !important;
  min-width: 135px !important;
@@ -1426,10 +1319,6 @@ dialog.report-options-dialog[open] > form::after {
  font-variant-numeric: tabular-nums;
  }
 
-
- {{-- /*
- * Borrower / personnel
- */ --}}
  [data-report-system-table] .report-col-person {
  min-width: 110px !important;
  max-width: 150px !important;
@@ -1437,10 +1326,6 @@ dialog.report-options-dialog[open] > form::after {
  white-space: normal !important;
  }
 
-
- {{-- /*
- * Division / Office / College / Unit
- */ --}}
  [data-report-system-table] .report-col-organization {
  min-width: 120px !important;
  max-width: 190px !important;
@@ -1448,10 +1333,6 @@ dialog.report-options-dialog[open] > form::after {
  white-space: normal !important;
  }
 
-
- {{-- /*
- * Dates
- */ --}}
  [data-report-system-table] .report-col-date {
  width: 1% !important;
 
@@ -1463,10 +1344,6 @@ dialog.report-options-dialog[open] > form::after {
  font-variant-numeric: tabular-nums;
  }
 
-
- {{-- /*
- * Status / decision
- */ --}}
  [data-report-system-table] .report-col-status {
  min-width: 105px !important;
  max-width: 145px !important;
@@ -1474,10 +1351,6 @@ dialog.report-options-dialog[open] > form::after {
  white-space: normal !important;
  }
 
-
- {{-- /*
- * Purpose / description / remarks / reason
- */ --}}
  [data-report-system-table] .report-col-wrap {
  min-width: 125px !important;
  max-width: 210px !important;
@@ -1485,10 +1358,6 @@ dialog.report-options-dialog[open] > form::after {
  white-space: normal !important;
  }
 
-
- {{-- /*
- * Version / count / quantity
- */ --}}
  [data-report-system-table] .report-col-compact {
  width: 1% !important;
 
@@ -1500,10 +1369,6 @@ dialog.report-options-dialog[open] > form::after {
  white-space: nowrap !important;
  }
 
-
- {{-- /*
- * Turnaround / duration
- */ --}}
  [data-report-system-table] .report-col-duration {
  width: 1% !important;
 
@@ -1517,10 +1382,6 @@ dialog.report-options-dialog[open] > form::after {
  font-variant-numeric: tabular-nums;
  }
 
-
- {{-- /*
- * Amounts / numeric values
- */ --}}
  [data-report-system-table] .report-col-number {
  width: 1% !important;
 
@@ -1534,21 +1395,11 @@ dialog.report-options-dialog[open] > form::after {
  font-variant-numeric: tabular-nums;
  }
 
-
- {{-- /* =====================================================
- NUMERIC HEADER ALIGNMENT
- ===================================================== */ --}}
-
  [data-report-system-table] thead .report-col-compact,
  [data-report-system-table] thead .report-col-duration,
  [data-report-system-table] thead .report-col-number {
  text-align: center !important;
  }
-
-
- {{-- /* =====================================================
- STATUS / ACTIONS
- ===================================================== */ --}}
 
  [data-report-system-table] .status-badge {
  display: inline-flex !important;
@@ -1574,21 +1425,11 @@ dialog.report-options-dialog[open] > form::after {
  white-space: nowrap !important;
  }
 
-
- {{-- /* =====================================================
- EMPTY CELLS
- ===================================================== */ --}}
-
  [data-report-system-table] tbody td:empty::after {
  content: "—";
 
  color: var(--text-soft);
  }
-
-
- {{-- /* =====================================================
- SCROLLBAR
- ===================================================== */ --}}
 
  .report-system-table-scroll::-webkit-scrollbar {
  height: 8px;
@@ -1611,11 +1452,6 @@ dialog.report-options-dialog[open] > form::after {
  border-radius: 999px;
  }
 
-
- {{-- /* =====================================================
- MOBILE
- ===================================================== */ --}}
-
  @media (max-width: 760px) {
 
  [data-report-system-table] thead th {
@@ -1634,7 +1470,6 @@ dialog.report-options-dialog[open] > form::after {
 
 </style>
 <style>
-{{-- /* CENTER REPORT TABLE HEADERS FINAL */ --}}
 
 @media screen {
 
@@ -1643,17 +1478,10 @@ dialog.report-options-dialog[open] > form::after {
  vertical-align: middle !important;
  }
 
- {{-- /*
- * Keep actual record values readable.
- * Only the header labels are centered.
- */ --}}
  [data-report-system-table] tbody td {
  text-align: left !important;
  }
 
- {{-- /*
- * Compact/numeric columns may remain centered in the body.
- */ --}}
  [data-report-system-table] tbody .report-col-compact,
  [data-report-system-table] tbody .report-col-duration,
  [data-report-system-table] tbody .report-col-number {
@@ -1664,7 +1492,6 @@ dialog.report-options-dialog[open] > form::after {
 
 </style>
 <style>
-{{-- /* REPORT RECORDS PAGINATION INVENTORY STYLE */ --}}
 
 @media screen {
 
@@ -1673,7 +1500,7 @@ dialog.report-options-dialog[open] > form::after {
  align-items: center !important;
  justify-content: space-between !important;
 
- gap: 12px 18px !important;
+ gap: 12px 16px !important;
 
  margin-top: 13px !important;
  padding: 0 !important;
@@ -1704,8 +1531,6 @@ dialog.report-options-dialog[open] > form::after {
  margin-left: auto;
  }
 
- {{-- /* Records per page */ --}}
-
  .report-per-page-control {
  margin: 0;
  }
@@ -1730,8 +1555,6 @@ dialog.report-options-dialog[open] > form::after {
  font-size: 11.5px !important;
  font-weight: 650 !important;
  }
-
- {{-- /* Previous / pages / Next */ --}}
 
  .report-records-controls .report-pagination {
  display: flex !important;
@@ -1843,19 +1666,13 @@ dialog.report-options-dialog[open] > form::after {
 
 </style>
 <style>
-{{-- /* HIDE REPORT BUILDER DESCRIPTION FINAL */ --}}
 
-{{-- /*
- * Remove the report-specific explanatory sentence shown
- * underneath the Report Builder controls.
- */ --}}
 .reporting-workspace
 .report-builder-card
 .report-description {
  display: none !important;
 }
 
-{{-- /* Prevent leftover spacing */ --}}
 .reporting-workspace
 .report-builder-card {
  row-gap: 0;
@@ -1863,20 +1680,17 @@ dialog.report-options-dialog[open] > form::after {
 
 </style>
 <style>
-{{-- /* =========================================================
- SYSTEM PREVIEW — COMPACT LAYOUT (final overrides)
- Dense, dashboard-style cards and table consistent with Analytics.
- ========================================================= */ --}}
+
 .reporting-detail .report-system-preview { gap: 14px; }
 .reporting-detail .report-system-summary-grid { grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 10px; }
-.reporting-detail .report-system-summary-card { min-height: 0; padding: 12px 14px; border-radius: 9px; }
+.reporting-detail .report-system-summary-card { min-height: 0; padding: 12px 12px; border-radius: 9px; }
 .reporting-detail .report-system-summary-label { margin-bottom: 3px; font-size: 11px; line-height: 1.3; }
 .reporting-detail .report-system-summary-value { font-size: 20px; }
-.reporting-detail .report-system-records-card { padding: 14px 16px; }
+.reporting-detail .report-system-records-card { padding: 12px 12px; }
 .reporting-detail .report-system-records-header { margin-bottom: 12px; }
 .reporting-detail .report-system-table { min-width: 860px; }
 .reporting-detail .report-system-table th, .reporting-detail .report-system-table td { padding: 9px 10px !important; }
-{{-- /* Only horizontal overflow scrolls inside the card; rows never scroll in a nested box. */ --}}
+
 .reporting-detail .report-system-table-scroll { max-height: none; overflow-x: auto; overflow-y: visible; }
 .reporting-detail .report-system-table td.report-cell-nowrap { white-space: nowrap !important; }
 .reporting-detail .report-records-footer { margin-top: 12px; }
@@ -1891,7 +1705,7 @@ dialog.report-options-dialog[open] > form::after {
 </style>
 
 <style>
-{{-- /* SPMU-REPORTS-INVENTORY-TABLE-V1 — display only; print/export stays unchanged */ --}}
+
 @media screen {
   .reporting-detail .report-system-table-scroll {
     max-width: 100%;
@@ -1970,7 +1784,7 @@ dialog.report-options-dialog[open] > form::after {
     color: var(--primary-action) !important;
     text-decoration: none !important;
     box-shadow: none !important;
-    font-size: 0 !important; {{-- /* Visible eye icon, accessible View Record text remains in HTML */ --}}
+    font-size: 0 !important;
   }
   .reporting-detail .report-inventory-view-action:hover {
     background: color-mix(in srgb, var(--primary-action) 9%, var(--surface-elevated)) !important;
@@ -2002,7 +1816,7 @@ dialog.report-options-dialog[open] > form::after {
     font-variant-numeric: tabular-nums;
     font-weight: 700 !important;
   }
-  {{-- /* All Transactions: retain all fields with sensible widths and scroll, never squash. */ --}}
+
   .all-transactions-page .all-transactions-table { min-width: 1280px !important; }
   .all-transactions-page .all-transactions-table thead th { white-space: nowrap !important; }
   .all-transactions-page .all-transactions-table tbody td { height: 54px; white-space: nowrap !important; }
@@ -2033,7 +1847,7 @@ dialog.report-options-dialog[open] > form::after {
   .all-transactions-page .all-transactions-date { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
   .all-transactions-page .all-transactions-quantity { text-align: center !important; }
   .all-transactions-page .all-transactions-reference-cell { white-space: nowrap !important; }
-  .all-transactions-page .report-system-records-card { padding: 14px 16px !important; }
+  .all-transactions-page .report-system-records-card { padding: 12px 12px !important; }
   .all-transactions-page .report-system-records-header { margin-bottom: 11px !important; }
   @media (max-width: 720px) {
     .all-transactions-page .report-system-records-card { padding: 11px !important; }
@@ -2042,35 +1856,34 @@ dialog.report-options-dialog[open] > form::after {
 </style>
 
 <style>
-{{-- /* SPMU-COMPACT-REPORTS START */ --}}
-{{-- /* Screen UI only. Formal printed/exported report sheets are not changed. */ --}}
+
 @media screen {
-  .reporting-workspace.reporting-detail .page-heading { margin-bottom: 14px !important; }
+  .reporting-workspace.reporting-detail .page-heading { margin-bottom: 12px !important; }
   .reporting-workspace.reporting-detail .page-heading h1 { font-size: 21px !important; }
   .reporting-workspace.reporting-detail .reports-detail-page { gap: 12px !important; }
-  .reporting-workspace.reporting-detail .report-builder-card { padding: 18px 20px !important; }
+  .reporting-workspace.reporting-detail .report-builder-card { padding: 16px 16px !important; }
   .reporting-workspace.reporting-detail .report-builder-primary { gap: 12px !important; margin-top: 10px !important; }
-  .reporting-workspace.reporting-detail .report-filters-panel { margin-top: 12px !important; padding: 12px 14px !important; gap: 10px !important; }
+  .reporting-workspace.reporting-detail .report-filters-panel { margin-top: 12px !important; padding: 12px 12px !important; gap: 10px !important; }
   .reporting-workspace.reporting-detail .report-filter-grid { gap: 12px !important; }
   .reporting-workspace.reporting-detail .report-builder-card .report-description { margin-top: 12px !important; }
   .reporting-workspace.reporting-detail .report-preview-bar { margin-bottom: 8px !important; }
   .reporting-workspace.reporting-detail .report-system-preview { gap: 12px !important; }
   .reporting-workspace.reporting-detail .report-system-summary-grid { gap: 10px !important; }
-  .reporting-workspace.reporting-detail .report-system-summary-card { min-height: 78px !important; padding: 12px 14px !important; gap: 10px !important; }
-  .reporting-workspace.reporting-detail .report-system-records-card { padding: 14px !important; }
+  .reporting-workspace.reporting-detail .report-system-summary-card { min-height: 78px !important; padding: 12px 12px !important; gap: 10px !important; }
+  .reporting-workspace.reporting-detail .report-system-records-card { padding: 12px !important; }
   .reporting-workspace.reporting-detail .report-system-records-header { margin-bottom: 10px !important; }
   .reporting-workspace.reporting-detail .report-system-table th { padding-top: 10px !important; padding-bottom: 10px !important; font-size: 11px !important; }
   .reporting-workspace.reporting-detail .report-system-table td { padding-top: 10px !important; padding-bottom: 10px !important; font-size: 12px !important; line-height: 1.4 !important; }
   .reporting-workspace.reporting-detail .report-output-card,
-  .reporting-workspace.reporting-detail .report-generator-card { padding: 18px 20px !important; }
+  .reporting-workspace.reporting-detail .report-generator-card { padding: 16px 16px !important; }
   .reporting-workspace.reporting-detail .report-output-header { margin-bottom: 12px !important; }
-  .reporting-workspace.reporting-detail .all-transactions-filters { padding: 14px 16px !important; }
+  .reporting-workspace.reporting-detail .all-transactions-filters { padding: 12px 12px !important; }
 }
 @media screen and (max-width: 700px) {
   .reporting-workspace.reporting-detail .report-builder-card,
   .reporting-workspace.reporting-detail .report-output-card,
-  .reporting-workspace.reporting-detail .report-generator-card { padding: 14px !important; }
+  .reporting-workspace.reporting-detail .report-generator-card { padding: 12px !important; }
   .reporting-workspace.reporting-detail .report-system-summary-card { min-height: 72px !important; }
 }
-{{-- /* SPMU-COMPACT-REPORTS END */ --}}
+
 </style>

@@ -48,7 +48,6 @@ return new class extends Migration
             );
         });
 
-
         /*
          * Current official SPMU reference form.
          *
@@ -163,7 +162,6 @@ return new class extends Migration
                 'orientation' => 'LANDSCAPE',
             ],
         ];
-
 
         DB::table('report_form_templates')->insert([
             'report_key' => 'SUMMARY_REQUESTS_EQUIPMENT',

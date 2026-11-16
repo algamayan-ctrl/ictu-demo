@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => 'Welcome'])
 
 @section('content')
+{{-- This is the public landing page for the borrowing and property custody system. --}}
 <style>
     .landing-shell {
         --landing-navy: #071b35;
@@ -82,7 +83,7 @@
 
     .landing-hero-copy {
         max-width: 620px;
-        margin: 18px 0 0;
+        margin: 12px 0 0;
         color: var(--landing-muted);
         font-size: .94rem;
         line-height: 1.8;
@@ -108,7 +109,7 @@
         justify-content: center;
         gap: 9px;
         min-height: 46px;
-        padding: 0 20px;
+        padding: 0 16px;
         border: 1px solid #1769e0;
         border-radius: 10px;
         background: rgba(255,255,255,.88);
@@ -146,9 +147,6 @@
         transform: translateX(3px);
     }
 
-
-
-
     .landing-icon {
         width: 46px;
         height: 46px;
@@ -167,7 +165,6 @@
         color: var(--landing-navy);
         font-size: .95rem;
     }
-
 
     .landing-section {
         padding: 76px 0;
@@ -207,7 +204,7 @@
     }
 
     .landing-section-heading p {
-        margin: 14px 0 0;
+        margin: 12px 0 0;
         color: var(--landing-muted);
         line-height: 1.75;
     }
@@ -230,7 +227,7 @@
     .landing-about-copy {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 28px;
+        gap: 20px;
         padding-top: 22px;
         border-top: 1px solid var(--landing-border);
     }
@@ -245,7 +242,7 @@
     .landing-process {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
-        gap: 18px;
+        gap: 16px;
         position: relative;
     }
 
@@ -270,7 +267,7 @@
         height: 66px;
         display: grid;
         place-items: center;
-        margin: 0 auto 15px;
+        margin: 0 auto 12px;
         border: 1px solid #cfe0f6;
         border-radius: 50%;
         color: var(--landing-blue);
@@ -302,12 +299,12 @@
     .landing-feature-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 16px;
+        gap: 12px;
     }
 
     .landing-feature-card {
         min-height: 180px;
-        padding: 22px;
+        padding: 16px;
         border: 1px solid var(--landing-border);
         border-radius: 16px;
         background: #fff;
@@ -342,7 +339,7 @@
     .landing-impact article {
         position: relative;
         min-height: 150px;
-        padding: 28px;
+        padding: 20px;
         color: #fff;
     }
 
@@ -440,8 +437,8 @@
     .landing-footer-bottom {
         display: flex;
         justify-content: space-between;
-        gap: 20px;
-        padding: 18px 0 24px;
+        gap: 16px;
+        padding: 16px 0 16px;
         border-top: 1px solid rgba(255,255,255,.10);
         font-size: .72rem;
     }
@@ -453,10 +450,9 @@
             padding: 58px 0 126px;
         }
 
-
         .landing-process {
             grid-template-columns: repeat(3, 1fr);
-            gap: 32px 18px;
+            gap: 24px 16px;
         }
 
         .landing-process::before {
@@ -477,20 +473,14 @@
             width: min(100% - 28px, 1180px);
         }
 
-
-
         .landing-hero h1 {
             font-size: clamp(2.15rem, 11vw, 3.15rem);
         }
 
         .landing-hero-grid {
-            gap: 32px;
+            gap: 24px;
             min-height: auto;
         }
-
-
-
-
 
         .landing-about-copy,
         .landing-feature-grid,
@@ -513,7 +503,7 @@
         }
 
         .landing-cta {
-            padding: 30px 24px;
+            padding: 24px 16px;
         }
 
         .landing-footer-bottom {
@@ -525,8 +515,6 @@
         .landing-process {
             grid-template-columns: 1fr;
         }
-
-
 
         .landing-section {
             padding: 64px 0;
@@ -540,11 +528,6 @@
         }
     }
 
-
-
-
-{{-- /* LANDING EMBEDDED LOGIN START */ --}}
-{{-- /* Reuse existing .login-page card styling without its stand-alone page backdrop. */ --}}
 .landing-hero .landing-hero-grid {
     display: flex !important;
     align-items: center;
@@ -552,7 +535,7 @@
     width: min(1280px, calc(100% - 80px));
     min-height: calc(100vh - 140px);
     min-height: calc(100dvh - 140px);
-    padding: 24px 0 34px;
+    padding: 16px 0 34px;
 }
 .landing-hero .landing-hero-grid > .landing-login-slot.login-page {
     position: relative;
@@ -581,13 +564,13 @@
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
-    padding: 20px 28px 22px !important;
+    padding: 16px 20px 16px !important;
     background: #fff !important;
     border: 1px solid #d7e0eb !important;
     border-radius: 18px !important;
     box-shadow: 0 14px 38px rgba(27,55,91,.12) !important;
 }
-{{-- /* The removed marketing hero h1 rule must not enlarge the login heading. */ --}}
+
 .landing-hero .landing-login-slot .login-heading h1 {
     max-width: none;
     font-size: 24px !important;
@@ -605,21 +588,17 @@
         width: min(100% - 28px, 1280px);
         min-height: 0;
         justify-content: center;
-        padding: 18px 0 28px;
+        padding: 16px 0 20px;
     }
     .landing-hero .landing-hero-grid > .landing-login-slot.login-page {
         flex: 0 1 410px;
         width: 100% !important;
     }
     .landing-hero .landing-login-slot .login-card {
-        padding: 20px !important;
+        padding: 16px !important;
     }
 }
-{{-- /* LANDING EMBEDDED LOGIN END */ --}}
 
-{{-- /* LOGIN CARD LOGO OVERRIDE START */ --}}
-
-{{-- /* SPMU logo */ --}}
 .login-page .login-card .landing-login-badge.landing-login-badge--logo {
     display: grid !important;
     place-items: start center !important;
@@ -627,11 +606,11 @@
     width: 241.5px !important;
     min-width: 0 !important;
     max-width: 241.5px !important;
-    {{-- /* Preserve the original logo slot so the card and form stay in place. */ --}}
+
     height: calc(210px * 254 / 1626 + 14px) !important;
     min-height: 0 !important;
 
-    margin: 0 auto 14px !important;
+    margin: 0 auto 12px !important;
     padding: 0 !important;
 
     border: 0 !important;
@@ -648,7 +627,6 @@
     object-fit: contain !important;
 }
 
-{{-- /* Slightly smaller welcome heading */ --}}
 .login-page .login-card .login-heading h1 {
     font-size: 22px !important;
     font-weight: 750 !important;
@@ -656,7 +634,6 @@
     letter-spacing: -0.025em !important;
 }
 
-{{-- /* Mobile */ --}}
 @media (max-width: 640px) {
 
     .login-page .login-card .landing-login-badge.landing-login-badge--logo {
@@ -675,12 +652,10 @@
     }
 }
 
-{{-- /* LOGIN CARD LOGO OVERRIDE END */ --}}
 </style>
 
 <div class="landing-shell">
 
-    {{-- HERO: sign in directly on landing page --}}
     <section class="landing-hero" aria-labelledby="landing-login-title">
         <div class="landing-container landing-hero-grid">
             <div class="landing-login-slot login-page" id="landing-login">
@@ -693,9 +668,6 @@
         </div>
 
     </section>
-
-
-
 
 </div>
 

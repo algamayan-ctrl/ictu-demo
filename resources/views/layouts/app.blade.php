@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" type="image/png" href="{{ \App\Support\StaticAsset::url('images/cspc-logo.png') }}">
     <title>{{ isset($title) ? $title.' | ' : '' }}{{ config('app.name') }}</title>
-    <script>
+<script>
         (() => {
             const root = document.documentElement;
             const storageKey = root.dataset.themeStorageKey;
@@ -27,7 +27,7 @@
         })();
     </script>
     @auth
-    <script>
+<script>
         (() => {
             const root = document.documentElement;
             const storageKey = root.dataset.sidebarStorageKey;
@@ -58,7 +58,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 14px 14px 10px;
+            padding: 12px 12px 10px;
             border-bottom: 1px solid #e6eff8;
         }
 
@@ -94,7 +94,7 @@
         }
 
         .sidebar-label {
-            margin: 14px 18px 10px !important;
+            margin: 12px 12px 10px !important;
             color: #6f8096 !important;
             font-size: 0.73rem !important;
             font-weight: 800 !important;
@@ -104,8 +104,8 @@
 
         .sidebar-nav {
             display: grid;
-            gap: 8px;
-            padding: 0 10px 14px;
+            gap: 4px;
+            padding: 0 10px 12px;
         }
 
         .sidebar-nav a {
@@ -113,7 +113,7 @@
             align-items: center;
             gap: 12px;
             min-height: 48px;
-            padding: 0 14px;
+            padding: 0 12px;
             border: 1px solid transparent;
             border-radius: 14px;
             background: transparent !important;
@@ -160,7 +160,6 @@
         .sidebar-nav .nav-icon-calendar { color: #2f80ed; }
         .sidebar-nav .nav-icon-accountability { color: #d97706; }
 
-        {{-- /* Additional sidebar module icon colors */ --}}
         .sidebar-nav .nav-icon-users { color: #7A5AF8; }
         .sidebar-nav .nav-icon-settings { color: #0F9488; }
         .sidebar-nav .nav-icon-analytics { color: #7A5AF8; }
@@ -178,7 +177,7 @@
 
         .sidebar-foot {
             margin-top: auto;
-            padding: 16px 18px 18px !important;
+            padding: 12px 16px 16px !important;
             border-top: 1px solid #e6eff8 !important;
             color: #6c7f96 !important;
             background: #E5F2FC !important;
@@ -200,7 +199,6 @@
             color: #6c7f96;
         }
 
-        {{-- /* DARK MODE: sidebar follows the selected appearance */ --}}
         html[data-theme="dark"] .app-sidebar {
             background: #070518 !important;
             border-right-color: rgba(255, 255, 255, .06) !important;
@@ -290,8 +288,6 @@
             }
         }
 
-        {{-- /* SIDEBAR HIDDEN SCROLLBAR
-           Keep scrolling functional without showing a slider. */ --}}
         .app-sidebar,
         .sidebar-nav {
             scrollbar-width: none !important;
@@ -315,8 +311,8 @@
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                gap: 28px;
-                padding: 10px clamp(28px, 4vw, 64px);
+                gap: 20px;
+                padding: 10px clamp(20px, 4vw, 64px);
                 border-bottom: 1px solid #e6edf6;
                 background: rgba(255, 255, 255, 0.98);
                 box-shadow: 0 4px 18px rgba(7, 27, 53, 0.04);
@@ -416,7 +412,7 @@
                     align-items: flex-start;
                     flex-direction: column;
                     gap: 10px;
-                    padding: 12px 18px;
+                    padding: 12px 16px;
                 }
 
                 .public-header nav {
@@ -434,8 +430,6 @@
                 }
             }
 
-        {{-- /* SIDEBAR HIDDEN SCROLLBAR
-           Keep scrolling functional without showing a slider. */ --}}
         .app-sidebar,
         .sidebar-nav {
             scrollbar-width: none !important;
@@ -455,10 +449,9 @@
     @elseif(request()->routeIs('reports.notifications'))
         <link rel="stylesheet" href="{{ \App\Support\StaticAsset::url('css/reports-notifications.css') }}?v={{ filemtime(public_path('css/reports-notifications.css')) }}">
     @endif
-    {{-- ICTU COMPACT WORKSPACE START --}}
+
     <style id="ictu-compact-workspace">
-        {{-- /* One visual rhythm for the ICTU workspace. Page structures stay intact;
-           only shell sizing, spacing, and dense data presentation are normalized. */ --}}
+
         .ictu-workspace-shell {
             --sidebar-width: 232px;
             --topbar-height: 60px;
@@ -510,7 +503,7 @@
 
         .ictu-workspace-shell .app-topbar {
             min-height: 60px !important;
-            padding: 7px 22px !important;
+            padding: 7px 16px !important;
             gap: 10px !important;
             background: var(--surface-elevated) !important;
         }
@@ -548,9 +541,9 @@
             width: 100% !important;
             max-width: none !important;
             margin: 0 !important;
-            padding: 18px 22px 30px !important;
+            padding: 16px 16px 24px !important;
         }
-        .ictu-workspace-shell .page-heading { margin-bottom: 12px !important; column-gap: 14px; }
+        .ictu-workspace-shell .page-heading { margin-bottom: 12px !important; column-gap: 12px; }
         .ictu-workspace-shell .page-heading h1 {
             margin: 1px 0 3px !important;
             font-size: clamp(21px, 1.65vw, 25px) !important;
@@ -566,7 +559,6 @@
         }
         .ictu-workspace-shell .content-area { margin-top: 12px !important; }
 
-        {{-- /* User Accounts: preserve layout, tighten controls and rows. */ --}}
         .ictu-workspace-shell .ictu-users-heading { margin-bottom: 10px !important; }
         .ictu-workspace-shell .ictu-users-heading .ictu-register-button {
             height: 36px !important;
@@ -577,7 +569,7 @@
         .ictu-workspace-shell .ictu-users-area { gap: 10px !important; }
         .ictu-workspace-shell .ictu-users-filter-grid {
             gap: 10px !important;
-            padding: 12px 14px !important;
+            padding: 12px 12px !important;
         }
         .ictu-workspace-shell .ictu-users-filter-field { gap: 5px !important; }
         .ictu-workspace-shell .ictu-users-filter-field > label { font-size: 11px !important; }
@@ -589,7 +581,7 @@
         }
         .ictu-workspace-shell .ictu-users-list-toolbar {
             min-height: 48px !important;
-            padding: 7px 14px !important;
+            padding: 7px 12px !important;
         }
         .ictu-workspace-shell .ictu-users-list-title h2 { font-size: 16px !important; }
         .ictu-workspace-shell .ictu-users-table th { padding: 9px 10px !important; }
@@ -616,11 +608,10 @@
         .ictu-workspace-shell .ictu-user-unit-cell span,
         .ictu-workspace-shell .ictu-user-access-cell span { font-size: 10.75px !important; }
 
-        {{-- /* Audit Trail: same hierarchy with Gmail-like compact rows. */ --}}
         .ictu-workspace-shell .ictu-audit-area { gap: 10px !important; }
         .ictu-workspace-shell .ictu-audit-filter-grid {
             gap: 10px !important;
-            padding: 12px 14px !important;
+            padding: 12px 12px !important;
         }
         .ictu-workspace-shell .ictu-audit-filter-field { gap: 5px !important; }
         .ictu-workspace-shell .ictu-audit-filter-field label { font-size: 11px !important; }
@@ -632,7 +623,7 @@
         }
         .ictu-workspace-shell .ictu-audit-table-toolbar {
             min-height: 48px !important;
-            padding: 7px 14px !important;
+            padding: 7px 12px !important;
         }
         .ictu-workspace-shell .ictu-audit-table-heading h1 { font-size: 16px !important; }
         .ictu-workspace-shell .ictu-audit-table th { padding: 9px 12px !important; }
@@ -659,14 +650,13 @@
         .ictu-workspace-shell .ictu-audit-expanded-row td { padding: 9px 12px !important; }
         .ictu-workspace-shell .ictu-audit-details-panel { padding: 10px 12px !important; }
 
-        {{-- /* System Configuration: preserve cards, reduce empty space. */ --}}
         .ictu-workspace-shell .ictu-system-config-area { gap: 10px !important; }
         .ictu-workspace-shell .ictu-config-section-heading h2 { margin-bottom: 2px !important; }
         .ictu-workspace-shell .ictu-config-section-heading p { font-size: 12px !important; }
         .ictu-workspace-shell .ictu-service-status-grid,
         .ictu-workspace-shell .ictu-technical-settings-grid { gap: 12px !important; }
         .ictu-workspace-shell .ictu-service-status-card,
-        .ictu-workspace-shell .ictu-technical-setting-card { padding: 15px !important; }
+        .ictu-workspace-shell .ictu-technical-setting-card { padding: 12px !important; }
         .ictu-workspace-shell .ictu-service-status-card > p,
         .ictu-workspace-shell .ictu-technical-setting-card > p {
             margin: 8px 0 !important;
@@ -674,11 +664,10 @@
         }
         .ictu-workspace-shell .ictu-readonly-value { padding: 9px 10px !important; }
 
-        {{-- /* Delivery Records: shared density with Audit Trail. */ --}}
         .ictu-workspace-shell .notification-delivery-area { gap: 10px !important; }
         .ictu-workspace-shell .notification-delivery-toolbar {
             gap: 10px !important;
-            padding: 12px 14px !important;
+            padding: 12px 12px !important;
         }
         .ictu-workspace-shell .notification-delivery-toolbar label {
             margin-bottom: 5px !important;
@@ -693,7 +682,7 @@
         }
         .ictu-workspace-shell .notification-delivery-table-toolbar {
             min-height: 48px !important;
-            padding: 7px 14px !important;
+            padding: 7px 12px !important;
         }
         .ictu-workspace-shell .notification-delivery-table th { padding: 9px 10px !important; }
         .ictu-workspace-shell .notification-delivery-table td {
@@ -707,18 +696,17 @@
         }
         .ictu-workspace-shell .notification-delivery-details-panel { padding: 9px 10px 10px !important; }
 
-        {{-- /* Dashboard structure remains unchanged; only the outer rhythm is tighter. */ --}}
         .ictu-workspace-shell .dashboard-heading { margin-bottom: 12px !important; }
         .ictu-workspace-shell .dashboard-stat-grid { margin-bottom: 12px !important; }
         .ictu-workspace-shell .dashboard-recent-row,
         .ictu-workspace-shell .dashboard-watch-row,
         .ictu-workspace-shell .dashboard-primary-queue-row {
             min-height: 52px !important;
-            padding: 8px 14px !important;
+            padding: 8px 12px !important;
         }
         .ictu-workspace-shell .dashboard-recent-card > .card-header,
         .ictu-workspace-shell .dashboard-balanced-grid > .queue-card > .card-header {
-            padding: 10px 14px !important;
+            padding: 10px 12px !important;
         }
 
         html[data-theme="dark"] .ictu-workspace-shell .app-sidebar { background: #070518 !important; }
@@ -727,7 +715,7 @@
             .ictu-workspace-shell { --sidebar-width: 220px; --content-gutter: 16px; }
             .ictu-workspace-shell .app-main,
             .ictu-workspace-shell .app-main.ictu-admin-main,
-            .ictu-workspace-shell .app-main.ictu-audit-main { padding: 16px !important; }
+            .ictu-workspace-shell .app-main.ictu-audit-main { padding: 12px !important; }
         }
         @media (max-width: 760px) {
             .ictu-workspace-shell { --sidebar-width: 248px; --topbar-height: 58px; }
@@ -735,9 +723,7 @@
             .ictu-workspace-shell .account-menu-name { display: none; }
         }
     </style>
-    {{-- ICTU COMPACT WORKSPACE END --}}
 
-    {{-- UNIVERSAL COLLAPSIBLE SIDEBAR START --}}
     <style id="universal-collapsible-sidebar">
         :root {
             --sidebar-collapsed-width: 82px;
@@ -878,7 +864,6 @@
             }
         }
 
-        {{-- /* Keep the sidebar brand visible while the sidebar menu scrolls. */ --}}
         .sidebar-brand-row {
             position: sticky !important;
             top: 0 !important;
@@ -893,7 +878,7 @@
                 display: none !important;
             }
         }
-        {{-- /* SIDEBAR SECTION NAVIGATION START */ --}}
+
         .sidebar-subnav {
             display: grid;
             gap: 2px;
@@ -960,8 +945,6 @@
             }
         }
 
-        {{-- /* SIDEBAR SECTION ACCORDION START */ --}}
-
         .sidebar-subnav[hidden] {
             display: none !important;
         }
@@ -996,43 +979,27 @@
             }
         }
 
-        {{-- /* SIDEBAR SECTION ACCORDION END */ --}}
-        {{-- /* SIDEBAR SECTION NAVIGATION END */ --}}
     </style>
-    {{-- UNIVERSAL COLLAPSIBLE SIDEBAR END --}}
 
-
-{{-- <!-- GLOBAL APP NOTICE ALIGNMENT START --> --}}
 <style>
-{{-- /*
- * SPMU universal flash / validation notice alignment.
- * Keep the notice on the normal page grid while centering
- * its icon against the complete text block.
- */ --}}
 
 .app-main > .notice {
     box-sizing: border-box !important;
     width: 100% !important;
     max-width: none !important;
 
-    margin: 0 0 18px !important;
-    padding: 14px 16px !important;
+    margin: 0 0 12px !important;
+    padding: 12px 12px !important;
 
     display: grid !important;
     grid-template-columns: 20px minmax(0, 1fr) !important;
 
-    {{-- /*
-     * Important:
-     * Center the icon against the complete message,
-     * including wrapped validation text.
-     */ --}}
     align-items: center !important;
     column-gap: 12px !important;
 
     line-height: 1.45 !important;
 }
 
-{{-- /* Notice icon */ --}}
 .app-main > .notice > svg,
 .app-main > .notice > .ui-icon,
 .app-main > .notice > [class*="icon"] {
@@ -1049,7 +1016,6 @@
     align-self: center !important;
 }
 
-{{-- /* Main text column */ --}}
 .app-main > .notice > div {
     min-width: 0 !important;
     margin: 0 !important;
@@ -1058,7 +1024,6 @@
     align-self: center !important;
 }
 
-{{-- /* Error heading */ --}}
 .app-main > .notice strong {
     display: block !important;
 
@@ -1068,13 +1033,11 @@
     line-height: 1.35 !important;
 }
 
-{{-- /* Validation list */ --}}
 .app-main > .notice ul {
-    margin: 6px 0 0 18px !important;
+    margin: 6px 0 0 12px !important;
     padding: 0 !important;
 }
 
-{{-- /* Individual validation message */ --}}
 .app-main > .notice li {
     margin: 0 !important;
     padding: 0 0 0 1px !important;
@@ -1084,32 +1047,23 @@
     overflow-wrap: anywhere !important;
 }
 
-{{-- /*
- * Single success/status messages should also sit vertically
- * centered with their status icon.
- */ --}}
 .app-main > .notice.success > div {
     display: flex !important;
     align-items: center !important;
     min-height: 20px !important;
 }
 
-{{-- /*
- * Error messages with a heading + list stay compact while
- * preserving a clear visual hierarchy.
- */ --}}
 .app-main > .notice.error > div {
     display: block !important;
 }
 
-{{-- /* Narrow screen */ --}}
 @media (max-width: 700px) {
     .app-main > .notice {
         grid-template-columns: 18px minmax(0, 1fr) !important;
         column-gap: 10px !important;
 
-        padding: 12px 14px !important;
-        margin-bottom: 16px !important;
+        padding: 12px 12px !important;
+        margin-bottom: 12px !important;
     }
 
     .app-main > .notice > svg,
@@ -1122,16 +1076,15 @@
     }
 }
 </style>
-{{-- <!-- GLOBAL APP NOTICE ALIGNMENT END --> --}}
-{{-- <!-- SPMU COMPACT CONSISTENCY V2 START --> --}}
+
 <style id="spmu-compact-consistency-v2">
 @media screen and (min-width: 1050px) {
-    {{-- /* Sidebar: 42px links, consistent icons, existing active/hover colors. */ --}}
+
     .app-shell:not(.ictu-workspace-shell) .sidebar-nav { gap: 4px !important; }
     .app-shell:not(.ictu-workspace-shell) .sidebar-nav > a {
-        min-height: 42px !important;
-        max-height: 42px !important;
-        height: 42px !important;
+        min-height: 36px !important;
+        max-height: 36px !important;
+        height: 36px !important;
         padding: 0 12px !important;
         gap: 10px !important;
         border-radius: 11px !important;
@@ -1165,29 +1118,26 @@
         display: none !important;
     }
 
-    {{-- /* Shared page hierarchy; leaves the top bar, table data and functionality intact. */ --}}
     .app-shell .app-main { padding-top: 18px !important; padding-bottom: 28px !important; min-width: 0; }
-    .app-shell .app-main > .page-heading { margin-bottom: 14px !important; }
+    .app-shell .app-main > .page-heading { margin-bottom: 12px !important; }
     .app-shell .app-main > .page-heading h1 { font-size: 20px !important; line-height: 1.22 !important; }
     .app-shell .app-main > .page-heading p:not(.eyebrow) { font-size: 12px !important; line-height: 1.4 !important; }
     .app-shell .app-main > .page-heading .eyebrow { font-size: 10px !important; }
-    .app-shell .app-main > .content-area { margin-top: 12px; min-width: 0; }
+    .app-shell .app-main > .content-area { margin-top: 0; min-width: 0; }
     .app-shell .app-main .content-grid { gap: 12px; }
-    .app-shell .app-main .content-area > .card { padding: 15px !important; }
+    .app-shell .app-main .content-area > .card { padding: 12px !important; }
     .app-shell .app-main .card-header { gap: 10px; margin-bottom: 10px; }
 
-    {{-- /* Borrower, Action Officer and Head dashboards only. */ --}}
     .app-shell .app-main .dashboard-page-shell .dashboard-heading { margin-bottom: 12px !important; }
     .app-shell .app-main .dashboard-page-shell .dashboard-heading h1 { font-size: 20px !important; }
     .app-shell .app-main .dashboard-page-shell .dashboard-heading p:not(.eyebrow) { font-size: 12px !important; }
     .app-shell .app-main .dashboard-page-shell .dashboard-kpi-card {
-        min-height: 112px !important; padding: 13px 15px !important;
+        min-height: 112px !important; padding: 13px 12px !important;
     }
     .app-shell .app-main .dashboard-page-shell .dashboard-primary-queue-row {
         padding-top: 9px !important; padding-bottom: 9px !important;
     }
 
-    {{-- /* Ordinary screen tables (not PDF/print previews): same comfortable density. */ --}}
     .app-shell .app-main .content-area > .table-wrap > table thead th {
         padding-top: 9px !important; padding-bottom: 9px !important; font-size: 11px !important;
     }
@@ -1196,7 +1146,6 @@
         font-size: 12.5px !important; line-height: 1.35 !important;
     }
 
-    {{-- /* Request Records and Release & Return filters, without touching date validation. */ --}}
     .app-shell .app-main .record-browser-toolbar,
     .app-shell .app-main .operational-browser-toolbar {
         padding: 12px !important; gap: 10px !important; margin-bottom: 12px !important;
@@ -1214,7 +1163,6 @@
         padding-top: 9px !important; padding-bottom: 9px !important; font-size: 12px !important;
     }
 
-    {{-- /* Operational Audit screen only: text/readability with shorter rows. */ --}}
     .app-shell.ictu-audit-shell .app-main .spmu-operational-audit-area { gap: 10px !important; }
     .app-shell.ictu-audit-shell .app-main .spmu-operational-audit-area .ictu-audit-filter-grid {
         padding: 12px !important; gap: 10px !important;
@@ -1239,24 +1187,22 @@
         min-height: 32px !important; font-size: 11px !important;
     }
 
-    {{-- /* Operational Configuration: don't stretch two small groups to viewport height. */ --}}
     .app-shell .app-main > .operational-config-hub {
         flex: 0 0 auto !important; margin-top: 12px !important;
     }
-    .app-shell .app-main .operational-config-group { gap: 10px !important; margin-bottom: 14px !important; }
+    .app-shell .app-main .operational-config-group { gap: 10px !important; margin-bottom: 12px !important; }
     .app-shell .app-main .operational-config-grid { gap: 12px !important; }
     .app-shell .app-main .operational-config-card {
-        min-height: 72px !important; padding: 13px 16px !important; gap: 12px !important;
+        min-height: 72px !important; padding: 13px 12px !important; gap: 12px !important;
     }
 
-    {{-- /* Calendar: compact controls, never compress the actual event grid. */ --}}
     .app-shell .app-main .borrowing-calendar .calendar-toolbar { gap: 10px !important; }
     .app-shell .app-main .borrowing-calendar .calendar-month-title { font-size: 15px !important; }
 }
 </style>
-{{-- <!-- SPMU COMPACT CONSISTENCY V2 END --> --}}
+
 <style>
-{{-- /* SIDEBAR ACTION BADGES START - soft, compact, readable counters */ --}}
+
 .sidebar-nav > a { position: relative; }
 .sidebar-nav > a .sidebar-action-count {
     margin-left: auto;
@@ -1280,13 +1226,13 @@
     text-shadow: none;
 }
 .sidebar-nav > a .sidebar-action-count[hidden] { display: none !important; }
-{{-- /* Keep tones in the data, but use one subtle visual style across the sidebar. */ --}}
+
 .sidebar-nav > a .sidebar-action-count.is-urgent,
 .sidebar-nav > a .sidebar-action-count.is-soon {
     background: #e4f2ff;
     color: #175380;
 }
-{{-- /* The light pill remains legible on the selected blue menu and on hover. */ --}}
+
 .sidebar-nav > a.active .sidebar-action-count,
 .sidebar-nav > a[aria-current="page"] .sidebar-action-count,
 .sidebar-nav > a:hover .sidebar-action-count {
@@ -1294,7 +1240,7 @@
     color: #175380;
     box-shadow: none;
 }
-{{-- /* Section toggles share one right-hand chevron column; a visible count sits just before it. */ --}}
+
 .sidebar-nav > a[data-sidebar-section-toggle] .sidebar-action-count {
     margin-left: auto;
 }
@@ -1326,54 +1272,54 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         z-index: 1;
     }
 }
-{{-- /* SIDEBAR ACTION BADGES END */ --}}
+
 </style>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to main content</a>
 @auth
-    @php
+@php
         $activeWorkspace = auth()->user()->primaryWorkspace();
         $unread = App\Models\NotificationDelivery::where('recipient_user_id', auth()->id())->where('channel', 'SYSTEM')->whereNull('read_at')->count();
         $classification = auth()->user()->access_classification;
         $sidebarActionCounts = app(\App\Services\SidebarActionCountService::class)->counts(auth()->user());
         $sidebarTones = app(\App\Services\SidebarActionCountService::class)->tones(auth()->user());
+        // This is the sidebar navigation for each authorized user type.
         $navigation = match ($activeWorkspace) {
             'BORROWER' => [
-                ['dashboard', 'dashboard', 'Dashboard', 'dashboard'],
-                ['inventory.index', 'inventory.*', 'Available Items', 'inventory'],
-                ['requests.index', 'requests.*', 'My Requests', 'requests'],
-                ['custody.index', 'custody.*', 'My Borrowings', 'custody'],
-                ['calendar.index', 'calendar.*', 'Borrowing Calendar', 'calendar'],
-                ['accountability.index', 'accountability.*', 'My Obligations', 'accountability'],
+                ['dashboard', 'dashboard', 'Dashboard', 'dashboard', 'section' => 'Main Menu'],
+                ['inventory.index', 'inventory.*', 'Available Items', 'inventory', 'section' => 'Main Menu'],
+                ['calendar.index', 'calendar.*', 'Borrowing Calendar', 'calendar', 'section' => 'Main Menu'],
+                ['accountability.index', 'accountability.*', 'My Obligations', 'accountability', 'section' => 'Accountability'],
+                ['requests.index', 'requests.*', 'My Requests', 'requests', 'section' => 'Records'],
+                ['custody.index', 'custody.*', 'My Borrowings', 'custody', 'section' => 'Records'],
             ],
             'SPMU' => $classification === App\Enums\AccessClassification::SpmuHead
                 ? [
-                    ['dashboard', 'dashboard', 'Dashboard', 'dashboard'],
-                    ['approvals.index', 'approvals.*', 'For Approval', 'approval'],
-                    ['requests.index', 'requests.*', 'Request Records', 'requests'],
-                    ['inventory.index', 'inventory.*', 'Inventory', 'inventory'],
-                    ['calendar.index', 'calendar.*', 'Operations Calendar', 'calendar'],
-                    ['accountability.index', 'accountability.*', 'Accountability', 'accountability'],
-                    ['analytics.index', 'analytics.*', 'Analytics', 'analytics'],
-                    ['reports.index', 'reports.index', 'Reports', 'report-document'],
-                    ['reports.audit', 'reports.audit', 'Operational Audit Trail', 'reports'],
-                    ['policies.index', 'policies.*', 'Configuration', 'settings'],
-                    ['administration.users.index', 'administration.users.*', 'User Accounts', 'users'],
-                    /* System Configuration and Delivery Records are ICTU technical custody and have no menu entry. */
+                    ['dashboard', 'dashboard', 'Dashboard', 'dashboard', 'section' => 'Main Menu'],
+                    ['inventory.index', 'inventory.*', 'Inventory', 'inventory', 'section' => 'Main Menu'],
+                    ['calendar.index', 'calendar.*', 'Operations Calendar', 'calendar', 'section' => 'Main Menu'],
+                    ['approvals.index', 'approvals.*', 'For Approval', 'approval', 'section' => 'Operations'],
+                    ['accountability.index', 'accountability.*', 'Accountability', 'accountability', 'section' => 'Accountability'],
+                    ['requests.index', 'requests.*', 'Request Records', 'requests', 'section' => 'Records'],
+                    ['analytics.index', 'analytics.*', 'Analytics', 'analytics', 'section' => 'Records'],
+                    ['reports.index', 'reports.index', 'Reports', 'report-document', 'section' => 'Records'],
+                    ['reports.audit', 'reports.audit', 'Operational Audit Trail', 'reports', 'section' => 'Records'],
+                    ['policies.index', 'policies.*', 'Configuration', 'settings', 'section' => 'Administration'],
+                    ['administration.users.index', 'administration.users.*', 'User Accounts', 'users', 'section' => 'Administration'],
                 ]
                 : [
-                    ['dashboard', 'dashboard', 'Dashboard', 'dashboard'],
-                    ['registrations.index', 'registrations.*', 'Borrower Registrations', 'users'],
-                    ['verifications.index', 'verifications.*', 'For Verification', 'approval'],
-                    ['custody.release.index', 'custody.release.*', 'Release', 'upload'],
-                    ['custody.return.index', 'custody.return.*', 'Return', 'custody'],
-                    ['laundry.index', 'laundry.*', 'Laundry', 'success'],
-                    ['gate-passes.index', 'gate-passes.*', 'Gate Pass', 'requests'],
-                    ['accountability.index', 'accountability.*', 'Accountability', 'accountability'],
-                    ['requests.index', 'requests.*', 'Request Records', 'requests'],
-                    ['inventory.index', 'inventory.*', 'Inventory', 'inventory'],
-                    ['calendar.index', 'calendar.*', 'Operations Calendar', 'calendar'],
+                    ['dashboard', 'dashboard', 'Dashboard', 'dashboard', 'section' => 'Main Menu'],
+                    ['inventory.index', 'inventory.*', 'Inventory', 'inventory', 'section' => 'Main Menu'],
+                    ['calendar.index', 'calendar.*', 'Operations Calendar', 'calendar', 'section' => 'Main Menu'],
+                    ['registrations.index', 'registrations.*', 'Borrower Registrations', 'users', 'section' => 'Operations'],
+                    ['verifications.index', 'verifications.*', 'For Verification', 'approval', 'section' => 'Operations'],
+                    ['custody.release.index', 'custody.release.*', 'Release', 'upload', 'section' => 'Operations'],
+                    ['custody.return.index', 'custody.return.*', 'Return', 'custody', 'section' => 'Operations'],
+                    ['laundry.index', 'laundry.*', 'Laundry', 'success', 'section' => 'Operations'],
+                    ['gate-passes.index', 'gate-passes.*', 'Gate Pass', 'requests', 'section' => 'Operations'],
+                    ['accountability.index', 'accountability.*', 'Accountability', 'accountability', 'section' => 'Accountability'],
+                    ['requests.index', 'requests.*', 'Request Records', 'requests', 'section' => 'Records'],
                 ],
             default => [],
         };
@@ -1391,13 +1337,10 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                 </a>
                 <button class="icon-button sidebar-close" type="button" aria-label="Close main menu" title="Close main menu" data-sidebar-close><x-icon name="close" /></button>
             </div>
-            <p class="sidebar-label">Main menu</p>
+            {{-- This is the grouped sidebar menu for the current user. --}}
             <nav class="sidebar-nav" aria-label="Primary navigation">
-                @php
-                    /*
-                     * Preserve the current Analytics scope while moving
-                     * between its sidebar sections.
-                     */
+@php
+                    // This is the filter context carried between Analytics sidebar sections.
                     $analyticsSidebarCarry = request()->routeIs('analytics.*')
                         ? request()->only([
                             'academic_period',
@@ -1413,12 +1356,19 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                 @endphp
 
                 @foreach($navigation as $navItem)
-                    @php
+                    @if($loop->first || $navigation[$loop->index - 1]['section'] !== $navItem['section'])
+                        <h2 class="sidebar-group-label" data-sidebar-group>{{ $navItem['section'] }}</h2>
+                    @endif
+@php
                         [$routeName, $routePattern, $label, $icon] = $navItem;
-                        // Optional fifth element: query parameters that also decide the active state.
+                        // This is the optional query filter used to identify the active menu link.
                         $navParameters = $navItem[4] ?? [];
                         $isNavActive = request()->routeIs($routePattern)
                             && collect($navParameters)->every(fn ($value, $key) => request()->query($key) === $value);
+                        if ($routeName === 'policies.index' && request()->routeIs('administration.settings.index')
+                            && request('section') === 'late-return-fee') {
+                            $isNavActive = true;
+                        }
                         $sidebarCount = max(0, (int) ($sidebarActionCounts[$routeName] ?? 0));
 
                         $hasSidebarSections =
@@ -1426,13 +1376,14 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                             && in_array($routeName, [
                                 'accountability.index',
                                 'analytics.index',
+                                'policies.index',
                             ], true);
 
                         $sidebarSectionId = $routeName === 'accountability.index'
                             ? 'sidebar-section-accountability'
                             : ($routeName === 'analytics.index'
                                 ? 'sidebar-section-analytics'
-                                : null);
+                                : ($routeName === 'policies.index' ? 'sidebar-section-configuration' : null));
                     @endphp
 
                     <a
@@ -1515,6 +1466,36 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                             </a>
                         </div>
 
+                    @elseif($routeName === 'policies.index' && $activeWorkspace === 'SPMU')
+                        @php
+                            // This is the Configuration submenu for the existing authorized settings pages.
+                            $configurationLinks = [
+                                ['transaction-schedule', 'Transaction Schedule', 'policies.index'],
+                                ['special-dates', 'Special Dates & Closures', 'policies.index'],
+                                ['academic-periods', 'Academic Period', 'policies.index'],
+                                ['late-return-fee', 'Late Return Policy', 'administration.settings.index'],
+                                ['sanction-rules', 'Sanction Rules', 'policies.index'],
+                            ];
+                            $configurationSidebarSection = in_array(request('section'), ['transaction-schedule', 'special-dates', 'academic-periods', 'sanction-rules'], true)
+                                ? request('section') : 'transaction-schedule';
+                        @endphp
+                        <div class="sidebar-subnav" id="sidebar-section-configuration" aria-label="Configuration sections" hidden>
+                            @foreach($configurationLinks as [$configurationKey, $configurationLabel, $configurationRoute])
+                                @php
+                                    $configurationActive = request()->routeIs($configurationRoute)
+                                        && ($configurationRoute === 'policies.index'
+                                            ? $configurationSidebarSection === $configurationKey
+                                            : request('section') === $configurationKey);
+                                @endphp
+                                <a class="interactive {{ $configurationActive ? 'active' : '' }}"
+                                    href="{{ route($configurationRoute, ['section' => $configurationKey]) }}"
+                                    data-sidebar-tooltip="{{ $configurationLabel }}"
+                                    @if($configurationActive) aria-current="page" @endif>
+                                    {{ $configurationLabel }}
+                                </a>
+                            @endforeach
+                        </div>
+
                     @elseif($routeName === 'analytics.index' && $activeWorkspace === 'SPMU')
 
                         <div
@@ -1542,8 +1523,8 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
             </nav>
 
         </aside>
-{{-- SIDEBAR ACTION COUNTS AUTO-REFRESH START --}}
-        <script>
+
+<script>
         (function () {
             'use strict';
             const nav = document.querySelector('#primary-sidebar .sidebar-nav');
@@ -1592,7 +1573,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
             });
         })();
         </script>
-        {{-- SIDEBAR ACTION COUNTS AUTO-REFRESH END --}}
+
         <button class="sidebar-backdrop" type="button" aria-label="Close main menu" tabindex="-1" data-sidebar-close></button>
         <div class="app-stage">
             <header class="app-topbar">
@@ -1636,7 +1617,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         </div>
     </div>
 @else
-    {{-- LOGIN PORTAL HEADER VISIBILITY START --}}
+
     @unless(request()->routeIs('home', 'login'))
     <header class="site-header public-header">
         <a class="brand" href="{{ route('home') }}" aria-label="SPMU-ACPMP home">
@@ -1653,7 +1634,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         @endunless
     </header>
     @endunless
-    {{-- LOGIN PORTAL HEADER VISIBILITY END --}}
+
     <main id="main-content" tabindex="-1">
         @unless(($inlinePageNotices ?? false) || request()->routeIs('home', 'login'))
         @if(session('status'))<div class="notice success" role="status"><x-icon name="success" /><div>{{ session('status') }}</div></div>@endif
@@ -1673,7 +1654,6 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         --detail-meta-size: 12px;
     }
 
-    {{-- /* Section/card headings: consistent with the compact Return workspace. */ --}}
     .release-flow-page .release-card-title h2,
     .request-operational-page .request-section-title,
     .request-operational-page .request-section-title h2,
@@ -1686,7 +1666,6 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         line-height: 1.4;
     }
 
-    {{-- /* Detail labels and values use one readable scale; layout remains page-specific. */ --}}
     .release-flow-page .release-context-list dt,
     .request-operational-page .request-information-list dt,
     .borrower-custody-stack .borrower-summary-fact small,
@@ -1705,7 +1684,6 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         line-height: 1.5;
     }
 
-    {{-- /* Supporting copy should never compete visually with the actual transaction values. */ --}}
     .release-flow-page .release-page-heading > div > p:last-child,
     .request-operational-page .request-operational-identity > p,
     .laundry-detail .laundry-detail-heading p:not(.eyebrow),
@@ -1716,7 +1694,6 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         line-height: 1.5;
     }
 
-    {{-- /* Dashboard figures/statuses stay intentionally distinct; only record text is normalized. */ --}}
     .dashboard-watch-copy strong,
     .dashboard-recent-copy strong,
     .dashboard-primary-queue-row > div strong {
@@ -1742,8 +1719,8 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
 
 <script src="{{ \App\Support\StaticAsset::url('vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ \App\Support\StaticAsset::url('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}" defer></script>
-    {{-- SPMU-ACPMP ANTI-DUPLICATE-SUBMISSION START --}}
-    <script>
+
+<script>
     (() => {
         'use strict';
 
@@ -1778,19 +1755,11 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
             return (form.getAttribute('method') || 'GET').toUpperCase() !== 'GET';
         }
 
-
-
-
-
         const STUCK_SUBMIT_TIMEOUT_MS = 20000;
 
         function lockForm(form) {
             form.dataset.submitLocked = '1';
             form.setAttribute('aria-busy', 'true');
-
-
-
-
 
             form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach((control) => {
                 control.style.pointerEvents = 'none';
@@ -1865,14 +1834,9 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         });
     })();
     </script>
-    {{-- SPMU-ACPMP ANTI-DUPLICATE-SUBMISSION END --}}
 
-    {{-- SPMU-ACPMP NUMBER INPUT SAFETY START --}}
     <style>
-        {{-- /*
-         * Hide native spinner arrows on all numeric fields so a stray click
-         * cannot silently bump a manually-typed value.
-         */ --}}
+
         input[type="number"]::-webkit-inner-spin-button,
         input[type="number"]::-webkit-outer-spin-button {
             -webkit-appearance: none;
@@ -1883,15 +1847,9 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
             -moz-appearance: textfield;
         }
     </style>
-    <script>
+<script>
     (() => {
         'use strict';
-
-
-
-
-
-
 
         document.addEventListener('wheel', (event) => {
             const input = event.target;
@@ -1903,12 +1861,6 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
                 event.preventDefault();
             }
         }, { passive: false, capture: true });
-
-
-
-
-
-
 
         document.addEventListener('keydown', (event) => {
             const input = event.target;
@@ -1922,19 +1874,10 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
         }, { capture: true });
     })();
     </script>
-    {{-- SPMU-ACPMP NUMBER INPUT SAFETY END --}}
-
 
 @auth
 
 <style>
-{{-- /* SPMU SESSION ENDED MODAL START */ --}}
-
-{{-- /*
-|--------------------------------------------------------------------------
-| Compact login-matched session ended UI
-|--------------------------------------------------------------------------
-*/ --}}
 
 .spmu-session-ended-overlay {
     position: fixed;
@@ -1945,7 +1888,7 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
     place-items: center;
 
     box-sizing: border-box;
-    padding: 18px;
+    padding: 16px;
 
     background: rgba(246, 249, 252, .78);
 
@@ -1953,18 +1896,12 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
     backdrop-filter: blur(4px);
 }
 
-
-{{-- /*
-|--------------------------------------------------------------------------
-| Compact card
-|--------------------------------------------------------------------------
-*/ --}}
 .spmu-session-ended-dialog {
     width: min(100%, 380px);
 
     box-sizing: border-box;
 
-    padding: 22px 22px 20px;
+    padding: 16px 16px 16px;
 
     border: 1px solid #d6e1ed;
     border-radius: 11px;
@@ -1982,12 +1919,6 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
     text-align: center;
 }
 
-
-{{-- /*
-|--------------------------------------------------------------------------
-| Lock icon
-|--------------------------------------------------------------------------
-*/ --}}
 .spmu-session-ended-icon {
     display: grid;
     place-items: center;
@@ -2012,12 +1943,6 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
     stroke: currentColor;
 }
 
-
-{{-- /*
-|--------------------------------------------------------------------------
-| Heading
-|--------------------------------------------------------------------------
-*/ --}}
 .spmu-session-ended-dialog h2 {
     margin: 0;
 
@@ -2032,12 +1957,6 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
     letter-spacing: -.025em !important;
 }
 
-
-{{-- /*
-|--------------------------------------------------------------------------
-| Supporting text
-|--------------------------------------------------------------------------
-*/ --}}
 .spmu-session-ended-dialog p {
     margin: 6px auto 0;
 
@@ -2052,12 +1971,6 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
     line-height: 1.45;
 }
 
-
-{{-- /*
-|--------------------------------------------------------------------------
-| OK button
-|--------------------------------------------------------------------------
-*/ --}}
 .spmu-session-ended-dialog .spmu-session-ended-ok.button.primary {
     display: inline-flex !important;
     align-items: center !important;
@@ -2066,8 +1979,8 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
     width: 100% !important;
     min-height: 40px !important;
 
-    margin: 18px 0 0 !important;
-    padding: 8px 14px !important;
+    margin: 12px 0 0 !important;
+    padding: 8px 12px !important;
 
     border: 1px solid #0969e8 !important;
     border-radius: 8px !important;
@@ -2119,32 +2032,20 @@ html[data-theme="dark"] .sidebar-nav > a:hover .sidebar-action-count {
     transform: scale(.99) !important;
 }
 
-
-{{-- /*
-|--------------------------------------------------------------------------
-| Expired page lock
-|--------------------------------------------------------------------------
-*/ --}}
 html.spmu-session-ended,
 html.spmu-session-ended body {
     overflow: hidden !important;
 }
 
-
-{{-- /*
-|--------------------------------------------------------------------------
-| Mobile
-|--------------------------------------------------------------------------
-*/ --}}
 @media (max-width: 520px) {
     .spmu-session-ended-overlay {
-        padding: 15px;
+        padding: 12px;
     }
 
     .spmu-session-ended-dialog {
         width: 100%;
 
-        padding: 21px 18px 18px;
+        padding: 21px 16px 16px;
     }
 
     .spmu-session-ended-dialog h2 {
@@ -2152,7 +2053,6 @@ html.spmu-session-ended body {
     }
 }
 
-{{-- /* SPMU SESSION ENDED MODAL END */ --}}
 </style>
 
 <script>
@@ -2184,9 +2084,6 @@ html.spmu-session-ended body {
     let logoutStarted = false;
     let sessionEndedDialogShown = false;
 
-
-
-
     try {
         localStorage.setItem(
             userKey,
@@ -2196,10 +2093,7 @@ html.spmu-session-ended body {
 
     }
 
-
     const syncStorage = (timestamp) => {
-
-
 
         if (timestamp - lastStorageWrite < 5000) {
             return;
@@ -2217,11 +2111,7 @@ html.spmu-session-ended body {
         }
     };
 
-
     const heartbeat = async (timestamp) => {
-
-
-
 
         if (
             logoutStarted ||
@@ -2247,12 +2137,8 @@ html.spmu-session-ended body {
             );
         } catch (_) {
 
-
-
-
         }
     };
-
 
     const showSessionEndedDialog = () => {
         if (sessionEndedDialogShown) {
@@ -2330,10 +2216,6 @@ html.spmu-session-ended body {
             </section>
         `;
 
-
-
-
-
         overlay.addEventListener(
             'click',
             (event) => {
@@ -2354,15 +2236,9 @@ html.spmu-session-ended body {
             'click',
             () => {
 
-
-
-
                 window.location.replace(loginRoute);
             }
         );
-
-
-
 
         document.addEventListener(
             'keydown',
@@ -2386,17 +2262,12 @@ html.spmu-session-ended body {
         );
     };
 
-
     const logoutForIdle = () => {
         if (logoutStarted) {
             return;
         }
 
         logoutStarted = true;
-
-
-
-
 
         showSessionEndedDialog();
 
@@ -2412,10 +2283,6 @@ html.spmu-session-ended body {
             'idle'
         );
 
-
-
-
-
         void fetch(
             logoutRoute,
             {
@@ -2429,13 +2296,8 @@ html.spmu-session-ended body {
             }
         ).catch(() => {
 
-
-
-
-
         });
     };
-
 
     const recordActivity = () => {
         if (logoutStarted) {
@@ -2443,10 +2305,6 @@ html.spmu-session-ended body {
         }
 
         const timestamp = Date.now();
-
-
-
-
 
         if (
             timestamp - lastActivity >= timeoutMs
@@ -2461,7 +2319,6 @@ html.spmu-session-ended body {
 
         void heartbeat(timestamp);
     };
-
 
     const events = [
         'pointerdown',
@@ -2482,11 +2339,6 @@ html.spmu-session-ended body {
         );
     });
 
-
-
-
-
-
     window.addEventListener(
         'focus',
         recordActivity,
@@ -2503,10 +2355,6 @@ html.spmu-session-ended body {
             }
         }
     );
-
-
-
-
 
     window.addEventListener(
         'storage',
@@ -2532,11 +2380,6 @@ html.spmu-session-ended body {
         }
     );
 
-
-
-
-
-
     window.setInterval(
         () => {
             if (logoutStarted) {
@@ -2552,16 +2395,15 @@ html.spmu-session-ended body {
         1000
     );
 
-
-
-
-
     void heartbeat(lastActivity);
 })();
 
 </script>
 
 @endauth
+<link rel="stylesheet" href="/css/ui-admin-revisions.css?v={{ filemtime(public_path('css/ui-admin-revisions.css')) }}">
+<script src="/js/ui-admin-revisions.js?v={{ filemtime(public_path('js/ui-admin-revisions.js')) }}" defer></script>
+<link rel="stylesheet" href="/css/record-tables.css?v={{ filemtime(public_path('css/record-tables.css')) }}">
+<script src="/js/record-tables.js?v={{ filemtime(public_path('js/record-tables.js')) }}" defer></script>
 </body>
 </html>
-

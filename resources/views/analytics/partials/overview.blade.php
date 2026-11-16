@@ -179,9 +179,6 @@
 
 @include('analytics.partials.overview-summary-styles')
 
-{{-- Headline figures ------------------------------------------------- --}}
-
-
 <div class="analytics-kpis analytics-kpis-overview">
  <a
  class="analytics-kpi-card tone-stock"
@@ -232,9 +229,6 @@
  </a>
 </div>
 
-
-
-{{-- Priority signals --------------------------------------------------- --}}
 @if($detail)
  @include('analytics.partials.detail-panel')
 @endif
@@ -277,7 +271,6 @@
 
 @include('analytics.partials.overview-highlights')
 
-{{-- Cross-tab executive summary -------------------------------------- --}}
 <section class="analytics-card analytics-summary-shell">
  <header class="analytics-card-head">
  <span class="analytics-card-mark" aria-hidden="true"><x-icon name="analytics" size="15" /></span>
@@ -342,11 +335,6 @@
  </div>
 </section>
 
-
-
-
-{{-- OPERATIONAL PERFORMANCE OVERVIEW V1 START --}}
-
 @php
     /*
      * Uses the exact output of:
@@ -394,7 +382,6 @@
             $operationalSource['available']
             ?? false
         );
-
 
     /*
      * Short duration label for Overview.
@@ -448,7 +435,6 @@
                 )
                 .' d';
         };
-
 
     $operationalCards = [
         [
@@ -547,11 +533,10 @@
     ];
 @endphp
 
-
 <style>
 .analytics-page
 .analytics-operational-performance {
-    margin-top: 18px;
+    margin-top: 12px;
 }
 
 .analytics-page
@@ -559,7 +544,7 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
     margin-bottom: 11px;
 }
 
@@ -621,9 +606,6 @@
     line-height: 1.4;
 }
 
-
-{{-- /* KPI GRID */ --}}
-
 .analytics-page
 .analytics-operational-grid {
     display: grid;
@@ -649,7 +631,7 @@
 
     min-height: 112px;
 
-    padding: 14px;
+    padding: 12px;
 
     border: 1px solid var(--border);
     border-radius: 11px;
@@ -722,9 +704,6 @@
     line-height: 1.35;
 }
 
-
-{{-- /* INFORMATION NOTE */ --}}
-
 .analytics-page
 .analytics-operational-footnote {
     display: flex;
@@ -765,9 +744,6 @@
     stroke-linejoin: round;
 }
 
-
-{{-- /* RESPONSIVE */ --}}
-
 @media (max-width: 920px) {
 
     .analytics-page
@@ -789,7 +765,6 @@
     }
 }
 </style>
-
 
 <section
     class="analytics-operational-performance"
@@ -827,7 +802,6 @@
         </div>
 
     </header>
-
 
     <div class="analytics-operational-grid">
 
@@ -876,7 +850,6 @@
 
                 </span>
 
-
                 <div class="analytics-operational-copy">
 
                     <span class="analytics-operational-label">
@@ -898,7 +871,6 @@
         @endforeach
 
     </div>
-
 
     <div class="analytics-operational-footnote">
 
@@ -923,21 +895,11 @@
 
 </section>
 
-{{-- OPERATIONAL PERFORMANCE OVERVIEW V1 END --}}
-
-
-
-{{-- OPERATIONAL PERFORMANCE PARENT CARD V2 START --}}
-
 <style>
-{{-- /* ==========================================================
-   OPERATIONAL PERFORMANCE
-   MATCH ANALYTICS SUMMARY PARENT CARD
-   ========================================================== */ --}}
 
 .analytics-page
 .analytics-operational-performance {
-    margin-top: 18px;
+    margin-top: 12px;
 
     overflow: hidden;
 
@@ -960,18 +922,13 @@
         );
 }
 
-
-{{-- /* ==========================================================
-   HEADER
-   ========================================================== */ --}}
-
 .analytics-page
 .analytics-operational-head {
     margin: 0;
 
     padding:
-        14px
-        16px;
+        12px
+        12px;
 
     border-bottom:
         1px solid
@@ -984,12 +941,10 @@
         );
 }
 
-
 .analytics-page
 .analytics-operational-title {
     align-items: center;
 }
-
 
 .analytics-page
 .analytics-operational-mark {
@@ -1009,7 +964,6 @@
         #edf6fd;
 }
 
-
 .analytics-page
 .analytics-operational-title h2 {
     margin: 0;
@@ -1018,7 +972,6 @@
     font-weight: 800;
     line-height: 1.25;
 }
-
 
 .analytics-page
 .analytics-operational-title p {
@@ -1034,11 +987,6 @@
         var(--text-muted);
 }
 
-
-{{-- /* ==========================================================
-   INNER KPI AREA
-   ========================================================== */ --}}
-
 .analytics-page
 .analytics-operational-grid {
     padding:
@@ -1052,11 +1000,6 @@
         transparent;
 }
 
-
-{{-- /*
- * Inner metric cards remain cards, just like the four
- * Analytics Summary workspace cards.
- */ --}}
 .analytics-page
 .analytics-operational-card {
     min-height: 108px;
@@ -1078,7 +1021,6 @@
     box-shadow: none;
 }
 
-
 .analytics-page
 .analytics-operational-card:hover {
     border-color:
@@ -1089,11 +1031,6 @@
         );
 }
 
-
-{{-- /* ==========================================================
-   KPI TYPOGRAPHY
-   ========================================================== */ --}}
-
 .analytics-page
 .analytics-operational-label {
     font-size: 8.5px;
@@ -1102,14 +1039,12 @@
         0.035em;
 }
 
-
 .analytics-page
 .analytics-operational-value {
     margin-top: 6px;
 
     font-size: 21px;
 }
-
 
 .analytics-page
 .analytics-operational-note {
@@ -1118,11 +1053,6 @@
     font-size: 9px;
     line-height: 1.35;
 }
-
-
-{{-- /* ==========================================================
-   FOOTNOTE INSIDE THE SAME PARENT CARD
-   ========================================================== */ --}}
 
 .analytics-page
 .analytics-operational-footnote {
@@ -1156,11 +1086,6 @@
         );
 }
 
-
-{{-- /* ==========================================================
-   DARK MODE
-   ========================================================== */ --}}
-
 html[data-theme="dark"]
 .analytics-page
 .analytics-operational-performance,
@@ -1176,7 +1101,6 @@ html[data-theme="dark"]
         var(--surface-elevated);
 }
 
-
 html[data-theme="dark"]
 .analytics-page
 .analytics-operational-mark {
@@ -1188,11 +1112,6 @@ html[data-theme="dark"]
             0.12
         );
 }
-
-
-{{-- /* ==========================================================
-   RESPONSIVE
-   ========================================================== */ --}}
 
 @media (max-width: 920px) {
 
@@ -1206,7 +1125,6 @@ html[data-theme="dark"]
     }
 }
 
-
 @media (max-width: 560px) {
 
     .analytics-page
@@ -1219,7 +1137,7 @@ html[data-theme="dark"]
     .analytics-operational-head {
         padding:
             13px
-            14px;
+            12px;
     }
 
     .analytics-page
@@ -1238,14 +1156,7 @@ html[data-theme="dark"]
 }
 </style>
 
-{{-- OPERATIONAL PERFORMANCE PARENT CARD V2 END --}}
-
-{{-- OPERATIONAL PERFORMANCE POLISH V3 START --}}
-
 <style>
-{{-- /* ==========================================================
-   OPERATIONAL PERFORMANCE - FINAL COMPACT POLISH
-   ========================================================== */ --}}
 
 .analytics-page
 .analytics-operational-grid {
@@ -1257,10 +1168,6 @@ html[data-theme="dark"]
     gap: 9px;
 }
 
-
-{{-- /*
- * Slightly shorter KPI cards to match Analytics Summary.
- */ --}}
 .analytics-page
 .analytics-operational-card {
     min-height: 94px;
@@ -1274,10 +1181,6 @@ html[data-theme="dark"]
     align-items: flex-start;
 }
 
-
-{{-- /*
- * Compact icon block.
- */ --}}
 .analytics-page
 .analytics-operational-icon {
     width: 30px;
@@ -1294,10 +1197,6 @@ html[data-theme="dark"]
     height: 15px;
 }
 
-
-{{-- /*
- * KPI title stays on one line when possible.
- */ --}}
 .analytics-page
 .analytics-operational-label {
     font-size: 8.5px;
@@ -1311,10 +1210,6 @@ html[data-theme="dark"]
     text-overflow: ellipsis;
 }
 
-
-{{-- /*
- * Slightly tighter metric value.
- */ --}}
 .analytics-page
 .analytics-operational-value {
     margin-top: 5px;
@@ -1324,10 +1219,6 @@ html[data-theme="dark"]
     line-height: 1;
 }
 
-
-{{-- /*
- * Keep helper text readable but compact.
- */ --}}
 .analytics-page
 .analytics-operational-note {
     margin-top: 6px;
@@ -1337,10 +1228,6 @@ html[data-theme="dark"]
     line-height: 1.3;
 }
 
-
-{{-- /*
- * Compact footer note.
- */ --}}
 .analytics-page
 .analytics-operational-footnote {
     margin:
@@ -1357,33 +1244,22 @@ html[data-theme="dark"]
     line-height: 1.35;
 }
 
-
-{{-- /*
- * Slightly tighter header.
- */ --}}
 .analytics-page
 .analytics-operational-head {
     padding:
         12px
-        15px;
+        12px;
 }
-
 
 .analytics-page
 .analytics-operational-title h2 {
     font-size: 13.5px;
 }
 
-
 .analytics-page
 .analytics-operational-title p {
     font-size: 9px;
 }
-
-
-{{-- /* ==========================================================
-   RESPONSIVE
-   ========================================================== */ --}}
 
 @media (max-width: 920px) {
 
@@ -1395,11 +1271,9 @@ html[data-theme="dark"]
 
 </style>
 
-{{-- OPERATIONAL PERFORMANCE POLISH V3 END --}}
-
 {{-- SPMU OVERVIEW SMART UI V4 : presentation only; original data/cards/links preserved --}}
 <style>
-.analytics-page .spmu-smart-accordion > header {display:flex;align-items:center;gap:10px;min-height:57px;padding:11px 15px!important;cursor:pointer;}
+.analytics-page .spmu-smart-accordion > header {display:flex;align-items:center;gap:10px;min-height:57px;padding:11px 12px!important;cursor:pointer;}
 .analytics-page .spmu-smart-accordion > header > div {min-width:0;flex:1;}
 .analytics-page .spmu-smart-accordion > header h2 {margin:0;}
 .analytics-page .spmu-smart-accordion > header p {margin:2px 0 0;}
@@ -1409,7 +1283,7 @@ html[data-theme="dark"]
 .analytics-page .spmu-smart-toggle svg {display:block;width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 .analytics-page .spmu-smart-accordion[data-smart-open="false"] > :not(header) {display:none!important;}
 .analytics-page .spmu-smart-accordion[data-smart-open="false"] {padding-bottom:0!important;min-height:0!important;}
-{{-- /* Preserve visual identity; tighten the most space-consuming overview-only rows. */ --}}
+
 .analytics-page .overview-leader-grid {gap:10px;padding:11px;}
 .analytics-page .overview-leader-card {gap:6px;padding:12px;}
 .analytics-page .overview-leader-value {padding-top:3px;}
@@ -1467,16 +1341,16 @@ html[data-theme="dark"]
   else setup();
 })();
 </script>
-{{-- SPMU OVERVIEW PLAIN CHEVRON COMPACT V5 --}}
+
 <style>
-{{-- /* Presentation-only: keep original Analytics visuals, links, and accordion JS. */ --}}
+
 .analytics-page .spmu-smart-accordion > header {
     min-height: 0 !important;
-    padding: 9px 14px !important;
+    padding: 9px 12px !important;
     gap: 8px !important;
 }
 .analytics-page .spmu-smart-accordion > header p { margin-top: 1px !important; }
-{{-- /* Chevron-only. The full header remains interactive; no separate button card. */ --}}
+
 .analytics-page .spmu-smart-toggle,
 .analytics-page .spmu-smart-toggle:hover,
 .analytics-page .spmu-smart-accordion > header:hover .spmu-smart-toggle {
@@ -1515,7 +1389,7 @@ html[data-theme="dark"]
     outline-offset: 2px !important;
     border-radius: 4px !important;
 }
-{{-- /* Reduce gaps without affecting other Analytics tabs. */ --}}
+
 .analytics-page .spmu-smart-accordion[data-smart-open="false"] { min-height: 0 !important; }
 .analytics-page .overview-leader-grid { gap: 9px !important; padding: 10px !important; }
 .analytics-page .overview-leader-card { padding: 11px !important; gap: 5px !important; }
@@ -1525,33 +1399,27 @@ html[data-theme="dark"]
 }
 </style>
 <style>
-{{-- /* SPMU ANALYTICS OVERVIEW EQUAL SPACING */ --}}
 
-{{-- /* Consistent vertical spacing for Overview only */ --}}
 .analytics-page:has(.spmu-smart-accordion) {
-    row-gap: 14px !important;
+    row-gap: 12px !important;
 }
 
-{{-- /* Remove extra margin causing uneven spacing */ --}}
 .analytics-page:has(.spmu-smart-accordion)
 .analytics-operational-performance {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
 }
 
-{{-- /* Keep accordion headers compact */ --}}
 .analytics-page .spmu-smart-accordion > header {
     min-height: 0 !important;
-    padding: 10px 14px !important;
+    padding: 10px 12px !important;
 }
 
-{{-- /* Keep collapsed sections at natural height */ --}}
 .analytics-page
 .spmu-smart-accordion[data-smart-open="false"] {
     min-height: 0 !important;
 }
 
-{{-- /* Preserve equal spacing on smaller screens */ --}}
 @media (max-width: 768px) {
     .analytics-page:has(.spmu-smart-accordion) {
         row-gap: 12px !important;

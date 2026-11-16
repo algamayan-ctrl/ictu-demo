@@ -20,6 +20,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
+// This is the controller for the Dashboard of Borrower, SPMU Action Officer, and SPMU Admin.
 class DashboardController extends Controller
 {
     public function __invoke(Request $request): View|RedirectResponse

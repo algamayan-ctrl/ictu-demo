@@ -41,7 +41,7 @@
     justify-content: center;
     gap: 8px;
     min-height: 36px;
-    padding: 7px 14px;
+    padding: 7px 12px;
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text-secondary);
@@ -112,7 +112,7 @@
     flex: 1 1 auto;
     min-height: 300px;
 }
-.laundry-cases-heading { padding: 15px 16px 12px; }
+.laundry-cases-heading { padding: 12px 12px 12px; }
 .laundry-cases-heading h2 {
     margin: 0 0 4px;
     color: var(--heading);
@@ -174,9 +174,9 @@
     flex: 1 1 auto;
     align-items: center;
     justify-content: center;
-    gap: 18px;
+    gap: 16px;
     min-height: 300px;
-    padding: 40px 22px;
+    padding: 40px 16px;
     color: var(--text-muted);
     text-align: center;
 }
@@ -184,10 +184,10 @@
 .laundry-inline-empty > div { max-width: 400px; }
 .laundry-inline-empty strong { display: block; margin: 0 0 8px; color: var(--heading); font-size: 16px; font-weight: 750; line-height: 1.4; }
 .laundry-inline-empty p { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.65; }
-.laundry-filter-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 160px; padding: 28px 16px; color: var(--text-muted); text-align: center; }
+.laundry-filter-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 160px; padding: 20px 12px; color: var(--text-muted); text-align: center; }
 .laundry-filter-empty strong { color: var(--heading); font-size: 14px; }
 .laundry-filter-empty p { margin: 0; }
-.laundry-pagination { padding: 12px 16px; border-top: 1px solid var(--border); }
+.laundry-pagination { padding: 12px 12px; border-top: 1px solid var(--border); }
 @media (max-width: 1100px) {
     .laundry-operations .laundry-toolbar { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr); }
     .laundry-cases-table th,
@@ -200,6 +200,6 @@
 @media (max-width: 760px) {
     .laundry-operations .laundry-toolbar { grid-template-columns: minmax(0, 1fr); }
     .laundry-tabs { gap: 7px; }
-    .laundry-inline-empty { padding: 30px 16px; }
+    .laundry-inline-empty { padding: 24px 12px; }
 }
 </style>

@@ -24,8 +24,6 @@ class BorrowerRestriction extends Model
         'sanction_id',
     ];
 
-
-
     public function custody(): BelongsTo
     {
         return $this->belongsTo(CustodyTransaction::class, 'custody_transaction_id');
